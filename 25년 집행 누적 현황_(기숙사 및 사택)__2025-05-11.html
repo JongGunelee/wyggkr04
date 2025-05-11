@@ -1,0 +1,484 @@
+<html lang="ko"><head>
+  <meta charset="UTF-8">
+  <title>풀스크린 예산 집행 차트 + 오버레이 표 (개선판 v12 - 애니메이션 2회)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+    #chart-container { position: relative; width: 100%; height: 100%; }
+    canvas { width: 100% !important; height: 100% !important; display: block; }
+    #controls { position: absolute; top: 10px; right: 10px; z-index: 30; transform: scale(0.8); transform-origin: top right; }
+    #controls input[type="file"] { cursor: pointer; }
+    #data-table { 
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%) scale(0.8); 
+      transform-origin: top center; background: rgba(255,255,255,0.95); border: 1px solid #ccc; 
+      border-radius: 4px; overflow-y: auto; max-height: 300px; z-index: 10; padding: 4px; 
+      transition: transform 0.3s ease; 
+    }
+    #data-table:hover { transform: translateX(-50%) scale(1.35); }
+    #data-table table { border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+    #data-table th, #data-table td { border: 1px solid #ddd; padding: 2px 4px; text-align: center; }
+    #data-table thead tr:nth-child(1) th { text-align: center; font-size: 16px; background: #fafafa; padding: 8px; }
+    #data-table thead tr:nth-child(2) th { text-align: right; font-size: 10px; color: #666; padding-bottom: 4px; }
+    #status-message {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.8); color: white; padding: 20px 40px;
+      border-radius: 8px; font-size: 18px; z-index: 1000; display: none;
+      animation: fadeInOut 2s ease-in-out;
+    }
+    @keyframes fadeInOut { 0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+  </style>
+</head>
+<body>
+  <div id="chart-container">
+    <div id="controls">
+      <div class="container">
+        <div class="header">
+          <div class="button-group">
+            <input type="file" id="file-input" accept=".csv" style="display: none;">
+            <button onclick="document.getElementById('file-input').click()">CSV 파일 선택</button>
+            <button id="download-csv" style="display: inline-block;">CSV 다운로드</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <canvas id="budgetChart" style="box-sizing: border-box; display: block; height: 783px; width: 774px;" width="968" height="979"></canvas> <!-- width, height 속성 제거 -->
+    <div id="data-table"><table><thead><tr><th colspan="14">집행 누적 현황</th></tr><tr><th colspan="14">(단위 : 백만원)</th></tr><tr><th>구분</th><th>01월</th><th>02월</th><th>03월</th><th>04월</th><th>05월</th><th>06월</th><th>07월</th><th>08월</th><th>09월</th><th>10월</th><th>11월</th><th>12월</th><th>소계</th></tr></thead><tbody><tr><td style="font-weight:bold;color:#000">목표A</td><td style="">35.00</td><td style="">35.00</td><td style="">40.00</td><td style="">50.00</td><td style="">35.00</td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style="font-weight:bold;">195.00</td></tr><tr><td style="font-weight:bold;color:#000">목표A 평균</td><td style="color:rgba(100,100,100,0.7);">39.00</td><td style="color:rgba(100,100,100,0.7);">39.00</td><td style="color:rgba(100,100,100,0.7);">39.00</td><td style="color:rgba(100,100,100,0.7);">39.00</td><td style="color:rgba(100,100,100,0.7);">39.00</td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="font-weight:bold;color:transparent;">39.00</td></tr><tr><td style="font-weight:bold;color:#000">실적C</td><td style="">53.34</td><td style="">32.37</td><td style="">38.98</td><td style="">56.36</td><td style="">52.02</td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style="font-weight:bold;">233.07</td></tr><tr><td style="font-weight:bold;color:#000">실적C 평균</td><td style="color:rgba(100,100,100,0.7);">46.61</td><td style="color:rgba(100,100,100,0.7);">46.61</td><td style="color:rgba(100,100,100,0.7);">46.61</td><td style="color:rgba(100,100,100,0.7);">46.61</td><td style="color:rgba(100,100,100,0.7);">46.61</td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="font-weight:bold;color:transparent;">46.61</td></tr><tr><td style="font-weight:bold;color:#000">집행B</td><td style="">23.59</td><td style="">6.61</td><td style="">25.07</td><td style="">58.09</td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style=""></td><td style="font-weight:bold;">113.36</td></tr><tr><td style="font-weight:bold;color:#000">집행B 평균</td><td style="color:rgba(100,100,100,0.7);">28.34</td><td style="color:rgba(100,100,100,0.7);">28.34</td><td style="color:rgba(100,100,100,0.7);">28.34</td><td style="color:rgba(100,100,100,0.7);">28.34</td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="color:rgba(100,100,100,0.7);"></td><td style="font-weight:bold;color:transparent;">28.34</td></tr><tr><th style="font-weight:bold;color:#000">소계(평균제외)</th><td style="font-weight:bold">111.93</td><td style="font-weight:bold">73.97</td><td style="font-weight:bold">104.05</td><td style="font-weight:bold">164.44</td><td style="font-weight:bold">87.02</td><td style="font-weight:bold">0.00</td><td style="font-weight:bold">0.00</td><td style="font-weight:bold">0.00</td><td style="font-weight:bold">0.00</td><td style="font-weight:bold">0.00</td><td style="font-weight:bold">0.00</td><td style="font-weight:bold">0.00</td><td style="font-weight:bold">541.42</td></tr></tbody></table></div>
+  </div>
+  <div id="status-message"></div>
+  <script>
+    const initialCsvData = `,01월,02월,03월,04월,05월,06월,07월,08월,09월,10월,11월,12월
+집행B,23590875,6608025,25072225,58085475,,,,,,,,
+집행B 평균,28339150,28339150,28339150,28339150,,,,,,,,
+목표A,35000000,35000000,40000000,50000000,35000000,,,,,,,
+목표A 평균,39000000,39000000,39000000,39000000,39000000,,,,,,,
+실적C,53340425,32366100,38981650,56357950,52021400,,,,,,,
+실적C 평균,46613505,46613505,46613505,46613505,46613505,,,,,,,
+`;
+
+    let budgetChart = null;
+    const customY = {
+      0: "0원", 20000000: "이천만원", 40000000: "사천만원",
+      60000000: "육천만원", 80000000: "팔천만원", 100000000: "일억원",
+      120000000: "일억이천만원", 140000000: "일억사천만원",
+      160000000: "일억육천만원", 180000000: "일억팔천만원"
+    };
+    let currentMonthLineAnimationFrameId = null;
+    let jiphangBLineAnimationFrameId = null; 
+    let originalJiphangBData = {}; 
+    let jiphangBAnimationCount = 0;
+
+
+    window.addEventListener('load', function() {
+      const canvas = document.getElementById('budgetChart');
+      canvas.removeAttribute('width'); // CSS로 크기 제어
+      canvas.removeAttribute('height'); // CSS로 크기 제어
+      if (initialCsvData) {
+        parseCSV(initialCsvData);
+        document.getElementById('download-csv').style.display = 'inline-block';
+      }
+    });
+
+    function showStatusMessage(message) {
+      const statusDiv = document.getElementById('status-message');
+      statusDiv.textContent = message;
+      statusDiv.style.display = 'block';
+      setTimeout(() => {
+        statusDiv.style.display = 'none';
+      }, 2000);
+    }
+
+    function downloadCSV() {
+      const csvContent = initialCsvData;
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+      const fileName = `25년 집행 누적 현황_(기숙사 및 사택)__${dateStr}.csv`;
+
+      if (typeof window.showSaveFilePicker === 'function') {
+        window.showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{ description: 'CSV 파일', accept: { 'text/csv': ['.csv'] }}]
+        }).then(async (handle) => {
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          showStatusMessage('CSV 파일이 성공적으로 저장되었습니다!');
+        }).catch(error => {
+          console.error('CSV 파일 저장 중 오류 발생 (showSaveFilePicker):', error);
+          if (error.name !== 'AbortError') showStatusMessage('오류가 발생했습니다: ' + error.message);
+        });
+      } else {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        showStatusMessage('CSV 파일 다운로드가 시작되었습니다. (폴백 방식)');
+      }
+    }
+
+    document.getElementById('file-input').addEventListener('change', function(e){
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const csvContent = ev.target.result;
+        if (currentMonthLineAnimationFrameId) cancelAnimationFrame(currentMonthLineAnimationFrameId);
+        currentMonthLineAnimationFrameId = null;
+        if (jiphangBLineAnimationFrameId) clearTimeout(jiphangBLineAnimationFrameId);
+        jiphangBLineAnimationFrameId = null;
+        originalJiphangBData = {};
+        jiphangBAnimationCount = 0; 
+        parseCSV(csvContent);
+        
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+        const newFileName = `25년 집행 누적 현황_(기숙사 및 사택)__${dateStr}.html`;
+        
+        try {
+          const updatedHtml = document.documentElement.outerHTML
+            .replace(/const initialCsvData = \`[^]*?\`;/, `const initialCsvData = \`${csvContent.replace(/`/g, '\\`')}\`;`);
+          const blob = new Blob([updatedHtml], { type: 'text/html;charset=utf-8' });
+          
+          if (typeof window.showSaveFilePicker === 'function') {
+            const saveDialog = document.createElement('div');
+            saveDialog.style.cssText = `position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.1); z-index:1000;`;
+            saveDialog.innerHTML = `<h3 style="margin-top:0;">HTML 파일 저장</h3><p>파일명: ${newFileName}</p><div style="display:flex;gap:10px;margin-top:20px;"><button id="save-html-btn" style="padding:8px 16px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer;">저장</button><button onclick="this.parentElement.parentElement.remove();" style="padding:8px 16px;background:#f44336;color:white;border:none;border-radius:4px;cursor:pointer;">취소</button></div>`;
+            document.body.appendChild(saveDialog);
+            document.getElementById('save-html-btn').addEventListener('click', async () => {
+              try {
+                const handle = await window.showSaveFilePicker({ suggestedName: newFileName, types: [{description:'HTML 파일',accept:{'text/html':['.html']}}] });
+                const writable = await handle.createWritable();
+                await writable.write(blob); await writable.close();
+                saveDialog.remove(); showStatusMessage('CSV 데이터가 성공적으로 임베드되었습니다!');
+              } catch (error) {
+                console.error('HTML 파일 저장 중 오류 발생 (showSaveFilePicker):', error);
+                if (error.name !== 'AbortError') showStatusMessage('오류가 발생했습니다: ' + error.message);
+                if (saveDialog.parentElement) saveDialog.remove();
+              }
+            });
+          } else {
+            showStatusMessage('HTML 자동 저장은 현재 브라우저에서 지원되지 않습니다. 수동으로 저장해주세요.');
+          }
+        } catch (error) {
+          console.error('HTML 생성 중 오류 발생:', error); showStatusMessage('오류가 발생했습니다: ' + error.message);
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+    document.getElementById('download-csv').addEventListener('click', downloadCSV);
+
+    function parseCSV(text) {
+      const lines = text.trim().split(/\r?\n/);
+      if (lines.length < 2) { alert('데이터가 없습니다.'); return; }
+      const header = lines[0].split(',');
+      const months = header.slice(1);
+      const datasets = [], tableRows = [];
+      originalJiphangBData = {};
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        const label = cols[0].trim();
+        const vals = cols.slice(1).map(v => {
+            const trimmedVal = v.trim();
+            return trimmedVal === '' ? null : Number(trimmedVal);
+        });
+        
+        const nonZeroOrNullExists = vals.some(v => v !== null && v !== 0);
+        if (!label || (!nonZeroOrNullExists && !label.startsWith('집행B') && !label.endsWith(' 평균')) || label.includes('집행율') ) {
+            if (label && vals.every(v => v === null || v === 0) && !label.includes('집행율')) {
+            } else if (!label || label.includes('집행율')) {
+                continue; 
+            } else if (!nonZeroOrNullExists && !label.startsWith('집행B') && !label.endsWith(' 평균')) {
+                continue;
+            }
+        }
+
+        const base = label.replace(/ 평균$/, '');
+        const isAvg = /평균$/.test(label);
+        let color = 'black', bw = 3, ps = 'circle', pRadius = 9, borderDashStyle = [];
+        let initialDataForAnimation = [...vals];
+
+        if (label.startsWith('집행B')) { 
+          if (label.includes('평균')) { 
+            color = 'rgba(255,0,0,0.5)'; bw = 4; ps = 'line'; pRadius = 6; borderDashStyle = [5,5]; 
+          } else { 
+            color = 'red'; bw = 5; ps = 'circle'; pRadius = 9; borderDashStyle = []; 
+          }
+          originalJiphangBData[label] = [...vals]; 
+          initialDataForAnimation = new Array(vals.length).fill(null);
+          if (vals.length > 0 && vals[0] !== null) initialDataForAnimation[0] = vals[0]; 
+        } else if (base.includes('목표A')) {
+          color = 'rgba(0,0,255,0.8)'; bw = 3; ps = isAvg ? 'line' : 'rect'; pRadius = isAvg ? 6 : 9;
+          if(isAvg) borderDashStyle = [5,5];
+        } else if (base.includes('실적C')) {
+          color = 'rgba(128,128,128,0.8)'; bw = 4; ps = isAvg ? 'line' : 'triangle'; pRadius = isAvg ? 6 : 9;
+          if(isAvg) borderDashStyle = [5,5];
+        } else if (base.includes('목표C')) {
+          color = 'rgba(0,0,255,0.8)'; bw = 3; ps = isAvg ? 'line' : 'rect'; pRadius = isAvg ? 6 : 9;
+          if(isAvg) borderDashStyle = [5,5];
+        } else if (isAvg) {
+            color = 'rgba(100,100,100,0.7)'; ps = 'line'; pRadius = 6; borderDashStyle = [5,5];
+        }
+
+        if (nonZeroOrNullExists || label.startsWith('집행B') || label.endsWith(' 평균')) {
+             datasets.push({
+                label, data: initialDataForAnimation, borderColor: color, borderDash: borderDashStyle,
+                borderWidth: bw, tension: 0.3, pointStyle: ps, pointRadius: pRadius,
+                pointBackgroundColor: '#fff', pointBorderColor: color, pointBorderWidth: 2,
+                pointHoverRadius: 12, fill: false
+            });
+        }
+        if(label && !label.includes('집행율')){ tableRows.push({ label, vals, isAvg }); }
+      }
+      tableRows.sort((a, b) => a.label.localeCompare(b.label));
+      renderChart(months, datasets);
+      renderTable(months, tableRows);
+    }
+
+    function renderChart(labels, datasets) {
+      const ctx = document.getElementById('budgetChart').getContext('2d');
+      if (budgetChart) {
+        budgetChart.destroy();
+        if (currentMonthLineAnimationFrameId) cancelAnimationFrame(currentMonthLineAnimationFrameId);
+        currentMonthLineAnimationFrameId = null;
+        if (jiphangBLineAnimationFrameId) clearTimeout(jiphangBLineAnimationFrameId);
+        jiphangBLineAnimationFrameId = null;
+        jiphangBAnimationCount = 0;
+      }
+
+      const currentMonthIndex = new Date().getMonth();
+      const annotations = {};
+      const yAxisMinVal = 0;
+
+      if (currentMonthIndex < labels.length) {
+          annotations.currentMonthLineMarker = {
+              id: 'currentMonthLineMarker', type: 'line', xScaleID: 'x', yScaleID: 'y',
+              xMin: currentMonthIndex, xMax: currentMonthIndex, yMin: yAxisMinVal, yMax: yAxisMinVal,
+              borderColor: 'rgba(255, 99, 132, 0.8)', borderWidth: 5, borderDash: [6, 6],
+              label: {
+                  content: '현재 월', enabled: true, position: 'start', yAdjust: -25, 
+                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                  font: { size: 20, weight: 'bold' }, color: 'rgba(255, 99, 132, 1)'
+              }
+          };
+      }
+      
+      budgetChart = new Chart(ctx, {
+        type: 'line', data: { labels, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, hover: { animationDuration: 0 },
+            layout: { padding: { bottom: 60 } },
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, font: { size: 14 }, boxWidth: 15, padding: 20 }},
+                tooltip: { enabled: true, mode: 'nearest', intersect: true, position: 'nearest', caretPadding: 10, titleFont: { size: 18 }, bodyFont: { size: 18 }, padding: 12, filter: tooltipItem => tooltipItem.dataset.data[tooltipItem.dataIndex] != null, animation: false },
+                annotation: { annotations: annotations }
+            },
+            interaction: { mode: 'nearest', axis: 'xy', intersect: true },
+            scales: {
+                x: { ticks: { font: { size: 21 } }, min: 0, max: labels.length > 0 ? labels.length - 1 : 0, grid: { display: true } },
+                y: { beginAtZero: true, min: 0, max: 180000000, ticks: { callback: v => customY[v] || '', font: { size: 21 }}, grid: { display: true }}
+            },
+            elements: { line: { tension: 0.3 } }
+        }
+      });
+
+      if (annotations.currentMonthLineMarker && budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker) {
+        const yAxis = budgetChart.scales.y;
+        if (!yAxis) { console.error("Y-axis not found for vertical line animation."); return; }
+        const yMinChart = yAxis.min; const yMaxChart = yAxis.max; 
+        budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker.yMin = yMinChart;
+        budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker.yMax = yMinChart; 
+        budgetChart.update('none');
+        let verticalAnimationCount = 0; const maxVerticalAnimations = 2; let currentYMax = yMinChart;
+        const animationDurationFrames = 50; const animationStep = (yMaxChart - yMinChart) / animationDurationFrames; 
+        function animateVerticalLine() {
+          if (!budgetChart || !budgetChart.options?.plugins?.annotation?.annotations?.currentMonthLineMarker) {
+            if (currentMonthLineAnimationFrameId) cancelAnimationFrame(currentMonthLineAnimationFrameId);
+            currentMonthLineAnimationFrameId = null; return;
+          }
+          currentYMax += animationStep;
+          if (currentYMax >= yMaxChart) {
+            currentYMax = yMaxChart; 
+            budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker.yMax = currentYMax;
+            budgetChart.update('none');
+            verticalAnimationCount++;
+            if (verticalAnimationCount === 1) { startJiphangBAnimation(); }
+            if (verticalAnimationCount < maxVerticalAnimations) {
+              setTimeout(() => {
+                if (!budgetChart || !budgetChart.options?.plugins?.annotation?.annotations?.currentMonthLineMarker) {
+                   if (currentMonthLineAnimationFrameId) cancelAnimationFrame(currentMonthLineAnimationFrameId);
+                   currentMonthLineAnimationFrameId = null; return;
+                }
+                currentYMax = yMinChart; 
+                budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker.yMax = currentYMax;
+                budgetChart.update('none');
+                currentMonthLineAnimationFrameId = requestAnimationFrame(animateVerticalLine);
+              }, 300); 
+            } else {
+              currentMonthLineAnimationFrameId = null; 
+            }
+          } else {
+            budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker.yMax = currentYMax;
+            budgetChart.update('none');
+            currentMonthLineAnimationFrameId = requestAnimationFrame(animateVerticalLine);
+          }
+        }
+        setTimeout(() => {
+            if (budgetChart && budgetChart.scales && budgetChart.scales.y) {
+                 currentMonthLineAnimationFrameId = requestAnimationFrame(animateVerticalLine);
+            }
+        }, 100); 
+      }
+    }
+
+    function startJiphangBAnimation() {
+        if (!budgetChart || Object.keys(originalJiphangBData).length === 0) { return; }
+        const datasetsToAnimate = budgetChart.data.datasets.filter(ds => ds.label.startsWith('집행B'));
+        if (datasetsToAnimate.length === 0) return;
+
+        // 애니메이션 시작 전, "집행B" 데이터셋의 데이터를 초기 상태(첫 점만 있거나 모두 null)로 리셋
+        datasetsToAnimate.forEach(ds => {
+            const originalData = originalJiphangBData[ds.label];
+            if (originalData) {
+                ds.data = new Array(originalData.length).fill(null);
+                if (originalData.length > 0 && originalData[0] !== null) {
+                    ds.data[0] = originalData[0];
+                }
+            }
+        });
+        budgetChart.update('none');
+
+        let currentPointIndex = 0;
+        const firstDatasetLabel = datasetsToAnimate[0].label;
+        const maxPointIndex = originalJiphangBData[firstDatasetLabel] ? originalJiphangBData[firstDatasetLabel].length : 0;
+
+        if (maxPointIndex === 0) return;
+        const pointRevealDelay = 350; 
+        const maxJiphangBAnimations = 2;
+
+        function animateJiphangBLines() {
+            if (!budgetChart) { 
+                if (jiphangBLineAnimationFrameId) clearTimeout(jiphangBLineAnimationFrameId);
+                jiphangBLineAnimationFrameId = null; return;
+            }
+            currentPointIndex++;
+            if (currentPointIndex >= maxPointIndex) { 
+                datasetsToAnimate.forEach(ds => {
+                    if(originalJiphangBData[ds.label]) ds.data = [...originalJiphangBData[ds.label]]; 
+                });
+                budgetChart.update('none'); 
+                jiphangBAnimationCount++;
+
+                if (jiphangBAnimationCount < maxJiphangBAnimations) {
+                    currentPointIndex = 0; 
+                    datasetsToAnimate.forEach(ds => { 
+                        const originalData = originalJiphangBData[ds.label];
+                        if (originalData) {
+                            ds.data = new Array(originalData.length).fill(null);
+                            if (originalData.length > 0 && originalData[0] !== null) {
+                                ds.data[0] = originalData[0];
+                            }
+                        }
+                    });
+                    budgetChart.update('none');
+                    // 다음 애니메이션 사이클을 짧은 지연 후 시작 (너무 즉시 시작하면 이전 update와 겹칠 수 있음)
+                    jiphangBLineAnimationFrameId = setTimeout(animateJiphangBLines, 100); 
+                } else {
+                    if (jiphangBLineAnimationFrameId) clearTimeout(jiphangBLineAnimationFrameId);
+                    jiphangBLineAnimationFrameId = null; 
+                }
+                return;
+            }
+
+            datasetsToAnimate.forEach(ds => {
+                const originalData = originalJiphangBData[ds.label];
+                if (originalData && currentPointIndex < originalData.length) {
+                    ds.data[currentPointIndex] = originalData[currentPointIndex];
+                }
+            });
+            budgetChart.update({duration: pointRevealDelay - 50 > 0 ? pointRevealDelay - 50 : 0, easing: 'linear'}); 
+            jiphangBLineAnimationFrameId = setTimeout(animateJiphangBLines, pointRevealDelay);
+        }
+        jiphangBLineAnimationFrameId = setTimeout(animateJiphangBLines, 50);
+    }
+
+    function renderTable(months, rows) {
+        const container = document.getElementById('data-table');
+        container.innerHTML = '';
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+
+        const tr0 = document.createElement('tr'); const th0 = document.createElement('th');
+        th0.colSpan = months.length + 2; th0.textContent = '집행 누적 현황'; 
+        tr0.appendChild(th0); thead.appendChild(tr0);
+
+        const tr1 = document.createElement('tr'); const th1 = document.createElement('th');
+        th1.colSpan = months.length + 2; th1.textContent = '(단위 : 백만원)'; 
+        tr1.appendChild(th1); thead.appendChild(tr1);
+
+        const trh = document.createElement('tr');
+        trh.innerHTML = '<th>구분</th>' + months.map(m => `<th>${m}</th>`).join('') + '<th>소계</th>';
+        thead.appendChild(trh);
+
+        const monthlySum = new Array(months.length).fill(0);
+        const averageLabelsForStyling = ["목표A 평균", "실적C 평균", "집행B 평균"]; 
+
+        rows.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td style="font-weight:bold;color:#000">${r.label}</td>`;
+            
+            const isStyledAverageLabel = averageLabelsForStyling.includes(r.label);
+            const cellDataStyle = isStyledAverageLabel || r.isAvg ? 'color:rgba(100,100,100,0.7);' : '';
+
+            r.vals.forEach(v => {
+                const txt = v == null ? '' : (v / 1e6).toFixed(2);
+                tr.innerHTML += `<td style="${cellDataStyle}">${txt}</td>`;
+            });
+            
+            let sumVal;
+            const validVals = r.vals.filter(v => v != null);
+            if (r.isAvg) {
+                sumVal = validVals.length > 0 ? (validVals.reduce((s, v) => s + v, 0) / validVals.length) : 0;
+            } else {
+                sumVal = validVals.reduce((s, v) => s + v, 0);
+            }
+            
+            let sumCellStyle = 'font-weight:bold;';
+            if (isStyledAverageLabel) {
+                sumCellStyle += 'color:transparent;'; 
+            } else if (r.isAvg) {
+                 sumCellStyle += 'color:rgba(100,100,100,0.7);';
+            }
+
+            tr.innerHTML += `<td style="${sumCellStyle}">${(sumVal / 1e6).toFixed(2)}</td>`;
+            
+            if (!r.isAvg) {
+                r.vals.forEach((v, i) => { 
+                    if (v != null) monthlySum[i] += v; 
+                });
+            }
+            tbody.appendChild(tr);
+        });
+
+        const trSum = document.createElement('tr');
+        let sumRow = '<th style="font-weight:bold;color:#000">소계(평균제외)</th>';
+        monthlySum.forEach(v => { 
+            sumRow += `<td style="font-weight:bold">${(v / 1e6).toFixed(2)}</td>`; 
+        });
+        const totalAll = monthlySum.reduce((a, b) => a + b, 0);
+        sumRow += `<td style="font-weight:bold">${(totalAll / 1e6).toFixed(2)}</td>`;
+        trSum.innerHTML = sumRow;
+        tbody.appendChild(trSum);
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        container.appendChild(table);
+    }
+  </script>
+
+</body></html>
