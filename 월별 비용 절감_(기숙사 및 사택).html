@@ -1,0 +1,2526 @@
+<html lang="ko"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>월별 비용 절감 대시보드</title>
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f2f5;
+      position: relative;
+      min-height: 100vh;
+      overflow-x: hidden;
+      width: 100vw;
+      box-sizing: border-box;
+    }
+    h1 {
+      text-align: center;
+      color: #1a237e;
+      font-size: clamp(16px, 2.5vw, 32px);
+      margin-bottom: 2px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #f0f2f5;
+      padding: clamp(8px, 1.5vw, 15px);
+      z-index: 2000;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #1a237e;
+      width: 100%;
+      box-sizing: border-box;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      height: auto;
+      min-height: 70px; /* 제목의 최소 높이 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+    #controls {
+      position: fixed;
+      top: 24.075px;
+      left: 20px;
+      z-index: 2000;
+      background: #f0f2f5;
+      padding: 4px;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 4px;
+      max-width: none;
+      transition: all 0.3s ease;
+      transform: scale(0.95);
+      transform-origin: left center;
+    }
+    .file-input-wrapper {
+      position: relative;
+      min-width: 58px;
+      cursor: pointer;
+      margin-right: 1px;
+    }
+    #file-input {
+      display: none;
+    }
+    .file-input-label {
+      display: block;
+      width: 100%;
+      padding: 2.5px 3px;
+      background: #e0e0e0;
+      color: #666666;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 6.8px;
+      text-align: center;
+      transition: all 0.3s ease;
+      position: relative;
+      z-index: 1;
+      white-space: nowrap;
+    }
+
+    .file-input-label:hover::before {
+      content: "CSV 파일을 선택하여 데이터를 업로드합니다";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 2001;
+      margin-top: 5px;
+    }
+
+    .file-input-wrapper:hover .file-input-label {
+      background: #c0c0c0;
+      border-color: #e0e0e0;
+      transform: translateY(-1px);
+    }
+    #message {
+      display: none;
+    }
+    #dashboard-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 22px;
+      padding: 22px;
+      flex-wrap: nowrap;
+      position: relative;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 120px; /* Adjusted margin-top to account for fixed headers */
+      max-width: 100vw;
+      z-index: 1;
+    }
+    #chart {
+      width: 31.5%;
+      max-width: 525px;
+      height: calc(100vh - 200px);
+      aspect-ratio: 1;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
+      margin: 0;
+      padding-left: 30px;
+      position: relative;
+      box-sizing: border-box;
+    }
+    svg {
+      overflow: visible;
+      width: 100%;
+      height: 100%;
+    }
+    .node {
+      transform-style: preserve-3d;
+      transition: opacity 0.3s ease, filter 0.3s ease;
+      cursor: pointer;
+      will-change: opacity, filter;
+    }
+    .node:hover {
+      opacity: 0.9;
+    }
+    .node circle {
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+      transition: all 0.3s ease;
+      will-change: filter, stroke-width, r;
+    }
+    .node.selected circle {
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
+      stroke-width: 4;
+      opacity: 1 !important;
+    }
+    .node:not(.selected) circle {
+      opacity: 0.3;
+      stroke: #cccccc;
+    }
+    .node text {
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+      transition: font-weight 0.3s ease;
+    }
+    .node.selected text {
+      font-weight: bold;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+      opacity: 1;
+    }
+    .node:not(.selected) text {
+      opacity: 0.3;
+    }
+    #table-container {
+      width: 77%;
+      max-width: 1100px;
+      min-width: 400px;
+      background: white;
+      padding: 16.5px;
+      border-radius: 8.8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      font-size: 14.3px;
+      overflow-y: auto; /* Changed to auto for scrollable table */
+      position: relative;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      margin-top: 0;
+      min-height: 400px;
+      max-height: calc(100vh - 195px); /* Kept max-height for scrollable table view */
+      flex-grow: 1;
+    }
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      table-layout: auto;
+      position: relative;
+      margin-bottom: 30px;
+    }
+    thead {
+      /* position, top, z-index removed from default */
+      background: white;
+    }
+    thead th {
+      background: #f8f9fa;
+      font-size: 13px;
+      padding: 6px;
+      border-bottom: 2px solid #dee2e6;
+      white-space: normal;
+      /* position, top, z-index removed from default */
+    }
+    th, td {
+      padding: 6px;
+      border: 1px solid #dee2e2;
+      text-align: center;
+      font-size: 13px;
+      word-wrap: break-word;
+      white-space: normal;
+      overflow: hidden;
+      max-width: 300px;
+    }
+    th:nth-child(1), td:nth-child(1) { width: 7%; }
+    th:nth-child(2), td:nth-child(2) { width: 10%; }
+    th:nth-child(3), td:nth-child(3) { width: 18%; }
+    th:nth-child(4), td:nth-child(4) { width: 10%; }
+    th:nth-child(5), td:nth-child(5) { width: 10%; }
+    th:nth-child(6), td:nth-child(6) { width: 10%; }
+    th:nth-child(7), td:nth-child(7) { width: 35%; }
+    tr.group-header td {
+      background: #f8f9fa;
+      font-weight: bold;
+      text-align: left;
+    }
+    tr.subtotal td {
+      font-weight: bold;
+      background: #e3f2fd;
+      color: #1976d2;
+      font-size: 15.6px;
+    }
+    tr:hover td:not(tr.subtotal td):not(tr.sticky-total-row td) {
+      background: #f1f3f5;
+    }
+    .month-checkbox {
+      display: flex;
+      align-items: center;
+      padding: 4px 8px;
+      background: transparent;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 12px;
+      color: #999;
+    }
+    .month-checkbox:hover {
+      background: #e9ecef;
+    }
+    .month-checkbox.selected {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+    .month-checkbox.selected::before {
+      content: "✓";
+      margin-right: 5px;
+      color: #1976d2;
+    }
+    #select-all-container {
+      text-align: center;
+      margin: 0;
+      padding: 3.3px;
+      background: #f0f2f5;
+      border-radius: 4.4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      width: 132px;
+      position: fixed;
+      top: 95px;
+      left: 22px;
+      z-index: 1999;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      margin-top: 10px;
+    }
+
+    #select-all-checkbox {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      padding: 2px 4px;
+      font-size: 11px;
+      color: #666;
+      transition: all 0.2s ease;
+      background: white;
+      border-radius: 3px;
+      padding: 4px 8px;
+    }
+
+    #select-all-checkbox input {
+      margin: 0;
+      width: 12px;
+      height: 12px;
+    }
+
+    #select-all-checkbox input:checked + span {
+      color: #1a237e;
+      font-weight: 500;
+    }
+
+    #month-filter-container {
+      text-align: center;
+      margin: 0 auto 11px;
+      padding: 0;
+      max-width: 88%;
+      position: fixed;
+      top: 95px;
+      left: 198px;
+      right: 0;
+      z-index: 1999;
+      background: #f0f2f5;
+      padding: 5.5px 0;
+    }
+    #month-checkboxes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      justify-content: center;
+    }
+    @media (max-width: 1400px) {
+      #chart {
+        width: 25%;
+        max-width: 400px;
+      }
+      #table-container {
+        width: 75%;
+        max-width: 900px;
+        min-width: 300px;
+        flex-grow: 1;
+      }
+      h1 {
+        font-size: clamp(14px, 2vw, 28px);
+        padding: clamp(7px, 1.2vw, 12px);
+      }
+    }
+    @media (max-width: 1200px) {
+      #dashboard-container {
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+        margin-top: 144px; /* Adjusted margin-top */
+        gap: 40px;
+        padding: 10px;
+      }
+      #chart {
+        width: 100%;
+        max-width: 800px;
+        height: 600px;
+        margin: 0 auto;
+      }
+      #table-container {
+        width: 100%;
+        max-width: 1000px;
+        min-width: 200px;
+        position: static;
+        margin: 0 auto;
+        /* max-height: calc(100vh - 200px); Removed max-height */
+        flex-grow: 1;
+        overflow: auto; /* Changed to auto */
+      }
+      .file-input-wrapper {
+        min-width: 90px;
+      }
+      .file-input-label {
+        font-size: 9px;
+        padding: 4px 6px;
+      }
+      .control-btn {
+        min-width: 55px;
+        font-size: 6.5px;
+        padding: 2px 3px;
+      }
+       #controls {
+        top: 10px;
+        transform: scale(1);
+        transform-origin: left top;
+      }
+      h1 {
+        font-size: clamp(12px, 1.8vw, 24px);
+        padding: clamp(6px, 1vw, 10px);
+        min-height: 50px;
+      }
+      #select-all-container {
+        top: 72px; /* Adjusted top for fixed header */
+        width: 140px;
+      }
+      #month-filter-container {
+        top: 72px; /* Adjusted top for fixed header */
+        left: 210px;
+      }
+      th, td {
+        font-size: 14.28px;
+        padding: 7px;
+      }
+      .sticky-total-row td {
+        font-size: 16.32px;
+      }
+       /* .sticky-total-row {
+        top: 105px; Moved sticky styles to JS
+      }
+      .sticky-total-row td {
+        top: 50px;
+      } */
+      thead {
+        top: 0; /* Relative to scrolling container */
+      }
+      thead th {
+        top: 0; /* Relative to scrolling container */
+      }
+      tbody {
+        /* margin-top: 95px; Removed margin-top as sticky will handle it */
+      }
+      .summary-card h3 {
+        font-size: 17.7px;
+      }
+      /* 반응형에서 .summary-item 마진 통일 */
+      .summary-item {
+        font-size: 14.75px;
+        margin: 12px 0; /* 기본 마진 동일하게 */
+        line-height: 1.5;
+      }
+      #type-summary .summary-item { /* 반응형에서도 작업 유형별 통계는 좁은 간격 유지 */
+        margin: 4px 0; /* 변경된 부분 */
+      }
+      .summary-value {
+        font-size: 14.75px;
+      }
+    }
+    .sticky-total-row {
+      /* position, top, z-index removed from default */
+      background: #fff5f5;
+    }
+    .sticky-total-row td {
+      font-weight: bold;
+      color: #e74c3c;
+      font-size: 15.912px;
+      /* position, top, z-index removed from default */
+    }
+    /* tbody {
+      margin-top: 85px; Removed margin-top
+    } */
+    tbody tr:not(.sticky-total-row) {
+      position: relative;
+      z-index: 1;
+    }
+    td:nth-child(7) {
+      font-size: 12px;
+      text-align: center;
+      padding-left: 10px;
+      white-space: normal;
+      word-break: break-word;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .min-labor-cost-link {
+      color: #1a237e;
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .min-labor-cost-link:hover {
+      color: #0d47a1;
+      text-decoration: none;
+    }
+    .detail-link, .note-link {
+      color: #FF33CC;
+      text-decoration: underline;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .detail-link:hover, .note-link:hover {
+      color: #B800B8;
+      text-decoration: none;
+    }
+    .node.selected ~ #table-container td:nth-child(7) {
+      font-size: 11px;
+      line-height: 1.3;
+    }
+    th:nth-child(3), td:nth-child(3) {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: auto;
+    }
+    td:nth-child(3):hover {
+      white-space: nowrap;
+      overflow: hidden;
+      position: static;
+      z-index: auto;
+      background-color: transparent;
+      box-shadow: none;
+    }
+    .node.selected ~ #table-container th:nth-child(3),
+    .node.selected ~ #table-container td:nth-child(3) {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    th:nth-child(5) {
+      white-space: normal;
+      word-wrap: break-word;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+    th:nth-child(1), td:nth-child(1),
+    th:nth-child(2), td:nth-child(2) {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: auto;
+    }
+    td:nth-child(1):hover,
+    td:nth-child(2):hover {
+      white-space: nowrap;
+      overflow: hidden;
+      position: static;
+      z-index: auto;
+      background-color: transparent;
+      box-shadow: none;
+    }
+    th:nth-child(6), td:nth-child(6) {
+      text-align: center;
+    }
+    .control-btn {
+      min-width: 58px;
+      padding: 2.5px 3px;
+      background: #e0e0e0;
+      color: #666666;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 6.8px;
+      transition: all 0.3s ease;
+      text-align: center;
+      white-space: nowrap;
+      margin: 0 1px;
+      position: relative;
+    }
+    .control-btn:hover {
+      background: #c0c0c0;
+      border-color: #e0e0e0;
+    }
+    .control-btn:hover::before {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 2001;
+      margin-top: 5px;
+    }
+    .zoomed-cell {
+      font-size: 16px !important;
+      background-color: #f0f7ff !important;
+      border: 2px solid #1a237e !important;
+      z-index: 10;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      padding: 10px !important;
+      line-height: 1.5 !important;
+      white-space: normal !important;
+      overflow: visible !important;
+      max-width: none !important;
+      width: auto !important;
+      height: auto !important;
+    }
+    tr:has(.zoomed-cell) {
+      position: relative;
+      z-index: 100;
+      height: auto !important;
+    }
+    #table-container:has(.zoomed-cell) {
+      overflow: visible !important;
+    }
+    .note-popup {
+      position: fixed;
+      background-color: #ffffff;
+      border: 2px solid #1a237e;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+      z-index: 1000;
+      max-width: 90%;
+      max-height: 240px;
+      overflow-y: auto;
+      font-size: 19px;
+      line-height: 1.6;
+      white-space: nowrap;
+      word-break: keep-all;
+      overflow-x: auto;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      color: #1a237e;
+      font-weight: 500;
+    }
+    .node.selected ~ #table-container th:nth-child(1),
+    .node.selected ~ #table-container td:nth-child(1) { width: 6%; }
+    .node.selected ~ #table-container th:nth-child(2),
+    .node.selected ~ #table-container td:nth-child(2) { width: 9%; }
+    .node.selected ~ #table-container th:nth-child(3),
+    .node.selected ~ #table-container td:nth-child(3) { width: 22%; }
+    .node.selected ~ #table-container th:nth-child(4),
+    .node.selected ~ #table-container td:nth-child(4) { width: 8%; }
+    .node.selected ~ #table-container th:nth-child(5),
+    .node.selected ~ #table-container td:nth-child(5) { width: 8%; }
+    .node.selected ~ #table-container th:nth-child(6),
+    .node.selected ~ #table-container td:nth-child(6) { width: 7%; }
+    .node.selected ~ #table-container th:nth-child(7),
+    .node.selected ~ #table-container td:nth-child(7) { width: 40%; }
+
+    .analysis-summary {
+      display: none;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-y: auto;
+      height: 100%;
+      box-sizing: border-box;
+      margin-top: 0;
+    }
+    .analysis-summary.show {
+      display: flex;
+      margin: 0;
+    }
+    .summary-cards {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1.5fr;
+      gap: 20px;
+      margin-top: 0;
+      width: 100%;
+      max-width: 1200px;
+    }
+    .summary-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 15px;
+      display: flex;
+      flex-direction: column;
+    }
+    .summary-card > div {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        flex-grow: 1;
+    }
+
+    .summary-card:nth-child(1) {
+      min-width: 300px;
+    }
+    .summary-card:nth-child(3) {
+      min-width: 300px;
+    }
+    .summary-card:nth-child(2) {
+      min-width: 200px;
+    }
+    .summary-card h3 {
+      margin: 0 0 10px 0;
+      color: #1a237e;
+      font-size: 15.73px;
+      font-weight: 600;
+      border-bottom: 2px solid #e3f2fd;
+      padding-bottom: 6px;
+      flex-shrink: 0;
+    }
+
+    .summary-item {
+      margin: 12px 0;
+      font-size: 13.76px;
+      line-height: 1.4;
+    }
+    #total-summary .summary-item:first-child {
+        flex-shrink: 0;
+    }
+    /* "작업 유형별 통계" 카드 내부 항목 마진만 좁게 조정 */
+    #type-summary .summary-item {
+        margin: 8px 0; /* 변경된 부분 */
+    }
+
+
+    .summary-item strong {
+      color: #1976d2;
+      margin-right: 6px;
+      font-size: 13.76px;
+    }
+    .summary-value {
+      font-weight: bold;
+      color: #2c3e50;
+      font-size: 14.75px;
+    }
+    .summary-value.positive {
+      color: #2e7d32;
+    }
+    .summary-value.negative {
+      color: #c62828;
+    }
+    .summary-value small {
+      font-size: 11.8px;
+      font-weight: normal;
+      margin-left: 2px;
+    }
+    .summary-item small {
+      font-size: 11.8px;
+      color: #666;
+      margin-left: 4px;
+    }
+
+    #total-summary .summary-item:first-child strong {
+        font-size: 1.16em !important;
+    }
+    #total-summary .summary-item:first-child .summary-value {
+        font-size: 1.85em !important;
+    }
+    #total-summary .summary-item:first-child > div > span:not(.summary-value) {
+        font-size: 0.92em !important;
+    }
+
+
+    @media (max-width: 1200px) {
+      .analysis-summary {
+      }
+      .summary-cards {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        margin-top: 0;
+      }
+      .summary-card h3 {
+        font-size: 17.7px;
+      }
+      .summary-item {
+        font-size: 14.75px;
+        margin: 12px 0;
+      }
+      #type-summary .summary-item { /* 반응형에서도 작업 유형별 통계는 좁은 간격 유지 */
+        margin: 4px 0; /* 변경된 부분 */
+      }
+      #table-container {
+        /* Adjust max-height for smaller screens */
+         max-height: calc(100vh - 250px);
+      }
+       thead {
+        top: 0; /* Relative to scrolling container */
+      }
+      thead th {
+        top: 0; /* Relative to scrolling container */
+      }
+      .sticky-total-row {
+        /* top set by JS */
+      }
+    }
+    #controls.compact {
+      transform: scale(0.8) !important;
+      transform-origin: left top !important;
+      top: 0 !important;
+    }
+    #controls.compact .control-btn {
+      min-width: 50px;
+      font-size: 6px;
+      padding: 2px 3px;
+    }
+
+    .hyperlink-month,
+    .hyperlink-type,
+    .hyperlink-detail,
+    .hyperlink-note {
+      text-decoration: underline;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .hyperlink-month { color: #1a237e; }
+    .hyperlink-type { color: #1a237e; }
+    .hyperlink-detail { color: #1a237e; }
+    .hyperlink-note { color: #1a237e; }
+    .hyperlink-month:hover,
+    .hyperlink-type:hover,
+    .hyperlink-detail:hover,
+    .hyperlink-note:hover {
+      opacity: 0.8;
+      text-decoration: none;
+    }
+    .hyperlink-style-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      z-index: 2000;
+      width: 80%;
+      max-width: 800px;
+      max-height: 80vh;
+      overflow-y: auto;
+      display: block !important;
+    }
+    .hyperlink-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1999;
+      display: block !important;
+    }
+    .hyperlink-style-panel h3 {
+      color: #1a237e;
+      margin: 0 0 20px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e3f2fd;
+    }
+    .hyperlink-type-section {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+    .hyperlink-type-section h4 {
+      color: #1a237e;
+      margin: 0 0 15px 0;
+    }
+    .style-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    .style-control {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .style-control label {
+      font-size: 14px;
+      color: #666;
+    }
+    .style-control input,
+    .style-control select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .style-preview {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: white;
+    }
+    .panel-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    .panel-button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    .panel-button.apply { background: #1a237e; color: white; }
+    .panel-button.cancel { background: #e0e0e0; color: #666; }
+    .panel-button:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    a:not(.min-labor-cost-link):not(.detail-link):not(.note-link) {
+      color: #FF00FF !important;
+      text-decoration: underline;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    a:not(.min-labor-cost-link):not(.detail-link):not(.note-link):hover {
+      color: #FF00FF !important;
+      text-decoration: none;
+    }
+    .min-labor-cost-link,
+    .detail-link,
+    .note-link,
+    .hyperlink-month,
+    .hyperlink-type,
+    .hyperlink-detail,
+    .hyperlink-note {
+      color: #FF00FF !important;
+      text-decoration: underline;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .min-labor-cost-link:hover,
+    .detail-link:hover,
+    .note-link:hover,
+    .hyperlink-month:hover,
+    .hyperlink-type:hover,
+    .hyperlink-detail:hover,
+    .hyperlink-note:hover {
+      color: #FF00FF !important;
+      text-decoration: none;
+    }
+  </style>
+<style id="dynamic-column-styles"></style></head>
+<body style="zoom: 100%;">
+  <h1>월별 비용 절감 현황 대시보드</h1>
+  <div id="controls">
+    <input type="file" id="file-input" accept=".csv">
+    <button id="raw-upload-btn" class="control-btn" data-tooltip="CSV 파일을 선택하여 데이터를 업로드합니다">Raw Up</button>
+    <button id="upload-link-btn" class="control-btn" data-tooltip="하이퍼링크 설정을 업로드합니다">Hyper Up</button>
+    <button id="download-html-btn" class="control-btn" data-tooltip="현재 데이터가 포함된 HTML 파일을 다운로드합니다">HTML Dn</button>
+    <button id="download-csv-btn" class="control-btn" data-tooltip="현재 데이터를 CSV 파일로 다운로드합니다">Raw Dn</button>
+    <button id="download-link-btn" class="control-btn" data-tooltip="하이퍼링크 설정을 다운로드합니다">Hyper Dn</button>
+  </div>
+  <div id="select-all-container">
+    <label id="select-all-checkbox">
+      <input type="checkbox" id="select-all">
+      <span>전체 버블 선택/해제</span>
+    </label>
+  </div>
+  <div id="month-filter-container">
+    <div id="month-checkboxes">
+        <label class="month-checkbox ">
+          <input type="checkbox" value="2023-12">
+          2023-12
+        </label>
+      
+        <label class="month-checkbox ">
+          <input type="checkbox" value="2024-01">
+          2024-01
+        </label>
+      
+        <label class="month-checkbox ">
+          <input type="checkbox" value="2024-12">
+          2024-12
+        </label>
+      
+        <label class="month-checkbox ">
+          <input type="checkbox" value="2025-01">
+          2025-01
+        </label>
+      
+        <label class="month-checkbox ">
+          <input type="checkbox" value="2025-02">
+          2025-02
+        </label>
+      
+        <label class="month-checkbox ">
+          <input type="checkbox" value="2025-03">
+          2025-03
+        </label>
+      
+        <label class="month-checkbox ">
+          <input type="checkbox" value="2025-04">
+          2025-04
+        </label>
+      </div>
+  </div>
+  <div id="dashboard-container">
+    <svg id="chart" width="525" height="525" viewBox="0 0 525 525" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 100%;"><rect width="525" height="525" fill="transparent"></rect><g class="node" transform="translate(136.26322902906378,268.55701150643233)" style="opacity: 0.5;"><circle r="78.82659050270823" fill="#4e79a7" stroke="#cccccc" stroke-width="2"></circle><text text-anchor="middle" dominant-baseline="middle" style="fill: rgb(255, 255, 255); font-weight: normal;"><tspan x="0" dy="-29.160000000000004px" style="font-size: 18px;">사택 주방벽 타일교체</tspan><tspan class="amount-tspan" x="0" dy="32.4px" style="font-size: 18px;">−6,423,125</tspan><tspan class="count-tspan" x="0" dy="25.919999999999998px" style="font-size: 15.7653px;">7건</tspan></text></g><g class="node" transform="translate(336.70918477883856,268.55701150643233)" style="opacity: 0.5;"><circle r="117.77918050121549" fill="#f28e2c" stroke="#cccccc" stroke-width="2"></circle><text text-anchor="middle" dominant-baseline="middle" style="fill: rgb(44, 62, 80); font-weight: normal;"><tspan x="0" dy="-29.160000000000004px" style="font-size: 18px;">씽크대 상하부장 문짝교체</tspan><tspan class="amount-tspan" x="0" dy="32.4px" style="font-size: 18px;">−14,339,630</tspan><tspan class="count-tspan" x="0" dy="25.919999999999998px" style="font-size: 18px;">7건</tspan></text></g><g class="node" transform="translate(210.9932196268707,351.58769929341395)" style="opacity: 0.5;"><circle r="29.04117706069892" fill="#e15759" stroke="#cccccc" stroke-width="2"></circle><text text-anchor="middle" dominant-baseline="middle" style="fill: rgb(255, 255, 255); font-weight: normal;"><tspan x="0" dy="-15.682235612777415px" style="font-size: 9.68039px;">사택 누수보수</tspan><tspan class="amount-tspan" x="0" dy="17.42470623641935px" style="font-size: 7.26029px;">−871,825</tspan><tspan class="count-tspan" x="0" dy="13.93976498913548px" style="font-size: 5.80824px;">2건</tspan></text></g><g class="node" transform="translate(209.19541985209958,172.0581318971434)" style="opacity: 0.5;"><circle r="38.29246674681594" fill="#76b7b2" stroke="#cccccc" stroke-width="2"></circle><text text-anchor="middle" dominant-baseline="middle" style="fill: rgb(44, 62, 80); font-weight: normal;"><tspan x="0" dy="-28.336425392643793px" style="font-size: 12.7642px;">사택 세대내 보일러</tspan><tspan x="0" dy="15.316986698726376px" style="font-size: 12.7642px;">교체(개별)</tspan><tspan class="amount-tspan" x="0" dy="22.975480048089565px" style="font-size: 9.57312px;">−1,515,750</tspan><tspan class="count-tspan" x="0" dy="18.38038403847165px" style="font-size: 7.65849px;">7건</tspan></text></g><g class="node" transform="translate(257.5958058403236,434.9211911923021)" style="opacity: 0.5;"><circle r="62.597808245584254" fill="#59a14f" stroke="#cccccc" stroke-width="2"></circle><text text-anchor="middle" dominant-baseline="middle" style="fill: rgb(255, 255, 255); font-weight: normal;"><tspan x="0" dy="-29.160000000000004px" style="font-size: 18px;">관리소(건축 전환)</tspan><tspan class="amount-tspan" x="0" dy="32.4px" style="font-size: 15.6495px;">−4,050,598</tspan><tspan class="count-tspan" x="0" dy="25.919999999999998px" style="font-size: 12.5196px;">34건</tspan></text></g><g class="node" transform="translate(276.86043994998056,102.43535286202331)" style="opacity: 0.5;"><circle r="54.9543522999096" fill="#edc949" stroke="#cccccc" stroke-width="2"></circle><text text-anchor="middle" dominant-baseline="middle" style="fill: rgb(44, 62, 80); font-weight: normal;"><tspan x="0" dy="-29.160000000000004px" style="font-size: 18px;">관리소(기계 전환)</tspan><tspan class="amount-tspan" x="0" dy="32.4px" style="font-size: 13.7386px;">−3,121,800</tspan><tspan class="count-tspan" x="0" dy="25.919999999999998px" style="font-size: 10.9909px;">12건</tspan></text></g><g class="node" transform="translate(158.5074473496711,372.47926328383153)" style="opacity: 0.5;"><circle r="23.609466984500344" fill="#af7aa1" stroke="#cccccc" stroke-width="2"></circle><text text-anchor="middle" dominant-baseline="middle" style="fill: rgb(255, 255, 255); font-weight: normal;"><tspan x="0" dy="-12.749112171630184px" style="font-size: 7.86982px;">관리소(전기 전환)</tspan><tspan class="amount-tspan" x="0" dy="14.165680190700204px" style="font-size: 5.90237px;">−576,200</tspan><tspan class="count-tspan" x="0" dy="11.332544152560162px" style="font-size: 4.72189px;">1건</tspan></text></g><g class="node" transform="translate(134.6677058858458,150.43153832269746)" style="opacity: 0.5;"><circle r="35.46947282535666" fill="#ff9da7" stroke="#cccccc" stroke-width="2"></circle><text text-anchor="middle" dominant-baseline="middle" style="fill: rgb(44, 62, 80); font-weight: normal;"><tspan x="0" dy="-19.153515325692595px" style="font-size: 11.8232px;">관리소(탐지 전환)</tspan><tspan class="amount-tspan" x="0" dy="21.281683695213996px" style="font-size: 8.86737px;">−1,300,500</tspan><tspan class="count-tspan" x="0" dy="17.025346956171195px" style="font-size: 7.09389px;">3건</tspan></text></g><g class="node" transform="translate(378.1514434271121,439.42418452133427)" style="opacity: 0.5;"><circle r="54.201713170667006" fill="#9c755f" stroke="#cccccc" stroke-width="2"></circle><text text-anchor="middle" dominant-baseline="middle" style="fill: rgb(255, 255, 255); font-weight: normal;"><tspan x="0" dy="-39.96px" style="font-size: 18px;">기타</tspan><tspan x="0" dy="21.599999999999998px" style="font-size: 18px;">보수(기숙사/사택)</tspan><tspan class="amount-tspan" x="0" dy="32.4px" style="font-size: 13.5504px;">−3,036,875</tspan><tspan class="count-tspan" x="0" dy="25.919999999999998px" style="font-size: 10.8403px;">2건</tspan></text></g><g class="node" transform="translate(155.77353422689677,435.2542341662794)" style="opacity: 0.5;"><circle r="35.38482328341032" fill="#bab0ab" stroke="#cccccc" stroke-width="2"></circle><text text-anchor="middle" dominant-baseline="middle" style="fill: rgb(44, 62, 80); font-weight: normal;"><tspan x="0" dy="-26.184769229723635px" style="font-size: 11.7949px;">긴급 건축</tspan><tspan x="0" dy="14.153929313364127px" style="font-size: 11.7949px;">보수(후정산)</tspan><tspan class="amount-tspan" x="0" dy="21.23089397004619px" style="font-size: 8.84621px;">−1,294,300</tspan><tspan class="count-tspan" x="0" dy="16.984715176036953px" style="font-size: 7.07696px;">1건</tspan></text></g></svg>
+    <div id="table-container" style="overflow-y: visible; max-height: none;">
+      <table style="display: none;">
+        <thead style="position: static; top: auto; z-index: auto;">
+          <tr><th>월</th><th>작업유형</th><th>절감항목</th><th>A.집행비</th><th style="white-space: normal; overflow-wrap: break-word; word-break: break-word; line-height: 1.2;">B.공사비<br>적용시</th><th>절감비(A-B)</th><th>비고</th></tr>
+        </thead>
+        <tbody><tr class="sticky-total-row" style="position: static; top: auto; z-index: auto;">
+            <td style=""></td>
+            <td style=""></td>
+            <td style="">총 절감합계</td>
+            <td style=""></td>
+            <td style=""></td>
+            <td id="total-top" style="color: red;">−36,530,603</td>
+            <td style=""></td>
+          </tr><tr><td style="background-color: rgb(249, 249, 249);">2023-12</td><td style="background-color: rgb(249, 249, 249);">사택 주방벽 타일교체</td><td title="23년 주방벽 철거 및 및 신규 설치 실적(21세대) 세대당 평균" style="background-color: rgb(249, 249, 249);">23년 주방벽 철거 및 및 신규 설치 실적(21세대) 세대당 평균</td><td style="background-color: rgb(249, 249, 249);">1,408,864</td><td style="background-color: rgb(249, 249, 249);">1,408,864</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"> 참조: 23년 21세대 (PO금액 29,586,150원) 실집행비=&gt;1,408,864(세대당 평균 금액) </td></tr><tr><td style="background-color: rgb(255, 255, 255);">2024-01</td><td style="background-color: rgb(255, 255, 255);">사택 주방벽 타일교체</td><td title="사택 5-405 주방벽 철거 및 타일교체" style="background-color: rgb(255, 255, 255);">사택 5-405 주방벽 철거 및 타일교체</td><td style="background-color: rgb(255, 255, 255);">1,284,625</td><td style="background-color: rgb(255, 255, 255);">1,284,625</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"> ● 세대별 벽구조에 따른 공사방법에 따라 차이큼 </td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-01</td><td style="background-color: rgb(249, 249, 249);">사택 주방벽 타일교체</td><td title="사택 2-207 주방벽 타일교체" style="background-color: rgb(249, 249, 249);">사택 2-207 주방벽 타일교체</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">1,284,625</td><td style="background-color: rgb(249, 249, 249); color: red;">−1,284,625</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-04</td><td style="background-color: rgb(255, 255, 255);">사택 주방벽 타일교체</td><td title="사택 2-203 주방벽 타일교체" style="background-color: rgb(255, 255, 255);">사택 2-203 주방벽 타일교체</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">1,284,625</td><td style="background-color: rgb(255, 255, 255); color: red;">−1,284,625</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-04</td><td style="background-color: rgb(255, 255, 255);">사택 주방벽 타일교체</td><td title="사택 9-503 주방벽 타일교체" style="background-color: rgb(255, 255, 255);">사택 9-503 주방벽 타일교체</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">1,284,625</td><td style="background-color: rgb(255, 255, 255); color: red;">−1,284,625</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-04</td><td style="background-color: rgb(255, 255, 255);">사택 주방벽 타일교체</td><td title="사택 8-310 주방벽 타일교체" style="background-color: rgb(255, 255, 255);">사택 8-310 주방벽 타일교체</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">1,284,625</td><td style="background-color: rgb(255, 255, 255); color: red;">−1,284,625</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-04</td><td style="background-color: rgb(255, 255, 255);">사택 주방벽 타일교체</td><td title="사택 5-501 주방벽 타일교체" style="background-color: rgb(255, 255, 255);">사택 5-501 주방벽 타일교체</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">1,284,625</td><td style="background-color: rgb(255, 255, 255); color: red;">−1,284,625</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr class="subtotal"><td></td><td></td><td style="color: rgb(78, 121, 167);">사택 주방벽 타일교체 소계</td><td></td><td></td><td style="color: rgb(78, 121, 167);">−6,423,125</td><td></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2023-12</td><td style="background-color: rgb(249, 249, 249);">씽크대 상하부장 문짝교체</td><td title="23년 씽크대 전면 교체 실적(21세대) 세대당 평균" style="background-color: rgb(249, 249, 249);">23년 씽크대 전면 교체 실적(21세대) 세대당 평균</td><td style="background-color: rgb(249, 249, 249);">3,869,181</td><td style="background-color: rgb(249, 249, 249);">3,869,181</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"> ●23년 21세대 (PO금액 81,252,800원) 실집행비=&gt;3,869,181(세대당 평균 금액) </td></tr><tr><td style="background-color: rgb(255, 255, 255);">2024-01</td><td style="background-color: rgb(255, 255, 255);">씽크대 상하부장 문짝교체</td><td title="사택 5-405 씽크대 교체(고층장비)" style="background-color: rgb(255, 255, 255);">사택 5-405 씽크대 교체(고층장비)</td><td style="background-color: rgb(255, 255, 255);">4,350,525</td><td style="background-color: rgb(255, 255, 255);">4,350,525</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"> 참조: 24년 상반기 실 집행비(1세대)_층고 및 세대별 평수 상이 </td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-01</td><td style="background-color: rgb(249, 249, 249);">씽크대 상하부장 문짝교체</td><td title="사택 2-207 씽크대 상하부장 문짝교체" style="background-color: rgb(249, 249, 249);">사택 2-207 씽크대 상하부장 문짝교체</td><td style="background-color: rgb(249, 249, 249);">1,018,025</td><td style="background-color: rgb(249, 249, 249);">3,869,181</td><td style="background-color: rgb(249, 249, 249); color: red;">−2,851,156</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-04</td><td style="background-color: rgb(255, 255, 255);">씽크대 상하부장 문짝교체</td><td title="사택 2-203 씽크대 상하부장 문짝교체" style="background-color: rgb(255, 255, 255);">사택 2-203 씽크대 상하부장 문짝교체</td><td style="background-color: rgb(255, 255, 255);">1,020,175</td><td style="background-color: rgb(255, 255, 255);">3,869,181</td><td style="background-color: rgb(255, 255, 255); color: red;">−2,849,006</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-04</td><td style="background-color: rgb(255, 255, 255);">씽크대 상하부장 문짝교체</td><td title="사택 9-503 씽크대 상하부장 문짝교체" style="background-color: rgb(255, 255, 255);">사택 9-503 씽크대 상하부장 문짝교체</td><td style="background-color: rgb(255, 255, 255);">1,020,175</td><td style="background-color: rgb(255, 255, 255);">3,869,181</td><td style="background-color: rgb(255, 255, 255); color: red;">−2,849,006</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-04</td><td style="background-color: rgb(255, 255, 255);">씽크대 상하부장 문짝교체</td><td title="사택 8-310 씽크대 상하부장 문짝교체" style="background-color: rgb(255, 255, 255);">사택 8-310 씽크대 상하부장 문짝교체</td><td style="background-color: rgb(255, 255, 255);">973,950</td><td style="background-color: rgb(255, 255, 255);">3,869,181</td><td style="background-color: rgb(255, 255, 255); color: red;">−2,895,231</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-04</td><td style="background-color: rgb(255, 255, 255);">씽크대 상하부장 문짝교체</td><td title="사택 5-501 씽크대 상하부장 문짝교체" style="background-color: rgb(255, 255, 255);">사택 5-501 씽크대 상하부장 문짝교체</td><td style="background-color: rgb(255, 255, 255);">973,950</td><td style="background-color: rgb(255, 255, 255);">3,869,181</td><td style="background-color: rgb(255, 255, 255); color: red;">−2,895,231</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr class="subtotal"><td></td><td></td><td style="color: rgb(242, 142, 44);">씽크대 상하부장 문짝교체 소계</td><td></td><td></td><td style="color: rgb(242, 142, 44);">−14,339,630</td><td></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2024-12</td><td style="background-color: rgb(249, 249, 249);">사택 누수보수</td><td title="사택 5-401 누수 난방분배기 교체" style="background-color: rgb(249, 249, 249);"><a href="https://photos.app.goo.gl/wi2X32C25LtwxwV17" target="_blank" class="detail-link" title="절감항목 상세 정보">사택 5-401 누수 난방분배기 교체</a></td><td style="background-color: rgb(249, 249, 249);">603,075</td><td style="background-color: rgb(249, 249, 249);">603,075</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●24년 상반기 실 집행비(1세대)</td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-02</td><td style="background-color: rgb(255, 255, 255);">사택 누수보수</td><td title="사택 2-203호외 3세대 누수 난방분배기 교체" style="background-color: rgb(255, 255, 255);">사택 2-203호외 3세대 누수 난방분배기 교체</td><td style="background-color: rgb(255, 255, 255);">1,540,475</td><td style="background-color: rgb(255, 255, 255);">2,412,300</td><td style="background-color: rgb(255, 255, 255); color: red;">−871,825</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●영선성 으로 전환 (발주유형 변경)
+-2세대씩 묶음(시공사 미정시 긴급대응)</td></tr><tr class="subtotal"><td></td><td></td><td style="color: rgb(225, 87, 89);">사택 누수보수 소계</td><td></td><td></td><td style="color: rgb(225, 87, 89);">−871,825</td><td></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2024-12</td><td style="background-color: rgb(249, 249, 249);">사택 세대내 보일러 교체(개별)</td><td title="사택 102-401 세대내 고장 보일러 교체" style="background-color: rgb(249, 249, 249);"><a href="https://photos.app.goo.gl/ZSpjCao7BtfsuDmU8" target="_blank" class="detail-link" title="절감항목 상세 정보">사택 102-401 세대내 고장 보일러 교체</a></td><td style="background-color: rgb(249, 249, 249);">1,327,625</td><td style="background-color: rgb(249, 249, 249);">1,327,625</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●24년 상반기 실 집행비(1세대)</td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-03</td><td style="background-color: rgb(255, 255, 255);">사택 세대내 보일러 교체(개별)</td><td title="사택 102-305 고장 보일러 납품" style="background-color: rgb(255, 255, 255);">사택 102-305 고장 보일러 납품</td><td style="background-color: rgb(255, 255, 255);">1,075,000</td><td style="background-color: rgb(255, 255, 255);">1,327,625</td><td style="background-color: rgb(255, 255, 255); color: red;">−252,625</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">→ 공구기구성 전환(발주유형 변경)
+대당 -252,625원 절감</td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-03</td><td style="background-color: rgb(255, 255, 255);">사택 세대내 보일러 교체(개별)</td><td title="사택 103-406 고장 보일러 납품" style="background-color: rgb(255, 255, 255);">사택 103-406 고장 보일러 납품</td><td style="background-color: rgb(255, 255, 255);">1,075,000</td><td style="background-color: rgb(255, 255, 255);">1,327,625</td><td style="background-color: rgb(255, 255, 255); color: red;">−252,625</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">사택 세대내 보일러 교체(개별)</td><td title="사택 101-304 고장 보일러 납품" style="background-color: rgb(249, 249, 249);">사택 101-304 고장 보일러 납품</td><td style="background-color: rgb(249, 249, 249);">1,075,000</td><td style="background-color: rgb(249, 249, 249);">1,327,625</td><td style="background-color: rgb(249, 249, 249); color: red;">−252,625</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">사택 세대내 보일러 교체(개별)</td><td title="사택 101-103 고장 보일러 납품" style="background-color: rgb(249, 249, 249);">사택 101-103 고장 보일러 납품</td><td style="background-color: rgb(249, 249, 249);">1,075,000</td><td style="background-color: rgb(249, 249, 249);">1,327,625</td><td style="background-color: rgb(249, 249, 249); color: red;">−252,625</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">사택 세대내 보일러 교체(개별)</td><td title="사택 102-306 고장 보일러 납품" style="background-color: rgb(249, 249, 249);">사택 102-306 고장 보일러 납품</td><td style="background-color: rgb(249, 249, 249);">1,075,000</td><td style="background-color: rgb(249, 249, 249);">1,327,625</td><td style="background-color: rgb(249, 249, 249); color: red;">−252,625</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">사택 세대내 보일러 교체(개별)</td><td title="사택 103-301 고장 보일러 납품" style="background-color: rgb(249, 249, 249);">사택 103-301 고장 보일러 납품</td><td style="background-color: rgb(249, 249, 249);">1,075,000</td><td style="background-color: rgb(249, 249, 249);">1,327,625</td><td style="background-color: rgb(249, 249, 249); color: red;">−252,625</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr class="subtotal"><td></td><td></td><td style="color: rgb(118, 183, 178);">사택 세대내 보일러 교체(개별) 소계</td><td></td><td></td><td style="color: rgb(118, 183, 178);">−1,515,750</td><td></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="2-207 욕실 샤워부스 고정용 부품 교체 및 재설치" style="background-color: rgb(255, 255, 255);">2-207 욕실 샤워부스 고정용 부품 교체 및 재설치</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●(<span href="https://photos.app.goo.gl/RY4GxypvWKuGJnuu7" class="min-labor-cost-link" title="최소인건비 정보">건축 최소인건비</span>) 50,6,325원* 2회 (1월)=1,012,650원(7건) [5건↑ 2회 적용],자재비 제외_<a href="https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8" target="_blank" class="note-link" title="비고 상세 정보">비용 추정(보수적)</a></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="2-207 앞베란다 방충망 1개 보수" style="background-color: rgb(255, 255, 255);">2-207 앞베란다 방충망 1개 보수</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="B-803-2 욕실 샤워기 앞 주변 바닥타일 실리콘 보수" style="background-color: rgb(255, 255, 255);">B-803-2 욕실 샤워기 앞 주변 바닥타일 실리콘 보수</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="8-310 욕실▷ 주방 씽크대 모서리 실리콘 보수" style="background-color: rgb(255, 255, 255);">8-310 욕실▷ 주방 씽크대 모서리 실리콘 보수</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="2-207 주방 하부장 상판 및 타일 실리콘 보수" style="background-color: rgb(255, 255, 255);">2-207 주방 하부장 상판 및 타일 실리콘 보수</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="9-303 주방 타일 실리콘 작업" style="background-color: rgb(255, 255, 255);">9-303 주방 타일 실리콘 작업</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="2-303 현관 디지털도어락 작동불량으로 교체▷ 현관 수동도어락 문틀 캣치박스 불량▷ 파손으로 캣치재설치" style="background-color: rgb(255, 255, 255);">2-303 현관 디지털도어락 작동불량으로 교체▷ 현관 수동도어락 문틀 캣치박스 불량▷ 파손으로 캣치재설치</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="7-204 뒤베란다 및 주방 씽크대 상부 크랙 실리콘 보수" style="background-color: rgb(249, 249, 249);">7-204 뒤베란다 및 주방 씽크대 상부 크랙 실리콘 보수</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">92,059</td><td style="background-color: rgb(249, 249, 249); color: red;">−92,059</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●(<span href="https://photos.app.goo.gl/RY4GxypvWKuGJnuu7" class="min-labor-cost-link" title="최소인건비 정보">건축 최소인건비</span>) 50,6,325원* 2회 (2월)=1,012,650원(11건) [5건↑ 2회 적용],자재비 제외_<a href="https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8" target="_blank" class="note-link" title="비고 상세 정보">비용 추정(보수적)</a></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="8-403 주방 씽크대 중앙하부장 우측문 탈락 및 유격발생- 문 분리후 추가타공 재고정후 유격조절후 문설치" style="background-color: rgb(249, 249, 249);">8-403 주방 씽크대 중앙하부장 우측문 탈락 및 유격발생- 문 분리후 추가타공 재고정후 유격조절후 문설치</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">92,059</td><td style="background-color: rgb(249, 249, 249); color: red;">−92,059</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="A-203-3 양변기 안착 및 실리콘 고정▷ 바닥 벽 테두리 실리코 코킹" style="background-color: rgb(249, 249, 249);">A-203-3 양변기 안착 및 실리콘 고정▷ 바닥 벽 테두리 실리코 코킹</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">92,059</td><td style="background-color: rgb(249, 249, 249); color: red;">−92,059</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="B-704-4 욕실 수납장 다보 8개 교체▷ 샤워부스 바닥 실리콘 작업▷ 벽면 줄눈 실리콘 작업" style="background-color: rgb(249, 249, 249);">B-704-4 욕실 수납장 다보 8개 교체▷ 샤워부스 바닥 실리콘 작업▷ 벽면 줄눈 실리콘 작업</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">92,059</td><td style="background-color: rgb(249, 249, 249); color: red;">−92,059</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="A-804-3 욕실 바닥타일 2장 실리콘 고정▷ 줄눈 실리콘 작업" style="background-color: rgb(249, 249, 249);">A-804-3 욕실 바닥타일 2장 실리콘 고정▷ 줄눈 실리콘 작업</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">92,059</td><td style="background-color: rgb(249, 249, 249); color: red;">−92,059</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="8-502 욕실 벽면 모서리 실리콘 보수" style="background-color: rgb(249, 249, 249);">8-502 욕실 벽면 모서리 실리콘 보수</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">92,059</td><td style="background-color: rgb(249, 249, 249); color: red;">−92,059</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="A-1,002-1 버티컬 날개 5개 보수" style="background-color: rgb(249, 249, 249);">A-1,002-1 버티컬 날개 5개 보수</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">92,059</td><td style="background-color: rgb(249, 249, 249); color: red;">−92,059</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="B-804-2 욕실 벽타일 줄눈 실리콘 작업" style="background-color: rgb(249, 249, 249);">B-804-2 욕실 벽타일 줄눈 실리콘 작업</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">92,059</td><td style="background-color: rgb(249, 249, 249); color: red;">−92,059</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="B-604-3 욕실 출입문 뒤▷ 샤워기 뒤 벽타일 모서리 실리콘 보수▷ 샤워 유리부스 파티션 바닥 실리콘 보수" style="background-color: rgb(249, 249, 249);">B-604-3 욕실 출입문 뒤▷ 샤워기 뒤 벽타일 모서리 실리콘 보수▷ 샤워 유리부스 파티션 바닥 실리콘 보수</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">92,059</td><td style="background-color: rgb(249, 249, 249); color: red;">−92,059</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="2-404 욕실 바닥▷ 벽면 모서리 실리콘 보수" style="background-color: rgb(249, 249, 249);">2-404 욕실 바닥▷ 벽면 모서리 실리콘 보수</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">92,059</td><td style="background-color: rgb(249, 249, 249); color: red;">−92,059</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="A-303-2 욕실 양변기 하부 탈락 - 백시멘트 보수" style="background-color: rgb(249, 249, 249);">A-303-2 욕실 양변기 하부 탈락 - 백시멘트 보수</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">92,059</td><td style="background-color: rgb(249, 249, 249); color: red;">−92,059</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-03</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="9-304 욕실 벽면 모서리 실리콘 작업" style="background-color: rgb(255, 255, 255);">9-304 욕실 벽면 모서리 실리콘 작업</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●(<span href="https://photos.app.goo.gl/RY4GxypvWKuGJnuu7" class="min-labor-cost-link" title="최소인건비 정보">건축 최소인건비</span>) 50,6,325원* 2회 (3월)=1,012,650원(7건) [5건↑ 2회 적용],자재비 제외_<a href="https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8" target="_blank" class="note-link" title="비고 상세 정보">비용 추정(보수적)</a></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-03</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="102-406 안방 욕실 바닥 실리콘 부분 보수" style="background-color: rgb(255, 255, 255);">102-406 안방 욕실 바닥 실리콘 부분 보수</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-03</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="103-204 주방 씽크대 상판 실리콘 부분 보수작업" style="background-color: rgb(255, 255, 255);">103-204 주방 씽크대 상판 실리콘 부분 보수작업</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-03</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="A-504-4 욕실 바닥타일 사이드 조각 3개 탈락 코킹 부착▷ 코너선반 탈락 고정▷ 방문손잡이 흔들림 고정 처리 휴지걸이 탈락 고정 처리" style="background-color: rgb(255, 255, 255);">A-504-4 욕실 바닥타일 사이드 조각 3개 탈락 코킹 부착▷ 코너선반 탈락 고정▷ 방문손잡이 흔들림 고정 처리 휴지걸이 탈락 고정 처리</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-03</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="1-107▷ 8-401 욕실 벽면 모서리 실리콘 작업" style="background-color: rgb(255, 255, 255);">1-107▷ 8-401 욕실 벽면 모서리 실리콘 작업</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-03</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="A-403-1 방 버티컬 날개 1개 보수" style="background-color: rgb(255, 255, 255);">A-403-1 방 버티컬 날개 1개 보수</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-03</td><td style="background-color: rgb(255, 255, 255);">관리소(건축 전환)</td><td title="B-303-4 세면대 기둥 옆 바닥타일 2개 탈락으로 실리콘 작업" style="background-color: rgb(255, 255, 255);">B-303-4 세면대 기둥 옆 바닥타일 2개 탈락으로 실리콘 작업</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">144,664</td><td style="background-color: rgb(255, 255, 255); color: red;">−144,664</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="B-302-1 욕실 바닥타일 줄눈 실리콘 작업" style="background-color: rgb(249, 249, 249);">B-302-1 욕실 바닥타일 줄눈 실리콘 작업</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">112,517</td><td style="background-color: rgb(249, 249, 249); color: red;">−112,517</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●(<span href="https://photos.app.goo.gl/RY4GxypvWKuGJnuu7" class="min-labor-cost-link" title="최소인건비 정보">건축 최소인건비</span>) 50,6,325원* 2회 (4월)=1,012,650원(9건) [5건↑ 2회 적용],자재비 제외_<a href="https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8" target="_blank" class="note-link" title="비고 상세 정보">비용 추정(보수적)</a></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="A-403-1 베란다 방충망 하단 보수" style="background-color: rgb(249, 249, 249);">A-403-1 베란다 방충망 하단 보수</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">112,517</td><td style="background-color: rgb(249, 249, 249); color: red;">−112,517</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="B-302-1 베란다 방충망 하단 보수" style="background-color: rgb(249, 249, 249);">B-302-1 베란다 방충망 하단 보수</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">112,517</td><td style="background-color: rgb(249, 249, 249); color: red;">−112,517</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="3-221 블라인드 하부 프레임 파손 보수" style="background-color: rgb(249, 249, 249);">3-221 블라인드 하부 프레임 파손 보수</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">112,517</td><td style="background-color: rgb(249, 249, 249); color: red;">−112,517</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="B-1,001-3 베란다 방충망 하단 보수" style="background-color: rgb(249, 249, 249);">B-1,001-3 베란다 방충망 하단 보수</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">112,517</td><td style="background-color: rgb(249, 249, 249); color: red;">−112,517</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="B-304-3 욕실 탈일 줄눈(6군데) 실리콘 작업" style="background-color: rgb(249, 249, 249);">B-304-3 욕실 탈일 줄눈(6군데) 실리콘 작업</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">112,517</td><td style="background-color: rgb(249, 249, 249); color: red;">−112,517</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="7-302 주방 및 욕실 실리콘 작업" style="background-color: rgb(249, 249, 249);">7-302 주방 및 욕실 실리콘 작업</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">112,517</td><td style="background-color: rgb(249, 249, 249); color: red;">−112,517</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="8-209 주방 및 욕실 실리콘 작업" style="background-color: rgb(249, 249, 249);">8-209 주방 및 욕실 실리콘 작업</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">112,517</td><td style="background-color: rgb(249, 249, 249); color: red;">−112,517</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">관리소(건축 전환)</td><td title="A-501-2 욕실 바닥 타일 들뜸 보수 - 타일 부착" style="background-color: rgb(249, 249, 249);">A-501-2 욕실 바닥 타일 들뜸 보수 - 타일 부착</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">112,517</td><td style="background-color: rgb(249, 249, 249); color: red;">−112,517</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr class="subtotal"><td></td><td></td><td style="color: rgb(89, 161, 79);">관리소(건축 전환) 소계</td><td></td><td></td><td style="color: rgb(89, 161, 79);">−4,050,598</td><td></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(기계 전환)</td><td title="B-502-1 난방불량 - 구동기 핀밸브 고착으로 보수" style="background-color: rgb(255, 255, 255);">B-502-1 난방불량 - 구동기 핀밸브 고착으로 보수</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">208,120</td><td style="background-color: rgb(255, 255, 255); color: red;">−208,120</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●(<span href="https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A" class="min-labor-cost-link" title="최소인건비 정보">기계 최소인건비</span>) 520,300원* 2회 (1월)=1,040,600원(5건) [5건↑ 2회 적용],자재비 제외_<a href="https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8" target="_blank" class="note-link" title="비고 상세 정보">비용 추정(보수적)</a></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(기계 전환)</td><td title="A-502-5 난방불량 - 구동기 인서트 밸브 핀 조정" style="background-color: rgb(255, 255, 255);">A-502-5 난방불량 - 구동기 인서트 밸브 핀 조정</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">208,120</td><td style="background-color: rgb(255, 255, 255); color: red;">−208,120</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(기계 전환)</td><td title="A-204-4 난방불량 - 구동기 핀밸브 수리" style="background-color: rgb(255, 255, 255);">A-204-4 난방불량 - 구동기 핀밸브 수리</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">208,120</td><td style="background-color: rgb(255, 255, 255); color: red;">−208,120</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(기계 전환)</td><td title="6-406 씽크대 수전 철거 및 온▷ 냉수 벽부 배관 엔드캡 막음" style="background-color: rgb(255, 255, 255);">6-406 씽크대 수전 철거 및 온▷ 냉수 벽부 배관 엔드캡 막음</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">208,120</td><td style="background-color: rgb(255, 255, 255); color: red;">−208,120</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(기계 전환)</td><td title="A-802-6 난방불량 - 구동기 작동불량으로 교체" style="background-color: rgb(255, 255, 255);">A-802-6 난방불량 - 구동기 작동불량으로 교체</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">208,120</td><td style="background-color: rgb(255, 255, 255); color: red;">−208,120</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(기계 전환)</td><td title="1-101 주방 천장(씽크대 상부) 누수 점검 및 조치 - 201호 주방 씽크대 원홀 수전 누수로 교체" style="background-color: rgb(249, 249, 249);">1-101 주방 천장(씽크대 상부) 누수 점검 및 조치 - 201호 주방 씽크대 원홀 수전 누수로 교체</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">260,150</td><td style="background-color: rgb(249, 249, 249); color: red;">−260,150</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●(<span href="https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A" class="min-labor-cost-link" title="최소인건비 정보">기계 최소인건비</span>) 520,300원* 2회 (2월)=1,040,600원(4건) [5건↑ 2회 적용],자재비 제외_<a href="https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8" target="_blank" class="note-link" title="비고 상세 정보">비용 추정(보수적)</a></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(기계 전환)</td><td title="5-501 주방 펜 필터 2개 교체▷ 욕실 벽면 모서리 실리콘 작업" style="background-color: rgb(249, 249, 249);">5-501 주방 펜 필터 2개 교체▷ 욕실 벽면 모서리 실리콘 작업</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">260,150</td><td style="background-color: rgb(249, 249, 249); color: red;">−260,150</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(기계 전환)</td><td title="8-110 욕실 천장 누수- 210 욕실 바닥 배수관 연결부 빠짐으로 연결 부품 조임 처리" style="background-color: rgb(249, 249, 249);">8-110 욕실 천장 누수- 210 욕실 바닥 배수관 연결부 빠짐으로 연결 부품 조임 처리</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">260,150</td><td style="background-color: rgb(249, 249, 249); color: red;">−260,150</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(기계 전환)</td><td title="B-802-6 난방불량 - 구동기 교체 및 핀밸브 보수" style="background-color: rgb(249, 249, 249);">B-802-6 난방불량 - 구동기 교체 및 핀밸브 보수</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">260,150</td><td style="background-color: rgb(249, 249, 249); color: red;">−260,150</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-03</td><td style="background-color: rgb(255, 255, 255);">관리소(기계 전환)</td><td title="B-801호 전체 온도조절기 전원불량 - 메인제어기 전원분리된 상태로 전원 복구_6번방 구동기 핀고착으로 보수" style="background-color: rgb(255, 255, 255);">B-801호 전체 온도조절기 전원불량 - 메인제어기 전원분리된 상태로 전원 복구_6번방 구동기 핀고착으로 보수</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">260,150</td><td style="background-color: rgb(255, 255, 255); color: red;">−260,150</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●(<span href="https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A" class="min-labor-cost-link" title="최소인건비 정보">기계 최소인건비</span>) 520,300원* 1회 (3월)=520,300원(2건) [5건↓ 1회 적용],자재비 제외_<a href="https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8" target="_blank" class="note-link" title="비고 상세 정보">비용 추정(보수적)</a></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-03</td><td style="background-color: rgb(255, 255, 255);">관리소(기계 전환)</td><td title="A-303-2 난방조절안됨 - 구동기 전체 분리 재연결_조작 컨트롤러 휴즈 교체 및 필밸브 보수" style="background-color: rgb(255, 255, 255);">A-303-2 난방조절안됨 - 구동기 전체 분리 재연결_조작 컨트롤러 휴즈 교체 및 필밸브 보수</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">260,150</td><td style="background-color: rgb(255, 255, 255); color: red;">−260,150</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;"></td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-04</td><td style="background-color: rgb(249, 249, 249);">관리소(기계 전환)</td><td title="A-203-1 베란다 상단 모서리 크랙 실리콘 작업_욕실 수납장▷ 다보 및 유리설치 욕실 세면대 I트랩▷ 자동풉업 교체" style="background-color: rgb(249, 249, 249);">A-203-1 베란다 상단 모서리 크랙 실리콘 작업_욕실 수납장▷ 다보 및 유리설치 욕실 세면대 I트랩▷ 자동풉업 교체</td><td style="background-color: rgb(249, 249, 249);">-</td><td style="background-color: rgb(249, 249, 249);">520,300</td><td style="background-color: rgb(249, 249, 249); color: red;">−520,300</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●(<span href="https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A" class="min-labor-cost-link" title="최소인건비 정보">기계 최소인건비</span>) 520,300원* 1회 (4월)=520,300원(2건) [5건↓ 1회 적용],자재비 제외_<a href="https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8" target="_blank" class="note-link" title="비고 상세 정보">비용 추정(보수적)</a></td></tr><tr class="subtotal"><td></td><td></td><td style="color: rgb(237, 201, 73);">관리소(기계 전환) 소계</td><td></td><td></td><td style="color: rgb(237, 201, 73);">−3,121,800</td><td></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(전기 전환)</td><td title="2-105 전등 누전발생으로 점검 - 보일러 내 부 케이블 절연처리 복구" style="background-color: rgb(255, 255, 255);">2-105 전등 누전발생으로 점검 - 보일러 내 부 케이블 절연처리 복구</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255);">576,200</td><td style="background-color: rgb(255, 255, 255); color: red;">−576,200</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●(<span href="https://photos.app.goo.gl/htiYjUpzb8U7YtdW8" class="min-labor-cost-link" title="최소인건비 정보">전기 최소인건비</span>) 576,200원 * 1건(1월)=57,6,200원 [5건↓ 1회 적용],자재비 제외_<a href="https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8" target="_blank" class="note-link" title="비고 상세 정보">비용 추정(보수적)</a></td></tr><tr class="subtotal"><td></td><td></td><td style="color: rgb(175, 122, 161);">관리소(전기 전환) 소계</td><td></td><td></td><td style="color: rgb(175, 122, 161);">−576,200</td><td></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-01</td><td style="background-color: rgb(255, 255, 255);">관리소(탐지 전환)</td><td title="사택 9-501 누수탐지 및 바닥 매립배관 보수" style="background-color: rgb(255, 255, 255);"><a href="https://photos.app.goo.gl/VysKu4vh8CJci2s38" target="_blank" class="detail-link" title="절감항목 상세 정보">사택 9-501 누수탐지 및 바닥 매립배관 보수</a></td><td style="background-color: rgb(255, 255, 255);">1,150,250</td><td style="background-color: rgb(255, 255, 255);">1,150,250</td><td style="background-color: rgb(255, 255, 255);">-</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●1세대 실 집행비</td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(탐지 전환)</td><td title="5동 304호 누수탐지 및 보수(미래설비)" style="background-color: rgb(249, 249, 249);">5동 304호 누수탐지 및 보수(미래설비)</td><td style="background-color: rgb(249, 249, 249);">500,000</td><td style="background-color: rgb(249, 249, 249);">1,150,250</td><td style="background-color: rgb(249, 249, 249); color: red;">−650,250</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●누수탐지(미래설비) 집행비 500,000원 예상_확인 필요</td></tr><tr><td style="background-color: rgb(249, 249, 249);">2025-02</td><td style="background-color: rgb(249, 249, 249);">관리소(탐지 전환)</td><td title="5-301 누수 보수 - 주방 바닥 온수배관 엘보 보수(미래설비)" style="background-color: rgb(249, 249, 249);">5-301 누수 보수 - 주방 바닥 온수배관 엘보 보수(미래설비)</td><td style="background-color: rgb(249, 249, 249);">500,000</td><td style="background-color: rgb(249, 249, 249);">1,150,250</td><td style="background-color: rgb(249, 249, 249); color: red;">−650,250</td><td style="background-color: rgb(249, 249, 249); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●누수탐지(미래설비) 집행비 500,000원 예상_확인 필요</td></tr><tr class="subtotal"><td></td><td></td><td style="color: rgb(255, 157, 167);">관리소(탐지 전환) 소계</td><td></td><td></td><td style="color: rgb(255, 157, 167);">−1,300,500</td><td></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-04</td><td style="background-color: rgb(255, 255, 255);">기타 보수(기숙사/사택)</td><td title="기숙사 및 사택 저수조 안전 브라켓" style="background-color: rgb(255, 255, 255);"><a href="https://photos.app.goo.gl/orM3oQ4oymfL2sAGA" target="_blank" class="detail-link" title="절감항목 상세 정보">기숙사 및 사택 저수조 안전 브라켓</a></td><td style="background-color: rgb(255, 255, 255);">1,885,550</td><td style="background-color: rgb(255, 255, 255);">2,772,425</td><td style="background-color: rgb(255, 255, 255); color: red;">−886,875</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●계약후 감액 변경
+→ 작업일 2일 계획에서 1일로 변경
+→ 단순작업(약 1시간): 실비 정산 전환_무상(발주유형 변경)</td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-04</td><td style="background-color: rgb(255, 255, 255);">기타 보수(기숙사/사택)</td><td title="기숙사동 및 사택 소방 지적사항 보완" style="background-color: rgb(255, 255, 255);"><a href="https://photos.app.goo.gl/EzqSAa5XAneNd5E47" target="_blank" class="detail-link" title="절감항목 상세 정보">기숙사동 및 사택 소방 지적사항 보완</a></td><td style="background-color: rgb(255, 255, 255);">5,070,775</td><td style="background-color: rgb(255, 255, 255);">7,220,775</td><td style="background-color: rgb(255, 255, 255); color: red;">−2,150,000</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●계약후 감액 변경
+→ 밸브 3개-&gt;2개 감액(정밀 재점검)
+→ 전담 사다리 보조자 미투입 감액(작업성)</td></tr><tr class="subtotal"><td></td><td></td><td style="color: rgb(156, 117, 95);">기타 보수(기숙사/사택) 소계</td><td></td><td></td><td style="color: rgb(156, 117, 95);">−3,036,875</td><td></td></tr><tr><td style="background-color: rgb(255, 255, 255);">2025-04</td><td style="background-color: rgb(255, 255, 255);">긴급 건축 보수(후정산)</td><td title="기숙사 및 사택 긴급보수 작업(건축)-1차" style="background-color: rgb(255, 255, 255);"><a href="https://photos.app.goo.gl/kgQVvQyvHmAoMDcq7" target="_blank" class="detail-link" title="절감항목 상세 정보">기숙사 및 사택 긴급보수 작업(건축)-1차</a></td><td style="background-color: rgb(255, 255, 255);">4,997,675</td><td style="background-color: rgb(255, 255, 255);">6,291,975</td><td style="background-color: rgb(255, 255, 255); color: red;">−1,294,300</td><td style="background-color: rgb(255, 255, 255); text-align: center; padding-left: 10px; white-space: normal; word-break: break-word;">●일일 투입 인원 Vs 실작업 절감 시간 반영(시공사)
+→ [-4.5명]*219,321원(특별인부)*간접비*Fee(7.5%)=1,294,300원</td></tr><tr class="subtotal"><td></td><td></td><td style="color: rgb(186, 176, 171);">긴급 건축 보수(후정산) 소계</td><td></td><td></td><td style="color: rgb(186, 176, 171);">−1,294,300</td><td></td></tr></tbody>
+      </table>
+      <div class="analysis-summary show" style="display: flex;">
+        <div class="summary-cards">
+          <div class="summary-card">
+            <h3>총 절감 분석</h3>
+            <div id="total-summary">
+        <!-- "총 절감액" 부분은 늘어나지 않도록 flex-shrink: 0; 적용 -->
+        <div class="summary-item" style="
+          text-align: center; padding: 12px; border-radius: 8px; /* margin-bottom은 .summary-item 기본값 따름 */
+          background-color: #f8f9fa; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink: 0;">
+          <strong style="display: block; color: #495057; margin-bottom: 4px;">총 절감액</strong>
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+            <span class="summary-value negative" style="font-weight: bolder; color: #dc3545; line-height: 1.15;">
+              -36.53<small>백만원</small>
+            </span>
+            <span style="color: #6c757d; line-height: 1.15;">
+              (76건, <br>평균 -480.67<small>천원</small>)
+            </span>
+          </div>
+          <div style="width: 60%; height: 2px; background-color: #dc3545; margin: 8px auto 0; border-radius: 2px;"></div>
+        </div>
+        <div class="summary-item"><strong>전월 대비 증감:</strong> 
+          <span class="summary-value negative">-21.46<small>백만원</small></span><br>
+          <small>(2025-03 → 2025-04)</small>
+        </div>
+        <div class="summary-item">
+          <strong>공사성 vs. 영선 전환<span style="color: #666;">:</span></strong><br>
+          <ul style="margin:3px 0 0 10px;padding:0;">
+            <li style="font-size:12.8px; color:#888;">
+              <div class="type-category" data-category="construction" style="cursor: pointer; margin: 4px 0;">
+                <span class="summary-value negative">-27.48<small>백만원</small></span>
+                <span style="font-weight: bold; text-decoration: underline;">공사성 절감비</span>
+                <br><small>(20건, 평균 -1.37<small>백만원</small>)</small>
+              </div>
+            </li>
+            <li style="font-size:12.8px; color:#888;">
+              <div class="type-category" data-category="maintenance" style="cursor: pointer; margin: 4px 0;">
+                <span class="summary-value negative">-9.05<small>백만원</small></span>
+                <span style="font-weight: bold; text-decoration: underline;">영선 전환(관리소) 절감비</span>
+                <br><small>(49건, 평균 -184.68<small>천원</small>)</small>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="summary-item">
+          <strong>상위 2개 절감항목:</strong>
+          <ul style="margin:3px 0 0 10px;padding:0;">
+            <li style="font-size:12.8px; color:#888;">
+              <span class="summary-value negative">-2.9<small>백만원</small></span><br>
+              <span style="color:#f28e2c; cursor:pointer; text-decoration:underline;" class="type-label" data-type="씽크대 상하부장 문짝교체">사택 8-310 씽크대 상하부장 문짝교체</span>
+              <small>2025-04</small>
+            </li><li style="font-size:12.8px; color:#888;">
+              <span class="summary-value negative">-2.9<small>백만원</small></span><br>
+              <span style="color:#f28e2c; cursor:pointer; text-decoration:underline;" class="type-label" data-type="씽크대 상하부장 문짝교체">사택 5-501 씽크대 상하부장 문짝교체</span>
+              <small>2025-04</small>
+            </li>
+          </ul>
+        </div>
+      </div>
+          </div>
+          <div class="summary-card">
+            <h3>월별 절감 현황</h3>
+            <div id="monthly-summary">
+        <div class="summary-item">
+          <strong><span class="summary-month-label" data-month="2025-01" style="color:#1976d2; cursor:pointer; text-decoration:underline;">
+              2025-01</span>:</strong>
+          <span class="summary-value negative">-6.77<small>백만원</small></span>
+          <br><small>(15건, 평균 -451.02<small>천원</small>)</small>
+        </div>
+      
+        <div class="summary-item">
+          <strong><span class="summary-month-label" data-month="2025-02" style="color:#1976d2; cursor:pointer; text-decoration:underline;">
+              2025-02</span>:</strong>
+          <span class="summary-value negative">-4.23<small>백만원</small></span>
+          <br><small>(18건, 평균 -234.75<small>천원</small>)</small>
+        </div>
+      
+        <div class="summary-item">
+          <strong><span class="summary-month-label" data-month="2025-03" style="color:#1976d2; cursor:pointer; text-decoration:underline;">
+              2025-03</span>:</strong>
+          <span class="summary-value negative">-2.04<small>백만원</small></span>
+          <br><small>(11건, 평균 -185.29<small>천원</small>)</small>
+        </div>
+      
+        <div class="summary-item">
+          <strong><span class="summary-month-label" data-month="2025-04" style="color:#1976d2; cursor:pointer; text-decoration:underline;">
+              2025-04</span>:</strong>
+          <span class="summary-value negative">-23.5<small>백만원</small></span>
+          <br><small>(25건, 평균 -940.06<small>천원</small>)</small>
+        </div>
+      </div>
+          </div>
+          <div class="summary-card">
+            <h3>작업 유형별 통계</h3>
+            <div id="type-summary">
+            <div class="summary-item">
+              <strong style="color: #f28e2c; cursor: pointer;" class="type-label" data-type="씽크대 상하부장 문짝교체">씽크대 상하부장 문짝교체:</strong>
+              <span class="summary-value negative">-14.34<small>백만원</small></span>
+              <br><small>(5건, 평균 -2.87<small>백만원</small>)</small>
+            </div>
+            <div class="summary-item">
+              <strong style="color: #4e79a7; cursor: pointer;" class="type-label" data-type="사택 주방벽 타일교체">사택 주방벽 타일교체:</strong>
+              <span class="summary-value negative">-6.42<small>백만원</small></span>
+              <br><small>(5건, 평균 -1.28<small>백만원</small>)</small>
+            </div>
+            <div class="summary-item">
+              <strong style="color: #59a14f; cursor: pointer;" class="type-label" data-type="관리소(건축 전환)">관리소(건축 전환):</strong>
+              <span class="summary-value negative">-4.05<small>백만원</small></span>
+              <br><small>(34건, 평균 -119.14<small>천원</small>)</small>
+            </div>
+            <div class="summary-item">
+              <strong style="color: #edc949; cursor: pointer;" class="type-label" data-type="관리소(기계 전환)">관리소(기계 전환):</strong>
+              <span class="summary-value negative">-3.12<small>백만원</small></span>
+              <br><small>(12건, 평균 -260.15<small>천원</small>)</small>
+            </div>
+            <div class="summary-item">
+              <strong style="color: #9c755f; cursor: pointer;" class="type-label" data-type="기타 보수(기숙사/사택)">기타 보수(기숙사/사택):</strong>
+              <span class="summary-value negative">-3.04<small>백만원</small></span>
+              <br><small>(2건, 평균 -1.52<small>백만원</small>)</small>
+            </div>
+            <div class="summary-item">
+              <strong style="color: #76b7b2; cursor: pointer;" class="type-label" data-type="사택 세대내 보일러 교체(개별)">사택 세대내 보일러 교체(개별):</strong>
+              <span class="summary-value negative">-1.52<small>백만원</small></span>
+              <br><small>(6건, 평균 -252.63<small>천원</small>)</small>
+            </div>
+            <div class="summary-item">
+              <strong style="color: #ff9da7; cursor: pointer;" class="type-label" data-type="관리소(탐지 전환)">관리소(탐지 전환):</strong>
+              <span class="summary-value negative">-1.3<small>백만원</small></span>
+              <br><small>(2건, 평균 -650.25<small>천원</small>)</small>
+            </div>
+            <div class="summary-item">
+              <strong style="color: #bab0ab; cursor: pointer;" class="type-label" data-type="긴급 건축 보수(후정산)">긴급 건축 보수(후정산):</strong>
+              <span class="summary-value negative">-1.29<small>백만원</small></span>
+              <br><small>(1건, 평균 -1.29<small>백만원</small>)</small>
+            </div>
+            <div class="summary-item">
+              <strong style="color: #e15759; cursor: pointer;" class="type-label" data-type="사택 누수보수">사택 누수보수:</strong>
+              <span class="summary-value negative">-871.83<small>천원</small></span>
+              <br><small>(1건, 평균 -871.83<small>천원</small>)</small>
+            </div>
+            <div class="summary-item">
+              <strong style="color: #af7aa1; cursor: pointer;" class="type-label" data-type="관리소(전기 전환)">관리소(전기 전환):</strong>
+              <span class="summary-value negative">-576.2<small>천원</small></span>
+              <br><small>(1건, 평균 -576.2<small>천원</small>)</small>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    window.addEventListener('load', function() {
+      document.body.style.zoom = '100%';
+    });
+
+    let svg = null;
+    let width = 0;
+    let height = 0;
+    const margin = 10;
+    let allData = [{"month":"2023-12","type":"사택 주방벽 타일교체","detail":"23년 주방벽 철거 및 및 신규 설치 실적(21세대) 세대당 평균","actual":1408864,"estimated":1408864,"saving":0,"note":" 참조: 23년 21세대 (PO금액 29,586,150원) 실집행비=>1,408,864(세대당 평균 금액) "},{"month":"2023-12","type":"씽크대 상하부장 문짝교체","detail":"23년 씽크대 전면 교체 실적(21세대) 세대당 평균","actual":3869181,"estimated":3869181,"saving":0,"note":" ●23년 21세대 (PO금액 81,252,800원) 실집행비=>3,869,181(세대당 평균 금액) "},{"month":"2024-01","type":"사택 주방벽 타일교체","detail":"사택 5-405 주방벽 철거 및 타일교체","actual":1284625,"estimated":1284625,"saving":0,"note":" ● 세대별 벽구조에 따른 공사방법에 따라 차이큼 "},{"month":"2024-01","type":"씽크대 상하부장 문짝교체","detail":"사택 5-405 씽크대 교체(고층장비)","actual":4350525,"estimated":4350525,"saving":0,"note":" 참조: 24년 상반기 실 집행비(1세대)_층고 및 세대별 평수 상이 "},{"month":"2024-12","type":"사택 누수보수","detail":"사택 5-401 누수 난방분배기 교체","actual":603075,"estimated":603075,"saving":0,"note":"●24년 상반기 실 집행비(1세대)"},{"month":"2024-12","type":"사택 세대내 보일러 교체(개별)","detail":"사택 102-401 세대내 고장 보일러 교체","actual":1327625,"estimated":1327625,"saving":0,"note":"●24년 상반기 실 집행비(1세대)"},{"month":"2025-01","type":"관리소(건축 전환)","detail":"2-207 욕실 샤워부스 고정용 부품 교체 및 재설치","actual":0,"estimated":144664,"saving":-144664,"note":"●(<span class=\"min-labor-cost-link\" onclick=\"window.open('https://photos.app.goo.gl/RY4GxypvWKuGJnuu7', '_blank')\">건축 최소인건비</span>) 50,6,325원* 2회 (1월)=1,012,650원(7건) [5건↑ 2회 적용],자재비 제외_비용 추정(보수적)"},{"month":"2025-01","type":"관리소(건축 전환)","detail":"2-207 앞베란다 방충망 1개 보수","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-01","type":"관리소(건축 전환)","detail":"B-803-2 욕실 샤워기 앞 주변 바닥타일 실리콘 보수","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-01","type":"관리소(건축 전환)","detail":"8-310 욕실▷ 주방 씽크대 모서리 실리콘 보수","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-01","type":"관리소(건축 전환)","detail":"2-207 주방 하부장 상판 및 타일 실리콘 보수","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-01","type":"관리소(건축 전환)","detail":"9-303 주방 타일 실리콘 작업","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-01","type":"관리소(건축 전환)","detail":"2-303 현관 디지털도어락 작동불량으로 교체▷ 현관 수동도어락 문틀 캣치박스 불량▷ 파손으로 캣치재설치","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-01","type":"관리소(기계 전환)","detail":"B-502-1 난방불량 - 구동기 핀밸브 고착으로 보수","actual":0,"estimated":208120,"saving":-208120,"note":"●(<span class=\"min-labor-cost-link\" onclick=\"window.open('https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A', '_blank')\">기계 최소인건비</span>) 520,300원* 2회 (1월)=1,040,600원(5건) [5건↑ 2회 적용],자재비 제외_비용 추정(보수적)"},{"month":"2025-01","type":"관리소(기계 전환)","detail":"A-502-5 난방불량 - 구동기 인서트 밸브 핀 조정","actual":0,"estimated":208120,"saving":-208120,"note":""},{"month":"2025-01","type":"관리소(기계 전환)","detail":"A-204-4 난방불량 - 구동기 핀밸브 수리","actual":0,"estimated":208120,"saving":-208120,"note":""},{"month":"2025-01","type":"관리소(기계 전환)","detail":"6-406 씽크대 수전 철거 및 온▷ 냉수 벽부 배관 엔드캡 막음","actual":0,"estimated":208120,"saving":-208120,"note":""},{"month":"2025-01","type":"관리소(기계 전환)","detail":"A-802-6 난방불량 - 구동기 작동불량으로 교체","actual":0,"estimated":208120,"saving":-208120,"note":""},{"month":"2025-01","type":"관리소(전기 전환)","detail":"2-105 전등 누전발생으로 점검 - 보일러 내 부 케이블 절연처리 복구","actual":0,"estimated":576200,"saving":-576200,"note":"●(<span class=\"min-labor-cost-link\" onclick=\"window.open('https://photos.app.goo.gl/htiYjUpzb8U7YtdW8', '_blank')\">전기 최소인건비</span>) 576,200원 * 1건(1월)=57,6,200원 [5건↓ 1회 적용],자재비 제외_비용 추정(보수적)"},{"month":"2025-01","type":"관리소(탐지 전환)","detail":"사택 9-501 누수탐지 및 바닥 매립배관 보수","actual":1150250,"estimated":1150250,"saving":0,"note":"●1세대 실 집행비"},{"month":"2025-01","type":"사택 주방벽 타일교체","detail":"사택 2-207 주방벽 타일교체","actual":0,"estimated":1284625,"saving":-1284625,"note":""},{"month":"2025-01","type":"씽크대 상하부장 문짝교체","detail":"사택 2-207 씽크대 상하부장 문짝교체","actual":1018025,"estimated":3869181,"saving":-2851156,"note":""},{"month":"2025-02","type":"관리소(건축 전환)","detail":"7-204 뒤베란다 및 주방 씽크대 상부 크랙 실리콘 보수","actual":0,"estimated":92059,"saving":-92059,"note":"●(<span class=\"min-labor-cost-link\" onclick=\"window.open('https://photos.app.goo.gl/RY4GxypvWKuGJnuu7', '_blank')\">건축 최소인건비</span>) 50,6,325원* 2회 (2월)=1,012,650원(11건) [5건↑ 2회 적용],자재비 제외_비용 추정(보수적)"},{"month":"2025-02","type":"관리소(건축 전환)","detail":"8-403 주방 씽크대 중앙하부장 우측문 탈락 및 유격발생- 문 분리후 추가타공 재고정후 유격조절후 문설치","actual":0,"estimated":92059,"saving":-92059,"note":""},{"month":"2025-02","type":"관리소(건축 전환)","detail":"A-203-3 양변기 안착 및 실리콘 고정▷ 바닥 벽 테두리 실리코 코킹","actual":0,"estimated":92059,"saving":-92059,"note":""},{"month":"2025-02","type":"관리소(건축 전환)","detail":"B-704-4 욕실 수납장 다보 8개 교체▷ 샤워부스 바닥 실리콘 작업▷ 벽면 줄눈 실리콘 작업","actual":0,"estimated":92059,"saving":-92059,"note":""},{"month":"2025-02","type":"관리소(건축 전환)","detail":"A-804-3 욕실 바닥타일 2장 실리콘 고정▷ 줄눈 실리콘 작업","actual":0,"estimated":92059,"saving":-92059,"note":""},{"month":"2025-02","type":"관리소(건축 전환)","detail":"8-502 욕실 벽면 모서리 실리콘 보수","actual":0,"estimated":92059,"saving":-92059,"note":""},{"month":"2025-02","type":"관리소(건축 전환)","detail":"A-1,002-1 버티컬 날개 5개 보수","actual":0,"estimated":92059,"saving":-92059,"note":""},{"month":"2025-02","type":"관리소(건축 전환)","detail":"B-804-2 욕실 벽타일 줄눈 실리콘 작업","actual":0,"estimated":92059,"saving":-92059,"note":""},{"month":"2025-02","type":"관리소(건축 전환)","detail":"B-604-3 욕실 출입문 뒤▷ 샤워기 뒤 벽타일 모서리 실리콘 보수▷ 샤워 유리부스 파티션 바닥 실리콘 보수","actual":0,"estimated":92059,"saving":-92059,"note":""},{"month":"2025-02","type":"관리소(건축 전환)","detail":"2-404 욕실 바닥▷ 벽면 모서리 실리콘 보수","actual":0,"estimated":92059,"saving":-92059,"note":""},{"month":"2025-02","type":"관리소(건축 전환)","detail":"A-303-2 욕실 양변기 하부 탈락 - 백시멘트 보수","actual":0,"estimated":92059,"saving":-92059,"note":""},{"month":"2025-02","type":"관리소(기계 전환)","detail":"1-101 주방 천장(씽크대 상부) 누수 점검 및 조치 - 201호 주방 씽크대 원홀 수전 누수로 교체","actual":0,"estimated":260150,"saving":-260150,"note":"●(<span class=\"min-labor-cost-link\" onclick=\"window.open('https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A', '_blank')\">기계 최소인건비</span>) 520,300원* 2회 (2월)=1,040,600원(4건) [5건↑ 2회 적용],자재비 제외_비용 추정(보수적)"},{"month":"2025-02","type":"관리소(기계 전환)","detail":"5-501 주방 펜 필터 2개 교체▷ 욕실 벽면 모서리 실리콘 작업","actual":0,"estimated":260150,"saving":-260150,"note":""},{"month":"2025-02","type":"관리소(기계 전환)","detail":"8-110 욕실 천장 누수- 210 욕실 바닥 배수관 연결부 빠짐으로 연결 부품 조임 처리","actual":0,"estimated":260150,"saving":-260150,"note":""},{"month":"2025-02","type":"관리소(기계 전환)","detail":"B-802-6 난방불량 - 구동기 교체 및 핀밸브 보수","actual":0,"estimated":260150,"saving":-260150,"note":""},{"month":"2025-02","type":"관리소(탐지 전환)","detail":"5동 304호 누수탐지 및 보수(미래설비)","actual":500000,"estimated":1150250,"saving":-650250,"note":"●누수탐지(미래설비) 집행비 500,000원 예상_확인 필요"},{"month":"2025-02","type":"관리소(탐지 전환)","detail":"5-301 누수 보수 - 주방 바닥 온수배관 엘보 보수(미래설비)","actual":500000,"estimated":1150250,"saving":-650250,"note":"●누수탐지(미래설비) 집행비 500,000원 예상_확인 필요"},{"month":"2025-02","type":"사택 누수보수","detail":"사택 2-203호외 3세대 누수 난방분배기 교체","actual":1540475,"estimated":2412300,"saving":-871825,"note":"●영선성 으로 전환 (발주유형 변경)\n-2세대씩 묶음(시공사 미정시 긴급대응)"},{"month":"2025-03","type":"관리소(건축 전환)","detail":"9-304 욕실 벽면 모서리 실리콘 작업","actual":0,"estimated":144664,"saving":-144664,"note":"●(<span class=\"min-labor-cost-link\" onclick=\"window.open('https://photos.app.goo.gl/RY4GxypvWKuGJnuu7', '_blank')\">건축 최소인건비</span>) 50,6,325원* 2회 (3월)=1,012,650원(7건) [5건↑ 2회 적용],자재비 제외_비용 추정(보수적)"},{"month":"2025-03","type":"관리소(건축 전환)","detail":"102-406 안방 욕실 바닥 실리콘 부분 보수","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-03","type":"관리소(건축 전환)","detail":"103-204 주방 씽크대 상판 실리콘 부분 보수작업","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-03","type":"관리소(건축 전환)","detail":"A-504-4 욕실 바닥타일 사이드 조각 3개 탈락 코킹 부착▷ 코너선반 탈락 고정▷ 방문손잡이 흔들림 고정 처리 휴지걸이 탈락 고정 처리","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-03","type":"관리소(건축 전환)","detail":"1-107▷ 8-401 욕실 벽면 모서리 실리콘 작업","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-03","type":"관리소(건축 전환)","detail":"A-403-1 방 버티컬 날개 1개 보수","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-03","type":"관리소(건축 전환)","detail":"B-303-4 세면대 기둥 옆 바닥타일 2개 탈락으로 실리콘 작업","actual":0,"estimated":144664,"saving":-144664,"note":""},{"month":"2025-03","type":"관리소(기계 전환)","detail":"B-801호 전체 온도조절기 전원불량 - 메인제어기 전원분리된 상태로 전원 복구_6번방 구동기 핀고착으로 보수","actual":0,"estimated":260150,"saving":-260150,"note":"●(<span class=\"min-labor-cost-link\" onclick=\"window.open('https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A', '_blank')\">기계 최소인건비</span>) 520,300원* 1회 (3월)=520,300원(2건) [5건↓ 1회 적용],자재비 제외_비용 추정(보수적)"},{"month":"2025-03","type":"관리소(기계 전환)","detail":"A-303-2 난방조절안됨 - 구동기 전체 분리 재연결_조작 컨트롤러 휴즈 교체 및 필밸브 보수","actual":0,"estimated":260150,"saving":-260150,"note":""},{"month":"2025-03","type":"사택 세대내 보일러 교체(개별)","detail":"사택 102-305 고장 보일러 납품","actual":1075000,"estimated":1327625,"saving":-252625,"note":"→ 공구기구성 전환(발주유형 변경)\n대당 -252,625원 절감"},{"month":"2025-03","type":"사택 세대내 보일러 교체(개별)","detail":"사택 103-406 고장 보일러 납품","actual":1075000,"estimated":1327625,"saving":-252625,"note":""},{"month":"2025-04","type":"관리소(건축 전환)","detail":"B-302-1 욕실 바닥타일 줄눈 실리콘 작업","actual":0,"estimated":112517,"saving":-112517,"note":"●(<span class=\"min-labor-cost-link\" onclick=\"window.open('https://photos.app.goo.gl/RY4GxypvWKuGJnuu7', '_blank')\">건축 최소인건비</span>) 50,6,325원* 2회 (4월)=1,012,650원(9건) [5건↑ 2회 적용],자재비 제외_비용 추정(보수적)"},{"month":"2025-04","type":"관리소(건축 전환)","detail":"A-403-1 베란다 방충망 하단 보수","actual":0,"estimated":112517,"saving":-112517,"note":""},{"month":"2025-04","type":"관리소(건축 전환)","detail":"B-302-1 베란다 방충망 하단 보수","actual":0,"estimated":112517,"saving":-112517,"note":""},{"month":"2025-04","type":"관리소(건축 전환)","detail":"3-221 블라인드 하부 프레임 파손 보수","actual":0,"estimated":112517,"saving":-112517,"note":""},{"month":"2025-04","type":"관리소(건축 전환)","detail":"B-1,001-3 베란다 방충망 하단 보수","actual":0,"estimated":112517,"saving":-112517,"note":""},{"month":"2025-04","type":"관리소(건축 전환)","detail":"B-304-3 욕실 탈일 줄눈(6군데) 실리콘 작업","actual":0,"estimated":112517,"saving":-112517,"note":""},{"month":"2025-04","type":"관리소(건축 전환)","detail":"7-302 주방 및 욕실 실리콘 작업","actual":0,"estimated":112517,"saving":-112517,"note":""},{"month":"2025-04","type":"관리소(건축 전환)","detail":"8-209 주방 및 욕실 실리콘 작업","actual":0,"estimated":112517,"saving":-112517,"note":""},{"month":"2025-04","type":"관리소(건축 전환)","detail":"A-501-2 욕실 바닥 타일 들뜸 보수 - 타일 부착","actual":0,"estimated":112517,"saving":-112517,"note":""},{"month":"2025-04","type":"관리소(기계 전환)","detail":"A-203-1 베란다 상단 모서리 크랙 실리콘 작업_욕실 수납장▷ 다보 및 유리설치 욕실 세면대 I트랩▷ 자동풉업 교체","actual":0,"estimated":520300,"saving":-520300,"note":"●(<span class=\"min-labor-cost-link\" onclick=\"window.open('https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A', '_blank')\">기계 최소인건비</span>) 520,300원* 1회 (4월)=520,300원(2건) [5건↓ 1회 적용],자재비 제외_비용 추정(보수적)"},{"month":"2025-04","type":"기타 보수(기숙사/사택)","detail":"기숙사 및 사택 저수조 안전 브라켓","actual":1885550,"estimated":2772425,"saving":-886875,"note":"●계약후 감액 변경\n→ 작업일 2일 계획에서 1일로 변경\n→ 단순작업(약 1시간): 실비 정산 전환_무상(발주유형 변경)"},{"month":"2025-04","type":"기타 보수(기숙사/사택)","detail":"기숙사동 및 사택 소방 지적사항 보완","actual":5070775,"estimated":7220775,"saving":-2150000,"note":"●계약후 감액 변경\n→ 밸브 3개->2개 감액(정밀 재점검)\n→ 전담 사다리 보조자 미투입 감액(작업성)"},{"month":"2025-04","type":"긴급 건축 보수(후정산)","detail":"기숙사 및 사택 긴급보수 작업(건축)-1차","actual":4997675,"estimated":6291975,"saving":-1294300,"note":"●일일 투입 인원 Vs 실작업 절감 시간 반영(시공사)\n→ [-4.5명]*219,321원(특별인부)*간접비*Fee(7.5%)=1,294,300원"},{"month":"2025-04","type":"사택 세대내 보일러 교체(개별)","detail":"사택 101-304 고장 보일러 납품","actual":1075000,"estimated":1327625,"saving":-252625,"note":""},{"month":"2025-04","type":"사택 세대내 보일러 교체(개별)","detail":"사택 101-103 고장 보일러 납품","actual":1075000,"estimated":1327625,"saving":-252625,"note":""},{"month":"2025-04","type":"사택 세대내 보일러 교체(개별)","detail":"사택 102-306 고장 보일러 납품","actual":1075000,"estimated":1327625,"saving":-252625,"note":""},{"month":"2025-04","type":"사택 세대내 보일러 교체(개별)","detail":"사택 103-301 고장 보일러 납품","actual":1075000,"estimated":1327625,"saving":-252625,"note":""},{"month":"2025-04","type":"사택 주방벽 타일교체","detail":"사택 2-203 주방벽 타일교체","actual":0,"estimated":1284625,"saving":-1284625,"note":""},{"month":"2025-04","type":"사택 주방벽 타일교체","detail":"사택 9-503 주방벽 타일교체","actual":0,"estimated":1284625,"saving":-1284625,"note":""},{"month":"2025-04","type":"사택 주방벽 타일교체","detail":"사택 8-310 주방벽 타일교체","actual":0,"estimated":1284625,"saving":-1284625,"note":""},{"month":"2025-04","type":"사택 주방벽 타일교체","detail":"사택 5-501 주방벽 타일교체","actual":0,"estimated":1284625,"saving":-1284625,"note":""},{"month":"2025-04","type":"씽크대 상하부장 문짝교체","detail":"사택 2-203 씽크대 상하부장 문짝교체","actual":1020175,"estimated":3869181,"saving":-2849006,"note":""},{"month":"2025-04","type":"씽크대 상하부장 문짝교체","detail":"사택 9-503 씽크대 상하부장 문짝교체","actual":1020175,"estimated":3869181,"saving":-2849006,"note":""},{"month":"2025-04","type":"씽크대 상하부장 문짝교체","detail":"사택 8-310 씽크대 상하부장 문짝교체","actual":973950,"estimated":3869181,"saving":-2895231,"note":""},{"month":"2025-04","type":"씽크대 상하부장 문짝교체","detail":"사택 5-501 씽크대 상하부장 문짝교체","actual":973950,"estimated":3869181,"saving":-2895231,"note":""}];
+    let selectedTypes = new Set();
+    let selectedMonths = new Set();
+    let colorScale = null;
+    let hyperlinkRules = [{"column":"절감항목","searchText":"사택 102-401 세대내 고장 보일러 교체","linkUrl":"https://photos.app.goo.gl/ZSpjCao7BtfsuDmU8","linkType":"detail","description":"절감항목 상세 정보"},{"column":"절감항목","searchText":"사택 9-501 누수탐지 및 바닥 매립배관 보수","linkUrl":"https://photos.app.goo.gl/VysKu4vh8CJci2s38","linkType":"detail","description":"절감항목 상세 정보"},{"column":"절감항목","searchText":"기숙사 및 사택 긴급보수 작업(건축)-1차","linkUrl":"https://photos.app.goo.gl/kgQVvQyvHmAoMDcq7","linkType":"detail","description":"절감항목 상세 정보"},{"column":"절감항목","searchText":"사택 5-401 누수 난방분배기 교체","linkUrl":"https://photos.app.goo.gl/wi2X32C25LtwxwV17","linkType":"detail","description":"절감항목 상세 정보"},{"column":"절감항목","searchText":"기숙사 및 사택 저수조 안전 브라켓","linkUrl":"https://photos.app.goo.gl/orM3oQ4oymfL2sAGA","linkType":"detail","description":"절감항목 상세 정보"},{"column":"절감항목","searchText":"기숙사동 및 사택 소방 지적사항 보완","linkUrl":"https://photos.app.goo.gl/EzqSAa5XAneNd5E47","linkType":"detail","description":"절감항목 상세 정보"},{"column":"비고","searchText":"기계 최소인건비","linkUrl":"https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A","linkType":"note","description":"최소인건비 정보"},{"column":"비고","searchText":"건축 최소인건비","linkUrl":"https://photos.app.goo.gl/RY4GxypvWKuGJnuu7","linkType":"note","description":"최소인건비 정보"},{"column":"비고","searchText":"전기 최소인건비","linkUrl":"https://photos.app.goo.gl/htiYjUpzb8U7YtdW8","linkType":"note","description":"최소인건비 정보"},{"column":"비고","searchText":"비용 추정(보수적)","linkUrl":"https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8","linkType":"note","description":"비고 상세 정보"}]; // This will store ONLY uploaded rules
+    let initialTableContainerMaxHeight = 'calc(100vh - 195px)'; // Store initial max-height
+
+    // Define default links outside any function
+    const defaultHyperlinkRules = [
+        { column: '절감항목', searchText: '사택 102-401 세대내 고장 보일러 교체', linkUrl: 'https://photos.app.goo.gl/ZSpjCao7BtfsuDmU8', linkType: 'detail', description: '사택 102-401 보일러 교체 관련 사진' },
+        { column: '절감항목', searchText: '사택 9-501 누수탐지 및 바닥 매립배관 보수', linkUrl: 'https://photos.app.goo.gl/VysKu4vh8CJci2s38', linkType: 'detail', description: '사택 9-501 누수탐지 및 바닥 매립배관 보수 사진' },
+        { column: '절감항목', searchText: '기숙사 및 사택 긴급보수 작업(건축)-1차', linkUrl: 'https://photos.app.goo.gl/kgQVvQyvHmAoMDcq7', linkType: 'detail', description: '기숙사 사택 긴급보수 건축 1차 사진' },
+        { column: '절감항목', searchText: '사택 5-401 누수 난방분배기 교체', linkUrl: 'https://photos.app.goo.gl/wi2X32C25LtwxwV17', linkType: 'detail', description: '사택 5-401 누수 난방분배기 교체 사진' },
+        { column: '절감항목', searchText: '기숙사동 및 사택 저수조 안전 브라켓', linkUrl: 'https://photos.app.goo.gl/orM3oQ4oymfL2sAGA', linkType: 'detail', description: '기숙사동 사택 저수조 안전 브라켓 사진' },
+        { column: '절감항목', searchText: '기숙사동 및 사택 소방 지적사항 보완', linkUrl: 'https://photos.app.goo.gl/EzqSAa5XAneNd5E47', linkType: 'detail', description: '기숙사동 사택 소방 지적사항 보완 사진' },
+        { column: '비고', searchText: '기계 최소인건비', linkUrl: 'https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A', linkType: 'note', description: '기계 최소인건비 산정 기준 정보' },
+        { column: '비고', searchText: '건축 최소인건비', linkUrl: 'https://photos.app.goo.gl/RY4GxypvWKuGJnuu7', linkType: 'note', description: '건축 최소인건비 산정 기준 정보' },
+        { column: '비고', searchText: '전기 최소인건비', linkUrl: 'https://photos.app.goo.gl/htiYjUpzb8U7YtdW8', linkType: 'note', description: '전기 최소인건비 산정 기준 정보' },
+        { column: '비고', searchText: '비용 추정(보수적)', linkUrl: 'https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8', linkType: 'note', description: '비용 추정 관련 사진/근거' }
+    ];
+
+    function formatMonth(month) {
+      return month.replace('월', '월');
+    }
+
+    function updateMonthFilter() {
+      const monthCheckboxes = document.getElementById('month-checkboxes');
+      const allAvailableMonths = [...new Set(allData.map(d => d.month))].sort();
+
+      monthCheckboxes.innerHTML = allAvailableMonths.map(m => `
+        <label class="month-checkbox ${selectedMonths.has(m) ? 'selected' : ''}">
+          <input type="checkbox" value="${m}" ${selectedMonths.has(m) ? 'checked' : ''}>
+          ${formatMonth(m)}
+        </label>
+      `).join('');
+
+      monthCheckboxes.querySelectorAll('.month-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('click', function() {
+          const month = this.querySelector('input').value;
+          if (selectedMonths.has(month)) {
+            selectedMonths.delete(month);
+            this.classList.remove('selected');
+          } else {
+            selectedMonths.add(month);
+            this.classList.add('selected');
+          }
+
+          if (selectedMonths.size > 0) {
+            selectedTypes = new Set(allData.filter(d => selectedMonths.has(d.month)).map(d => d.type));
+          } else {
+            if (!document.getElementById('select-all').checked) {
+                 selectedTypes.clear();
+            } else {
+                 selectedTypes = new Set(allData.map(d => d.type));
+            }
+          }
+          document.getElementById('select-all').checked = (allData.length > 0 && selectedTypes.size === new Set(allData.map(d => d.type)).size && selectedMonths.size === allAvailableMonths.length);
+
+          updateTable();
+          updateBubbleOpacity();
+          updateBubbleTextsBasedOnFilter();
+        });
+      });
+    }
+
+    function updateBubbleOpacity() {
+        if (!svg) return;
+        svg.selectAll('.node').each(function(d_node) {
+            const node = d3.select(this);
+            const isTypeSelectedBySet = selectedTypes.has(d_node.data.type);
+            const isMonthMatch = selectedMonths.size === 0 || d_node.data.months.some(m => selectedMonths.has(m));
+
+            let opacity = 0.3;
+            let stroke = '#cccccc';
+            let strokeWidth = 2;
+            let isNodeEffectivelySelected = false;
+
+            if (isTypeSelectedBySet && isMonthMatch) {
+                opacity = 1;
+                stroke = '#000000';
+                strokeWidth = 4;
+                isNodeEffectivelySelected = true;
+            } else if (selectedTypes.size === 0 && isMonthMatch) {
+                opacity = 0.5;
+            } else if (isTypeSelectedBySet && !isMonthMatch) {
+                opacity = 0.1;
+            } else if (selectedTypes.size > 0 && !isTypeSelectedBySet){
+                 opacity = 0.1;
+            }
+
+            node.classed('selected', isNodeEffectivelySelected);
+            node.style('opacity', opacity);
+            node.select('circle')
+              .attr('stroke', stroke)
+              .attr('stroke-width', strokeWidth)
+              .transition().duration(100)
+              .attr('r', isNodeEffectivelySelected ? d_node.r * 1.3 : d_node.r);
+            node.select('text').style('font-weight', isNodeEffectivelySelected ? 'bold' : 'normal');
+        });
+    }
+
+    function updateBubbleTextsBasedOnFilter() {
+      if (!svg || !allData.length) return;
+
+      svg.selectAll('.node').each(function(d_node) {
+        const nodeElement = d3.select(this);
+        const type = d_node.data.type;
+
+        let currentTotalSavings;
+        let currentItemCount;
+
+        if (selectedMonths.size > 0) {
+            const activeMonthsArray = Array.from(selectedMonths);
+            const monthFilteredDataForType = allData.filter(item =>
+                item.type === type && activeMonthsArray.includes(item.month)
+            );
+            currentTotalSavings = d3.sum(monthFilteredDataForType, item => item.saving);
+            currentItemCount = monthFilteredDataForType.filter(item => item.saving !== 0).length;
+        } else {
+            currentTotalSavings = d_node.data.total;
+            currentItemCount = allData.filter(item => item.type === type).length;
+        }
+
+        const amountTspan = nodeElement.select('text .amount-tspan');
+        const countTspan = nodeElement.select('text .count-tspan');
+
+        if (amountTspan.node()) {
+            amountTspan.text(d3.format(',')(currentTotalSavings));
+        }
+        if (countTspan.node()) {
+            countTspan.text(`${currentItemCount}건`);
+        }
+      });
+    }
+
+    function initChart() {
+      const chartContainer = document.getElementById('chart');
+      const containerWidth = chartContainer.clientWidth;
+      const containerHeight = chartContainer.clientHeight;
+      width = Math.min(containerWidth, containerHeight);
+      height = width;
+
+      const baseFontSize = Math.min(18, width / 18);
+
+      if (!svg || svg.attr('width') !== width || svg.attr('height') !== height) {
+        d3.select('#chart').selectAll('*').remove();
+        svg = d3.select('#chart')
+          .attr('width', width)
+          .attr('height', height)
+          .attr('viewBox', `0 0 ${width} ${height}`)
+          .attr('preserveAspectRatio', 'xMidYMid meet');
+      }
+      window.chartFontSize = baseFontSize;
+    }
+
+    function drawChart() {
+      if (!svg) initChart();
+
+      if (svg.selectAll('*').size() > 0) {
+        svg.selectAll('*').remove();
+      }
+
+      svg.append('rect')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('fill', 'transparent')
+        .on('click', function() {
+          selectedTypes.clear();
+          selectedMonths.clear();
+
+          document.getElementById('select-all').checked = false;
+
+          updateMonthFilter();
+          updateTable();
+          updateBubbleOpacity();
+          updateBubbleTextsBasedOnFilter();
+        });
+
+      const packData = d3.rollups(allData,
+        v => {
+          const validData = v.filter(d => d.month && d.type && d.detail);
+          const itemCount = validData.length;
+          return {
+            value: d3.sum(validData, d => Math.abs(d.saving)) || 1,
+            total: d3.sum(validData, d => d.saving) || 0,
+            months: [...new Set(validData.map(d => d.month))],
+            itemCount: itemCount
+          };
+        },
+        d => d.type
+      ).map(([type, stats]) => ({ type, ...stats }));
+
+      const sizeScale = 0.95;
+      const pack = d3.pack()
+        .size([(width - margin*2) * sizeScale, (height - margin*2) * sizeScale])
+        .padding(4);
+
+      const root = pack(d3.hierarchy({ children: packData }).sum(d => d.value));
+      colorScale = d3.scaleOrdinal().domain(packData.map(d=>d.type)).range(d3.schemeTableau10);
+
+      document.getElementById('select-all').checked = selectedTypes.size === packData.length && selectedMonths.size === new Set(allData.map(d=>d.month)).size;
+
+      const bubbleHeightValue = d3.max(root.leaves(), d => d.y + d.r) - d3.min(root.leaves(), d => d.y - d.r);
+      const offsetY = (height - bubbleHeightValue) / 2 - d3.min(root.leaves(), d => d.y - d.r);
+      const offsetX = margin + 35;
+
+      const nodes = svg.selectAll('g.node').data(root.leaves(), d=>d.data.type).enter().append('g')
+        .attr('class', 'node')
+        .attr('transform', d=>`translate(${d.x + offsetX},${d.y + offsetY + margin})`)
+        .on('click', function(event, d_node) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const clickedType = d_node.data.type;
+          if (event.ctrlKey || event.metaKey) {
+            if (selectedTypes.has(clickedType)) {
+              selectedTypes.delete(clickedType);
+            } else {
+              selectedTypes.add(clickedType);
+            }
+          } else {
+            if (selectedTypes.has(clickedType) && selectedTypes.size === 1) {
+              selectedTypes.clear();
+            } else {
+              selectedTypes.clear();
+              selectedTypes.add(clickedType);
+            }
+          }
+
+          if (selectedTypes.size > 0) {
+            const newSelectedMonths = new Set();
+            allData.forEach(item => {
+              if (selectedTypes.has(item.type)) {
+                newSelectedMonths.add(item.month);
+              }
+            });
+            selectedMonths = newSelectedMonths;
+          } else {
+            selectedMonths.clear();
+          }
+
+          document.getElementById('select-all').checked = selectedTypes.size === packData.length && selectedMonths.size === new Set(allData.map(d => d.month)).size;
+
+          updateMonthFilter();
+          updateTable();
+          updateBubbleOpacity();
+          updateBubbleTextsBasedOnFilter();
+        });
+
+      nodes.append('circle')
+        .attr('r', d=>d.r)
+        .attr('fill', d=>colorScale(d.data.type));
+
+      nodes.append('text')
+        .attr('text-anchor','middle')
+        .attr('dominant-baseline','middle')
+        .style('fill', d=> {
+          const c = d3.color(colorScale(d.data.type)).rgb();
+          return (0.299*c.r + 0.587*c.g + 0.114*c.b) > 150 ? '#2c3e50' : '#fff';
+        })
+        .each(function(d) {
+          const t = d3.select(this);
+          t.text('');
+
+          const typeText = d.data.type;
+          const typeWords = typeText.split(' ');
+          let currentLine = '';
+          let lines = [];
+
+          const maxTextWidth = d.r * 1.8;
+          const fontSize = Math.min(window.chartFontSize, d.r / 3);
+
+          typeWords.forEach(word => {
+            if ((currentLine + word).length * fontSize / 2 > maxTextWidth) {
+              lines.push(currentLine.trim());
+              currentLine = word;
+            } else {
+              currentLine += (currentLine ? ' ' : '') + word;
+            }
+          });
+          if (currentLine) lines.push(currentLine.trim());
+
+          const lineHeight = fontSize * 1.2;
+          const amountText = d3.format(',')(d.data.total);
+          const amountFontSize = Math.min(fontSize, d.r / 4);
+          const countText = `${d.data.itemCount}건`;
+          const countFontSize = Math.min(amountFontSize, d.r / 5);
+
+          const totalTextHeight = lines.length * lineHeight + lineHeight * 1.5 + lineHeight * 1.2;
+          const startY = -totalTextHeight / 2 + lineHeight / 2;
+
+          lines.forEach((line, i) => {
+            t.append('tspan')
+              .attr('x', 0)
+              .attr('dy', i === 0 ? startY + 'px' : lineHeight + 'px')
+              .text(line)
+              .style('font-size', fontSize + 'px');
+          });
+
+          const typeToAmountGap = lineHeight * 1.5;
+          t.append('tspan')
+            .attr('class', 'amount-tspan')
+            .attr('x', 0)
+            .attr('dy', typeToAmountGap + 'px')
+            .text(amountText)
+            .style('font-size', amountFontSize + 'px');
+
+          const amountToCountGap = lineHeight * 1.2;
+          t.append('tspan')
+            .attr('class', 'count-tspan')
+            .attr('x', 0)
+            .attr('dy', amountToCountGap + 'px')
+            .text(countText)
+            .style('font-size', countFontSize + 'px');
+        });
+        updateBubbleOpacity();
+        updateBubbleTextsBasedOnFilter();
+    }
+
+    window.addEventListener('resize', function() {
+      if (allData.length > 0) {
+        initChart();
+        drawChart();
+      }
+      checkMenuOverlap();
+    });
+
+    const fileInput = document.getElementById('file-input');
+    document.getElementById('raw-upload-btn').addEventListener('click', function() {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+
+      function formatNumberWithCommas(str) {
+        if (/^-?\d+$/.test(str)) {
+          return str.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        return str.replace(/(\d{3,})/g, function(match) {
+          return match.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        });
+      }
+
+      reader.onload = function(ev) {
+        try {
+          const rawData = d3.csvParse(ev.target.result);
+          if (!rawData || !rawData.length) {
+            console.error('CSV 파일을 분석할 수 없습니다.');
+            return;
+          }
+          function processData(rawData) {
+            return rawData.map(d => {
+              const month = d['월'] || '';
+              const type = d['작업유형'] || '';
+              const detail = d['절감항목'] || '';
+              const note = d['비고'] || '';
+              const actual = parseFloat((d['A.집행비'] || '0').replace(/,/g, '')) || 0;
+              const estimated = parseFloat((d['B.공사비 적용시'] || '0').replace(/,/g, '')) || 0;
+              const saving = parseFloat((d['절감비(A-B)'] || '0').replace(/,/g, '')) || 0;
+              const formattedDetail = formatNumberWithCommas(detail);
+              let formattedNote = formatNumberWithCommas(note);
+              const minLaborCostLinks = {
+                '기계 최소인건비': 'https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A',
+                '건축 최소인건비': 'https://photos.app.goo.gl/RY4GxypvWKuGJnuu7',
+                '전기 최소인건비': 'https://photos.app.goo.gl/htiYjUpzb8U7YtdW8'
+              };
+              Object.entries(minLaborCostLinks).forEach(([text, url]) => {
+                if (formattedNote.includes(text)) {
+                  formattedNote = formattedNote.replace(
+                    text,
+                    `<span class="min-labor-cost-link" onclick="window.open('${url}', '_blank')">${text}</span>`
+                  );
+                }
+              });
+              return {
+                month: month, type: type, detail: formattedDetail,
+                actual: actual, estimated: estimated, saving: saving, note: formattedNote
+              };
+            }).map(d => {
+              const monthMatch = d.month.match(/(\d{4})-(\d{2})/);
+              if (monthMatch) {
+                d.month = `${monthMatch[1]}-${monthMatch[2]}`;
+              }
+              return d;
+            }).sort((a, b) => {
+              if (a.month !== b.month) return a.month.localeCompare(b.month);
+              return a.type.localeCompare(b.type);
+            });
+          }
+
+          function loadAndRenderData(rawData) {
+            allData = processData(rawData);
+            const chartContainer = document.getElementById('chart');
+            chartContainer.style.width = '100%';
+            chartContainer.style.height = '100%';
+
+            setTimeout(() => {
+              initChart();
+              drawChart();
+              updateTable();
+              updateMonthFilter();
+              updateAnalysisSummary();
+
+              // Capture the initially calculated max-height
+              const tableContainer = document.getElementById('table-container');
+               if (tableContainer) {
+                  const computedMaxHeight = getComputedStyle(tableContainer).maxHeight;
+                  if (computedMaxHeight && computedMaxHeight !== 'none') {
+                      initialTableContainerMaxHeight = computedMaxHeight;
+                  } else {
+                      // Fallback if CSS max-height is none or not computed as expected
+                       initialTableContainerMaxHeight = 'calc(100vh - 195px)';
+                  }
+              }
+
+            }, 50);
+          }
+
+          loadAndRenderData(rawData);
+          selectedTypes.clear();
+          selectedMonths.clear();
+        } catch (error) {
+          console.error('파일 처리 중 오류가 발생했습니다:', error);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = null;
+    });
+
+    function updateTable() {
+      const tbody = document.querySelector('tbody');
+      const table = document.querySelector('table');
+      const thead = table.querySelector('thead');
+      const totalRow = table.querySelector('.sticky-total-row');
+      const tableContainer = document.getElementById('table-container');
+      const analysisSummary = document.querySelector('.analysis-summary');
+
+      // Clear existing rows except the total row placeholder
+      tbody.innerHTML = '';
+      tbody.appendChild(totalRow);
+
+      let filteredData = allData;
+      if (selectedTypes.size > 0) {
+        filteredData = filteredData.filter(d => selectedTypes.has(d.type));
+      }
+      if (selectedMonths.size > 0) {
+        filteredData = filteredData.filter(d => selectedMonths.has(d.month));
+      }
+
+      const typeGroups = d3.group(filteredData, d => d.type);
+      let totalSum = 0;
+
+      // --- Manage Table/Summary Visibility and Sticky Headers ---
+      if (selectedTypes.size === 0 && selectedMonths.size === 0 && allData.length > 0) {
+        // Show Analysis Summary
+        table.style.display = 'none';
+        analysisSummary.style.display = 'flex';
+        analysisSummary.classList.add('show');
+
+        // Disable sticky styles when summary is shown
+        if(thead) {
+          thead.style.position = 'static';
+          thead.style.top = 'auto';
+          thead.style.zIndex = 'auto';
+        }
+         if(totalRow) {
+          totalRow.style.position = 'static';
+          totalRow.style.top = 'auto';
+          totalRow.style.zIndex = 'auto';
+          // Reset td positions within total row if they were set
+           totalRow.querySelectorAll('td').forEach(td => {
+             td.style.top = '';
+           });
+        }
+
+        // Container style for summary (allow to expand)
+        if(tableContainer) {
+            tableContainer.style.overflowY = 'visible';
+            tableContainer.style.maxHeight = 'none';
+        }
+
+
+        updateAnalysisSummary();
+
+      } else {
+        // Show Table
+        analysisSummary.style.display = 'none';
+        analysisSummary.classList.remove('show');
+        table.style.display = 'table';
+
+         // Enable sticky styles when table is shown
+        if(thead) {
+          thead.style.position = 'sticky';
+          thead.style.top = '0px'; // Stick to the top of the scrolling container
+          thead.style.zIndex = '3';
+        }
+
+        // Calculate sticky position for total row based on thead height
+        // Use requestAnimationFrame to ensure layout is updated and get correct thead height
+        if(totalRow && thead) {
+             requestAnimationFrame(() => {
+                const theadHeight = thead.offsetHeight;
+                totalRow.style.position = 'sticky';
+                totalRow.style.top = `${theadHeight}px`; // Stick below thead
+                totalRow.style.zIndex = '2';
+                // Ensure td elements in the sticky row also get the correct top if needed
+                 totalRow.querySelectorAll('td').forEach(td => {
+                     td.style.top = `${theadHeight}px`;
+                 });
+            });
+        } else {
+             // Fallback if elements not found - shouldn't happen but defensive
+             if(totalRow) {
+                totalRow.style.position = 'static'; totalRow.style.top = 'auto'; totalRow.style.zIndex = 'auto';
+                 totalRow.querySelectorAll('td').forEach(td => td.style.top = '');
+             }
+        }
+
+
+        // Container style for table scrolling (restore initial max-height)
+        if(tableContainer) {
+            tableContainer.style.overflowY = 'auto';
+            tableContainer.style.maxHeight = initialTableContainerMaxHeight;
+        }
+      }
+      // --- End Manage Table/Summary Visibility and Sticky Headers ---
+
+
+      let maxNoteWidth = 0;
+      let maxNoteText = '';
+      let maxDetailWidth = 0;
+      let maxDetailText = '';
+
+      // Measure max widths *before* adding rows to the DOM if possible, or re-measure after.
+      // Current logic measures based on text length estimate, which is fine and fast.
+      typeGroups.forEach((rows, type) => {
+        rows.forEach(row => {
+          if (row.note && row.note.length > maxNoteText.length) {
+            maxNoteText = row.note;
+            maxNoteWidth = Math.max(maxNoteWidth, row.note.length * 8);
+          }
+          if (row.detail && row.detail.length > maxDetailText.length) {
+            maxDetailText = row.detail;
+            maxDetailWidth = Math.max(maxDetailWidth, row.detail.length * 8);
+          }
+        });
+      });
+
+      const tableContainerElement = document.getElementById('table-container');
+      if(tableContainerElement && table.style.display !== 'none') { // Only apply dynamic width if table is visible
+        const tableWidth = tableContainerElement.clientWidth;
+        let noteColumnWidth;
+        if (selectedTypes.size === 1) {
+          noteColumnWidth = Math.min(Math.max(maxNoteWidth + 20, tableWidth * 0.4), tableWidth * 0.5);
+        } else {
+          noteColumnWidth = Math.min(Math.max(maxNoteWidth + 20, tableWidth * 0.35), tableWidth * 0.45);
+        }
+        let detailColumnWidth;
+        if (selectedTypes.size === 1) {
+          detailColumnWidth = Math.min(Math.max(maxDetailWidth + 20, tableWidth * 0.22), tableWidth * 0.3);
+        } else {
+          detailColumnWidth = Math.min(Math.max(maxDetailWidth + 20, tableWidth * 0.18), tableWidth * 0.25);
+        }
+
+        const styleId = 'dynamic-column-styles';
+        let styleElement = document.getElementById(styleId);
+        if (!styleElement) {
+          styleElement = document.createElement('style');
+          styleElement.id = styleId;
+          document.head.appendChild(styleElement);
+        }
+        styleElement.textContent = `
+          @media (min-width: 1200px) {
+            th:nth-child(7), td:nth-child(7) {
+              width: ${noteColumnWidth}px !important; max-width: ${noteColumnWidth}px !important;
+            }
+            th:nth-child(3), td:nth-child(3) {
+              width: ${detailColumnWidth}px !important; max-width: ${detailColumnWidth}px !important;
+            }
+          }
+        `;
+      } else if (tableContainerElement && table.style.display === 'none') {
+           // Clear dynamic styles if table is hidden
+            const styleElement = document.getElementById('dynamic-column-styles');
+             if (styleElement) styleElement.textContent = '';
+      }
+
+
+      const bHeader = document.querySelector('th:nth-child(5)');
+      if (bHeader) {
+        const originalText = bHeader.textContent;
+        if (originalText.includes('B.공사비 적용시')) {
+          bHeader.innerHTML = 'B.공사비<br>적용시';
+        }
+        bHeader.style.whiteSpace = 'normal';
+        bHeader.style.wordWrap = 'break-word';
+        bHeader.style.wordBreak = 'break-word';
+        bHeader.style.lineHeight = '1.2';
+      }
+
+      let currentMonthForColoring = null;
+      let colorToggle = false;
+      const monthGroupBgColors = ['#FFFFFF', '#f9f9f9'];
+
+      typeGroups.forEach((rows, type) => {
+        rows.forEach(row => {
+          const tr = document.createElement('tr');
+
+          if (row.month !== currentMonthForColoring) {
+            currentMonthForColoring = row.month;
+            colorToggle = !colorToggle;
+          }
+          const currentBgColor = monthGroupBgColors[colorToggle ? 1 : 0];
+
+          ['month','type','detail','actual','estimated','saving','note'].forEach(key => {
+            const td = document.createElement('td');
+            td.style.backgroundColor = currentBgColor;
+            let val = row[key];
+            if (['actual','estimated','saving'].includes(key)) {
+              if (val === 0) td.textContent = '-';
+              else {
+                td.textContent = d3.format(',')(val);
+                if (val < 0) td.style.color = 'red';
+              }
+            } else if (key === 'month') {
+              td.textContent = formatMonth(val);
+            } else if (key === 'note') {
+              td.innerHTML = val;
+              td.style.textAlign = 'center';
+              td.style.paddingLeft = '10px';
+              td.style.whiteSpace = 'normal';
+              td.style.wordBreak = 'break-word';
+              if (val && typeof val === 'string' && val.includes('비용 추정(보수적)')) {
+                td.innerHTML = val.replace(
+                  '비용 추정(보수적)',
+                  '<a href="https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8" target="_blank" class="note-link">비용 추정(보수적)</a>'
+                );
+              }
+              if (selectedTypes.size === 1) {
+                td.style.fontSize = '11px';
+                td.style.lineHeight = '1.3';
+              }
+              td.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const currentlyZoomed = document.querySelector('.zoomed-cell');
+                if (currentlyZoomed && currentlyZoomed !== this) {
+                  currentlyZoomed.classList.remove('zoomed-cell');
+                  const existingPopup = document.querySelector('.note-popup');
+                  if (existingPopup) existingPopup.remove();
+                }
+                this.classList.toggle('zoomed-cell');
+                if (this.classList.contains('zoomed-cell')) {
+                  const popup = document.createElement('div');
+                  popup.className = 'note-popup';
+                  popup.innerHTML = this.innerHTML; // Use innerHTML to preserve links/formatting
+                  document.body.appendChild(popup);
+                  const closeBtn = document.createElement('button');
+                  closeBtn.textContent = '×';
+                  closeBtn.style.cssText = `position: absolute; right: 5px; top: 5px; background: none; border: none; font-size: 22px; cursor: pointer; color: #1a237e;`;
+                  closeBtn.onclick = function(ev) {
+                    ev.stopPropagation();
+                    popup.remove();
+                    td.classList.remove('zoomed-cell');
+                  };
+                  popup.appendChild(closeBtn);
+                  document.addEventListener('click', function closePopupOnClickOutside(ev) {
+                    if (!popup.contains(ev.target) && ev.target !== td) {
+                      popup.remove();
+                      td.classList.remove('zoomed-cell');
+                      document.removeEventListener('click', closePopupOnClickOutside);
+                    }
+                  }, { once: true });
+                } else {
+                  const popup = document.querySelector('.note-popup');
+                  if (popup) popup.remove();
+                }
+              });
+            } else if (key === 'detail') {
+              td.textContent = val;
+              td.title = val;
+              const detailLinks = {
+                '사택 102-401 세대내 고장 보일러 교체': 'https://photos.app.goo.gl/ZSpjCao7BtfsuDmU8',
+                '사택 9-501 누수탐지 및 바닥 매립배관 보수': 'https://photos.app.goo.gl/VysKu4vh8CJci2s38',
+                '기숙사 및 사택 긴급보수 작업(건축)-1차': 'https://photos.app.goo.gl/kgQVvQyvHmAoMDcq7',
+                '사택 5-401 누수 난방분배기 교체': 'https://photos.app.goo.gl/wi2X32C25LtwxwV17',
+                '기숙사동 및 사택 저수조 안전 브라켓': 'https://photos.app.goo.gl/orM3oQ4oymfL2sAGA',
+                '기숙사동 및 사택 소방 지적사항 보완': 'https://photos.app.goo.gl/EzqSAa5XAneNd5E47'
+              };
+              if (val && typeof val === 'string' && detailLinks[val]) {
+                td.innerHTML = `<a href="${detailLinks[val]}" target="_blank" class="detail-link">${val}</a>`;
+              }
+              if (selectedTypes.size === 1) {
+                td.style.whiteSpace = 'nowrap';
+                td.style.overflow = 'hidden';
+                td.style.textOverflow = 'ellipsis';
+              }
+              td.addEventListener('mouseenter', function() {
+                this.style.whiteSpace = 'normal';
+                this.style.overflow = 'visible';
+                this.style.position = 'relative';
+                this.style.zIndex = '5';
+                this.style.backgroundColor = '#f8f9fa';
+                this.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+              });
+              td.addEventListener('mouseleave', function() {
+                this.style.whiteSpace = 'nowrap';
+                this.style.overflow = 'hidden';
+                this.style.position = 'static';
+                this.style.zIndex = 'auto';
+                this.style.backgroundColor = currentBgColor;
+                this.style.boxShadow = 'none';
+              });
+            } else {
+              td.textContent = val;
+            }
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+
+        const subtotal = rows.reduce((sum, r) => sum + r.saving, 0);
+        totalSum += subtotal;
+        const trSub = document.createElement('tr');
+        trSub.className = 'subtotal';
+        const typeColor = colorScale ? colorScale(type) : '#1976d2';
+        const tdEmpty1 = document.createElement('td');
+        const tdEmpty2 = document.createElement('td');
+        const tdL = document.createElement('td');
+        tdL.textContent = `${type} 소계`;
+        tdL.style.color = typeColor;
+        const tdEmpty3 = document.createElement('td');
+        const tdEmpty4 = document.createElement('td');
+        const tdV = document.createElement('td');
+        if (subtotal === 0) tdV.textContent = '-';
+        else {
+          tdV.textContent = d3.format(',')(subtotal);
+          tdV.style.color = typeColor;
+        }
+        const tdEmpty5 = document.createElement('td');
+        trSub.appendChild(tdEmpty1);
+        trSub.appendChild(tdEmpty2);
+        trSub.appendChild(tdL);
+        trSub.appendChild(tdEmpty3);
+        trSub.appendChild(tdEmpty4);
+        trSub.appendChild(tdV);
+        trSub.appendChild(tdEmpty5);
+        tbody.appendChild(trSub);
+      });
+
+      const totalTop = document.getElementById('total-top');
+      if (totalSum === 0) totalTop.textContent = '-';
+      else {
+        totalTop.textContent = d3.format(',')(totalSum);
+        totalTop.style.color = totalSum < 0 ? 'red' : '#e74c3c';
+      }
+      applyHyperlinkRules();
+    }
+
+    function updateAnalysisSummary() {
+      const totalSummary = document.getElementById('total-summary');
+      const monthlySummaryContainer = document.getElementById('monthly-summary');
+      const typeSummaryContainer = document.getElementById('type-summary');
+
+      if (!totalSummary || !monthlySummaryContainer || !typeSummaryContainer) return;
+
+      if (!allData || allData.length === 0) {
+        totalSummary.innerHTML = `
+          <div class="summary-item" style="color:#c62828;">
+            <strong>데이터가 없습니다.</strong><br>
+            CSV 파일을 업로드하면 분석 결과가 표시됩니다.
+          </div>
+        `;
+        monthlySummaryContainer.innerHTML = '';
+        typeSummaryContainer.innerHTML = '';
+        return;
+      }
+
+      const totalSaving = d3.sum(allData, d => d.saving);
+      const totalCount = allData.length;
+      const avgSaving = totalCount > 0 ? totalSaving / totalCount : 0;
+
+      const monthsSorted = [...new Set(allData.map(d => d.month))].sort();
+      let monthChangeStr = '-';
+      if (monthsSorted.length >= 2) {
+        const prevMonth = monthsSorted[monthsSorted.length - 2];
+        const lastMonth = monthsSorted[monthsSorted.length - 1];
+        const prevSum = d3.sum(allData.filter(d => d.month === prevMonth), d => d.saving);
+        const lastSum = d3.sum(allData.filter(d => d.month === lastMonth), d => d.saving);
+        const diff = lastSum - prevSum;
+        monthChangeStr = `
+          <span class="summary-value ${diff >= 0 ? 'positive' : 'negative'}">${formatNumber(diff)}</span><br>
+          <small>(${formatMonth(prevMonth)} → ${formatMonth(lastMonth)})</small>
+        `;
+      }
+
+      const sortedBySaving = [...allData].sort((a, b) => Math.abs(b.saving) - Math.abs(a.saving));
+      const top3 = sortedBySaving.slice(0, 3);
+
+      const constructionData = allData.filter(d => !d.type.includes('관리소') && d.saving !== 0);
+      const maintenanceData = allData.filter(d => d.type.includes('관리소') && d.saving !== 0);
+      const constructionSaving = d3.sum(constructionData, d => d.saving);
+      const constructionCount = constructionData.length;
+      const constructionAvg = constructionCount > 0 ? constructionSaving / constructionCount : 0;
+      const maintenanceSaving = d3.sum(maintenanceData, d => d.saving);
+      const maintenanceCount = maintenanceData.length;
+      const maintenanceAvg = maintenanceCount > 0 ? maintenanceSaving / maintenanceCount : 0;
+
+      totalSummary.innerHTML = `
+        <!-- "총 절감액" 부분은 늘어나지 않도록 flex-shrink: 0; 적용 -->
+        <div class="summary-item" style="
+          text-align: center; padding: 12px; border-radius: 8px; /* margin-bottom은 .summary-item 기본값 따름 */
+          background-color: #f8f9fa; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink: 0;">
+          <strong style="display: block; color: #495057; margin-bottom: 4px;">총 절감액</strong>
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+            <span class="summary-value ${totalSaving >= 0 ? 'positive' : 'negative'}" style="font-weight: bolder; color: ${totalSaving >= 0 ? '#28a745' : '#dc3545'}; line-height: 1.15;">
+              ${formatNumber(totalSaving)}
+            </span>
+            <span style="color: #6c757d; line-height: 1.15;">
+              (${totalCount}건, <br>평균 ${formatNumber(avgSaving)})
+            </span>
+          </div>
+          <div style="width: 60%; height: 2px; background-color: ${totalSaving >= 0 ? '#28a745' : '#dc3545'}; margin: 8px auto 0; border-radius: 2px;"></div>
+        </div>
+        <div class="summary-item"><strong>전월 대비 증감:</strong> ${monthChangeStr}</div>
+        <div class="summary-item">
+          <strong>공사성 vs. 영선 전환<span style="color: #666;">:</span></strong><br>
+          <ul style="margin:3px 0 0 10px;padding:0;">
+            <li style="font-size:12.8px; color:#888;">
+              <div class="type-category" data-category="construction" style="cursor: pointer; margin: 4px 0;">
+                <span class="summary-value ${constructionSaving >= 0 ? 'positive' : 'negative'}">${formatNumber(constructionSaving)}</span>
+                <span style="font-weight: bold; text-decoration: underline;">공사성 절감비</span>
+                <br><small>(${constructionCount}건, 평균 ${formatNumber(constructionAvg)})</small>
+              </div>
+            </li>
+            <li style="font-size:12.8px; color:#888;">
+              <div class="type-category" data-category="maintenance" style="cursor: pointer; margin: 4px 0;">
+                <span class="summary-value ${maintenanceSaving >= 0 ? 'positive' : 'negative'}">${formatNumber(maintenanceSaving)}</span>
+                <span style="font-weight: bold; text-decoration: underline;">영선 전환(관리소) 절감비</span>
+                <br><small>(${maintenanceCount}건, 평균 ${formatNumber(maintenanceAvg)})</small>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="summary-item">
+          <strong>상위 2개 절감항목:</strong>
+          <ul style="margin:3px 0 0 10px;padding:0;">
+            ${top3.slice(0, 2).map(item => `<li style="font-size:12.8px; color:#888;">
+              <span class="summary-value ${item.saving >= 0 ? 'positive' : 'negative'}">${formatNumber(item.saving)}</span><br>
+              <span style="color:${colorScale ? colorScale(item.type) : '#1976d2'}; cursor:pointer; text-decoration:underline;" class="type-label" data-type="${item.type}">${item.detail}</span>
+              <small>${formatMonth(item.month)}</small>
+            </li>`).join('')}
+          </ul>
+        </div>
+      `;
+
+      const handleTypeLabelClick = function(e) {
+          e.stopPropagation();
+          const type = this.getAttribute('data-type');
+          if (!svg) return;
+          selectedTypes = new Set([type]);
+          const selectedMonthsSet = new Set();
+          allData.filter(d_item => d_item.type === type).forEach(d_item => selectedMonthsSet.add(d_item.month));
+          selectedMonths = selectedMonthsSet;
+          document.getElementById('select-all').checked = (allData.length > 0 && selectedTypes.size === new Set(allData.map(d => d.type)).size && selectedMonths.size === new Set(allData.map(d=>d.month)).size);
+          updateMonthFilter(); updateTable(); updateBubbleOpacity(); updateBubbleTextsBasedOnFilter();
+      };
+
+      document.querySelectorAll('.type-category').forEach(category => {
+        category.removeEventListener('click', handleTypeCategoryClick);
+        category.addEventListener('click', handleTypeCategoryClick);
+      });
+
+      const monthlyData = d3.rollups(
+        allData.filter(d => d.saving !== 0),
+        v => ({ total: d3.sum(v, d => d.saving), count: v.length, avg: v.length > 0 ? d3.sum(v, d => d.saving) / v.length : 0 }), // Added check for count > 0
+        d => d.month
+      ).sort((a, b) => a[0].localeCompare(b[0]));
+
+      monthlySummaryContainer.innerHTML = monthlyData.map(([month, stats]) => `
+        <div class="summary-item">
+          <strong><span class="summary-month-label" data-month="${month}" style="color:#1976d2; cursor:pointer; text-decoration:underline;">
+              ${formatMonth(month)}</span>:</strong>
+          <span class="summary-value ${stats.total >= 0 ? 'positive' : 'negative'}">${formatNumber(stats.total)}</span>
+          <br><small>(${stats.count}건, 평균 ${formatNumber(stats.avg)})</small>
+        </div>
+      `).join('');
+
+      monthlySummaryContainer.querySelectorAll('.summary-month-label').forEach(label => {
+        label.removeEventListener('click', handleSummaryMonthLabelClick);
+        label.addEventListener('click', handleSummaryMonthLabelClick);
+      });
+
+      const typeData = d3.rollups(
+        allData.filter(d => d.saving !== 0),
+        v => ({ total: d3.sum(v, d => d.saving), count: v.length, avg: v.length > 0 ? d3.sum(v, d => d.saving) / v.length : 0 }), // Added check for count > 0
+        d => d.type
+      ).sort((a, b) => Math.abs(b[1].total) - Math.abs(a[1].total));
+
+      if (typeSummaryContainer) {
+        typeSummaryContainer.innerHTML = typeData.map(([type, stats]) => {
+          const typeColor = colorScale ? colorScale(type) : '#1976d2';
+          return `
+            <div class="summary-item">
+              <strong style="color: ${typeColor}; cursor: pointer;" class="type-label" data-type="${type}">${type}:</strong>
+              <span class="summary-value ${stats.total >= 0 ? 'positive' : 'negative'}">${formatNumber(stats.total)}</span>
+              <br><small>(${stats.count}건, 평균 ${formatNumber(stats.avg)})</small>
+            </div>`;
+        }).join('');
+      }
+      document.querySelectorAll('.analysis-summary .type-label').forEach(label => {
+          label.removeEventListener('click', handleTypeLabelClick);
+          label.addEventListener('click', handleTypeLabelClick);
+      });
+    }
+
+    const handleTypeCategoryClick = function(e) {
+        e.stopPropagation();
+        const categoryType = this.getAttribute('data-category');
+        const filteredTypes = new Set(
+            allData.filter(d => categoryType === 'construction' ? !d.type.includes('관리소') : d.type.includes('관리소')).map(d => d.type)
+        );
+        selectedTypes = filteredTypes;
+        const selectedMonthsSet = new Set();
+        filteredTypes.forEach(type => {
+            allData.filter(d => d.type === type).forEach(d => selectedMonthsSet.add(d.month));
+        });
+        selectedMonths = selectedMonthsSet;
+        document.getElementById('select-all').checked = (allData.length > 0 && selectedTypes.size === new Set(allData.map(d => d.type)).size && selectedMonths.size === new Set(allData.map(d=>d.month)).size);
+        updateMonthFilter(); updateTable(); updateBubbleOpacity(); updateBubbleTextsBasedOnFilter();
+    };
+
+    const handleSummaryMonthLabelClick = function(e) {
+        e.stopPropagation();
+        const month = this.getAttribute('data-month');
+        selectedMonths = new Set([month]);
+        selectedTypes = new Set(allData.filter(d => d.month === month).map(d => d.type));
+        document.getElementById('select-all').checked = (allData.length > 0 && selectedTypes.size === new Set(allData.map(d => d.type)).size && selectedMonths.size === new Set(allData.map(d=>d.month)).size);
+        updateMonthFilter(); updateTable(); updateBubbleOpacity(); updateBubbleTextsBasedOnFilter();
+    };
+
+    function formatNumber(num) {
+      if (num === 0) return '0';
+      if (isNaN(num)) return '0';
+      const absNum = Math.abs(num);
+      const suffixes = ['원', '천원', '백만원', '십억원', '조원'];
+      const suffixNum = absNum > 0 ? Math.floor(Math.log10(absNum) / 3) : 0;
+      const actualSuffixNum = Math.min(suffixNum, suffixes.length - 1);
+      const shortNum = absNum / Math.pow(1000, actualSuffixNum);
+      const roundedNum = Math.round(shortNum * 100) / 100;
+      return `${num < 0 ? '-' : ''}${roundedNum}<small>${suffixes[actualSuffixNum]}</small>`;
+    }
+
+    document.getElementById('select-all').addEventListener('change', function(e) {
+      const allTypeStrings = new Set(allData.map(d => d.type));
+      const allMonthStrings = new Set(allData.map(d => d.month));
+      if (e.target.checked) {
+        selectedTypes = new Set(allTypeStrings);
+        selectedMonths = new Set(allMonthStrings);
+      } else {
+        selectedTypes.clear();
+        selectedMonths.clear();
+      }
+      updateMonthFilter(); updateTable(); updateBubbleOpacity(); updateBubbleTextsBasedOnFilter();
+    });
+
+    document.addEventListener('click', function(event) {
+      const analysisSummary = document.querySelector('.analysis-summary');
+      const isClickInsideAnalysisSummaryCard = event.target.closest('.summary-card');
+      // Check if the click is inside elements that should *not* clear selection
+      if (event.target.closest('svg') || event.target.closest('#table-container') || isClickInsideAnalysisSummaryCard) return;
+      if (event.target.closest('#controls') || event.target.closest('#select-all-container') ||
+          event.target.closest('#month-filter-container') || event.target.closest('.note-popup')) return;
+
+      // If click is outside all relevant containers and something is selected, clear selection
+      if (selectedTypes.size > 0 || selectedMonths.size > 0) {
+          selectedTypes.clear();
+          selectedMonths.clear();
+          document.getElementById('select-all').checked = false;
+          updateMonthFilter();
+          updateTable();
+          updateBubbleOpacity();
+          updateBubbleTextsBasedOnFilter();
+      }
+    });
+
+    async function downloadCSV() {
+      if (!allData || allData.length === 0) { alert('다운로드할 데이터가 없습니다.'); return; }
+      try {
+        const headers = ['월', '작업유형', '절감항목', 'A.집행비', 'B.공사비 적용시', '절감비(A-B)', '비고'];
+        const csvRows = [
+          headers.join(','),
+          ...allData.map(row => [
+            row.month, row.type, row.detail.replace(/<[^>]*>?/gm, ''), // Remove HTML from detail
+            row.actual, row.estimated, row.saving, row.note.replace(/<[^>]*>?/gm, '') // Remove HTML from note
+          ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+        ];
+        const csvContent = '\uFEFF' + csvRows.join('\n');
+        const today = new Date(); const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}${month}${day}`; const filename = `월별 비용 절감 목록_(기숙사 및 사택)_RawDn_${dateStr}.csv`;
+        if ('showSaveFilePicker' in window) {
+          try {
+            const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'CSV 파일', accept: { 'text/csv': ['.csv'] } }] });
+            const writable = await handle.createWritable(); await writable.write(csvContent); await writable.close(); return;
+          } catch (err) { if (err.name !== 'AbortError') console.error('File System Access API 실패:', err); }
+        }
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob);
+        const link = document.createElement('a'); link.href = url; link.download = filename;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+      } catch (error) { console.error('다운로드 중 오류 발생:', error); alert('파일 다운로드 중 오류가 발생했습니다.'); }
+    }
+    document.getElementById('download-csv-btn').addEventListener('click', downloadCSV);
+
+    async function downloadHTML() {
+      if (!allData || allData.length === 0) {
+        const confirmation = confirm('다운로드할 데이터가 없습니다. 현재 하이퍼링크 설정만 포함된 빈 템플릿 형태의 HTML을 다운로드하시겠습니까?');
+        if (!confirmation) return;
+      }
+      try {
+        let htmlContent = document.documentElement.outerHTML;
+        // Ensure data and rules are stringified correctly
+        const dataString = JSON.stringify(allData || []);
+        htmlContent = htmlContent.replace(/(let allData\s*=\s*)\[\]\s*;/, `$1${dataString};`);
+        const hyperlinkRulesString = JSON.stringify(hyperlinkRules || []);
+        htmlContent = htmlContent.replace(/(let hyperlinkRules\s*=\s*)\[\]\s*;/, `$1${hyperlinkRulesString};`);
+
+        const today = new Date(); const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}${month}${day}`; const filename = `월별 비용 절감 목록_(기숙사 및 사택)_html_${dateStr}.html`;
+        if ('showSaveFilePicker' in window) {
+          try {
+            const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'HTML 파일', accept: { 'text/html': ['.html'] } }] });
+            const writable = await handle.createWritable(); await writable.write(htmlContent); await writable.close(); return;
+          } catch (err) { if (err.name !== 'AbortError') console.error('File System Access API 실패:', err); }
+        }
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' }); const url = URL.createObjectURL(blob);
+        const link = document.createElement('a'); link.href = url; link.download = filename;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+      } catch (error) { console.error('HTML 다운로드 중 오류 발생:', error); alert('HTML 파일 다운로드 중 오류가 발생했습니다.'); }
+    }
+
+    window.addEventListener('load', function() {
+      const tableContainer = document.getElementById('table-container');
+      const analysisSummary = document.querySelector('.analysis-summary');
+      const tableElement = document.querySelector('table');
+
+      // Capture initial max-height from CSS on load
+      if (tableContainer) {
+          const computedMaxHeight = getComputedStyle(tableContainer).maxHeight;
+          if (computedMaxHeight && computedMaxHeight !== 'none') {
+              initialTableContainerMaxHeight = computedMaxHeight;
+          } else {
+              // Fallback if CSS max-height is none or not computed as expected
+               initialTableContainerMaxHeight = 'calc(100vh - 195px)';
+          }
+          // Set overflowY initially based on the CSS state (should be auto)
+           tableContainer.style.overflowY = 'auto';
+           tableContainer.style.maxHeight = initialTableContainerMaxHeight;
+      }
+
+      if (allData && allData.length > 0) {
+        // Data exists, draw chart and table
+        initChart();
+        drawChart();
+        updateTable(); // This will show the table and hide summary if data exists
+        updateMonthFilter();
+        updateAnalysisSummary();
+      } else {
+        // No data, show summary placeholder
+        if (analysisSummary && tableElement) {
+            tableElement.style.display = 'none';
+            analysisSummary.style.display = 'flex';
+            analysisSummary.classList.add('show');
+            updateAnalysisSummary(); // This will show the "No data" message
+
+            // Also adjust tableContainer for summary view if no data
+            if(tableContainer) {
+                tableContainer.style.overflowY = 'visible';
+                tableContainer.style.maxHeight = 'none';
+            }
+        }
+      }
+    });
+
+    document.getElementById('download-html-btn').addEventListener('click', downloadHTML);
+
+    function checkMenuOverlap() {
+      const controls = document.getElementById('controls');
+      const title = document.querySelector('h1');
+      if (!controls || !title) return;
+
+      const controlsRect = controls.getBoundingClientRect();
+      const titleRect = title.getBoundingClientRect();
+
+      if (controls.classList.contains('compact')) {
+      } else {
+        if (controlsRect.bottom > titleRect.bottom + 5) {
+          controls.classList.add('compact');
+        } else {
+          controls.classList.remove('compact');
+        }
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        checkMenuOverlap();
+    });
+
+    function handleHyperlinkUpload(event) {
+      const file = event.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = d3.csvParse(e.target.result);
+          hyperlinkRules = data.map(rule => ({
+            column: rule['대상열'] ? rule['대상열'].trim() : '', searchText: rule['검색텍스트'] ? rule['검색텍스트'].trim() : '',
+            linkUrl: rule['링크URL'] ? rule['링크URL'].trim() : '', linkType: rule['링크유형'] ? rule['링크유형'].trim() : 'note',
+            description: rule['설명'] ? rule['설명'].trim() : ''
+          })).filter(rule => rule.column && rule.searchText && rule.linkUrl);
+          if(allData && allData.length > 0) updateTable(); // Re-render table with new rules
+          alert('하이퍼링크 설정이 적용되었습니다.');
+        } catch (error) { console.error('하이퍼링크 CSV 파싱 오류:', error); alert('하이퍼링크 CSV 파일 형식이 올바르지 않습니다. 템플릿을 다운로드하여 사용해주세요.');}
+      };
+      reader.readAsText(file); event.target.value = null;
+    }
+
+    function applyHyperlinkRules() {
+      const tbody = document.querySelector('tbody');
+      if (!tbody) return; // Ensure tbody exists
+
+      // Combine uploaded rules and default rules
+      const combinedRules = [];
+      const ruleMap = new Map(); // Use a map to easily check for duplicates based on column and searchText
+
+      // Add uploaded rules first (higher priority)
+      if (hyperlinkRules && hyperlinkRules.length > 0) {
+          hyperlinkRules.forEach(rule => {
+              if (rule.column && rule.searchText && rule.linkUrl) { // Basic validation
+                  ruleMap.set(`${rule.column}|${rule.searchText}`, rule);
+              }
+          });
+      }
+
+      // Add default rules (lower priority, won't overwrite uploaded rules with same key)
+      if (defaultHyperlinkRules && defaultHyperlinkRules.length > 0) {
+           defaultHyperlinkRules.forEach(rule => {
+               if (rule.column && rule.searchText && rule.linkUrl) { // Basic validation
+                   const key = `${rule.column}|${rule.searchText}`;
+                   if (!ruleMap.has(key)) { // Add only if not already present from uploaded rules
+                       ruleMap.set(key, rule);
+                   }
+               }
+           });
+       }
+       combinedRules.push(...ruleMap.values()); // Get rules from the map as an array
+
+
+      // Remove existing hyperlink spans/anchors inserted by this function before applying new ones
+       tbody.querySelectorAll('tr:not(.sticky-total-row):not(.subtotal) a[class^="hyperlink-"], tr:not(.sticky-total-row):not(.subtotal) span[class^="min-labor-cost-link"], tr:not(.sticky-total-row):not(.subtotal) a.detail-link, tr:not(.sticky-total-row):not(.subtotal) a.note-link').forEach(el => {
+           // Replace the link/span element with its original text content
+           // This assumes the original text content without the link is desired before re-applying rules
+            const textNode = document.createTextNode(el.textContent);
+            el.parentNode.replaceChild(textNode, el);
+       });
+
+
+      // Get table headers dynamically once
+      const headers = Array.from(document.querySelectorAll('thead th')).map(th => th.textContent.trim());
+
+
+      tbody.querySelectorAll('tr:not(.sticky-total-row):not(.subtotal) td').forEach(cell => {
+        const columnIndex = Array.from(cell.parentNode.children).indexOf(cell);
+        const columnName = headers[columnIndex]; // Get column name using index
+        if (!columnName) return; // Skip if header is not found
+
+        const rulesForColumn = combinedRules.filter(rule => rule.column === columnName);
+
+        if (rulesForColumn.length > 0) {
+          let currentHtml = cell.innerHTML; // Use innerHTML to preserve existing structure like <br>
+          let currentText = cell.textContent || ""; // Use textContent for matching
+
+          rulesForColumn.forEach(rule => {
+             const searchText = rule.searchText;
+             const linkUrl = rule.linkUrl;
+             const linkType = rule.linkType || 'note';
+             const description = rule.description || searchText;
+
+             // Check if the search text exists in the cell's plain text content
+             if (currentText.includes(searchText)) {
+                 // Determine tag and class based on linkType and specific text (re-evaluating logic)
+                 let tag = 'a';
+                 let cssClass = '';
+
+                 if (linkType === 'month') { cssClass = 'hyperlink-month'; tag = 'a'; }
+                 else if (linkType === 'type') { cssClass = 'hyperlink-type'; tag = 'a'; }
+                 else if (linkType === 'detail') { cssClass = 'detail-link'; tag = 'a'; } // Match original detail class
+                 else if (linkType === 'note') { // Handle different note link types
+                     if (searchText.includes('최소인건비')) {
+                          cssClass = 'min-labor-cost-link'; tag = 'span'; // Use span for min-labor-cost
+                     } else {
+                         cssClass = 'note-link'; tag = 'a'; // Match original note class
+                     }
+                 } else { // Fallback for unknown types
+                      cssClass = 'hyperlink-unknown'; tag = 'a';
+                 }
+
+
+                 const linkHtml = `<${tag} href="${linkUrl}" ${tag === 'a' ? 'target="_blank"' : ''} class="${cssClass}" title="${description}">${searchText}</${tag}>`;
+
+                 // Replace the text within the cell's HTML structure.
+                 // Regex to replace text that is NOT already inside an <a> or <span> tag
+                 // This is a simplified approach and assumes search text doesn't overlap existing tags in complex ways.
+                 const escapedSearchText = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                 const regex = new RegExp(`(?![^<]*?<\/?(?:a|span)>)(${escapedSearchText})(?![^<]*?<\/?(?:a|span)>)`, 'g');
+
+                 // Only perform replacement if the potential link HTML is not already in the current content
+                 if (!currentHtml.includes(linkHtml)) {
+                    currentHtml = currentHtml.replace(regex, linkHtml);
+                 }
+             }
+          });
+          // Update cell's innerHTML with the modified content
+          cell.innerHTML = currentHtml;
+        }
+      });
+    }
+
+
+    function downloadHyperlinkRules() {
+      try {
+        const rulesToDownload = getCombinedHyperlinkRules(); // Use the combined rules (uploaded + default)
+
+        if (rulesToDownload.length === 0) { alert('저장된 하이퍼링크 규칙이 없습니다. 기본 규칙 또는 업로드된 규칙이 없습니다.'); return; }
+
+        const csvData = [
+          ['대상열', '검색텍스트', '링크URL', '링크유형', '설명'], // Header row
+          ...rulesToDownload.map(rule => [
+            rule.column || '',
+            rule.searchText || '',
+            rule.linkUrl || '',
+            rule.linkType || 'note',
+            rule.description || ''
+          ].map(field => {
+             // Ensure field is a string, escape quotes by doubling them, and wrap in double quotes
+             const stringField = String(field || '');
+             const escapedField = stringField.replace(/"/g, '""');
+             // Wrap the entire field in double quotes
+             return `"${escapedField}"`;
+          }).join(',')) // Join the correctly formatted fields with comma
+        ];
+        const csvContent = '\uFEFF' + csvData.map(row => row.join(',')).join('\n'); // Add BOM, join rows with newline
+
+        const today = new Date(); const year = today.getFullYear(); const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}${month}${day}`; const filename = `월별 비용 절감 목록_(기숙사 및 사택)_hyperDn_${dateStr}.csv`;
+
+        // Use File System Access API if available
+        if ('showSaveFilePicker' in window) {
+          window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{
+              description: 'CSV 파일',
+              accept: { 'text/csv': ['.csv'] },
+            }],
+          }).then(async (handle) => {
+            const writable = await handle.createWritable();
+            await writable.write(csvContent);
+            await writable.close();
+          }).catch((err) => {
+            // Handle errors like user cancellation (AbortError) or permission issues
+            if (err.name !== 'AbortError') {
+              console.error('File System Access API 다운로드 실패:', err);
+              // Fallback to traditional download if File System Access API fails unexpectedly
+              downloadBlob(csvContent, filename, 'text/csv;charset=utf-8');
+               alert('파일 시스템 접근 오류로 인해 일반 다운로드를 시도합니다.');
+            } else {
+                 console.log('File save cancelled by user.');
+            }
+          });
+        } else {
+          // Fallback to traditional download for browsers that don't support File System Access API
+          console.warn('File System Access API 미지원. 일반 다운로드를 사용합니다.');
+          downloadBlob(csvContent, filename, 'text/csv;charset=utf-8');
+        }
+
+      } catch (error) {
+         console.error('하이퍼링크 규칙 다운로드 중 오류 발생:', error);
+         alert('하이퍼링크 규칙 다운로드 중 오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+      }
+    }
+
+    // Helper function for traditional blob download
+    function downloadBlob(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+
+    document.getElementById('download-link-btn').addEventListener('click', function() {
+      try {
+        const dialog = document.createElement('div'); dialog.className = 'hyperlink-download-dialog';
+        dialog.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 2000; text-align: center;`;
+        dialog.innerHTML = `<h3 style="margin-top: 0; color: #1a237e;">하이퍼링크 다운로드 선택</h3><p style="margin-bottom: 20px;">다운로드할 항목을 선택해주세요.</p><div style="display: flex; gap: 10px; justify-content: center;"><button id="download-template-btn" style="padding: 8px 16px; background: #1a237e; color: white; border: none; border-radius: 4px; cursor: pointer;">템플릿 다운로드</button><button id="download-current-rules-btn" style="padding: 8px 16px; background: #1a237e; color: white; border: none; border-radius: 4px; cursor: pointer;">현재 규칙 다운로드</button></div><button id="cancel-download-dialog-btn" style="margin-top: 15px; padding: 6px 12px; background: #e0e0e0; border: none; border-radius: 4px; cursor: pointer;">취소</button>`;
+        const overlay = document.createElement('div'); overlay.style.cssText = `position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1999;`;
+        document.body.appendChild(overlay); document.body.appendChild(dialog);
+        const closeDialog = () => { dialog.remove(); overlay.remove(); };
+        dialog.querySelector('#download-template-btn').onclick = () => { downloadHyperlinkTemplate(); closeDialog(); };
+        dialog.querySelector('#download-current-rules-btn').onclick = () => { downloadHyperlinkRules(); closeDialog(); };
+        dialog.querySelector('#cancel-download-dialog-btn').onclick = closeDialog;
+        overlay.addEventListener('click', closeDialog);
+      } catch (error) { console.error('다이얼로그 생성 중 오류 발생:', error); alert('다이얼로그 생성 중 오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.'); }
+    });
+
+    function downloadHyperlinkTemplate() {
+      const templateData = [
+        ['대상열', '검색텍스트', '링크URL', '링크유형', '설명'],
+        ['월', '2025-01', 'https://example.com/month/2025-01', 'month', '1월 데이터 링크'],
+        ['작업유형', '건축', 'https://example.com/type/construction', 'type', '건축 작업 관련 링크'],
+        ['절감항목', '특정 보일러 모델', 'https://example.com/detail/boiler-model-xyz', 'detail', 'XYZ 보일러 상세 정보 링크'],
+        ['비고', '공사 표준 단가표', 'https://example.com/note/standard-costs', 'note', '관련 표준 단가 정보 링크']
+      ];
+      const csvContent = '\uFEFF' + templateData.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const today = new Date(); const year = today.getFullYear(); const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0');
+      const dateStr = `${year}${month}${day}`; const filename = `월별 비용 절감 목록_(기숙사 및 사택)_hyperTemplate_${dateStr}.csv`;
+      if ('showSaveFilePicker' in window) {
+        window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'CSV 파일', accept: { 'text/csv': ['.csv'] } }]
+        }).then(async handle => { const writable = await handle.createWritable(); await writable.write(csvContent); await writable.close();
+        }).catch(err => { if (err.name !== 'AbortError') console.error('File System Access API 실패:', err); }); return;
+      }
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob);
+      const link = document.createElement('a'); link.href = url; link.download = filename;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('upload-link-btn').addEventListener('click', function() {
+      const hyperlinkFileInput = document.createElement('input');
+      hyperlinkFileInput.type = 'file'; hyperlinkFileInput.accept = '.csv';
+      hyperlinkFileInput.onchange = handleHyperlinkUpload;
+      hyperlinkFileInput.click();
+    });
+
+  </script>
+
+</body></html>
