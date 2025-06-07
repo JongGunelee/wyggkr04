@@ -1,0 +1,2770 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>YY년 MM월 회의안건 (개선판)</title>
+  <meta name="template-type" content="monthly-meeting" />
+  <meta name="editable-title" content="YY년 MM월 회의안건" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body {
+      font-family: '맑은 고딕', sans-serif;
+      background-color: #fcfcfc;
+      margin: 0;
+      padding: 0;
+      color: #2b2b2b;
+      line-height: 1.6;
+      transition: margin-top 0.3s ease-in-out;
+      overflow-x: hidden;
+    }
+
+    body.meeting-cursor {
+      cursor: cell;
+    }
+
+    #appContainer {
+        background-color: #fcfcfc;
+        position: relative;
+    }
+
+    h1#page-title {
+      font-size: 1.8em;
+      color: #2a4d69;
+      margin: 0;
+      border-bottom: 2px solid #ccc;
+      padding: 15px 40px;
+      background: #fff;
+      z-index: 999;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    body:not(.true-fullscreen-active) h1#page-title {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+    }
+    body.true-fullscreen-active #appContainer > h1#page-title {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+    }
+
+    .container {
+      width: 100%;
+      max-width: none;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px 60px 60px;
+      box-sizing: border-box;
+      min-height: calc(100vh - 160px);
+      position: relative;
+    }
+
+
+    .section-title, .section-subtitle, .box, .flow span, .item, .insert-area {
+        position: relative;
+    }
+    .item-controls {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        display: none;
+        background-color: rgba(220, 220, 220, 0.95);
+        border-radius: 5px;
+        padding: 3px 5px;
+        z-index: 100;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        gap: 4px;
+    }
+    
+    /* 개선: 아이콘 표시 옵션에 따른 CSS 규칙 */
+    /* 옵션 1: 전체 아이콘 표시 (마우스 호버 시) */
+    body.show-icons-all [data-editable-type]:hover > .item-controls {
+        display: flex;
+    }
+    /* 옵션 2: 선택된 항목의 아이콘만 표시 */
+    body.show-icons-selected [data-editable-type].controls-active > .item-controls {
+        display: flex;
+    }
+
+    .item-control-btn {
+        background: #fff; border: 1px solid #aaa; color: #333; cursor: pointer;
+        font-size: 14px;
+        padding: 2px 5px;
+        border-radius: 4px;
+        line-height: 1;
+    }
+    .item-control-btn:hover { background-color: #e8e8e8; border-color: #888; }
+
+
+    .section-title {
+      font-weight: bold; font-size: 1.4em; color: #00695c;
+      margin-top: 20px; margin-bottom: 8px; padding-left: 0;
+    }
+    .section-subtitle {
+      font-weight: 600; font-size: 1em; color: #00897b;
+      margin-top: 6px; margin-bottom: 4px; margin-left: 20px; padding-left: 10px;
+    }
+    .box > .section-subtitle {
+        margin-left: 0; padding-left: 0; color: #333; font-weight: normal;
+        display: flex; align-items: baseline;
+    }
+    .box > .section-subtitle .bullet-char { margin-right: 8px; }
+    .box .item-bulleted-left {
+        display: flex; align-items: baseline; margin-left: 0 !important; padding-left: 0;
+    }
+    .box .item-bulleted-left .bullet-char { margin-right: 8px; flex-shrink: 0; }
+    .box .item-bulleted-left .bullet-text { flex-grow: 1; }
+    .box > .item:not(.item-bulleted-left),
+    .box > .insert-area:not(.templated-insert-area),
+    .box > button.add-sub-insert-area-btn {
+        margin-left: 24px;
+        margin-top: 8px;
+        font-size: 0.9em;
+        padding: 4px 8px;
+        background-color: #e0e0e0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        position: relative;
+    }
+     .box > button.add-sub-insert-area-btn:hover {
+        background-color: #d0d0d0;
+     }
+     .box > button.add-sub-insert-area-btn > span[data-editable-type="button-text-label"] {
+        display: inline-block;
+        min-width: 20px;
+        position: relative;
+     }
+
+
+    .flow {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin: 0 0 10px 50px; position: relative;
+    }
+    .flow span {
+      background-color: #e0f7fa; border-radius: 20px;
+      padding: 6px 12px; font-size: 0.95em;
+    }
+    .box {
+      background-color: #f9f9f9; border-left: 4px solid #b0bec5;
+      padding: 12px 20px; margin: 10px 0 10px 50px; border-radius: 6px;
+    }
+    .item { font-size: 0.96em; margin-bottom: 8px; padding: 2px; }
+    .highlight { font-weight: bold; color: #d84315; }
+
+    .insert-area {
+      border: 1px dashed #bbb; background-color: #fff; padding: 8px;
+      min-height: 50px; margin: 6px 0 12px 0; position: relative;
+    }
+    .box > .insert-area {
+        margin-left: 24px;
+    }
+
+    .floating-menu-icon, .fullscreen-btn-class, #multiZoomTriggerBtn,
+    #annotationDisplayToggleBtn, #annotationSettingsToggleBtn, #memoAnnotationToggleBtn, .exit-true-fullscreen-btn {
+      position: fixed;
+      right: 16px;
+      background-color: rgba(150,150,150,0.3);
+      color: #555;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: background-color 0.2s ease;
+      font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+      line-height: 1;
+      z-index: 10001;
+    }
+
+    .floating-menu-icon { bottom: 16px; font-size: 20px; padding: 8px 10px; }
+    .fullscreen-btn-class { bottom: 62px; font-size: 20px; padding: 8px 10px; }
+    #multiZoomTriggerBtn { bottom: 108px; font-size: 22px; background-color: rgba(0, 123, 255, 0.8); color: white; padding: 10px; }
+
+    #annotationDisplayToggleBtn { bottom: 154px; font-size: 20px; padding: 8px 10px; z-index: 10002;}
+    #annotationSettingsToggleBtn { bottom: 200px; font-size: 20px; padding: 8px 10px; z-index: 10002;}
+    #memoAnnotationToggleBtn { bottom: 246px; font-size: 20px; padding: 8px 10px; z-index: 10002;}
+
+    .floating-menu-icon:hover, .fullscreen-btn-class:hover, #multiZoomTriggerBtn:hover,
+    #annotationDisplayToggleBtn:hover, #annotationSettingsToggleBtn:hover, #memoAnnotationToggleBtn:hover, .exit-true-fullscreen-btn:hover {
+        background-color: rgba(120,120,120,0.4);
+    }
+
+    #annotationDisplayToggleBtn.active, #annotationSettingsToggleBtn.active, #memoAnnotationToggleBtn.active,
+    .fullscreen-btn-class.fs-active {
+        background-color: rgba(128, 0, 128, 0.6);
+        color: white;
+        opacity: 1;
+    }
+    #annotationDisplayToggleBtn:not(.active),
+    #annotationSettingsToggleBtn:not(.active),
+    #memoAnnotationToggleBtn:not(.active) {
+        opacity: 0.6;
+    }
+    .exit-true-fullscreen-btn {
+      top: 10px; right: 16px; font-size: 28px; padding: 0px 10px;
+      background-color: rgba(255,255,255,0.6);
+      z-index: 10005;
+      display: none;
+    }
+     body.true-fullscreen-active .exit-true-fullscreen-btn { display: block; }
+    .exit-true-fullscreen-btn:hover { color: #000; background-color: rgba(230,230,230,0.8); }
+
+
+    #annotationSettingsPanel {
+        position: fixed;
+        right: 70px;
+        bottom: 200px;
+        background-color: rgba(245, 245, 245, 0.97);
+        padding: 10px;
+        padding-top: 30px;
+        border-radius: 8px;
+        box-shadow: -2px 0px 5px rgba(0,0,0,0.2);
+        z-index: 10003;
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        width: 190px;
+    }
+    #closeAnnotationSettingsBtn {
+        position: absolute;
+        top: 5px;
+        right: 8px;
+        font-size: 24px;
+        color: #777;
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 2px 5px;
+        line-height: 1;
+    }
+    #closeAnnotationSettingsBtn:hover {
+        color: #333;
+    }
+
+
+    .floating-panel {
+      position: fixed; bottom: 16px; right: 16px; width: 300px;
+      background-color: #f5f5f5; border: 1px solid #ccc; border-radius: 8px;
+      padding: 15px; padding-top: 35px; display: none; z-index: 10004;
+      font-size: 14px; color: #333; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      max-height: calc(100vh - 80px); overflow: auto; cursor: grab;
+      resize: both;
+      min-width: 250px;
+      min-height: 200px;
+    }
+    .floating-panel.dragging { cursor: grabbing; user-select: none; }
+    .floating-panel-close-btn {
+        position: absolute; top: 8px; right: 10px; font-size: 20px;
+        color: #777; cursor: pointer; padding: 2px 5px;
+    }
+    .floating-panel-close-btn:hover { color: #333; }
+    .floating-panel hr { margin: 12px 0; border-top: 1px solid #ddd; border-bottom: none; }
+    .floating-panel label { display: block; margin-bottom: 8px; font-weight: bold; color: #00695c; }
+    .floating-panel input, .floating-panel button, .floating-panel select {
+      width: 100%; margin-bottom: 10px; font-size: 13px; padding: 8px;
+      box-sizing: border-box; border-radius: 4px; border: 1px solid #ddd;
+    }
+    .floating-panel input[type="color"] {
+        width: auto; height: 35px; padding: 2px;
+        vertical-align: middle; margin-left: 0;
+    }
+    .floating-panel input[type="radio"],
+    .floating-panel input[type="checkbox"] {
+        width: auto; margin-right: 5px; vertical-align: middle;
+    }
+    .floating-panel .checkbox-label {
+        font-weight: normal; display: inline-block; margin-bottom: 5px; color: #333;
+    }
+    #editIconsOptionsContainer {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+
+    .floating-panel .color-input-container {
+        display: flex; align-items: center; gap: 10px; margin-bottom:10px;
+    }
+    .floating-panel .color-input-container label { margin-bottom: 0; flex-shrink: 0; }
+    .floating-panel .format-controls button {
+        width: auto; min-width: 35px; padding: 6px 8px; margin-right: 5px;
+        margin-bottom: 5px;
+    }
+    .floating-panel .format-controls { display: flex; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+    .floating-panel .format-controls select { flex-grow: 1; margin-right: 5px; }
+    /* Style for the new back color picker */
+    .floating-panel .format-controls #backColorSelector {
+        margin-left: 5px;
+    }
+
+
+    .floating-panel .char-insert-container {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: 10px;
+    }
+    .floating-panel .char-insert-container input[type="text"] {
+        flex-grow: 1;
+        margin-bottom: 0;
+    }
+    .floating-panel .emoji-dropdown {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 0;
+    }
+    .floating-panel .emoji-dropdown-btn {
+        width: auto;
+        padding: 8px 10px;
+        margin-left: 5px;
+        margin-bottom: 0;
+    }
+
+    .floating-panel input:focus, .floating-panel select:focus {
+        border-color: #00897b; outline: none; box-shadow: 0 0 0 2px rgba(0, 137, 123, 0.2);
+    }
+    .floating-panel button {
+        background-color: #00897b; color: white; border: none; cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    .floating-panel button:hover { background-color: #00695c; }
+    .floating-panel button.secondary { background-color: #b0bec5; color: #333; }
+    .floating-panel button.secondary:hover { background-color: #90a4ae; }
+
+    #elementStyleControls { margin-top: 15px; }
+    #elementStyleControls h4 { font-size: 1.1em; color: #00695c; margin-top:0; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;}
+    #elementStyleControls label { font-weight: normal; color: #333; }
+    #elementStyleControls input[type="text"],
+    #elementStyleControls input[type="number"],
+    #elementStyleControls select {
+        margin-bottom: 10px;
+    }
+
+    .common-item-template { display: none; }
+
+    body.true-fullscreen-active { overflow: auto !important; }
+
+    #appContainer:-webkit-full-screen { background: #fcfcfc; width: 100%; height: 100%; overflow-y: auto;}
+    #appContainer:-moz-full-screen { background: #fcfcfc; width: 100%; height: 100%; overflow-y: auto; }
+    #appContainer:-ms-fullscreen { background: #fcfcfc; width: 100%; height: 100%; overflow-y: auto; }
+    #appContainer:fullscreen { background: #fcfcfc; width: 100%; height: 100%; overflow-y: auto; }
+
+
+    #areaSelectionRectangle {
+        position: fixed; border: 1px dashed #007bff; background-color: rgba(0, 123, 255, 0.1);
+        z-index: 4000; display: none; pointer-events: none;
+    }
+    #selectionZoomOverlay {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background-color: rgba(240, 240, 240, 0.97);
+        z-index: 3000; display: none;
+        padding: 20px; box-sizing: border-box; overflow-y: auto;
+        cursor: zoom-out;
+    }
+    #selectionZoomContent {
+        background-color: #ffffff;
+        padding: 25px; border: 1px solid #ccc; border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        max-width: 90%;
+        margin: 20px auto;
+    }
+    #selectionZoomContent > * { box-sizing: border-box; }
+
+    .close-selection-zoom-btn {
+        position: absolute; top: 10px; right: 10px; font-size: 24px; color: #aaa;
+        background-color: transparent; border: none; cursor: pointer; z-index: 3001;
+    }
+    .close-selection-zoom-btn:hover { color: #777; }
+
+    .custom-message-box {
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        background-color: #ffc107; color: #333; padding: 15px 25px;
+        border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 10006;
+        display: none; font-size: 1em;
+    }
+    .custom-message-box.error { background-color: #f44336; color: white; }
+    .custom-message-box.success { background-color: #4CAF50; color: white; }
+    #content a { color: purple; cursor: pointer; text-decoration: underline; }
+    #content a:hover { text-decoration: none; }
+
+    .multi-zoom-selected {
+        outline: 2px dashed #007bff; outline-offset: 2px;
+        box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+    }
+
+    [data-editable-type] { cursor: default; }
+    [data-editable-type][contenteditable="true"],
+    .insert-area[contenteditable="true"],
+    span[data-editable-type="button-text-label"] { cursor: text; }
+    body.ctrl-pressed [data-editable-type]:hover { cursor: zoom-in; }
+    body.ctrl-pressed span[data-editable-type="button-text-label"]:hover { cursor: text; }
+
+    .emoji-dropdown { position: relative; display: inline-block; }
+    .emoji-dropdown-btn {
+        width: auto !important; padding: 8px 10px !important;
+        margin-left: 0 !important; margin-bottom: 10px !important;
+    }
+    .emoji-dropdown-content {
+        display: none; position: absolute; background-color: #f9f9f9;
+        min-width: 200px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 10002; border-radius: 5px; padding: 10px;
+        bottom: 100%; right: 0; max-height: 200px; overflow-y: auto;
+        flex-wrap: wrap; gap: 5px; justify-content: space-around;
+    }
+    .emoji-dropdown-content button.emoji-btn {
+        color: black; padding: 6px 8px; text-decoration: none; display: inline-block;
+        font-size: 18px; border: none; background: none; cursor: pointer;
+        width: auto; margin: 2px;
+    }
+    .emoji-dropdown-content button.emoji-btn:hover {background-color: #f1f1f1}
+    .emoji-dropdown:hover .emoji-dropdown-content,
+    .emoji-dropdown .emoji-dropdown-content.show { display: flex; }
+
+    /* Annotation Styles */
+    #annotationSettingsPanel > div { display: flex; align-items: center; gap: 5px; }
+    #annotationSettingsPanel label { font-size: 12px; margin-bottom: 0; color: #333; flex-shrink: 0;}
+    #annotationSettingsPanel button,
+    #annotationSettingsPanel input[type="color"],
+    #annotationSettingsPanel input[type="range"] {
+        padding: 5px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: white;
+        cursor: pointer;
+        font-size: 12px;
+        height: 28px;
+        line-height: 1;
+        box-sizing: border-box;
+        margin-bottom: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+     #annotationSettingsPanel button {
+        flex-grow: 0;
+        flex-basis: auto;
+        min-width: fit-content;
+        padding: 5px 10px;
+     }
+    #annotationSettingsPanel input[type="color"] { width: 30px; min-width: auto; padding:1px; flex-grow: 0;}
+    #annotationSettingsPanel input[type="range"] { flex-grow: 1; padding: 0; }
+    #annotationSettingsPanel .tool-active {
+        background-color: #800080;
+        color: white;
+        border-color: #600060;
+    }
+    #annoHighlighterOpacityContainer {
+        display: none;
+        align-items: center;
+        gap: 5px;
+    }
+    #annoHighlighterOpacityContainer label {
+        font-size: 12px;
+        margin-bottom: 0;
+        color: #333;
+        flex-shrink: 0;
+    }
+    #annoHighlighterOpacityContainer input[type="range"] {
+        flex-grow: 1;
+        padding: 0;
+        height: 20px;
+    }
+
+
+    #annotationCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: none;
+        pointer-events: none;
+        z-index: 10000;
+    }
+
+    /* Memo Annotation Styles */
+    .text-annotation-memo {
+        position: absolute;
+        background-color: #ffffe0;
+        border: 1px solid #ccc;
+        padding: 8px;
+        min-width: 150px;
+        min-height: 70px;
+        cursor: move;
+        z-index: 10;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        resize: both;
+        overflow: auto;
+        font-size: 14px;
+        line-height: 1.4;
+        box-sizing: border-box;
+    }
+    .text-annotation-memo:focus-within {
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0,123,255,0.5);
+    }
+    .text-annotation-memo .memo-delete-btn {
+        position: absolute;
+        top: 2px;
+        right: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #aaa;
+        padding: 0 2px;
+        line-height: 1;
+    }
+    .text-annotation-memo .memo-delete-btn:hover {
+        color: #333;
+    }
+
+
+    @media print {
+      @page {
+        size: a4 landscape; /* Set page size and orientation for printing */
+        margin: 5mm !important; /* Apply minimal margin for "꽉차게" effect */
+      }
+      body, html {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+
+      .floating-menu-icon, .fullscreen-btn-class, #multiZoomTriggerBtn,
+      .floating-panel, #customMessageBox, #selectionZoomOverlay,
+      .exit-true-fullscreen-btn, .item-controls, .add-sub-insert-area-btn,
+      #annotationDisplayToggleBtn, #annotationSettingsToggleBtn, #annotationSettingsPanel, #memoAnnotationToggleBtn,
+       .text-annotation-memo .memo-delete-btn {
+        display: none !important;
+      }
+      #annotationCanvas { }
+      .text-annotation-memo {
+        border: 1px solid #ddd !important;
+        background-color: #fff !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+      }
+      h1#page-title {
+        position: relative !important;
+        border-bottom: 1px solid #ccc !important;
+        padding: 5mm 0 !important; /* Use mm for consistency with page margin */
+        margin: 0 0 5mm 0 !important; /* Add some space below title before content */
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+       #appContainer, .container {
+         margin: 0 !important;
+         padding: 0 !important;
+         width: 100% !important;
+         border: none !important;
+         box-shadow: none !important;
+       }
+      .container {
+        padding-top: 0 !important;
+      }
+      .box {
+        border-left: 4px solid #b0bec5 !important;
+        page-break-inside: avoid;
+        margin-left: 0 !important;
+        padding-left: 10px !important;
+      }
+      .section {
+        page-break-inside: avoid;
+        padding: 0 5px !important;
+      }
+      .flow { margin-left: 5px !important; }
+
+      .flow span, .highlight {
+         -webkit-print-color-adjust: exact !important;
+         color-adjust: exact !important;
+      }
+      a {
+        color: purple !important;
+        text-decoration: underline !important;
+      }
+      .no-print { display: none !important; }
+      .multi-zoom-selected { outline: none !important; box-shadow: none !important; }
+      body.ctrl-pressed [data-editable-type]:hover { cursor: default !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="appContainer">
+    <button class="exit-true-fullscreen-btn" id="exitTrueFullscreenBtnActual" title="기본 보기로 돌아가기">✕</button>
+    <button class="fullscreen-btn-class" id="trueFullscreenBtn" title="전체 화면 보기/나가기">⛶</button>
+    <button class="floating-menu-icon" id="floatingMenuToggleBtn" title="메뉴 열기">☰</button>
+    <button id="multiZoomTriggerBtn" title="선택된 항목 모두 확대" style="display: none;">🔍</button>
+
+    <button id="annotationDisplayToggleBtn" title="주석 켜기/끄기" style="display: none;">👁️</button>
+    <button id="annotationSettingsToggleBtn" title="주석 설정" style="display: none;">⚙️</button>
+    <button id="memoAnnotationToggleBtn" title="텍스트 메모 추가 (전체 화면에서 내용 영역 클릭)" style="display: none;">📝</button>
+
+    <h1 id="page-title" contenteditable="true" data-editable-type="page-title">YY년 MM월 월간 업무 회의 안건 (기숙사 및 사택)</h1>
+
+    <div class="container" id="content" contenteditable="true">
+      <canvas id="annotationCanvas"></canvas>
+      <div class="section">
+        <div class="section-title" data-editable-type="section-title">→ 절감 및 집행 현황 (누적)</div>
+        <div class="section-subtitle" data-editable-type="section-subtitle">▶ 절감</div>
+        <div class="flow" data-editable-type="flow-container">
+          <span data-editable-type="flow-span">항목 발굴</span>
+          <span data-editable-type="flow-span">검토(현실성)</span>
+          <span data-editable-type="flow-span">반영(협의)</span>
+          <span data-editable-type="flow-span">개선 확장(지속성)</span>
+        </div>
+        <div class="box" data-editable-type="box">
+          <div class="item item-bulleted-left" data-editable-type="item"> <span class="bullet-char">▪</span>
+            <span class="bullet-text"><strong>항목(실비정산①)</strong>: 기계 긴급성 묶음 도입(2023년 하반기) → 건축·기계 규모 파악 및 합의(2024년) → 지속적 개선 및 유지 관리(2025년~)</span>
+          </div>
+          <div class="item item-bulleted-left" data-editable-type="item"> <span class="bullet-char">▪</span>
+            <span class="bullet-text"><strong>비용(산출기준①)</strong>: 공사 적용 시 산출비(보수적) – 실 투입비 = 차액(절감액)<br />※ 실적 또는 최소 인건비 기준 적용 (자재비 미반영, 선택 적용)</span>
+          </div>
+        </div>
+
+        <div class="section-subtitle" data-editable-type="section-subtitle">▶ 집행</div>
+        <div class="flow" data-editable-type="flow-container">
+          <span class="highlight" data-editable-type="flow-span">총 4.4천만 원 (16건)</span>
+          <span data-editable-type="flow-span">수장공사 2.6천만 원 (6건)</span>
+          <span data-editable-type="flow-span">건축(실비정산) 480만 원 (1건)</span>
+          <span data-editable-type="flow-span">세대 내 보일러 외 1.3천만 원 (9건)</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title" data-editable-type="section-title">→ 주요 현황</div>
+        <div class="box" data-editable-type="box">
+          <div class="section-subtitle" data-editable-type="section-subtitle"><span class="bullet-char">▪</span><span class="bullet-text">업무지원팀</span></div>
+          <div class="item" data-editable-type="item">유모차 보관 장소 (단순 장소 또는 보관 환경)</div>
+           <button class="add-sub-insert-area-btn" contenteditable="false">
+                <span contenteditable="true" data-editable-type="button-text-label">+ 하위 입력창 추가</span>
+           </button>
+        </div>
+        <div class="box" data-editable-type="box">
+          <div class="section-subtitle" data-editable-type="section-subtitle"><span class="bullet-char">▪</span><span class="bullet-text">관리소</span></div>
+          <div class="item" data-editable-type="item">저수조 청소일 → <span class="highlight">6월 12일(목)</span></div>
+           <button class="add-sub-insert-area-btn" contenteditable="false">
+                <span contenteditable="true" data-editable-type="button-text-label">+ 하위 입력창 추가</span>
+           </button>
+        </div>
+        <div class="box" data-editable-type="box">
+          <div class="section-subtitle" data-editable-type="section-subtitle"><span class="bullet-char">▪</span><span class="bullet-text">공통</span></div>
+          <div class="insert-area" contenteditable="true" data-editable-type="insert-area">
+            내용을 입력하세요...
+            </div>
+             <button class="add-sub-insert-area-btn" contenteditable="false">
+                <span contenteditable="true" data-editable-type="button-text-label">+ 하위 입력창 추가</span>
+             </button>
+          </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title" data-editable-type="section-title">→ 현장 점검</div>
+        <div class="box" data-editable-type="box">
+          <div class="section-subtitle" data-editable-type="section-subtitle"><span class="bullet-char">▪</span><span class="bullet-text">점검 구역 A (예시)</span></div>
+          <div class="item" data-editable-type="item">세부 점검 사항 1</div>
+          <div class="item" data-editable-type="item">세부 점검 사항 2</div>
+           <button class="add-sub-insert-area-btn" contenteditable="false">
+                <span contenteditable="true" data-editable-type="button-text-label">+ 하위 입력창 추가</span>
+           </button>
+           </div>
+        <div class="box" data-editable-type="box">
+          <div class="section-subtitle" data-editable-type="section-subtitle"><span class="bullet-char">▪</span><span class="bullet-text">점검 항목 B (예시)</span></div>
+          <div class="insert-area" contenteditable="true" data-editable-type="insert-area">
+            점검 내용 및 결과 입력...
+          </div>
+           <button class="add-sub-insert-area-btn" contenteditable="false">
+                <span contenteditable="true" data-editable-type="button-text-label">+ 하위 입력창 추가</span>
+            </button>
+           </div>
+        <div class="box" data-editable-type="box">
+          <div class="section-subtitle" data-editable-type="section-subtitle"><span class="bullet-char">▪</span><span class="bullet-text">추가 조치 필요 사항 (예시)</span></div>
+          <div class="insert-area" contenteditable="true" data-editable-type="insert-area">
+            조치 내용 기술...
+          </div>
+           <button class="add-sub-insert-area-btn" contenteditable="false">
+                <span contenteditable="true" data-editable-type="button-text-label">+ 하위 입력창 추가</span>
+           </button>
+           </div>
+      </div>
+    </div>
+    <div id="annotationSettingsPanel" style="display: none;">
+        <span id="closeAnnotationSettingsBtn" title="설정 적용 및 닫기">&times;</span>
+        <div>
+            <button id="annoToolPen" data-tool="pen" title="펜">펜</button>
+            <button id="annoToolHighlighter" data-tool="highlighter" title="형광펜">형광펜</button>
+            <button id="annoToolCircle" data-tool="circle" title="원">○</button>
+            <button id="annoToolEllipse" data-tool="ellipse" title="타원">◌</button>
+            <button id="annoToolOrthoLine" data-tool="orthoLine" title="직각선">📐</button>
+        </div>
+        <div>
+            <label for="annoColorPicker">색:</label>
+            <input type="color" id="annoColorPicker" title="색상 선택">
+        </div>
+        <div>
+            <label for="annoLineWidth">굵기:</label>
+            <input type="range" id="annoLineWidth" min="1" max="20" title="선 굵기">
+        </div>
+        <div id="annoHighlighterOpacityContainer" style="display: none;">
+            <label for="annoHighlighterOpacity">투명도:</label>
+            <input type="range" id="annoHighlighterOpacity" min="0.1" max="1" step="0.1" value="0.3" title="형광펜 투명도">
+        </div>
+        <div>
+            <button id="annoToolEraser" data-tool="eraser" title="지우개">지우개</button>
+            <button id="annoClearCanvas" title="모두 지우기">전체삭제</button>
+        </div>
+        <div>
+            <input type="checkbox" id="annoKeepDrawingsVisible" checked>
+            <label for="annoKeepDrawingsVisible" style="font-size:11px; white-space: nowrap;">그림 유지(비활성시)</label>
+        </div>
+    </div>
+</div> <div id="customMessageBox" class="custom-message-box"></div>
+
+<div class="floating-panel" id="menuPanel">
+  <span class="floating-panel-close-btn" id="closeMenuPanelBtn" title="메뉴 닫기">✕</span>
+  <label>⚙️ 설정</label>
+  <div id="editIconsOptionsContainer">
+      <label class="checkbox-label" for="editIconsModeOff">
+        <input type="radio" id="editIconsModeOff" name="editIconsMode" value="off">
+        아이콘 숨김
+      </label>
+      <label class="checkbox-label" for="editIconsModeAll">
+        <input type="radio" id="editIconsModeAll" name="editIconsMode" value="all">
+        전체 아이콘 표시
+      </label>
+      <label class="checkbox-label" for="editIconsModeSelected">
+        <input type="radio" id="editIconsModeSelected" name="editIconsMode" value="selected">
+        선택 아이콘만 표시
+      </label>
+  </div>
+  <hr>
+  <label>🔗 링크 편집</label>
+  <input type="text" id="linkURL" placeholder="링크 URL (선택된 텍스트에 적용)" />
+  <button id="applyLinkBtn">선택 영역에 링크 삽입</button>
+  <button id="removeLinkBtn" class="secondary">선택 영역 링크 제거</button>
+  <hr>
+  <label>✍️ 텍스트 서식</label>
+  <div class="format-controls">
+    <button id="applyBoldBtn" title="굵게"><b>B</b></button>
+    <button id="applyItalicBtn" title="기울임꼴"><i>I</i></button>
+    <button id="applyUnderlineBtn" title="밑줄"><u>U</u></button>
+    <button id="applyStrikethroughBtn" title="취소선" style="text-decoration: line-through;">S</button>
+    <button id="applySuperscriptBtn" title="위 첨자">A<sup>+</sup></button>
+    <button id="applySubscriptBtn" title="아래 첨자">A<sub>-</sub></button>
+  </div>
+  <div class="format-controls">
+    <select id="fontSizeSelector" title="글꼴 크기">
+      <option value="1">아주 작게</option> <option value="2">작게</option> <option value="3" selected>보통</option>
+      <option value="4">조금 크게</option> <option value="5">크게</option> <option value="6">아주 크게</option> <option value="7">최대로 크게</option>
+    </select>
+    <input type="color" id="fontColorSelector" title="글꼴 색상" value="#000000">
+    <input type="color" id="backColorSelector" title="텍스트 배경색" value="#ffffff">
+  </div>
+  <hr>
+  <label>💡 아이콘/특수문자 삽입</label>
+  <div class="char-insert-container">
+    <input type="text" id="charInput" placeholder="문자 입력 (예: ⭐, ✔, ►)">
+    <div class="emoji-dropdown">
+        <button type="button" class="emoji-dropdown-btn" id="emojiDropdownBtn">▼</button>
+        <div class="emoji-dropdown-content" id="emojiPalette">
+            <button type="button" class="emoji-btn">😀</button> <button type="button" class="emoji-btn">😂</button>
+            <button type="button" class="emoji-btn">😊</button> <button type="button" class="emoji-btn">😍</button>
+            <button type="button" class="emoji-btn">🤔</button> <button type="button" class="emoji-btn">👍</button>
+            <button type="button" class="emoji-btn">👎</button> <button type="button" class="emoji-btn">⭐</button>
+            <button type="button" class="emoji-btn">❤️</button> <button type="button" class="emoji-btn">✔</button>
+            <button type="button" class="emoji-btn">❌</button> <button type="button" class="emoji-btn">✨</button>
+            <button type="button" class="emoji-btn">🎉</button> <button type="button" class="emoji-btn">👀</button>
+            <button type="button" class="emoji-btn">👉</button> <button type="button" class="emoji-btn">💡</button>
+            <button type="button" class="emoji-btn">❓</button> <button type="button" class="emoji-btn">❗</button>
+            <button type="button" class="emoji-btn">➡️</button> <button type="button" class="emoji-btn">⬅️</button>
+            <button type="button" class="emoji-btn">⬆️</button> <button type="button" class="emoji-btn">⬇️</button>
+            <button type="button" class="emoji-btn">➕</button> <button type="button" class="emoji-btn">➖</button>
+            <button type="button" class="emoji-btn">📁</button> <button type="button" class="emoji-btn">📄</button>
+        </div>
+    </div>
+  </div>
+   <button id="insertCharFromInputBtn" title="선택 위치에 삽입" style="width:100%; margin-top: 5px;">입력 문자 삽입</button>
+  <hr>
+  <label>✒️ 주석 도구</label>
+  <div>
+      <input type="checkbox" id="menuAnnoKeepDrawingsVisible">
+      <label for="menuAnnoKeepDrawingsVisible" class="checkbox-label">그림 유지(비활성시)</label>
+  </div>
+  <button id="menuAnnoDrawingToggle" style="width:100%; margin-top:5px;">주석 켜기/끄기</button>
+  <button id="menuAnnoSettingsPanelToggle" style="width:100%; margin-top:5px;">주석 설정 열기/닫기</button>
+  <button id="menuMemoAnnotationBtn" style="width:100%; margin-top:5px;">메모 추가 (전체화면)</button>
+  <hr>
+  <label>📄 문서 저장</label>
+  <button id="saveHtmlBtn">💾 HTML로 저장</button>
+  <button id="printPdfBtn">📄 PDF로 인쇄</button>
+  <hr>
+  <div id="elementStyleControls" style="display:none;">
+      <h4>선택 요소 스타일</h4>
+      <div class="color-input-container">
+        <label for="elementBgColor">배경색:</label>
+        <input type="color" id="elementBgColor">
+      </div>
+      <div class="color-input-container">
+        <label for="elementTextColor">글자색:</label>
+        <input type="color" id="elementTextColor">
+      </div>
+      <div>
+        <label for="elementBorderRadius">테두리 굴곡 (px):</label>
+        <input type="number" id="elementBorderRadius" min="0" step="1" placeholder="예: 5">
+      </div>
+      <div>
+        <label for="elementShapeSelector">모양:</label>
+        <select id="elementShapeSelector">
+          <option value="default">기본 모양</option>
+          <option value="rectangle">직사각형</option>
+          <option value="rounded-rectangle">둥근 직사각형</option>
+          <option value="oval">타원형/원형</option>
+        </select>
+      </div>
+    </div>
+</div>
+
+<div id="areaSelectionRectangle" style="display: none;"></div>
+
+<div id="selectionZoomOverlay">
+    <button class="close-selection-zoom-btn" id="closeSelectionZoomBtn" title="닫기 (또는 바깥 클릭)">✕</button>
+    <div id="selectionZoomContent"></div>
+</div>
+
+<div class="common-item-template">
+  <div class="item" data-editable-type="item" contenteditable="true">새로운 기본 항목...</div>
+  <div class="default-shape-item" data-editable-type="item" contenteditable="true">새로운 항목 내용...</div>
+  <div class="insert-area templated-insert-area" contenteditable="true" data-editable-type="insert-area">### 입력 ##...</div>
+  <div class="box" data-editable-type="box" style="margin-left: 0; background-color: #e9e9e9;">새 박스
+      <div class="section-subtitle" data-editable-type="section-subtitle" style="margin-left:0;">새 하위 제목</div>
+  </div>
+  <span data-editable-type="flow-span" style="background-color: #cceeff;">새 흐름 단계</span>
+</div>
+
+<script id="mainAppScript">
+  // --- Global Variables & Constants ---
+  const appContainer = document.getElementById('appContainer');
+  const contentArea = document.getElementById('content');
+  const pageTitle = document.getElementById("page-title");
+  const menuPanel = document.getElementById("menuPanel");
+  const floatingMenuToggleBtn = document.getElementById("floatingMenuToggleBtn");
+  const closeMenuPanelBtn = document.getElementById("closeMenuPanelBtn");
+  const trueFullscreenBtn = document.getElementById('trueFullscreenBtn');
+  const exitTrueFullscreenBtnActual = document.getElementById('exitTrueFullscreenBtnActual');
+  const multiZoomTriggerBtn = document.getElementById('multiZoomTriggerBtn');
+
+  const selectionZoomOverlay = document.getElementById('selectionZoomOverlay');
+  const selectionZoomContent = document.getElementById('selectionZoomContent');
+
+  // Annotation variables
+  const annotationDisplayToggleBtn = document.getElementById('annotationDisplayToggleBtn');
+  const annotationSettingsToggleBtn = document.getElementById('annotationSettingsToggleBtn');
+  const annotationSettingsPanel = document.getElementById('annotationSettingsPanel');
+  const closeAnnotationSettingsBtn = document.getElementById('closeAnnotationSettingsBtn');
+  const annotationCanvas = document.getElementById('annotationCanvas');
+  const annoToolPenBtn = document.getElementById('annoToolPen');
+  const annoToolHighlighterBtn = document.getElementById('annoToolHighlighter');
+  const annoToolCircleBtn = document.getElementById('annoToolCircle');
+  const annoToolEllipseBtn = document.getElementById('annoToolEllipse');
+  const annoToolOrthoLineBtn = document.getElementById('annoToolOrthoLine');
+  const annoColorPicker = document.getElementById('annoColorPicker');
+  const annoLineWidthSlider = document.getElementById('annoLineWidth');
+  const annoToolEraserBtn = document.getElementById('annoToolEraser');
+  const annoClearCanvasBtn = document.getElementById('annoClearCanvas');
+  const annoHighlighterOpacityContainer = document.getElementById('annoHighlighterOpacityContainer');
+  const annoHighlighterOpacitySlider = document.getElementById('annoHighlighterOpacity');
+  const annoKeepDrawingsVisibleCheckbox = document.getElementById('annoKeepDrawingsVisible');
+
+  // Menu Panel Annotation Controls
+  const menuAnnoKeepDrawingsVisible = document.getElementById('menuAnnoKeepDrawingsVisible');
+  const menuAnnoDrawingToggle = document.getElementById('menuAnnoDrawingToggle');
+  const menuAnnoSettingsPanelToggle = document.getElementById('menuAnnoSettingsPanelToggle');
+  const menuMemoAnnotationBtn = document.getElementById('menuMemoAnnotationBtn');
+
+
+  // Memo annotation variables
+  const memoAnnotationToggleBtn = document.getElementById('memoAnnotationToggleBtn');
+  let isMemoModeActive = false;
+
+
+  let annotationCtx = annotationCanvas.getContext('2d');
+  let isDrawingFeatureActive = false;
+  let isAnnotationPanelOpen = false;
+
+  let isDrawingAnnotation = false;
+  let lastAnnotationX, lastAnnotationY;
+  let straightLineStartX, straightLineStartY;
+  let shapeStartX, shapeStartY;
+  let isShiftKeyDown = false;
+  let previewImageData = null;
+
+  let drawingSettings = {
+    tool: 'pen',
+    penColor: '#800080',
+    penLineWidth: '5',
+    highlighterColor: '#FFFFE0',
+    highlighterLineWidth: '20',
+    highlighterOpacity: '1.0',
+  };
+  let panelUISettings = { ...drawingSettings };
+  let keepDrawingsVisibleOnDeactivate = true;
+  let drawnStrokes = [];
+
+
+  let isDraggingPanel = false, panelOffsetX, panelOffsetY;
+  let currentlySelectedElementForStyling = null;
+  let currentlyActiveItemControlsElement = null;
+  let elementsForMultiZoom = [];
+
+  // --- Helper Functions ---
+  function showMessage(message, type = 'warning', duration = 3000) {
+    const messageBox = document.getElementById('customMessageBox');
+    if (!messageBox) return;
+    messageBox.textContent = message;
+    messageBox.className = 'custom-message-box';
+    if (type === 'error') messageBox.classList.add('error');
+    else if (type === 'success') messageBox.classList.add('success');
+    messageBox.style.display = 'block';
+    setTimeout(() => { messageBox.style.display = 'none'; }, duration);
+  }
+
+  function adjustContainerPadding() {
+    if (pageTitle && contentArea) {
+        const titleHeight = pageTitle.offsetHeight;
+        const isTitleEffectivelyFixed = getComputedStyle(pageTitle).position === 'fixed' ||
+                                      (getComputedStyle(pageTitle).position === 'sticky' && pageTitle.getBoundingClientRect().top <= 0);
+
+        if (titleHeight > 0 && (getComputedStyle(pageTitle).display !== 'none')) {
+             if (document.body.classList.contains('content-fullscreen-active')) {
+                contentArea.style.paddingTop = '20px';
+             } else {
+                contentArea.style.paddingTop = (titleHeight + 20) + "px";
+             }
+        } else {
+             contentArea.style.paddingTop = '20px';
+        }
+    }
+  }
+
+  // --- Date and Filename Formatting ---
+  function getFormattedDateForFilename() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    return {
+        yearYY: year.toString().slice(-2),
+        monthMM: month,
+        yearYYYY: year,
+        dayDD: day,
+        filenameMM: month,
+        filenameYYYYMMDD: `${year}${month}${day}`
+    };
+  }
+
+
+  // --- Fullscreen Functionality ---
+  function toggleTrueFullscreen() {
+    try {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+            let requestPromise;
+            if (appContainer.requestFullscreen) {
+                requestPromise = appContainer.requestFullscreen();
+            } else if (appContainer.webkitRequestFullscreen) {
+                requestPromise = appContainer.webkitRequestFullscreen();
+            } else if (appContainer.mozRequestFullScreen) {
+                requestPromise = appContainer.mozRequestFullScreen();
+            } else if (appContainer.msRequestFullscreen) {
+                requestPromise = appContainer.msRequestFullscreen();
+            }
+
+            if (requestPromise) {
+                requestPromise.catch(err => {
+                    console.error(`Fullscreen request error: ${err.message} (${err.name})`);
+                    showMessage("전체 화면 모드를 시작할 수 없습니다. 브라우저 권한을 확인해주세요.", "error");
+                });
+            }
+        } else {
+            let exitPromise;
+            if (document.exitFullscreen) {
+                exitPromise = document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                exitPromise = document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                exitPromise = document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                exitPromise = document.msExitFullscreen();
+            }
+            
+            if (exitPromise) {
+                exitPromise.catch(err => {
+                    console.error(`Exit fullscreen error: ${err.message} (${err.name})`);
+                });
+            }
+        }
+    } catch (e) {
+        console.error("A synchronous error occurred when trying to toggle fullscreen:", e);
+        showMessage("전체 화면 기능에 접근할 수 없습니다.", "error");
+    }
+}
+
+function exitTrueFullscreen() {
+    try {
+        let exitPromise;
+        if (document.exitFullscreen) {
+            exitPromise = document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            exitPromise = document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            exitPromise = document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+            exitPromise = document.msExitFullscreen();
+        }
+        
+        if (exitPromise) {
+            exitPromise.catch(err => {
+                console.error(`Exit fullscreen error: ${err.message} (${err.name})`);
+            });
+        }
+    } catch (e) {
+        console.error("A synchronous error occurred when trying to exit fullscreen:", e);
+    }
+}
+
+  function fullscreenChangeHandler() {
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+    document.body.classList.toggle('true-fullscreen-active', isFs);
+
+    if (floatingMenuToggleBtn) floatingMenuToggleBtn.style.display = isFs ? 'none' : 'block';
+    if (trueFullscreenBtn) {
+        trueFullscreenBtn.style.display = isFs ? 'none' : 'block';
+        trueFullscreenBtn.innerHTML = isFs ? '나가기' : '⛶';
+        trueFullscreenBtn.title = isFs ? "전체 화면 나가기" : "전체 화면 보기";
+    }
+    if (multiZoomTriggerBtn) {
+        multiZoomTriggerBtn.style.display = (isFs && elementsForMultiZoom.length > 0 && !document.body.classList.contains('selection-zoom-active')) ? 'block' : 'none';
+    }
+    if (exitTrueFullscreenBtnActual) exitTrueFullscreenBtnActual.style.display = isFs ? 'block' : 'none';
+
+
+    if (isFs) {
+        annotationDisplayToggleBtn.style.display = 'block';
+        annotationSettingsToggleBtn.style.display = 'block';
+        memoAnnotationToggleBtn.style.display = 'block';
+
+        if (isDrawingFeatureActive) {
+            annotationDisplayToggleBtn.classList.add('active');
+            annotationCanvas.style.display = 'block';
+            annotationCanvas.style.pointerEvents = 'auto';
+            annotationSettingsPanel.style.display = isAnnotationPanelOpen ? 'flex' : 'none';
+            annotationSettingsToggleBtn.classList.toggle('active', isAnnotationPanelOpen);
+            if (isAnnotationPanelOpen) loadPanelUIWithSettings(panelUISettings);
+        } else {
+            annotationDisplayToggleBtn.classList.remove('active');
+            annotationCanvas.style.display = keepDrawingsVisibleOnDeactivate ? 'block' : 'none';
+            annotationCanvas.style.pointerEvents = 'none';
+            annotationSettingsPanel.style.display = 'none';
+            annotationSettingsToggleBtn.classList.remove('active');
+            isAnnotationPanelOpen = false;
+        }
+    } else {
+        annotationDisplayToggleBtn.style.display = 'none';
+        annotationSettingsToggleBtn.style.display = 'none';
+        memoAnnotationToggleBtn.style.display = 'none';
+        annotationSettingsPanel.style.display = 'none';
+        isAnnotationPanelOpen = false;
+
+        if (annotationCanvas) {
+            annotationCanvas.style.pointerEvents = 'none';
+            annotationCanvas.style.display = (isDrawingFeatureActive && keepDrawingsVisibleOnDeactivate) ? 'block' : 'none';
+        }
+    }
+
+    if (document.body.classList.contains('selection-zoom-active')) {
+        if(floatingMenuToggleBtn) floatingMenuToggleBtn.style.display = 'none';
+        if(trueFullscreenBtn) trueFullscreenBtn.style.display = 'none';
+        if(multiZoomTriggerBtn) multiZoomTriggerBtn.style.display = 'none';
+        if(annotationDisplayToggleBtn) annotationDisplayToggleBtn.style.display = 'none';
+        if(annotationSettingsToggleBtn) annotationSettingsToggleBtn.style.display = 'none';
+        if(memoAnnotationToggleBtn) memoAnnotationToggleBtn.style.display = 'none';
+        if(annotationSettingsPanel) annotationSettingsPanel.style.display = 'none';
+    }
+
+    adjustContainerPadding();
+    updateAnnotationDisplayToggleBtnStyle();
+    setupAnnotationCanvas();
+  }
+
+  // --- Floating Panel (Menu) Functionality ---
+  function togglePanel() {
+    const isPanelCurrentlyOpen = menuPanel.style.display === "block";
+    menuPanel.style.display = isPanelCurrentlyOpen ? "none" : "block";
+
+    if (isPanelCurrentlyOpen) {
+        floatingMenuToggleBtn.innerHTML = '☰';
+        floatingMenuToggleBtn.title = "메뉴 열기";
+        hideElementStyleControls();
+    } else {
+        floatingMenuToggleBtn.innerHTML = '✕';
+        floatingMenuToggleBtn.title = "메뉴 닫기";
+        if(menuAnnoKeepDrawingsVisible) menuAnnoKeepDrawingsVisible.checked = keepDrawingsVisibleOnDeactivate;
+        if(menuAnnoDrawingToggle) menuAnnoDrawingToggle.classList.toggle('active', isDrawingFeatureActive);
+        if(menuAnnoSettingsPanelToggle) menuAnnoSettingsPanelToggle.classList.toggle('active', isAnnotationPanelOpen && isDrawingFeatureActive);
+        if(menuMemoAnnotationBtn) menuMemoAnnotationBtn.classList.toggle('active', isMemoModeActive && document.body.classList.contains('true-fullscreen-active'));
+    }
+  }
+
+  function handleCloseMenuPanel() {
+    menuPanel.style.display = "none";
+    floatingMenuToggleBtn.innerHTML = '☰';
+    floatingMenuToggleBtn.title = "메뉴 열기";
+    hideElementStyleControls();
+  }
+  
+  function handlePanelDragStart(e) {
+      if (e.target.closest('button, input, select, .floating-panel-close-btn, .checkbox-label, .emoji-dropdown-content, .emoji-btn')) return;
+      isDraggingPanel = true;
+      menuPanel.classList.add('dragging');
+      panelOffsetX = e.clientX - menuPanel.getBoundingClientRect().left;
+      panelOffsetY = e.clientY - menuPanel.getBoundingClientRect().top;
+      if (!menuPanel.style.left || !menuPanel.style.top) {
+        const rect = menuPanel.getBoundingClientRect();
+        menuPanel.style.left = `${rect.left}px`; menuPanel.style.top = `${rect.top}px`;
+        menuPanel.style.right = 'auto'; menuPanel.style.bottom = 'auto';
+      }
+  }
+
+  function handlePanelDragMove(e) {
+    if (!isDraggingPanel) return;
+    e.preventDefault();
+    let newX = e.clientX - panelOffsetX;
+    let newY = e.clientY - panelOffsetY;
+    const panelRect = menuPanel.getBoundingClientRect();
+    newX = Math.max(0, Math.min(newX, window.innerWidth - panelRect.width));
+    newY = Math.max(0, Math.min(newY, window.innerHeight - panelRect.height));
+    menuPanel.style.left = `${newX}px`; menuPanel.style.top = `${newY}px`;
+  }
+
+  function handlePanelDragEnd() {
+    if (isDraggingPanel) {
+      isDraggingPanel = false;
+      menuPanel.classList.remove('dragging');
+    }
+  }
+
+  // --- Zoom Functionality (Single and Multi-Element) ---
+  function triggerZoomOnElement(zoomTarget) {
+    if (!zoomTarget || !appContainer.contains(zoomTarget) || selectionZoomOverlay.style.display === 'block') {
+        return;
+    }
+    const activeEl = document.activeElement;
+    if (activeEl && activeEl !== zoomTarget && appContainer.contains(activeEl) &&
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName)) {
+        return;
+    }
+    if (window.getSelection().toString().length > 0 && activeEl === zoomTarget && zoomTarget.isContentEditable) {
+        return;
+    }
+
+    const clone = zoomTarget.cloneNode(true);
+    clone.querySelectorAll('.item-controls').forEach(ctrl => ctrl.remove());
+    clone.classList.remove('controls-active', 'multi-zoom-selected');
+    Object.assign(clone.style, { transform: 'none', cursor: 'auto' });
+
+    const originalStyle = getComputedStyle(zoomTarget);
+    for (let i = 0; i < originalStyle.length; i++) {
+        const propName = originalStyle[i];
+        const styleBlacklist = ['position', 'top', 'right', 'left', 'bottom', 'z-index', 'margin', 'float', 'clear', 'outline', 'box-shadow', 'transform', 'transition'];
+        if (!styleBlacklist.includes(propName)) {
+            try {
+                clone.style.setProperty(propName, originalStyle.getPropertyValue(propName), originalStyle.getPropertyPriority(propName));
+            } catch(e) { /* Silently ignore */ }
+        }
+    }
+    Object.assign(clone.style, {
+        display: originalStyle.display, margin: '0 auto', marginBottom: '0',
+        width: originalStyle.width, height: 'auto', minHeight: originalStyle.minHeight,
+        boxSizing: 'border-box', outline: 'none', boxShadow: 'none',
+        backgroundColor: (originalStyle.backgroundColor === 'rgba(0, 0, 0, 0)' || originalStyle.backgroundColor === 'transparent') ? 'white' : originalStyle.backgroundColor,
+        background: originalStyle.background,
+        whiteSpace: (zoomTarget.tagName === 'SPAN' && zoomTarget.parentElement && getComputedStyle(zoomTarget.parentElement).display.includes('flex')) ? 'nowrap' : originalStyle.whiteSpace
+    });
+
+    selectionZoomContent.innerHTML = '';
+    selectionZoomContent.appendChild(clone);
+    selectionZoomOverlay.style.display = 'block';
+    document.body.classList.add('selection-zoom-active');
+    document.body.style.overflow = 'hidden';
+    fullscreenChangeHandler();
+  }
+
+  function displayMultiZoom(elementsToZoom) {
+    if (!elementsToZoom || elementsToZoom.length === 0 || selectionZoomOverlay.style.display === 'block') return;
+    selectionZoomContent.innerHTML = '';
+
+    let isOriginalLayoutFlex = false;
+    let originalParentFlexProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' };
+
+    if (elementsToZoom.length > 0 && elementsToZoom[0].parentElement) {
+        const parentStyle = getComputedStyle(elementsToZoom[0].parentElement);
+        if (parentStyle.display.includes('flex')) {
+            isOriginalLayoutFlex = true;
+            Object.assign(originalParentFlexProperties, {
+                display: parentStyle.display, flexDirection: parentStyle.flexDirection, flexWrap: parentStyle.flexWrap,
+                justifyContent: parentStyle.justifyContent, alignItems: parentStyle.alignItems,
+                gap: parentStyle.gap === 'normal' ? '10px' : parentStyle.gap
+            });
+        }
+    }
+    Object.assign(selectionZoomContent.style, originalParentFlexProperties);
+
+    elementsToZoom.forEach(originalEl => {
+        const clone = originalEl.cloneNode(true);
+        clone.querySelectorAll('.item-controls').forEach(ctrl => ctrl.remove());
+        clone.classList.remove('controls-active', 'multi-zoom-selected');
+        Object.assign(clone.style, { transform: 'none', cursor: 'auto' });
+
+        const originalStyle = getComputedStyle(originalEl);
+        const blacklist = ['position', 'top', 'right', 'left', 'bottom', 'z-index', 'float', 'clear', 'outline', 'box-shadow', 'transform', 'transition'];
+        if (isOriginalLayoutFlex) blacklist.push('margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left');
+
+        for (let i = 0; i < originalStyle.length; i++) {
+            const propName = originalStyle[i];
+            if (!blacklist.includes(propName) && propName !== 'white-space') {
+                try { clone.style.setProperty(propName, originalStyle.getPropertyValue(propName), originalStyle.getPropertyPriority(propName)); } catch(e) {}
+            }
+        }
+        Object.assign(clone.style, {
+            display: originalStyle.display, width: originalStyle.width, height: 'auto', minHeight: originalStyle.minHeight,
+            boxSizing: 'border-box', outline: 'none', boxShadow: 'none',
+            backgroundColor: (originalStyle.backgroundColor === 'rgba(0, 0, 0, 0)' || originalStyle.backgroundColor === 'transparent') ? 'white' : originalStyle.backgroundColor,
+            background: originalStyle.background,
+            whiteSpace: (originalEl.tagName === 'SPAN' && originalEl.parentElement && getComputedStyle(originalEl.parentElement).display.includes('flex')) ? 'nowrap' : originalStyle.whiteSpace
+        });
+        if (isOriginalLayoutFlex) clone.style.margin = '';
+        else Object.assign(clone.style, { marginTop: '0', marginLeft: 'auto', marginRight: 'auto', marginBottom: '15px' });
+
+        selectionZoomContent.appendChild(clone);
+    });
+    if (!isOriginalLayoutFlex && selectionZoomContent.lastChild) selectionZoomContent.lastChild.style.marginBottom = '0';
+
+    selectionZoomOverlay.style.display = 'block';
+    document.body.classList.add('selection-zoom-active');
+    document.body.style.overflow = 'hidden';
+    fullscreenChangeHandler();
+  }
+
+  function handleMultiZoomTrigger() {
+    if (elementsForMultiZoom.length > 0) {
+        elementsForMultiZoom.length === 1 ? triggerZoomOnElement(elementsForMultiZoom[0]) : displayMultiZoom([...elementsForMultiZoom]);
+    }
+  }
+
+  function closeSelectionZoom() {
+    selectionZoomOverlay.style.display = 'none';
+    selectionZoomContent.innerHTML = '';
+    document.body.classList.remove('selection-zoom-active');
+    document.body.style.overflow = '';
+    fullscreenChangeHandler();
+  }
+  
+  function handleSelectionZoomOverlayClick(event) {
+    if (event.target === selectionZoomOverlay || event.target.closest('.close-selection-zoom-btn')) closeSelectionZoom();
+  }
+
+  // --- Element Controls and Editing ---
+  function activateControls(elementToActivate, focusAndSelect = false) {
+      if (currentlyActiveItemControlsElement && currentlyActiveItemControlsElement !== elementToActivate) {
+          currentlyActiveItemControlsElement.classList.remove('controls-active');
+          if (currentlySelectedElementForStyling === currentlyActiveItemControlsElement) hideElementStyleControls();
+      }
+      if (elementToActivate) {
+          elementToActivate.classList.add('controls-active');
+          currentlyActiveItemControlsElement = elementToActivate;
+          if (focusAndSelect && elementToActivate.dataset.editableType !== 'page-title') {
+              setTimeout(() => {
+                  elementToActivate.focus();
+                  if (typeof elementToActivate.select === 'function') {
+                      elementToActivate.select();
+                  } else if (elementToActivate.isContentEditable) {
+                      const selection = window.getSelection(), range = document.createRange();
+                      if (elementToActivate.firstChild) range.selectNodeContents(elementToActivate);
+                      else { range.setStart(elementToActivate, 0); range.collapse(true); }
+                      try { selection.removeAllRanges(); selection.addRange(range); } catch(e) { console.warn("Could not set selection:", e); }
+                  }
+              }, 0);
+          }
+      } else if (currentlyActiveItemControlsElement) {
+          currentlyActiveItemControlsElement.classList.remove('controls-active');
+          if (currentlySelectedElementForStyling === currentlyActiveItemControlsElement) hideElementStyleControls();
+          currentlyActiveItemControlsElement = null;
+      }
+  }
+
+  function generateItemControls(element) {
+    if (element.querySelector(':scope > .item-controls')) return;
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'item-controls';
+
+    // Event listeners for these buttons will be handled by event delegation
+    if (element.dataset.editableType !== 'button-text-label' && element.dataset.editableType !== 'page-title') {
+        const addBtn = document.createElement('button');
+        addBtn.className = 'item-control-btn item-control-clone-btn';
+        addBtn.innerHTML = '➕'; addBtn.title = '항목 복제';
+        controlsDiv.appendChild(addBtn);
+    }
+
+    const styleBtn = document.createElement('button');
+    styleBtn.className = 'item-control-btn item-control-style-btn';
+    styleBtn.innerHTML = '🎨'; styleBtn.title = '스타일 변경';
+    controlsDiv.appendChild(styleBtn);
+
+    if (element.dataset.editableType !== 'page-title') {
+        const delBtn = document.createElement('button');
+        delBtn.className = 'item-control-btn item-control-delete-btn';
+        delBtn.innerHTML = '🗑️'; delBtn.title = '삭제';
+        controlsDiv.appendChild(delBtn);
+    }
+
+    if (controlsDiv.children.length > 0 && !element.querySelector(':scope > .item-controls')) {
+        element.appendChild(controlsDiv);
+    }
+  }
+
+  function cloneAndInsertElement(sourceElement) {
+    let newItem = sourceElement.cloneNode(true);
+    newItem.removeAttribute('id');
+    newItem.querySelectorAll('.item-controls').forEach(ctrl => ctrl.remove());
+    newItem.classList.remove('controls-active', 'multi-zoom-selected');
+
+    const computedStyle = getComputedStyle(sourceElement);
+    for (let i = 0; i < computedStyle.length; i++) {
+        const propName = computedStyle[i];
+        const styleBlacklist = ['position','top','right','left','bottom','z-index','display','visibility','opacity','transform','margin','margin-top','margin-right','margin-bottom','margin-left','outline','outline-color','outline-style','outline-width','outline-offset','box-shadow', 'transition', 'cursor'];
+        if (!styleBlacklist.includes(propName)) {
+            try { newItem.style.setProperty(computedStyle[i], computedStyle.getPropertyValue(computedStyle[i]), computedStyle.getPropertyPriority(computedStyle[i])); } catch (e) {}
+        }
+    }
+    if (computedStyle.display.includes('block') || computedStyle.display.includes('flex') || computedStyle.display.includes('grid')) newItem.style.display = computedStyle.display;
+    else if (sourceElement.tagName === 'SPAN' && (computedStyle.display === 'inline' || !computedStyle.display) ) newItem.style.display = 'inline-block';
+    else newItem.style.display = computedStyle.display || 'block';
+
+    if (computedStyle.width !== 'auto' && computedStyle.width !== '0px') newItem.style.width = computedStyle.width;
+    if (computedStyle.height !== 'auto' && computedStyle.height !== '0px') newItem.style.height = computedStyle.height;
+
+
+    sourceElement.parentNode.insertBefore(newItem, sourceElement.nextSibling);
+    generateItemControls(newItem);
+    newItem.querySelectorAll('[data-editable-type]').forEach(desc => generateItemControls(desc));
+    activateControls(newItem, true);
+    showMessage('항목이 복제되었습니다.', 'success');
+  }
+
+  // --- Multi-Zoom Selection Logic ---
+  function toggleMultiZoomSelection(element) {
+    const index = elementsForMultiZoom.indexOf(element);
+    if (index > -1) { elementsForMultiZoom.splice(index, 1); element.classList.remove('multi-zoom-selected'); }
+    else { elementsForMultiZoom.push(element); element.classList.add('multi-zoom-selected'); }
+    updateMultiZoomTriggerVisibility();
+  }
+
+  function updateMultiZoomTriggerVisibility() {
+    if (multiZoomTriggerBtn) {
+        const isSelectionZoomActive = document.body.classList.contains('selection-zoom-active');
+        const shouldBeVisible = elementsForMultiZoom.length >= 1 && !isSelectionZoomActive && document.body.classList.contains('true-fullscreen-active');
+        multiZoomTriggerBtn.style.display = shouldBeVisible ? 'block' : 'none';
+    }
+  }
+  function clearMultiZoomSelectionVisuals() {
+    elementsForMultiZoom.forEach(e => e.classList.remove('multi-zoom-selected'));
+    updateMultiZoomTriggerVisibility();
+  }
+
+  // --- Event Handling for Element Interaction and Controls ---
+  function handleAppContainerClick(event) {
+    const target = event.target;
+
+    // --- Event Delegation for Item Controls ---
+    const controlButton = target.closest('.item-control-btn');
+    if (controlButton) {
+        event.stopPropagation();
+        const element = controlButton.closest('[data-editable-type]');
+        if (!element) return;
+
+        if (controlButton.classList.contains('item-control-clone-btn')) {
+            cloneAndInsertElement(element);
+        } else if (controlButton.classList.contains('item-control-style-btn')) {
+            activateElementStyling(element);
+        } else if (controlButton.classList.contains('item-control-delete-btn')) {
+            const itemText = (element.textContent.substring(0,20) || "이 항목").trim();
+            if (element.dataset.editableType === 'button-text-label' && element.parentElement?.classList.contains('add-sub-insert-area-btn')) {
+                element.parentElement.remove();
+            } else {
+                element.remove();
+            }
+            showMessage(`'${itemText}...' 항목 삭제됨.`, 'success');
+            if (currentlySelectedElementForStyling === element) { hideElementStyleControls(); currentlySelectedElementForStyling = null; }
+            if (currentlyActiveItemControlsElement === element) activateControls(null);
+            const indexInMultiZoom = elementsForMultiZoom.indexOf(element);
+            if (indexInMultiZoom > -1) { elementsForMultiZoom.splice(indexInMultiZoom, 1); updateMultiZoomTriggerVisibility(); }
+        }
+        return;
+    }
+    
+    // --- Event Delegation for "Add Insert Area" button ---
+    const addInsertAreaButton = target.closest('.add-sub-insert-area-btn');
+    if (addInsertAreaButton && !target.closest('[data-editable-type="button-text-label"]')) {
+        event.stopPropagation();
+        const boxElement = addInsertAreaButton.closest('.box');
+        if (boxElement) {
+             addInsertAreaToBox(boxElement);
+        }
+        return;
+    }
+
+    // --- Main Click Logic for Selection ---
+    const clickedItem = target.closest('[data-editable-type]');
+    if (!clickedItem) {
+        activateControls(null);
+        if (elementsForMultiZoom.length > 0 && !target.closest('#multiZoomTriggerBtn')) {
+            clearMultiZoomSelectionVisuals(); elementsForMultiZoom = [];
+        } return;
+    }
+    
+    if (clickedItem.dataset.editableType === 'button-text-label' && target === clickedItem) {
+        activateControls(clickedItem, true); event.stopPropagation(); return;
+    }
+    const interactiveChild = target.closest('a, button:not(.add-sub-insert-area-btn), input, select, textarea');
+    if (interactiveChild && clickedItem.contains(interactiveChild) && interactiveChild !== clickedItem) {
+        if (interactiveChild.tagName === 'A' && interactiveChild.href && !(event.ctrlKey || event.metaKey)) {
+             event.preventDefault(); window.open(interactiveChild.href, '_blank', 'noopener,noreferrer');
+        } return;
+    }
+    event.stopPropagation();
+
+    if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        if (!(clickedItem.dataset.editableType === 'page-title' && elementsForMultiZoom.length > 0 && !elementsForMultiZoom.includes(clickedItem)) &&
+            !(clickedItem.dataset.editableType === 'page-title' && elementsForMultiZoom.length === 0 && elementsForMultiZoom.includes(clickedItem) && elementsForMultiZoom.length > 1) ) {
+            toggleMultiZoomSelection(clickedItem);
+        }
+        if (elementsForMultiZoom.length === 1 && elementsForMultiZoom[0] === clickedItem) activateControls(clickedItem);
+        else if (elementsForMultiZoom.length !== 1 && currentlyActiveItemControlsElement === clickedItem) activateControls(null);
+        else if (elementsForMultiZoom.length > 1 && currentlyActiveItemControlsElement) activateControls(null);
+
+    } else {
+        if (elementsForMultiZoom.length > 0 && !elementsForMultiZoom.includes(clickedItem)) {
+            clearMultiZoomSelectionVisuals(); elementsForMultiZoom = [];
+        }
+        if (elementsForMultiZoom.length === 1 && elementsForMultiZoom[0] === clickedItem && clickedItem.dataset.editableType === 'page-title') {
+            toggleMultiZoomSelection(clickedItem);
+        }
+        activateControls(clickedItem);
+    }
+  }
+
+  function handleDocumentClick(event) {
+    const isClickInsideAppOrGlobalControls = appContainer.contains(event.target) ||
+                                       (menuPanel && menuPanel.contains(event.target)) ||
+                                       (selectionZoomOverlay && selectionZoomOverlay.contains(event.target)) ||
+                                       (multiZoomTriggerBtn && multiZoomTriggerBtn.contains(event.target)) ||
+                                       (floatingMenuToggleBtn && floatingMenuToggleBtn.contains(event.target)) ||
+                                       (trueFullscreenBtn && trueFullscreenBtn.contains(event.target)) ||
+                                       (annotationSettingsPanel && annotationSettingsPanel.contains(event.target));
+
+    if (!isClickInsideAppOrGlobalControls) {
+        if (currentlyActiveItemControlsElement) activateControls(null);
+        if (elementsForMultiZoom.length > 0) { clearMultiZoomSelectionVisuals(); elementsForMultiZoom = []; }
+    }
+  }
+
+
+  function handleKeyDown(event) {
+    if (event.key === 'Shift') {
+        isShiftKeyDown = true;
+    }
+    if (event.ctrlKey || event.metaKey) {
+        document.body.classList.add('ctrl-pressed');
+        if ((event.key === 'z' || event.key === 'Z') && !event.shiftKey) {
+            event.preventDefault(); try { document.execCommand('undo', false, null); showMessage('실행 취소됨', 'success', 1500); }
+            catch (e) { showMessage('실행 취소 실패.', 'error'); console.error("Undo failed:", e); }
+        } else if ((event.key === 'y' || event.key === 'Y') && !event.shiftKey) {
+            event.preventDefault(); try { document.execCommand('redo', false, null); showMessage('다시 실행됨', 'success', 1500); }
+            catch (e) { showMessage('다시 실행 실패.', 'error'); console.error("Redo failed:", e); }
+        }
+    }
+  }
+  function handleKeyUp(event) {
+    if (event.key === 'Shift') {
+        isShiftKeyDown = false;
+    }
+    if (!event.ctrlKey && !event.metaKey) document.body.classList.remove('ctrl-pressed');
+  }
+
+  // --- Dynamic Content Addition ---
+  function addInsertAreaToBox(boxElement) {
+    if (!boxElement || !boxElement.classList.contains('box')) return;
+    const template = document.querySelector('.common-item-template .insert-area.templated-insert-area');
+    if (!template) { console.error("Insert area template not found!"); showMessage('템플릿을 찾을 수 없습니다.', 'error'); return; }
+    let newInsertArea = template.cloneNode(true);
+    newInsertArea.textContent = "### 입력 ##...";
+    newInsertArea.classList.remove('templated-insert-area');
+    
+    // Find last button and insert before it
+    const lastButton = boxElement.querySelector('.add-sub-insert-area-btn:last-of-type');
+    if (lastButton) {
+        boxElement.insertBefore(newInsertArea, lastButton);
+    } else {
+        boxElement.appendChild(newInsertArea);
+    }
+
+    generateItemControls(newInsertArea);
+    activateControls(newInsertArea, true);
+    showMessage('하위 입력창이 추가되었습니다.', 'success');
+  }
+
+  // --- Element Styling Controls ---
+  function activateElementStyling(element) {
+    currentlySelectedElementForStyling = element;
+    const styleControls = document.getElementById('elementStyleControls');
+    if (!menuPanel || !styleControls) return;
+
+    document.getElementById('elementBgColor').value = rgbToHex(getComputedStyle(element).backgroundColor);
+    document.getElementById('elementTextColor').value = rgbToHex(getComputedStyle(element).color);
+    const borderRadiusInput = document.getElementById('elementBorderRadius');
+    const shapeSelector = document.getElementById('elementShapeSelector');
+    const currentBorderRadiusStyle = getComputedStyle(element).borderRadius;
+
+    borderRadiusInput.value = parseInt(currentBorderRadiusStyle) || 0;
+
+    if (currentBorderRadiusStyle === '50%') shapeSelector.value = 'oval';
+    else if (currentBorderRadiusStyle.split(' ').every(r => parseFloat(r) === 0 || r === '0px')) shapeSelector.value = 'rectangle';
+    else if (parseFloat(currentBorderRadiusStyle) > 0) shapeSelector.value = 'rounded-rectangle';
+    else shapeSelector.value = 'default';
+
+    styleControls.style.display = 'block';
+    if (menuPanel.style.display !== 'block') togglePanel();
+    styleControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    showMessage(`'${(element.dataset.editableType || element.tagName).toLowerCase()}' 스타일 편집 중`, 'success', 2000);
+  }
+  function hideElementStyleControls() {
+      const styleControls = document.getElementById('elementStyleControls');
+      if (styleControls) styleControls.style.display = 'none';
+  }
+  function applySelectedElementStyle(property, value) {
+    if (currentlySelectedElementForStyling) {
+      currentlySelectedElementForStyling.style[property] = value;
+      if (currentlySelectedElementForStyling === pageTitle) requestAnimationFrame(adjustContainerPadding);
+    }
+  }
+  function applySelectedElementShape(shapeValue) {
+    if (!currentlySelectedElementForStyling) return;
+    const element = currentlySelectedElementForStyling;
+    const borderRadiusInput = document.getElementById('elementBorderRadius');
+    let radiusToApply = borderRadiusInput ? parseInt(borderRadiusInput.value) : 5;
+    if (isNaN(radiusToApply) || radiusToApply < 0) radiusToApply = 5;
+
+    switch (shapeValue) {
+        case 'rectangle': element.style.borderRadius = '0px'; if (borderRadiusInput) borderRadiusInput.value = 0; break;
+        case 'rounded-rectangle':
+            const currentRadius = parseInt(element.style.borderRadius);
+            radiusToApply = (currentRadius === 0 || element.style.borderRadius === '50%') ? 4 : (currentRadius || 4);
+            element.style.borderRadius = `${radiusToApply}px`; if (borderRadiusInput) borderRadiusInput.value = radiusToApply; break;
+        case 'oval': element.style.borderRadius = '50%'; break;
+        case 'default': element.style.borderRadius = '';
+            if (borderRadiusInput) borderRadiusInput.value = parseInt(getComputedStyle(element).borderRadius) || 0; break;
+    }
+    if (element === pageTitle) requestAnimationFrame(adjustContainerPadding);
+  }
+  function rgbToHex(rgb) {
+    if (!rgb || typeof rgb !== 'string' || rgb.indexOf('rgb') === -1) return '#000000';
+    if (rgb === 'rgba(0, 0, 0, 0)' || rgb === 'transparent') return '#ffffff';
+    let parts = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/);
+    if (!parts) return '#000000';
+    delete parts[0];
+    for (let i = 1; i <= 3; ++i) { parts[i] = parseInt(parts[i]).toString(16); if (parts[i].length == 1) parts[i] = '0' + parts[i]; }
+    return `#${parts[1]}${parts[2]}${parts[3]}`;
+  }
+
+  // --- Text Formatting and Link/Character Insertion ---
+  function applyLink() {
+    const linkURLInput = document.getElementById("linkURL"); const linkURL = linkURLInput.value.trim();
+    if (!linkURL) { showMessage("링크 URL을 입력하세요.", "error"); return; }
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) { showMessage("텍스트를 먼저 선택해주세요.", "error"); return; }
+
+    let prefixedURL = linkURL;
+    if (!linkURL.startsWith('http://')&&!linkURL.startsWith('https://')&&!linkURL.startsWith('mailto:')&&!linkURL.startsWith('#')&&!linkURL.includes('://')) {
+        prefixedURL = 'http://' + linkURL;
+    }
+    try { if (!prefixedURL.includes(':') && !prefixedURL.startsWith('#') && !prefixedURL.startsWith('/')) new URL(prefixedURL); }
+    catch (_) { showMessage("유효한 URL 형식이 아닙니다.", "error"); return; }
+
+    document.execCommand('createLink', false, prefixedURL);
+    let createdLink = selection.anchorNode?.nodeType === Node.TEXT_NODE ? selection.anchorNode.parentElement : selection.anchorNode;
+    if (createdLink && createdLink.tagName !== 'A') createdLink = createdLink.closest('a');
+    if(createdLink?.tagName === 'A'){ createdLink.target = '_blank'; createdLink.rel = 'noopener noreferrer'; }
+
+    showMessage("링크가 삽입되었습니다.", "success"); linkURLInput.value = '';
+  }
+  function removeLink() { document.execCommand('unlink', false, null); showMessage("링크가 제거되었습니다.", "success");}
+  function applyBold() { document.execCommand('bold', false, null); }
+  function applyItalic() { document.execCommand('italic', false, null); }
+  function applyUnderline() { document.execCommand('underline', false, null); }
+  function applyStrikethrough() { document.execCommand('strikeThrough', false, null); }
+  function applySuperscript() { document.execCommand('superscript', false, null); }
+  function applySubscript() { document.execCommand('subscript', false, null); }
+  function changeFontSize(size) { if (size) document.execCommand('fontSize', false, size); }
+  function changeFontColor(color) { if (color) document.execCommand('foreColor', false, color); }
+  function changeBackColor(color) { if (color) document.execCommand('backColor', false, color); }
+  function insertCharacterFromInput() { const charToInsert=document.getElementById('charInput').value; if(!charToInsert){showMessage("삽입할 문자를 입력하세요.","warning");return;} insertCharacter(charToInsert); }
+  function insertCharacter(char) { if (!char) {showMessage("삽입할 문자를 입력하세요.","warning");return;} document.execCommand('insertText', false, char); }
+  function toggleEmojiPalette(event) { event.stopPropagation(); document.getElementById('emojiPalette').classList.toggle('show'); }
+  
+  function handleGlobalEmojiPaletteClick(event) {
+    const palette = document.getElementById('emojiPalette'); const emojiDropdown = document.querySelector('.emoji-dropdown');
+    if (palette && emojiDropdown && !emojiDropdown.contains(event.target) && palette.classList.contains('show')) palette.classList.remove('show');
+  }
+
+  function handleEmojiPaletteButtonClick(event) {
+    const button = event.target.closest('.emoji-btn');
+    if(button) {
+        insertCharacter(button.textContent);
+    }
+  }
+
+
+  // --- Save and Print Functionality ---
+  function getSaveFileName(extension) {
+    const dateInfo = getFormattedDateForFilename();
+    return `${dateInfo.filenameMM}월 월간 회의 안건_${dateInfo.filenameYYYYMMDD}.${extension}`;
+  }
+
+ function saveHTML() {
+    if (menuPanel.style.display === "block") togglePanel();
+    if (isAnnotationPanelOpen) {
+        drawingSettings = { ...panelUISettings };
+        applySettingsToContext(drawingSettings);
+        isAnnotationPanelOpen = false;
+        annotationSettingsPanel.style.display = 'none';
+        annotationSettingsToggleBtn.classList.remove('active');
+        if(menuAnnoSettingsPanelToggle) menuAnnoSettingsPanelToggle.classList.remove('active');
+    }
+    if(document.getElementById('customMessageBox').style.display === 'block') document.getElementById('customMessageBox').style.display = 'none';
+    if (selectionZoomOverlay.style.display === 'block') closeSelectionZoom();
+    if(currentlyActiveItemControlsElement) activateControls(null);
+    clearMultiZoomSelectionVisuals();
+
+    const clonedAppContainer = appContainer.cloneNode(true);
+
+    clonedAppContainer.querySelectorAll('.controls-active').forEach(el=>el.classList.remove('controls-active'));
+    clonedAppContainer.querySelectorAll('.multi-zoom-selected').forEach(el=>el.classList.remove('multi-zoom-selected'));
+    clonedAppContainer.querySelectorAll('.item-controls').forEach(el=>el.remove());
+
+    const originalPageTitle = document.getElementById('page-title'), clonedPageTitle = clonedAppContainer.querySelector('#page-title');
+    if(originalPageTitle && clonedPageTitle) clonedPageTitle.innerHTML = originalPageTitle.innerHTML;
+
+    const originalContentArea = document.getElementById('content');
+    const clonedContentArea = clonedAppContainer.querySelector('#content');
+    if(originalContentArea && clonedContentArea) {
+        const tempDivForContent = document.createElement('div');
+        tempDivForContent.innerHTML = originalContentArea.innerHTML;
+        const canvasInContent = tempDivForContent.querySelector('#annotationCanvas');
+        if (canvasInContent) canvasInContent.innerHTML = '';
+        clonedContentArea.innerHTML = tempDivForContent.innerHTML;
+    }
+
+    let clonedExternalElementsHTML = "";
+    const elementsStructurallyOutsideIDs = ['customMessageBox','menuPanel','areaSelectionRectangle','selectionZoomOverlay'];
+     elementsStructurallyOutsideIDs.forEach(id => {
+        const originalElement = document.getElementById(id);
+        if (originalElement) {
+            const clonedElement = originalElement.cloneNode(true);
+            clonedElement.style.display='none';
+            if (id==='menuPanel' && originalElement.style.left && originalElement.style.top) {
+                Object.assign(clonedElement.style, {
+                    left:originalElement.style.left, top:originalElement.style.top,
+                    right:'auto', bottom:'auto',
+                    width: originalElement.style.width, height: originalElement.style.height
+                });
+            }
+            clonedExternalElementsHTML += clonedElement.outerHTML + "\n";
+        }
+    });
+
+    const appSaveState = {
+        wasFullscreenActive: document.body.classList.contains('true-fullscreen-active'),
+        isDrawingFeatureActive: isDrawingFeatureActive,
+        isAnnotationPanelOpen: false,
+        isMemoModeActive: isMemoModeActive,
+        drawingSettings: drawingSettings,
+        panelUISettings: panelUISettings,
+        keepDrawingsVisibleOnDeactivate: keepDrawingsVisibleOnDeactivate,
+        drawnStrokes: drawnStrokes,
+        pageTitle_innerHTML: pageTitle.innerHTML,
+        contentArea_innerHTML: (() => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = contentArea.innerHTML;
+            tempDiv.querySelector('#annotationCanvas')?.remove();
+            return tempDiv.innerHTML;
+        })(),
+        menuPanel_style_display: 'none',
+        menuPanel_style_left: menuPanel.style.left,
+        menuPanel_style_top: menuPanel.style.top,
+        menuPanel_style_width: menuPanel.style.width,
+        menuPanel_style_height: menuPanel.style.height,
+        floatingMenuToggleBtn_innerHTML: '☰',
+        floatingMenuToggleBtn_title: '메뉴 열기',
+        editIconsMode: document.querySelector('input[name="editIconsMode"]:checked')?.value || 'off'
+    };
+    
+    // 상태를 data 속성에 삽입하는 대신, 즉시 실행되는 스크립트로 상태를 설정합니다.
+    const scriptToRestoreState = `<script>
+        window.__SAVED_APP_STATE__ = ${JSON.stringify(appSaveState)};
+    <\/script>`;
+
+
+    const commonTemplate = document.querySelector('.common-item-template');
+    let clonedCommonTemplateHTML = commonTemplate ? commonTemplate.cloneNode(true).outerHTML + "\n" : "";
+
+    let htmlOutput = `<!DOCTYPE html>\n<html lang="ko">\n<head>\n  ${Array.from(document.querySelectorAll('head > meta')).map(m=>m.outerHTML).join('\n  ')}\n  <title>${document.title}</title>\n  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>\n  <style>\n${Array.from(document.styleSheets).map(s=>Array.from(s.cssRules||[]).map(r=>r.cssText).join('\n')).join('\n')}\n  </style>\n  ${scriptToRestoreState}\n</head>\n<body>\n${clonedAppContainer.outerHTML}\n${clonedExternalElementsHTML}${clonedCommonTemplateHTML}`;
+    const mainScriptElement = document.getElementById('mainAppScript');
+    if (mainScriptElement) htmlOutput += `<script id="mainAppScript" defer>\n${mainScriptElement.innerHTML}\n<\/script>\n`;
+    else showMessage("저장 오류: 핵심 스크립트 누락.", "error");
+    htmlOutput += "</body>\n</html>";
+
+    const blob = new Blob([htmlOutput],{type:"text/html;charset=utf-8"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download = getSaveFileName('html');
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+    showMessage("HTML 파일이 저장되었습니다.", "success");
+  }
+
+  function printPDF() {
+    if(currentlyActiveItemControlsElement) activateControls(null);
+    hideElementStyleControls();
+    clearMultiZoomSelectionVisuals(); elementsForMultiZoom = [];
+
+    const elementsToHide = [
+        floatingMenuToggleBtn, trueFullscreenBtn, multiZoomTriggerBtn, menuPanel,
+        selectionZoomOverlay, exitTrueFullscreenBtnActual, document.getElementById('customMessageBox'),
+        annotationDisplayToggleBtn, annotationSettingsToggleBtn, annotationSettingsPanel, memoAnnotationToggleBtn
+    ];
+    const originalDisplays = elementsToHide.map(el => el ? el.style.display : null);
+    elementsToHide.forEach(el => { if(el) el.style.display = 'none'; });
+    document.querySelectorAll('.item-controls').forEach(ctrl => ctrl.style.display = 'none');
+
+
+    let tempImgForPrint = null;
+    if (annotationCanvas.width > 0 && annotationCanvas.height > 0 && (isDrawingFeatureActive || (keepDrawingsVisibleOnDeactivate && drawnStrokes.length > 0))) {
+        try {
+            const dataUrl = annotationCanvas.toDataURL('image/png');
+            if (dataUrl !== 'data:,') {
+                tempImgForPrint = document.createElement('img');
+                tempImgForPrint.src = dataUrl;
+                Object.assign(tempImgForPrint.style, {
+                    position: 'absolute', top: annotationCanvas.offsetTop + 'px', left: annotationCanvas.offsetLeft + 'px',
+                    width: annotationCanvas.width + 'px', height: annotationCanvas.height + 'px',
+                    zIndex: '4', pointerEvents: 'none', display: 'block'
+                });
+                contentArea.appendChild(tempImgForPrint);
+            }
+        } catch (e) { console.error("Error generating annotation image for PDF:", e); }
+    }
+    const originalCanvasDisplay = annotationCanvas.style.display;
+    if(annotationCanvas) annotationCanvas.style.display = 'none';
+
+    const originalBodyPaddingTop = document.body.style.paddingTop;
+    const originalPageTitlePosition = pageTitle.style.position;
+    const originalContainerPaddingTop = contentArea.style.paddingTop;
+
+
+    document.body.style.paddingTop = '0px';
+    contentArea.style.paddingTop = '0px';
+    if (getComputedStyle(pageTitle).position === 'fixed' || getComputedStyle(pageTitle).position === 'sticky') {
+        pageTitle.style.position = 'relative';
+    }
+    window.scrollTo(0, 0);
+
+    const pdfOptions = {
+        margin: [5, 5, 5, 5],
+        filename: getSaveFileName('pdf'),
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            removeContainer: true,
+            scrollY: 0,
+            windowWidth: document.documentElement.scrollWidth,
+            windowHeight: document.documentElement.scrollHeight,
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+        enableLinks: true
+    };
+
+    showMessage("PDF 생성 준비 중...", "success", 2000);
+
+    setTimeout(() => {
+        html2pdf().from(appContainer).set(pdfOptions).save()
+        .then(() => {
+            showMessage("PDF 생성이 완료되었습니다.", "success");
+        }).catch(err => {
+            console.error("PDF 생성 오류:", err);
+            showMessage("PDF 생성 중 오류가 발생했습니다.", "error");
+        }).finally(() => {
+            if (tempImgForPrint && contentArea.contains(tempImgForPrint)) contentArea.removeChild(tempImgForPrint);
+            if(annotationCanvas) annotationCanvas.style.display = originalCanvasDisplay;
+
+            elementsToHide.forEach((el, i) => { if(el) el.style.display = originalDisplays[i] || ''; });
+            const checkedMode = document.querySelector('input[name="editIconsMode"]:checked');
+            if(checkedMode) toggleEditIconsVisibility(checkedMode.value);
+
+
+            document.body.style.paddingTop = originalBodyPaddingTop;
+            contentArea.style.paddingTop = originalContainerPaddingTop;
+            pageTitle.style.position = originalPageTitlePosition;
+
+            adjustContainerPadding();
+            fullscreenChangeHandler();
+        });
+    }, 300);
+  }
+
+  // body 클래스를 사용하여 아이콘 표시/숨김을 전역적으로 제어
+  function toggleEditIconsVisibility(mode) {
+      if(!mode) return;
+      localStorage.setItem('editIconsMode', mode);
+      
+      document.body.classList.remove('show-icons-all', 'show-icons-selected');
+
+      if (mode === 'all') {
+          document.body.classList.add('show-icons-all');
+      } else if (mode === 'selected') {
+          document.body.classList.add('show-icons-selected');
+      }
+      // 'off' mode needs no class, as the default is to hide the controls.
+  }
+
+
+  // --- Annotation Functionality (Largely unchanged) ---
+  function updateAnnotationDisplayToggleBtnStyle() {
+    if(!annotationDisplayToggleBtn) return;
+    if (isDrawingFeatureActive) {
+        annotationDisplayToggleBtn.classList.add('active');
+        annotationDisplayToggleBtn.title = "주석 끄기";
+    } else {
+        annotationDisplayToggleBtn.classList.remove('active');
+        annotationDisplayToggleBtn.title = "주석 켜기";
+    }
+  }
+
+  function loadPanelUIWithSettings(settings) {
+    [annoToolPenBtn, annoToolHighlighterBtn, annoToolCircleBtn, annoToolEllipseBtn, annoToolOrthoLineBtn, annoToolEraserBtn].forEach(btn => {
+        if(btn) btn.classList.remove('tool-active');
+    });
+    const activeBtn = document.querySelector(`#annotationSettingsPanel button[data-tool="${settings.tool}"]`);
+    if (activeBtn) activeBtn.classList.add('tool-active');
+
+
+    if (settings.tool === 'highlighter') {
+        annoColorPicker.value = settings.highlighterColor;
+        annoLineWidthSlider.value = settings.highlighterLineWidth;
+        annoHighlighterOpacitySlider.value = settings.highlighterOpacity;
+        if(annoHighlighterOpacityContainer) annoHighlighterOpacityContainer.style.display = 'flex';
+    } else if (settings.tool === 'pen' || settings.tool === 'circle' || settings.tool === 'ellipse' || settings.tool === 'orthoLine') {
+        annoColorPicker.value = settings.penColor;
+        annoLineWidthSlider.value = settings.penLineWidth;
+        if(annoHighlighterOpacityContainer) annoHighlighterOpacityContainer.style.display = 'none';
+    } else {
+        annoLineWidthSlider.value = settings.penLineWidth;
+        if(annoHighlighterOpacityContainer) annoHighlighterOpacityContainer.style.display = 'none';
+    }
+  }
+
+  function applySettingsToContext(settings) {
+    if (!annotationCtx) return;
+    annotationCtx.globalCompositeOperation = 'source-over';
+
+    if (settings.tool === 'highlighter') {
+        annotationCtx.strokeStyle = settings.highlighterColor;
+        annotationCtx.lineWidth = settings.highlighterLineWidth;
+        annotationCtx.globalAlpha = 1.0 - parseFloat(settings.highlighterOpacity);
+    } else if (settings.tool === 'pen' || settings.tool === 'circle' || settings.tool === 'ellipse' || settings.tool === 'orthoLine') {
+        annotationCtx.strokeStyle = settings.penColor;
+        annotationCtx.lineWidth = settings.penLineWidth;
+        annotationCtx.globalAlpha = 1.0;
+    } else if (settings.tool === 'eraser') {
+        annotationCtx.lineWidth = settings.penLineWidth;
+        annotationCtx.globalAlpha = 1.0;
+    }
+  }
+
+  function setAnnotationDefaults() {
+    drawingSettings = {
+        tool: 'pen',
+        penColor: '#800080', penLineWidth: '5',
+        highlighterColor: '#FFFFE0', highlighterLineWidth: '20', highlighterOpacity: '0.3',
+    };
+    panelUISettings = { ...drawingSettings };
+    if(annoKeepDrawingsVisibleCheckbox) keepDrawingsVisibleOnDeactivate = annoKeepDrawingsVisibleCheckbox.checked;
+    if(menuAnnoKeepDrawingsVisible) menuAnnoKeepDrawingsVisible.checked = keepDrawingsVisibleOnDeactivate;
+    if(annoHighlighterOpacitySlider) annoHighlighterOpacitySlider.value = drawingSettings.highlighterOpacity;
+  }
+
+  function redrawAllStrokes() {
+    if (!annotationCtx || !annotationCanvas) return;
+    annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
+    drawnStrokes.forEach(stroke => {
+        annotationCtx.beginPath();
+        annotationCtx.lineWidth = stroke.lineWidth;
+        annotationCtx.strokeStyle = stroke.color;
+        annotationCtx.globalAlpha = stroke.opacity;
+        annotationCtx.globalCompositeOperation = 'source-over';
+
+        if (stroke.type === 'path' || stroke.type === 'line') {
+            annotationCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
+            for (let i = 1; i < stroke.points.length; i++) {
+                annotationCtx.lineTo(stroke.points[i].x, stroke.points[i].y);
+            }
+            annotationCtx.stroke();
+        } else if (stroke.type === 'circle') {
+            annotationCtx.arc(stroke.x, stroke.y, stroke.radius, 0, Math.PI * 2);
+            annotationCtx.stroke();
+        } else if (stroke.type === 'ellipse') {
+            annotationCtx.ellipse(stroke.x, stroke.y, stroke.radiusX, stroke.radiusY, 0, 0, Math.PI * 2);
+            annotationCtx.stroke();
+        }
+    });
+    applySettingsToContext(drawingSettings);
+  }
+
+
+  function setupAnnotationCanvas() {
+    if (!contentArea || !annotationCanvas) return;
+
+    const isFs = document.body.classList.contains('true-fullscreen-active');
+    const newWidth = contentArea.scrollWidth;
+    const newHeight = contentArea.scrollHeight;
+
+    if (annotationCanvas.width !== newWidth || annotationCanvas.height !== newHeight) {
+        annotationCanvas.width = newWidth;
+        annotationCanvas.height = newHeight;
+    }
+
+    annotationCtx = annotationCanvas.getContext('2d');
+    annotationCtx.lineCap = 'round';
+    annotationCtx.lineJoin = 'round';
+
+    redrawAllStrokes();
+
+    annotationCanvas.style.top = `0px`;
+    annotationCanvas.style.left = `0px`;
+
+
+    if (isFs) {
+        annotationCanvas.style.display = isDrawingFeatureActive ? 'block' : (keepDrawingsVisibleOnDeactivate && drawnStrokes.length > 0 ? 'block' : 'none');
+        annotationCanvas.style.pointerEvents = isDrawingFeatureActive ? 'auto' : 'none';
+        annotationCanvas.style.cursor = (isDrawingFeatureActive && drawingSettings.tool === 'eraser') ? 'crosshair' :
+                                       (isDrawingFeatureActive) ? 'crosshair' : 'default';
+    } else {
+        annotationCanvas.style.display = (isDrawingFeatureActive || keepDrawingsVisibleOnDeactivate) && drawnStrokes.length > 0 ? 'block' : 'none';
+        annotationCanvas.style.pointerEvents = 'none';
+        annotationCanvas.style.cursor = 'default';
+    }
+    applySettingsToContext(drawingSettings);
+  }
+
+
+  function getAnnotationMousePos(event) {
+    const rect = annotationCanvas.getBoundingClientRect();
+    const scaleX = annotationCanvas.width / rect.width;
+    const scaleY = annotationCanvas.height / rect.height;
+    let clientX = event.clientX;
+    let clientY = event.clientY;
+    if (event.touches && event.touches.length > 0) {
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+    }
+    return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+    };
+  }
+
+  let currentStroke = null;
+
+  function startAnnotationDrawing(e) {
+    if (!isDrawingFeatureActive || (e.button !== undefined && e.button !== 0) ) {
+        return;
+    }
+    if(isDrawingFeatureActive) e.preventDefault();
+
+
+    if (isMemoModeActive) return;
+
+    const pos = getAnnotationMousePos(e);
+
+    if (drawingSettings.tool === 'eraser') {
+        eraseStrokeAtPoint(pos);
+        isDrawingAnnotation = false;
+        return;
+    }
+
+    applySettingsToContext(drawingSettings);
+    isDrawingAnnotation = true;
+    shapeStartX = pos.x;
+    shapeStartY = pos.y;
+    lastAnnotationX = pos.x;
+    lastAnnotationY = pos.y;
+
+
+    if (drawingSettings.tool === 'orthoLine' || drawingSettings.tool === 'circle' || drawingSettings.tool === 'ellipse' || (isShiftKeyDown && (drawingSettings.tool === 'pen' || drawingSettings.tool === 'highlighter'))) {
+        if (annotationCanvas.width > 0 && annotationCanvas.height > 0) {
+            previewImageData = annotationCtx.getImageData(0, 0, annotationCanvas.width, annotationCanvas.height);
+        } else { previewImageData = null;}
+        currentStroke = null;
+    } else if (drawingSettings.tool === 'pen' || drawingSettings.tool === 'highlighter') {
+        annotationCtx.beginPath();
+        annotationCtx.moveTo(pos.x, pos.y);
+        currentStroke = {
+            type: 'path',
+            tool: drawingSettings.tool,
+            color: drawingSettings.tool === 'highlighter' ? drawingSettings.highlighterColor : drawingSettings.penColor,
+            lineWidth: drawingSettings.tool === 'highlighter' ? drawingSettings.highlighterLineWidth : drawingSettings.penLineWidth,
+            opacity: drawingSettings.tool === 'highlighter' ? (1.0 - parseFloat(drawingSettings.highlighterOpacity)) : 1.0,
+            points: [pos]
+        };
+    }
+  }
+
+  function drawAnnotation(e) {
+    if (!isDrawingAnnotation || !isDrawingFeatureActive ) return;
+    if (isMemoModeActive || drawingSettings.tool === 'eraser') return;
+    if(isDrawingFeatureActive) e.preventDefault();
+    const pos = getAnnotationMousePos(e);
+
+    if (previewImageData) annotationCtx.putImageData(previewImageData, 0, 0);
+    applySettingsToContext(drawingSettings);
+    annotationCtx.beginPath();
+
+    if ((isShiftKeyDown && (drawingSettings.tool === 'pen' || drawingSettings.tool === 'highlighter')) || drawingSettings.tool === 'orthoLine') {
+        let endX = pos.x;
+        let endY = pos.y;
+        if (drawingSettings.tool === 'orthoLine') {
+            if (Math.abs(pos.x - shapeStartX) > Math.abs(pos.y - shapeStartY)) { endY = shapeStartY; }
+            else { endX = shapeStartX; }
+        }
+        annotationCtx.moveTo(shapeStartX, shapeStartY);
+        annotationCtx.lineTo(endX, endY);
+    } else if (drawingSettings.tool === 'circle') {
+        const radius = Math.sqrt(Math.pow(pos.x - shapeStartX, 2) + Math.pow(pos.y - shapeStartY, 2));
+        annotationCtx.arc(shapeStartX, shapeStartY, radius, 0, Math.PI * 2);
+    } else if (drawingSettings.tool === 'ellipse') {
+        const radiusX = Math.abs(pos.x - shapeStartX) / 2;
+        const radiusY = Math.abs(pos.y - shapeStartY) / 2;
+        const centerX = shapeStartX + (pos.x - shapeStartX) / 2;
+        const centerY = shapeStartY + (pos.y - shapeStartY) / 2;
+        annotationCtx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
+    } else {
+        if (!currentStroke) return;
+        annotationCtx.moveTo(currentStroke.points[0].x, currentStroke.points[0].y);
+        for(let i = 1; i < currentStroke.points.length; i++) {
+            annotationCtx.lineTo(currentStroke.points[i].x, currentStroke.points[i].y);
+        }
+        annotationCtx.lineTo(pos.x, pos.y);
+    }
+    annotationCtx.stroke();
+
+    if (!isShiftKeyDown && drawingSettings.tool !== 'circle' && drawingSettings.tool !== 'ellipse' && drawingSettings.tool !== 'orthoLine' && currentStroke) {
+        currentStroke.points.push(pos);
+    }
+
+    lastAnnotationX = pos.x;
+    lastAnnotationY = pos.y;
+  }
+
+  function stopAnnotationDrawing(e) {
+    if (!isDrawingAnnotation) {
+        return;
+    }
+    if (isMemoModeActive || drawingSettings.tool === 'eraser') {
+        isDrawingAnnotation = false;
+        currentStroke = null;
+        previewImageData = null;
+        return;
+    }
+    if(isDrawingFeatureActive) e.preventDefault();
+
+    const pos = getAnnotationMousePos(e);
+    if (previewImageData) {
+        annotationCtx.putImageData(previewImageData, 0, 0);
+        previewImageData = null;
+    }
+    applySettingsToContext(drawingSettings);
+    annotationCtx.beginPath();
+
+    let newStroke = null;
+    let endX = pos.x;
+    let endY = pos.y;
+
+    if (drawingSettings.tool === 'orthoLine') {
+        if (Math.abs(pos.x - shapeStartX) > Math.abs(pos.y - shapeStartY)) { endY = shapeStartY; }
+        else { endX = shapeStartX; }
+         annotationCtx.moveTo(shapeStartX, shapeStartY);
+         annotationCtx.lineTo(endX, endY);
+         newStroke = { type: 'line', tool: drawingSettings.tool, points: [{x: shapeStartX, y: shapeStartY}, {x: endX, y: endY}] };
+    } else if (isShiftKeyDown && (drawingSettings.tool === 'pen' || drawingSettings.tool === 'highlighter')) {
+        annotationCtx.moveTo(shapeStartX, shapeStartY);
+        annotationCtx.lineTo(pos.x, pos.y);
+        newStroke = { type: 'line', tool: drawingSettings.tool, points: [{x: shapeStartX, y: shapeStartY}, {x: pos.x, y: pos.y}] };
+    } else if (drawingSettings.tool === 'circle') {
+        const radius = Math.sqrt(Math.pow(pos.x - shapeStartX, 2) + Math.pow(pos.y - shapeStartY, 2));
+        if (radius > 0.1) {
+            annotationCtx.arc(shapeStartX, shapeStartY, radius, 0, Math.PI * 2);
+            newStroke = { type: 'circle', tool: drawingSettings.tool, x: shapeStartX, y: shapeStartY, radius: radius };
+        }
+    } else if (drawingSettings.tool === 'ellipse') {
+        const radiusX = Math.abs(pos.x - shapeStartX) / 2;
+        const radiusY = Math.abs(pos.y - shapeStartY) / 2;
+        if (radiusX > 0.1 && radiusY > 0.1) {
+            const centerX = shapeStartX + (pos.x - shapeStartX) / 2;
+            const centerY = shapeStartY + (pos.y - shapeStartY) / 2;
+            annotationCtx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
+            newStroke = { type: 'ellipse', tool: drawingSettings.tool, x: centerX, y: centerY, radiusX: radiusX, radiusY: radiusY };
+        }
+    } else if (currentStroke && currentStroke.points.length > 0) {
+         currentStroke.points.push(pos);
+         annotationCtx.moveTo(currentStroke.points[0].x, currentStroke.points[0].y);
+         for(let i=1; i < currentStroke.points.length; i++) {
+            annotationCtx.lineTo(currentStroke.points[i].x, currentStroke.points[i].y);
+         }
+         newStroke = { ...currentStroke };
+    }
+
+    if (newStroke) {
+        newStroke.color = drawingSettings.tool === 'highlighter' ? drawingSettings.highlighterColor : drawingSettings.penColor;
+        newStroke.lineWidth = drawingSettings.tool === 'highlighter' ? drawingSettings.highlighterLineWidth : drawingSettings.penLineWidth;
+        newStroke.opacity = drawingSettings.tool === 'highlighter' ? (1.0 - parseFloat(drawingSettings.highlighterOpacity)) : 1.0;
+        drawnStrokes.push(newStroke);
+        annotationCtx.stroke();
+    }
+
+    isDrawingAnnotation = false;
+    currentStroke = null;
+  }
+
+  function distToSegmentSquared(p, v, w) {
+    const l2 = (v.x - w.x)**2 + (v.y - w.y)**2;
+    if (l2 === 0) return (p.x - v.x)**2 + (p.y - v.y)**2;
+    let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    const closestX = v.x + t * (w.x - v.x);
+    const closestY = v.y + t * (w.y - v.y);
+    return (p.x - closestX)**2 + (p.y - closestY)**2;
+  }
+
+
+  function eraseStrokeAtPoint(clickPos) {
+    if(drawingSettings.tool !== 'eraser') return;
+    let erased = false;
+    const clickTolerance = 10;
+
+    for (let i = drawnStrokes.length - 1; i >= 0; i--) {
+        const stroke = drawnStrokes[i];
+        const strokeWidth = parseFloat(stroke.lineWidth || drawingSettings.penLineWidth);
+        const tolerance = (strokeWidth / 2) + clickTolerance;
+        let hit = false;
+
+        if (stroke.type === 'path' || stroke.type === 'line') {
+            for (let j = 0; j < stroke.points.length - 1; j++) {
+                if (distToSegmentSquared(clickPos, stroke.points[j], stroke.points[j+1]) < tolerance**2) {
+                    hit = true; break;
+                }
+            }
+            if (!hit && stroke.points.length === 1) {
+                 if (distToSegmentSquared(clickPos, stroke.points[0], stroke.points[0]) < tolerance**2) hit = true;
+            }
+        } else if (stroke.type === 'circle') {
+            const dist = Math.sqrt(Math.pow(clickPos.x - stroke.x, 2) + Math.pow(clickPos.y - stroke.y, 2));
+            if (Math.abs(dist - stroke.radius) < tolerance ) hit = true;
+        } else if (stroke.type === 'ellipse') {
+            const dx = clickPos.x - stroke.x;
+            const dy = clickPos.y - stroke.y;
+            const normalizedX = dx / (stroke.radiusX + tolerance);
+            const normalizedY = dy / (stroke.radiusY + tolerance);
+            if ((normalizedX * normalizedX) + (normalizedY * normalizedY) <= 1) {
+                hit = true;
+            }
+        }
+
+        if (hit) {
+            drawnStrokes.splice(i, 1);
+            erased = true;
+            break;
+        }
+    }
+    if (erased) {
+        redrawAllStrokes();
+        showMessage("주석이 삭제되었습니다.", "success", 1000);
+    }
+  }
+
+
+  // --- Annotation Feature Toggles and Panel Controls ---
+  function toggleDrawingFeature() {
+      if (isMemoModeActive) {
+          isMemoModeActive = false;
+          memoAnnotationToggleBtn.classList.remove('active');
+          if(menuMemoAnnotationBtn) menuMemoAnnotationBtn.classList.remove('active');
+          contentArea.style.cursor = 'auto';
+          showMessage("메모 모드 비활성화됨.", "success", 1500);
+      }
+
+      isDrawingFeatureActive = !isDrawingFeatureActive;
+      updateAnnotationDisplayToggleBtnStyle();
+      if(menuAnnoDrawingToggle) menuAnnoDrawingToggle.classList.toggle('active', isDrawingFeatureActive);
+
+      if (isDrawingFeatureActive) {
+          annotationCanvas.style.display = 'block';
+          if (document.body.classList.contains('true-fullscreen-active')) {
+              annotationCanvas.style.pointerEvents = 'auto';
+          } else {
+              annotationCanvas.style.pointerEvents = 'none';
+          }
+          applySettingsToContext(drawingSettings);
+          showMessage("주석 그리기 활성화됨.", "success", 1500);
+      } else {
+          annotationCanvas.style.pointerEvents = 'none';
+          annotationCanvas.style.display = keepDrawingsVisibleOnDeactivate && drawnStrokes.length > 0 ? 'block' : 'none';
+          if (isAnnotationPanelOpen) {
+              isAnnotationPanelOpen = false;
+              annotationSettingsPanel.style.display = 'none';
+              annotationSettingsToggleBtn.classList.remove('active');
+              if(menuAnnoSettingsPanelToggle) menuAnnoSettingsPanelToggle.classList.remove('active');
+          }
+          showMessage("주석 그리기 비활성화됨.", "success", 1500);
+      }
+      setupAnnotationCanvas();
+  }
+
+  function toggleAnnotationSettingsPanel() {
+      if (!isDrawingFeatureActive && document.body.classList.contains('true-fullscreen-active')) {
+          showMessage("주석 그리기를 먼저 켜주세요 (👁️ 아이콘).", "warning");
+          return;
+      }
+      if (!isDrawingFeatureActive && !document.body.classList.contains('true-fullscreen-active')) {
+          showMessage("주석 기능을 먼저 켜주세요 (메뉴 열기 > 주석 켜기/끄기).", "warning");
+          return;
+      }
+
+
+      isAnnotationPanelOpen = !isAnnotationPanelOpen;
+      annotationSettingsPanel.style.display = isAnnotationPanelOpen ? 'flex' : 'none';
+      annotationSettingsToggleBtn.classList.toggle('active', isAnnotationPanelOpen);
+      if(menuAnnoSettingsPanelToggle) menuAnnoSettingsPanelToggle.classList.toggle('active', isAnnotationPanelOpen);
+
+      if (isAnnotationPanelOpen) {
+          panelUISettings = { ...drawingSettings };
+          loadPanelUIWithSettings(panelUISettings);
+      } else {
+          drawingSettings = { ...panelUISettings };
+          applySettingsToContext(drawingSettings);
+      }
+      setupAnnotationCanvas();
+  }
+  
+  function handleAnnotationToolClick(e) {
+    const newTool = e.target.closest('button').dataset.tool;
+
+    if (newTool === 'eraser') {
+        panelUISettings.tool = (panelUISettings.tool === 'eraser') ? 'pen' : 'eraser';
+    } else {
+        panelUISettings.tool = newTool;
+    }
+
+    if (panelUISettings.tool === 'highlighter') {
+        panelUISettings.highlighterColor = panelUISettings.highlighterColor || drawingSettings.highlighterColor;
+        panelUISettings.highlighterLineWidth = panelUISettings.highlighterLineWidth || drawingSettings.highlighterLineWidth;
+        panelUISettings.highlighterOpacity = panelUISettings.highlighterOpacity || drawingSettings.highlighterOpacity;
+    } else if (['pen', 'circle', 'ellipse', 'orthoLine'].includes(panelUISettings.tool)) {
+         panelUISettings.penColor = panelUISettings.penColor || drawingSettings.penColor;
+         panelUISettings.penLineWidth = panelUISettings.penLineWidth || drawingSettings.penLineWidth;
+    }
+
+    loadPanelUIWithSettings(panelUISettings);
+    applySettingsToContext(panelUISettings);
+    setupAnnotationCanvas();
+  }
+  
+  function handleCloseAnnotationSettings() {
+    drawingSettings = { ...panelUISettings };
+    applySettingsToContext(drawingSettings);
+    isAnnotationPanelOpen = false;
+    annotationSettingsPanel.style.display = 'none';
+    annotationSettingsToggleBtn.classList.remove('active');
+    if(menuAnnoSettingsPanelToggle) menuAnnoSettingsPanelToggle.classList.remove('active');
+    setupAnnotationCanvas();
+    showMessage("주석 설정 적용됨.", "success", 1500);
+  }
+
+  function handleMenuKeepDrawingsToggle(isChecked) {
+    keepDrawingsVisibleOnDeactivate = isChecked;
+    if(annoKeepDrawingsVisibleCheckbox) annoKeepDrawingsVisibleCheckbox.checked = keepDrawingsVisibleOnDeactivate;
+    if (!isDrawingFeatureActive && annotationCanvas) {
+        annotationCanvas.style.display = keepDrawingsVisibleOnDeactivate && drawnStrokes.length > 0 ? 'block' : 'none';
+    }
+  }
+
+  function handleClearCanvasClick() {
+    if (!isDrawingFeatureActive) {
+         showMessage("주석 그리기 기능이 활성화되어야 합니다.", "warning"); return;
+    }
+    drawnStrokes = [];
+    redrawAllStrokes();
+    showMessage("모든 주석이 삭제되었습니다.", "success", 1500);
+  }
+
+
+  // --- Memo Annotation Functionality ---
+  function handleMemoToggleClick() {
+    const isFs = document.body.classList.contains('true-fullscreen-active');
+    if (!isFs) {
+        showMessage("메모 추가는 전체 화면 모드에서 사용 가능합니다.", "warning");
+        return;
+    }
+    toggleMemoMode();
+  }
+  
+  function handleMenuMemoToggleClick() {
+    handleMemoToggleClick();
+    if(menuPanel.style.display === "block") togglePanel();
+  }
+
+  function toggleMemoMode() {
+      isMemoModeActive = !isMemoModeActive;
+      memoAnnotationToggleBtn.classList.toggle('active', isMemoModeActive);
+      if(menuMemoAnnotationBtn) menuMemoAnnotationBtn.classList.toggle('active', isMemoModeActive);
+      contentArea.style.cursor = isMemoModeActive ? 'copy' : 'auto';
+
+      if (isMemoModeActive) {
+          if (isDrawingFeatureActive) {
+              isDrawingFeatureActive = false;
+              isAnnotationPanelOpen = false;
+              annotationSettingsPanel.style.display = 'none';
+              annotationSettingsToggleBtn.classList.remove('active');
+              if(menuAnnoSettingsPanelToggle) menuAnnoSettingsPanelToggle.classList.remove('active');
+              annotationCanvas.style.pointerEvents = 'none';
+              annotationCanvas.style.display = keepDrawingsVisibleOnDeactivate && drawnStrokes.length > 0 ? 'block' : 'none';
+              updateAnnotationDisplayToggleBtnStyle();
+              if(menuAnnoDrawingToggle) menuAnnoDrawingToggle.classList.remove('active');
+          }
+          showMessage("메모 추가 모드 활성화. 내용을 클릭하여 메모를 추가하세요.", "success", 2500);
+      } else {
+          showMessage("메모 추가 모드 비활성화.", "success", 1500);
+      }
+  }
+
+
+  contentArea.addEventListener('click', function(event) {
+    if (isMemoModeActive && document.body.classList.contains('true-fullscreen-active')) {
+        if (event.target.closest('[data-editable-type], .text-annotation-memo, button, a, input, select, textarea, .item-controls')) {
+            return;
+        }
+        if (event.detail === 0 && event.clientX === 0 && event.clientY === 0) {
+            return;
+        }
+
+        const rect = contentArea.getBoundingClientRect();
+        const x = event.clientX - rect.left + contentArea.scrollLeft;
+        const y = event.clientY - rect.top + contentArea.scrollTop;
+
+        createMemoAnnotation(x, y);
+    }
+  });
+
+  function createMemoAnnotation(x, y) {
+    const memoDiv = document.createElement('div');
+    memoDiv.className = 'text-annotation-memo';
+    memoDiv.setAttribute('contenteditable', 'true');
+    memoDiv.style.left = Math.max(0, x - 10) + 'px';
+    memoDiv.style.top = Math.max(0, y - 10) + 'px';
+    memoDiv.textContent = '메모 입력...';
+
+    const deleteBtn = document.createElement('span');
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.className = 'memo-delete-btn';
+    deleteBtn.title = '메모 삭제';
+    // Event listener for this will be handled by event delegation
+    memoDiv.appendChild(deleteBtn);
+
+    contentArea.appendChild(memoDiv);
+    makeMemoDraggable(memoDiv);
+    setTimeout(() => {
+        memoDiv.focus();
+        const selection = window.getSelection();
+        const range = document.createRange();
+        if (memoDiv.firstChild && memoDiv.firstChild.nodeType === Node.TEXT_NODE) {
+            range.selectNodeContents(memoDiv.firstChild);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    }, 0);
+  }
+  
+  contentArea.addEventListener('click', function(event) {
+      // Memo delete button delegation
+      const deleteBtn = event.target.closest('.memo-delete-btn');
+      if (deleteBtn) {
+          event.stopPropagation();
+          const memoDiv = deleteBtn.closest('.text-annotation-memo');
+          if (memoDiv) {
+              memoDiv.remove();
+          }
+      }
+  });
+
+  function makeMemoDraggable(memoElement) {
+    let currentX, currentY, initialMouseX, initialMouseY, isDraggingMemo = false;
+
+    memoElement.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.memo-delete-btn') || document.activeElement === memoElement) {
+            const style = window.getComputedStyle(memoElement);
+            const borderWidth = parseFloat(style.borderLeftWidth);
+            const paddingLeft = parseFloat(style.paddingLeft);
+            const paddingRight = parseFloat(style.paddingRight);
+            const edgeThreshold = 10;
+
+            if (e.offsetX < paddingLeft + borderWidth + edgeThreshold ||
+                e.offsetX > memoElement.clientWidth - paddingRight - borderWidth - edgeThreshold ||
+                e.offsetY < parseFloat(style.paddingTop) + parseFloat(style.borderTopWidth) + edgeThreshold ||
+                e.offsetY > memoElement.clientHeight - parseFloat(style.paddingBottom) - parseFloat(style.borderBottomWidth) - edgeThreshold
+            ) {
+            } else if (memoElement.contains(document.activeElement) && document.activeElement.isContentEditable) {
+                return;
+            }
+        }
+
+
+        isDraggingMemo = true;
+        memoElement.style.cursor = 'grabbing';
+        currentX = memoElement.offsetLeft;
+        currentY = memoElement.offsetTop;
+        initialMouseX = e.clientX;
+        initialMouseY = e.clientY;
+
+        document.addEventListener('mousemove', onMemoDrag);
+        document.addEventListener('mouseup', onMemoDragEnd);
+        e.stopPropagation();
+    });
+
+    function onMemoDrag(e) {
+        if (!isDraggingMemo) return;
+        e.preventDefault();
+
+        let deltaX = e.clientX - initialMouseX;
+        let deltaY = e.clientY - initialMouseY;
+
+        let newLeft = currentX + deltaX;
+        let newTop = currentY + deltaY;
+
+        newLeft = Math.max(0, Math.min(newLeft, contentArea.scrollWidth - memoElement.offsetWidth));
+        newTop = Math.max(0, Math.min(newTop, contentArea.scrollHeight - memoElement.offsetHeight));
+
+
+        memoElement.style.left = newLeft + 'px';
+        memoElement.style.top = newTop + 'px';
+    }
+
+    function onMemoDragEnd() {
+        if (!isDraggingMemo) return;
+        isDraggingMemo = false;
+        memoElement.style.cursor = 'move';
+        document.removeEventListener('mousemove', onMemoDrag);
+        document.removeEventListener('mouseup', onMemoDragEnd);
+    }
+}
+
+
+  // --- Annotation Canvas Event Listeners ---
+  function initializeAnnotationCanvasListeners() {
+    annotationCanvas.addEventListener('mousedown', startAnnotationDrawing);
+    annotationCanvas.addEventListener('mousemove', drawAnnotation);
+    annotationCanvas.addEventListener('mouseup', stopAnnotationDrawing);
+    annotationCanvas.addEventListener('mouseout', (e) => {
+      if (isDrawingAnnotation) {
+          stopAnnotationDrawing(e);
+      }
+    });
+    annotationCanvas.addEventListener('touchstart', (e) => { if(e.touches.length===1){e.preventDefault(); startAnnotationDrawing(e.touches[0]);}}, {passive:false});
+    annotationCanvas.addEventListener('touchmove', (e) => { if(e.touches.length===1){e.preventDefault(); drawAnnotation(e.touches[0]);}}, {passive:false});
+    annotationCanvas.addEventListener('touchend', (e) => { if(e.changedTouches.length===1){e.preventDefault(); stopAnnotationDrawing(e.changedTouches[0]);}});
+    annotationCanvas.addEventListener('touchcancel', () => {
+        if (isDrawingAnnotation) {
+            if (previewImageData) { annotationCtx.putImageData(previewImageData, 0, 0); previewImageData = null; }
+            isDrawingAnnotation = false; currentStroke = null;
+        }
+    });
+  }
+  
+  
+  // --- CENTRAL EVENT LISTENER INITIALIZATION ---
+  function initializeEventListeners() {
+    // Global and Fullscreen
+    exitTrueFullscreenBtnActual.addEventListener('click', exitTrueFullscreen);
+    trueFullscreenBtn.addEventListener('click', toggleTrueFullscreen);
+    document.addEventListener('fullscreenchange', fullscreenChangeHandler);
+    document.addEventListener('webkitfullscreenchange', fullscreenChangeHandler);
+    document.addEventListener('mozfullscreenchange', fullscreenChangeHandler);
+    document.addEventListener('MSFullscreenChange', fullscreenChangeHandler);
+    
+    // Main Menu Panel
+    floatingMenuToggleBtn.addEventListener('click', togglePanel);
+    closeMenuPanelBtn.addEventListener('click', handleCloseMenuPanel);
+    menuPanel.addEventListener('mousedown', handlePanelDragStart);
+    document.addEventListener('mousemove', handlePanelDragMove);
+    document.addEventListener('mouseup', handlePanelDragEnd);
+    
+    // Zoom
+    multiZoomTriggerBtn.addEventListener('click', handleMultiZoomTrigger);
+    selectionZoomOverlay.addEventListener('click', handleSelectionZoomOverlayClick);
+    const closeZoomBtn = document.getElementById('closeSelectionZoomBtn');
+    if (closeZoomBtn) closeZoomBtn.addEventListener('click', closeSelectionZoom);
+    
+    // Main Content Interaction
+    appContainer.addEventListener('click', handleAppContainerClick);
+    document.addEventListener('click', handleDocumentClick);
+    
+    // Keyboard
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', () => {
+        document.body.classList.remove('ctrl-pressed');
+        isShiftKeyDown = false;
+    });
+    
+    // --- Menu Panel Buttons ---
+    // Icons Visibility
+    document.querySelectorAll('input[name="editIconsMode"]').forEach(radio => {
+        radio.addEventListener('change', (e) => toggleEditIconsVisibility(e.target.value));
+    });
+    
+    // Link Editing
+    document.getElementById('applyLinkBtn').addEventListener('click', applyLink);
+    document.getElementById('removeLinkBtn').addEventListener('click', removeLink);
+    
+    // Text Formatting
+    document.getElementById('applyBoldBtn').addEventListener('click', applyBold);
+    document.getElementById('applyItalicBtn').addEventListener('click', applyItalic);
+    document.getElementById('applyUnderlineBtn').addEventListener('click', applyUnderline);
+    document.getElementById('applyStrikethroughBtn').addEventListener('click', applyStrikethrough);
+    document.getElementById('applySuperscriptBtn').addEventListener('click', applySuperscript);
+    document.getElementById('applySubscriptBtn').addEventListener('click', applySubscript);
+    document.getElementById('fontSizeSelector').addEventListener('change', (e) => changeFontSize(e.target.value));
+    document.getElementById('fontColorSelector').addEventListener('input', (e) => changeFontColor(e.target.value));
+    document.getElementById('backColorSelector').addEventListener('input', (e) => changeBackColor(e.target.value));
+
+    // Character / Emoji Insertion
+    document.getElementById('emojiDropdownBtn').addEventListener('click', toggleEmojiPalette);
+    document.getElementById('emojiPalette').addEventListener('click', handleEmojiPaletteButtonClick);
+    document.addEventListener('click', handleGlobalEmojiPaletteClick);
+    document.getElementById('insertCharFromInputBtn').addEventListener('click', insertCharacterFromInput);
+
+    // Save/Print
+    document.getElementById('saveHtmlBtn').addEventListener('click', saveHTML);
+    document.getElementById('printPdfBtn').addEventListener('click', printPDF);
+    
+    // Element Styling
+    document.getElementById('elementBgColor').addEventListener('input', (e) => applySelectedElementStyle('backgroundColor', e.target.value));
+    document.getElementById('elementTextColor').addEventListener('input', (e) => applySelectedElementStyle('color', e.target.value));
+    document.getElementById('elementBorderRadius').addEventListener('input', (e) => applySelectedElementStyle('borderRadius', e.target.value + 'px'));
+    document.getElementById('elementShapeSelector').addEventListener('change', (e) => applySelectedElementShape(e.target.value));
+    
+    // --- Annotation ---
+    // Floating Buttons
+    annotationDisplayToggleBtn.addEventListener('click', toggleDrawingFeature);
+    annotationSettingsToggleBtn.addEventListener('click', toggleAnnotationSettingsPanel);
+    memoAnnotationToggleBtn.addEventListener('click', handleMemoToggleClick);
+    
+    // Annotation Panel
+    closeAnnotationSettingsBtn.addEventListener('click', handleCloseAnnotationSettings);
+    annoColorPicker.addEventListener('input', (e) => {
+      if (panelUISettings.tool === 'highlighter') { panelUISettings.highlighterColor = e.target.value; }
+      else { panelUISettings.penColor = e.target.value; }
+      applySettingsToContext(panelUISettings);
+    });
+    annoLineWidthSlider.addEventListener('input', (e) => {
+        const newWidth = e.target.value;
+        if (panelUISettings.tool === 'highlighter') { panelUISettings.highlighterLineWidth = newWidth; }
+        else if (['pen', 'circle', 'ellipse', 'orthoLine', 'eraser'].includes(panelUISettings.tool)) { panelUISettings.penLineWidth = newWidth; }
+        applySettingsToContext(panelUISettings);
+    });
+    annoHighlighterOpacitySlider.addEventListener('input', (e) => {
+        panelUISettings.highlighterOpacity = e.target.value;
+        applySettingsToContext(panelUISettings);
+    });
+    annoKeepDrawingsVisibleCheckbox.addEventListener('change', (e) => handleMenuKeepDrawingsToggle(e.target.checked));
+    annoClearCanvasBtn.addEventListener('click', handleClearCanvasClick);
+    [annoToolPenBtn, annoToolHighlighterBtn, annoToolCircleBtn, annoToolEllipseBtn, annoToolOrthoLineBtn, annoToolEraserBtn].forEach(btn => {
+        if (btn) btn.addEventListener('click', handleAnnotationToolClick);
+    });
+    
+    // Menu Panel Annotation Controls
+    menuAnnoKeepDrawingsVisible.addEventListener('change', (e) => handleMenuKeepDrawingsToggle(e.target.checked));
+    menuAnnoDrawingToggle.addEventListener('click', toggleDrawingFeature);
+    menuAnnoSettingsPanelToggle.addEventListener('click', toggleAnnotationSettingsPanel);
+    menuMemoAnnotationBtn.addEventListener('click', handleMenuMemoToggleClick);
+
+    // Canvas Listeners
+    initializeAnnotationCanvasListeners();
+  }
+
+
+  // --- Application Initialization on DOMContentLoaded ---
+  window.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('meeting-cursor');
+    window.addEventListener('beforeunload', () => {
+        document.body.classList.remove('meeting-cursor');
+    });
+
+    const dateInfo = getFormattedDateForFilename();
+    if (pageTitle) {
+        let titleText = pageTitle.innerHTML;
+        titleText = titleText.replace(/YY년/g, `${dateInfo.yearYY}년`).replace(/MM월/g, `${dateInfo.monthMM}월`);
+        pageTitle.innerHTML = titleText;
+        document.title = titleText.includes('(') ? titleText.substring(0, titleText.indexOf('(')).trim() : titleText;
+        const editableTitleMeta = document.querySelector('meta[name="editable-title"]');
+        if (editableTitleMeta) {
+            editableTitleMeta.content = document.title;
+        }
+    }
+
+
+    let parsedState = null;
+    if (typeof window.__SAVED_APP_STATE__ !== 'undefined') {
+        parsedState = window.__SAVED_APP_STATE__;
+    }
+    
+    if (parsedState) {
+        try {
+            if (parsedState.wasFullscreenActive) {
+                showMessage("이 문서는 전체 화면 모드에서 저장되었습니다. ⛶ 아이콘을 클릭해 복원하세요.", 'success', 5000);
+            }
+            isDrawingFeatureActive = parsedState.isDrawingFeatureActive || false;
+            drawingSettings = parsedState.drawingSettings || drawingSettings;
+            panelUISettings = parsedState.panelUISettings || { ...drawingSettings };
+            keepDrawingsVisibleOnDeactivate = parsedState.keepDrawingsVisibleOnDeactivate !== undefined ? parsedState.keepDrawingsVisibleOnDeactivate : true;
+            drawnStrokes = parsedState.drawnStrokes || [];
+            isAnnotationPanelOpen = parsedState.isAnnotationPanelOpen || false;
+            isMemoModeActive = parsedState.isMemoModeActive || false;
+
+            if (pageTitle && parsedState.pageTitle_innerHTML) {
+                if(pageTitle.innerHTML !== parsedState.pageTitle_innerHTML) {
+                    pageTitle.innerHTML = parsedState.pageTitle_innerHTML;
+                }
+            }
+            if (contentArea && parsedState.contentArea_innerHTML) {
+                const canvasElement = contentArea.querySelector('#annotationCanvas');
+                const currentMemos = Array.from(contentArea.querySelectorAll('.text-annotation-memo'));
+                contentArea.innerHTML = parsedState.contentArea_innerHTML;
+
+                if (canvasElement && !contentArea.querySelector('#annotationCanvas')) {
+                    contentArea.insertBefore(canvasElement, contentArea.firstChild);
+                }
+                 currentMemos.forEach(memo => {
+                    if (!contentArea.contains(memo)) contentArea.appendChild(memo);
+                    makeMemoDraggable(memo);
+                 });
+            }
+
+            if (floatingMenuToggleBtn && parsedState.floatingMenuToggleBtn_innerHTML) {
+                floatingMenuToggleBtn.innerHTML = parsedState.floatingMenuToggleBtn_innerHTML;
+                floatingMenuToggleBtn.title = parsedState.floatingMenuToggleBtn_title;
+            }
+            if (menuPanel) {
+                menuPanel.style.display = parsedState.menuPanel_style_display || 'none';
+                if (menuPanel.style.display !== 'none') {
+                    menuPanel.style.left = parsedState.menuPanel_style_left || '';
+                    menuPanel.style.top = parsedState.menuPanel_style_top || '';
+                    menuPanel.style.width = parsedState.menuPanel_style_width || '';
+                    menuPanel.style.height = parsedState.menuPanel_style_height || '';
+                } else {
+                     if (floatingMenuToggleBtn) {
+                        floatingMenuToggleBtn.innerHTML = '☰';
+                        floatingMenuToggleBtn.title = '메뉴 열기';
+                     }
+                }
+            }
+            // Restore edit icons mode
+            const savedEditMode = parsedState.editIconsMode || 'off';
+            const radioToCheck = document.querySelector(`input[name="editIconsMode"][value="${savedEditMode}"]`);
+            if (radioToCheck) {
+                radioToCheck.checked = true;
+                toggleEditIconsVisibility(savedEditMode);
+            }
+
+        } catch (e) {
+            console.error("Error applying saved app state:", e);
+            setAnnotationDefaults();
+        }
+    } else {
+        setAnnotationDefaults();
+        const radioOff = document.getElementById('editIconsModeOff');
+        if(radioOff) radioOff.checked = true;
+        toggleEditIconsVisibility('off');
+    }
+
+
+    if (menuPanel && floatingMenuToggleBtn && !parsedState) {
+        if (getComputedStyle(menuPanel).display === 'none') { floatingMenuToggleBtn.innerHTML = '☰'; floatingMenuToggleBtn.title = '메뉴 열기'; }
+        else { floatingMenuToggleBtn.innerHTML = '✕'; floatingMenuToggleBtn.title = '메뉴 닫기'; }
+    }
+
+    if(annoHighlighterOpacityContainer) annoHighlighterOpacityContainer.style.display = (isAnnotationPanelOpen && panelUISettings.tool === 'highlighter') ? 'flex' : 'none';
+    if(annotationCanvas) annotationCanvas.style.display = (isDrawingFeatureActive || (keepDrawingsVisibleOnDeactivate && drawnStrokes.length > 0)) ? 'block' : 'none';
+
+
+    if(annoKeepDrawingsVisibleCheckbox) annoKeepDrawingsVisibleCheckbox.checked = keepDrawingsVisibleOnDeactivate;
+    if(menuAnnoKeepDrawingsVisible) menuAnnoKeepDrawingsVisible.checked = keepDrawingsVisibleOnDeactivate;
+
+    // Connect all event listeners
+    initializeEventListeners();
+
+    elementsForMultiZoom = [];
+    updateMultiZoomTriggerVisibility();
+    adjustContainerPadding();
+
+    if (pageTitle) { generateItemControls(pageTitle); pageTitle.addEventListener('input', () => { requestAnimationFrame(adjustContainerPadding); }); }
+    contentArea.querySelectorAll('[data-editable-type]:not(.text-annotation-memo)').forEach(el => generateItemControls(el));
+    contentArea.querySelectorAll('.text-annotation-memo').forEach(makeMemoDraggable);
+
+    updateAnnotationDisplayToggleBtnStyle();
+    if(memoAnnotationToggleBtn) memoAnnotationToggleBtn.classList.toggle('active', isMemoModeActive);
+
+    if (document.fonts) {
+        document.fonts.ready.then(() => {
+            requestAnimationFrame(adjustContainerPadding);
+            requestAnimationFrame(setupAnnotationCanvas);
+        });
+    } else {
+        adjustContainerPadding();
+        setupAnnotationCanvas();
+    }
+    fullscreenChangeHandler();
+
+  });
+  window.addEventListener('resize', () => {
+    adjustContainerPadding();
+    setupAnnotationCanvas();
+  });
+</script>
+</body>
+</html>
