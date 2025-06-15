@@ -1,0 +1,1719 @@
+<html lang="ko"><head>
+    <meta charset="UTF-8">
+    <title>월간 및 주간 회의 대시보드</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-color: #334e68;
+            --accent-color: #2a4d69;
+            --current-month-color: #d84315;
+            --past-month-color: #78909c;
+            --future-month-color: #448aff;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --border-radius: 12px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes zoomIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        body {
+            font-family: '맑은 고딕', 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            color: var(--text-color);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #dashboard-container {
+            width: 100%;
+            height: 100%;
+            background-color: #e9eef2;
+            padding: 25px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #dce4eb;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            margin: 0 0 10px 0;
+            font-weight: 700;
+        }
+
+        #year-navigator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #year-navigator button, #month-view-header button {
+            background-color: #fff;
+            border: 1px solid #a0b4c8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s;
+            box-shadow: var(--shadow);
+        }
+        #year-navigator button:hover, #month-view-header button:hover {
+            background-color: #eaf0f6;
+            transform: scale(1.05);
+        }
+        #year-navigator button:active, #month-view-header button:active {
+            transform: scale(0.98);
+            box-shadow: none;
+        }
+        #currentYearSpan {
+            font-size: 2.2em;
+            font-weight: 600;
+            color: var(--accent-color);
+            min-width: 150px;
+            text-align: center;
+        }
+
+        #view-wrapper {
+            flex-grow: 1;
+            position: relative;
+            perspective: 1500px;
+            overflow: hidden;
+        }
+
+        .view {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            transition: transform 0.6s cubic-bezier(0.45, 0, 0.55, 1), opacity 0.5s ease-in-out;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #year-view {
+            transform: scale(1) translateZ(0);
+            opacity: 1;
+        }
+        #year-view.hidden {
+            transform: scale(0.1) translateZ(-500px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        #year-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        
+        .month-card {
+            position: relative;
+            background-color: var(--card-bg);
+            border: 1px solid #e0e0e0;
+            border-top: 6px solid var(--future-month-color);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            font-size: 1.8em;
+            font-weight: 500;
+            animation: zoomIn 0.5s ease-out backwards;
+        }
+        .month-card:not(.not-written):hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        .month-card.past { border-top-color: var(--past-month-color); color: #888; }
+        .month-card.current { border-top-color: var(--current-month-color); color: var(--current-month-color); font-weight: 700; }
+
+        #month-view {
+            gap: 25px;
+            transform: scale(2) translateZ(500px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        #month-view.visible {
+            transform: scale(1) translateZ(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .month-view-top-controls {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        .month-view-top-controls button {
+            font-size: 26px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            line-height: 1;
+            background: none;
+            border: none;
+            opacity: 0.7;
+            transition: opacity 0.2s, background-color 0.2s;
+        }
+        .month-view-top-controls button:hover {
+            opacity: 1;
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        #month-view-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+        }
+        #month-view-title { 
+            margin: 0; 
+            color: var(--accent-color); 
+            animation: fadeIn 0.4s 0.2s backwards; 
+        }
+        #month-view-header button {
+            width: 35px;
+            height: 35px;
+            font-size: 1em;
+            box-shadow: none;
+        }
+        
+        .report-card, .month-card {
+            position: relative;
+        }
+
+        .report-card {
+            display: block;
+            text-decoration: none;
+            color: var(--text-color);
+            background-color: var(--card-bg);
+            border: 1px solid #dce4eb;
+            border-radius: var(--border-radius);
+            padding: 18px 30px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.4s 0.3s backwards;
+            font-weight: 500;
+        }
+        .report-card:not(.not-written) {
+            cursor: pointer;
+        }
+        .report-card:not(.not-written):hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+
+        .not-written {
+            cursor: not-allowed;
+            background-color: #f8f9fa !important;
+            color: #adb5bd !important;
+            overflow: hidden;
+        }
+        .month-card.not-written { border-top-color: #ced4da; }
+        .week-card.not-written { border-left-color: #ced4da; }
+        .not-written:hover { transform: none; box-shadow: var(--shadow); }
+        
+        .not-written::after {
+            content: url('data:image/svg+xml,%3csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3e%3ccircle cx="50" cy="50" r="45" fill="none" stroke="%23e03131" stroke-width="10"/%3e%3cline x1="85" y1="15" x2="15" y2="85" stroke="%23e03131" stroke-width="10"/%3e%3c/svg%3e');
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2.5em; 
+            height: 2.5em; 
+            opacity: 0.6;
+            z-index: 5;
+        }
+        .not-written > * { opacity: 0.5; }
+        .not-written:hover::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: calc(100% + 5px);
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #343a40;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: pre-wrap;
+            text-align: left;
+            z-index: 10;
+            animation: fadeIn 0.2s;
+        }
+
+        #monthly-report-card {
+            background-color: #fff9e6;
+            border-left: 6px solid #ffab40;
+            width: 100%;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        
+        #monthly-card-container {
+            width: 80%;
+            max-width: 600px;
+        }
+
+        #weekly-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1400px;
+            padding: 10px;
+        }
+
+        .week-card {
+            background-color: #e3f2fd;
+            border-left: 6px solid #448aff;
+            min-width: auto;
+            width: 100%;
+            text-align: center;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        
+        .week-card.current {
+            color: var(--current-month-color);
+            font-size: 1.15em;
+            font-weight: bold;
+            border-color: var(--current-month-color);
+        }
+
+        .week-card-container, #monthly-card-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .week-card-container .report-card, #monthly-card-container .report-card {
+            animation: none;
+        }
+
+        .report-card.expanded {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .memo-toggle-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 24px;
+            height: 24px;
+            background-color: rgba(42, 77, 105, 0.5);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            line-height: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            z-index: 5;
+            padding: 0;
+        }
+
+        .report-card:not(.not-written):hover .memo-toggle-btn {
+            background-color: rgba(216, 67, 21, 0.8);
+            transform: scale(1.1);
+        }
+
+        .memo-wrapper {
+            background-color: #f7f9fc;
+            border: 1px solid #e0e6ed;
+            border-top: none;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            margin-top: -1px;
+            transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out, opacity 0.3s ease;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .memo-wrapper:not(.hidden) {
+            max-height: 500px;
+            opacity: 1;
+            padding: 10px;
+        }
+
+        .memo-wrapper textarea {
+            width: 100%;
+            height: 120px;
+            border: 1px solid #d1d9e6;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: '맑은 고딕', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+
+        .control-btn-group {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10010;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-btn {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+        .control-btn:hover {
+            transform: scale(1.1);
+            background-color: var(--current-month-color);
+        }
+        
+        .control-btn[data-tooltip]:hover::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            width: max-content;
+            max-width: 300px;
+            right: calc(100% + 15px);
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #343a40;
+            color: white;
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            font-size: 13px;
+            font-family: '맑은 고딕', 'Segoe UI', sans-serif;
+            white-space: pre-wrap;
+            text-align: left;
+            z-index: 10011;
+            pointer-events: none;
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10011;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-overlay.open { opacity: 1; visibility: visible; }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.open .modal-content { transform: scale(1); }
+        .modal-content h3 { margin-top: 0; color: var(--accent-color); }
+        .modal-close-btn {
+            position: absolute; top: 15px; right: 15px;
+            font-size: 24px; cursor: pointer; border: none; background: none;
+        }
+
+        #settingsPanel h4, #creationModal h4, #manageSkippedModal h4, #searchModal h4 {
+            margin-top: 20px; margin-bottom: 10px; border-left: 4px solid var(--accent-color); padding-left: 8px;
+        }
+        #settingsPanel textarea {
+            width: 100%; min-height: 100px; font-family: monospace; font-size: 12px;
+            border: 1px solid #ccc; border-radius: 4px; padding: 8px; box-sizing: border-box; resize: vertical;
+        }
+        #settingsPanel input[type="text"] {
+            width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;
+        }
+        .config-grid { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; margin-bottom: 15px;}
+        .config-grid label, .desktop-mode-grid label { font-weight: 600; font-size: 14px;}
+        .config-grid input:disabled, #desktopModeFields button:disabled, .config-grid select:disabled { background: #eee; cursor: not-allowed; opacity: 0.7; }
+        
+        .desktop-mode-grid { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; margin-bottom: 10px;}
+        #desktopModeFields button { background-color: #6c757d; font-size: 14px; padding: 8px; margin-bottom: 5px; }
+        #desktopModeFields button:hover:not(:disabled) { background-color: #5a6268; }
+
+        .settings-mode-selector { margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px;}
+        .settings-mode-selector label { font-weight: normal; margin-right: 15px;}
+
+        #creationModal select, #creationModal input[type="text"], #creationModal button, .batch-process-grid select, #searchInput {
+            width: 100%;
+            padding: 10px;
+            font-size: 1em;
+            margin-bottom: 10px;
+            border-radius: var(--border-radius);
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        #creationModal button, .settings-actions button, .skip-btn-group button, .batch-btn-group button {
+            background-color: var(--accent-color);
+            color: white;
+            cursor: pointer;
+            width: 100%;
+            padding: 12px;
+            font-size: 1em;
+            border: none;
+            border-radius: var(--border-radius);
+        }
+        #creationModal button:hover, .settings-actions button:hover { background-color: var(--current-month-color); }
+        
+        .settings-actions { display: flex; flex-direction: column; gap: 10px; }
+        #saveAllChangesBtn:disabled {
+            background-color: #a0b4c8;
+            cursor: not-allowed;
+        }
+        
+        .creation-form-group {
+            margin-bottom: 20px;
+        }
+        #creationModal label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 15px;
+            color: var(--text-color);
+        }
+        #creationModal .creation-form-group > select,
+        #creationModal .creation-form-group > input {
+            margin-bottom: 0;
+        }
+        #createNewMeetingBtn {
+            margin-top: 15px;
+        }
+
+        .batch-process-grid {
+             margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;
+        }
+        .batch-process-grid h4 { margin-top: 0; }
+        .batch-process-grid .selector-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px 15px;
+            align-items: flex-start;
+            margin: 10px 0;
+        }
+        .batch-process-grid select[multiple] {
+            height: 150px;
+        }
+        
+        .batch-btn-group { display: flex; gap: 15px; margin-top: 10px; }
+        #batchMarkSkippedBtn { background-color: var(--past-month-color); }
+        #batchMarkSkippedBtn:hover { background-color: #5a6268; }
+        #batchMarkWrittenBtn { background-color: var(--future-month-color); }
+        #batchMarkWrittenBtn:hover { background-color: #2962ff; }
+        
+        .template-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+            margin-bottom: 15px;
+        }
+        .template-controls button {
+            flex-grow: 1;
+            padding: 8px;
+            font-size: 13px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .template-controls button.embed {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .template-controls button.embed:hover {
+            background-color: #c3e6cb;
+        }
+        .template-controls button.remove {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .template-controls button.remove:hover {
+            background-color: #f5c6cb;
+        }
+
+        #manageSkippedModal .modal-content, #searchModal .modal-content {
+            resize: both;
+            overflow: auto;
+        }
+        #manageSkippedModal h3, #searchModal h3 {
+            cursor: grab;
+            user-select: none;
+        }
+        #manageSkippedModal .modal-content.dragging, #searchModal .modal-content.dragging {
+            cursor: grabbing;
+            user-select: none;
+        }
+
+        /* Search Modal Styles */
+        .search-form-group {
+            margin-bottom: 20px;
+        }
+        #searchResultsContainer {
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        .search-placeholder, .no-results {
+            text-align: center;
+            color: #888;
+            padding: 20px;
+        }
+        .search-result-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .search-result-item:hover {
+            background-color: #f0f4f8;
+        }
+        .search-result-item h5 {
+            margin: 0 0 8px 0;
+            color: var(--accent-color);
+        }
+        .search-result-item p {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+        }
+        .search-result-item strong {
+            background-color: #fff9e6;
+            color: var(--current-month-color);
+            font-weight: bold;
+            padding: 1px 3px;
+            border-radius: 3px;
+        }
+
+        /* Card Highlight Effect */
+        @keyframes card-highlight-animation {
+            0% { box-shadow: 0 0 0 0 rgba(42, 77, 105, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(42, 77, 105, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(42, 77, 105, 0); }
+        }
+        .card-highlight {
+            animation: card-highlight-animation 1.5s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="dashboard-container">
+        <header>
+            <h1>월간 및 주간 회의 대시보드</h1>
+            <div id="year-navigator">
+                <button id="prevYearBtn" title="이전 연도">◄</button>
+                <span id="currentYearSpan">2025년</span>
+                <button id="nextYearBtn" title="다음 연도">►</button>
+            </div>
+        </header>
+
+        <div id="view-wrapper">
+            <div id="year-view" class="view">
+                <div id="year-grid"></div>
+            </div>
+            <div id="month-view" class="view">
+                <div class="month-view-top-controls">
+                    <button id="back-to-year-view-btn" title="연간 뷰로 돌아가기">↩️</button>
+                    <button id="go-to-today-btn" title="오늘로 이동">🏠</button>
+                </div>
+                <div id="month-view-header">
+                    <button id="prevMonthBtnInView" title="이전 월">◄</button>
+                    <h2 id="month-view-title"></h2>
+                    <button id="nextMonthBtnInView" title="다음 월">►</button>
+                </div>
+                <div id="monthly-card-container">
+                    <div id="monthly-report-card" class="report-card"></div>
+                    <div id="monthly-memo-wrapper" class="memo-wrapper hidden"></div>
+                </div>
+                <div id="weekly-cards-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="control-btn-group">
+        <button class="control-btn" id="searchToggleBtn" title="요약 검색">🔍</button>
+        <button class="control-btn" id="settingsToggleBtn" title="설정">⚙️</button>
+        <button class="control-btn" id="manageSkippedBtn" data-tooltip="">🗓️</button>
+        <button class="control-btn" id="creationPanelToggleBtn" title="새 회의 안건 작성">+</button>
+    </div>
+    
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-target="settingsModal">×</button>
+            <h3>대시보드 설정</h3>
+            
+            <div class="settings-mode-selector">
+                <label><input type="radio" name="configMode" value="url" checked> URL 기본값 사용</label>
+                <label><input type="radio" name="configMode" value="desktop"> 데스크탑 모드</label>
+            </div>
+
+            <div id="urlModeFields">
+                <h4>URL 경로 설정</h4>
+                <div class="config-grid">
+                    <label for="confWeeklyBaseURL">주간 회의 안건 URL</label> <input type="text" id="confWeeklyBaseURL">
+                    <label for="confWeeklyTemplate">주간 HTML 이름</label> <input type="text" id="confWeeklyTemplate">
+                    <label for="confWeeklyPastTemplate">주간 PDF 이름</label> <input type="text" id="confWeeklyPastTemplate">
+                    <label for="confMonthlyBaseURL">월간 회의 안건 URL</label> <input type="text" id="confMonthlyBaseURL">
+                    <label for="confMonthlyTemplate">월간 HTML 이름</label> <input type="text" id="confMonthlyTemplate">
+                    <label for="confMonthlyPastTemplate">월간 PDF 이름</label> <input type="text" id="confMonthlyPastTemplate">
+                </div>
+            </div>
+
+            <div id="desktopModeFields" style="display: none;">
+                <h4>로컬 폴더 설정</h4>
+                <div class="desktop-mode-grid">
+                    <label>회의 안건 폴더</label> <button id="selectFolderBtn" disabled>최상위 폴더 선택</button>
+                </div>
+                 <p style="font-size:12px; color: #666; margin-top:-5px;">선택된 경로: <strong id="folderPath">없음</strong></p>
+            </div>
+
+            <h4>템플릿 코드 설정</h4>
+            <label for="templateWeekly">주간 회의 안건 템플릿</label>
+            <textarea id="templateWeekly" placeholder="주간 회의 안건 파일의 전체 HTML 코드를 여기에 붙여넣거나, [파일에서 불러오기]를 사용하세요."></textarea>
+            <div class="template-controls">
+                <button id="embedWeeklyTemplateBtn" class="embed">코드 내장하기</button>
+                <button id="removeWeeklyTemplateBtn" class="remove">내장 코드 제거</button>
+                <button id="loadWeeklyTemplateBtn">파일에서 불러오기</button>
+            </div>
+            
+            <label for="templateMonthly" style="margin-top:15px;">월간 회의 안건 템플릿</label>
+            <textarea id="templateMonthly" placeholder="월간 회의 안건 파일의 전체 HTML 코드를 여기에 붙여넣거나, [파일에서 불러오기]를 사용하세요."></textarea>
+            <div class="template-controls">
+                <button id="embedMonthlyTemplateBtn" class="embed">코드 내장하기</button>
+                <button id="removeMonthlyTemplateBtn" class="remove">내장 코드 제거</button>
+                <button id="loadMonthlyTemplateBtn">파일에서 불러오기</button>
+            </div>
+            
+            <hr style="margin: 25px 0;">
+
+            <div class="settings-actions">
+                <button id="saveSettingsBtn">URL/템플릿 설정 저장</button>
+                <button id="saveAllChangesBtn" title="회의 요약 및 미작성 설정을 모두 저장하고 다운로드합니다." disabled>모든 변경사항 저장 및 다운로드</button>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="creationModal" class="modal-overlay">
+         <div class="modal-content">
+            <button class="modal-close-btn" data-target="creationModal">×</button>
+            <h3>새 회의 안건 작성</h3>
+            <div class="creation-form-group">
+                <label for="newMeetingType">회의 유형</label>
+                <select id="newMeetingType">
+                    <option value="weekly" selected>주간 회의</option>
+                    <option value="monthly">월간 회의</option>
+                </select>
+            </div>
+            <div class="creation-form-group">
+                <label for="newMeetingDate">회의 날짜</label>
+                <input type="text" id="newMeetingDate">
+            </div>
+            <button id="createNewMeetingBtn">생성하기 &amp; 다운로드</button>
+        </div>
+    </div>
+    
+    <div id="manageSkippedModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-target="manageSkippedModal">×</button>
+            <h3>미작성 안건 수동 관리</h3>
+            
+            <div class="batch-process-grid">
+                <h4>다중 선택 일괄 처리</h4>
+                <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
+                    Ctrl(Cmd) 키를 누른 채 여러 항목을 선택할 수 있습니다.<br>
+                    <strong style="color: var(--accent-color);">변경사항은 설정(⚙️) 메뉴에서 일괄 저장할 수 있습니다.</strong>
+                </p>
+                <div class="selector-group">
+                    <div>
+                        <label for="batchYearSelect">연도 선택</label>
+                        <select id="batchYearSelect" multiple></select>
+                    </div>
+                    <div>
+                        <label for="batchMonthSelect">월 선택</label>
+                        <select id="batchMonthSelect" multiple></select>
+                    </div>
+                    <div>
+                        <label for="batchWeekSelect">주 선택 (선택 안함 시 '월' 단위로 처리)</label>
+                        <select id="batchWeekSelect" multiple></select>
+                    </div>
+                </div>
+                <div class="batch-btn-group">
+                    <button id="batchMarkSkippedBtn">선택 항목 '미작성' 처리</button>
+                    <button id="batchMarkWrittenBtn">선택 항목 '작성됨'으로 복원</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="searchModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-target="searchModal">×</button>
+            <h3>요약 검색</h3>
+            <div class="search-form-group">
+                <input type="text" id="searchInput" placeholder="검색할 내용을 입력하세요...">
+            </div>
+            <div id="searchResultsContainer">
+                <p class="search-placeholder">메모 내용에서 검색합니다.</p>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let WEEKLY_TEMPLATE_HTML = `(주간 회의 템플릿 로딩 중...)`;
+    let MONTHLY_TEMPLATE_HTML = `(월간 회의 템플릿 로딩 중...)`;
+    
+    const TEMPLATE_URL_WEEKLY = 'https://jonggunelee.github.io/wyggkr03/주간 회의.html';
+    const TEMPLATE_URL_MONTHLY = 'https://jonggunelee.github.io/wyggkr/월간 회의.html';
+
+    let HARDCODED_MEETING_MEMOS = {};
+    const HARDCODED_SKIPPED_DATES = [
+    "2023-10-4", "2023-10-5", "2023-10-6", "2023-11-4", "2023-11-5", "2023-4-5", "2023-6-5", "2023-7-5", "2023-7-6", "2023-9-5",
+    "2024-1-1", "2024-1-5", "2024-10-2", "2024-11-1", "2024-11-5", "2024-12-2", "2024-12-5", "2024-12-6", "2024-2-5", "2024-3-5",
+    "2024-4-5", "2024-6-5", "2024-8-5", "2024-9-3", "2024-9-5", "2024-9-6", "2025-1-2", "2025-1-5", "2025-2-1", "2025-2-5",
+    "2025-3-1", "2025-3-5", "2025-3-6", "2025-4-2", "2025-5-1", "2025-5-2", "2025-5-5", "2025-6-2"
+    ];
+
+    const URL_DEFAULT_CONFIG = {
+        configMode: 'url',
+        weekly: {
+            baseURL: 'https://jonggunelee.github.io/wyggkr03',
+            filenameTemplate: '{YYYY}/{YYYY}_{MM}_{WW}_회의록.html',
+            pastFilenameTemplate: '{YYYY}/{YYYY}_{MM}_{WW}_회의록.pdf'
+        },
+        monthly: {
+            baseURL: 'https://jonggunelee.github.io/wyggkr',
+            filenameTemplate: '{YYYY}/{YYYY}_{MM}_회의록.html',
+            pastFilenameTemplate: '{YYYY}/{YYYY}_{MM}_회의록.pdf'
+        }
+    };
+    let dashboardConfig = {};
+    let currentYear;
+    let currentMonth = null;
+    
+    let tempMeetingMemos = {};
+    let tempSkippedDates = [];
+    
+    let initialMemosString = '';
+    let initialSkippedDatesString = '';
+
+
+    const getWeekOfMonth = date => {
+        const dayOfMonth = date.getDate();
+        const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        const firstDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7;
+        return Math.floor((dayOfMonth + firstDayOfWeek - 1) / 7) + 1;
+    };
+    
+    const getNumberOfWeeksInMonth = (year, month) => {
+        const lastDayOfMonth = new Date(year, month, 0);
+        return getWeekOfMonth(lastDayOfMonth);
+    };
+    
+    function buildUrl(base, template) {
+        if (template.startsWith('http://') || template.startsWith('https://')) {
+            return template;
+        }
+        const cleanedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+        const cleanedTemplate = template.startsWith('/') ? template.slice(1) : template;
+        return `${cleanedBase}/${cleanedTemplate}`;
+    }
+
+    function renderYearView(year, skippedDates) {
+        currentYear = year;
+        document.getElementById('currentYearSpan').textContent = `${year}년`;
+        const yearGrid = document.getElementById('year-grid');
+        yearGrid.innerHTML = '';
+        
+        const now = new Date();
+        const todayYear = now.getFullYear();
+        const todayMonth = now.getMonth() + 1;
+
+        for (let i = 1; i <= 12; i++) {
+            const card = document.createElement('div');
+            card.className = 'month-card';
+            card.textContent = `${i}월`;
+            
+            const key = `${year}-${i}`;
+            const isManuallySkipped = skippedDates.includes(key);
+
+            if (isManuallySkipped) {
+                card.classList.add('not-written');
+                card.dataset.tooltip = '수동으로 미작성 처리됨';
+            } else {
+                const isFuture = year > todayYear || (year === todayYear && i > todayMonth);
+                const isLegacy = year < 2023 || (year === 2023 && i < 3);
+
+                if (isLegacy || isFuture) {
+                    card.classList.add('not-written');
+                    let tooltip = '회의 안건 미작성';
+                    if (isLegacy) tooltip = '해당 날짜는 지원되지 않습니다.';
+                    card.dataset.tooltip = tooltip;
+                } else {
+                    card.dataset.month = i;
+                    if (year < todayYear || (year === todayYear && i < todayMonth)) {
+                        card.classList.add('past');
+                    } else if (year === todayYear && i === todayMonth) {
+                        card.classList.add('current');
+                    }
+                }
+            }
+            yearGrid.appendChild(card);
+        }
+    }
+    
+    function showMonthView(month, year, skippedDates) {
+        currentYear = year;
+        currentMonth = month;
+        document.getElementById('currentYearSpan').textContent = `${year}년`;
+    
+        document.getElementById('month-view-title').textContent = `${year}년 ${month}월 회의 안건`;
+        const monthlyCard = document.getElementById('monthly-report-card');
+        const monthlyMemoWrapper = document.getElementById('monthly-memo-wrapper');
+        const weeklyContainer = document.getElementById('weekly-cards-container');
+        
+        // Clear previous content
+        monthlyCard.innerHTML = '';
+        monthlyMemoWrapper.innerHTML = '';
+        weeklyContainer.innerHTML = '';
+
+        const now = new Date();
+        const todayYear = now.getFullYear();
+        const todayMonth = now.getMonth() + 1;
+        const todayWeek = getWeekOfMonth(now);
+        
+        // --- Monthly Card and Memo ---
+        const monthlyKey = `${year}-${parseInt(month, 10)}`;
+        const isMonthlyManuallySkipped = skippedDates.includes(monthlyKey);
+
+        const monthlyCardText = document.createElement('span');
+        monthlyCardText.textContent = "월간 회의 안건 보기";
+        monthlyCard.appendChild(monthlyCardText);
+
+
+        if (isMonthlyManuallySkipped) {
+            monthlyCard.classList.add('not-written');
+            monthlyCard.dataset.tooltip = '수동으로 미작성 처리됨';
+            monthlyCard.removeAttribute('data-href');
+        } else {
+            const isFutureMonth = parseInt(year) > todayYear || (parseInt(year) === todayYear && parseInt(month) > todayMonth);
+            const isLegacyMonth = parseInt(year) < 2023 || (parseInt(year) === 2023 && parseInt(month) < 3);
+            if (isLegacyMonth || isFutureMonth) {
+                monthlyCard.classList.add('not-written');
+                let tooltip = '회의 안건 미작성';
+                if (isLegacyMonth) tooltip = '해당 날짜는 지원되지 않습니다.';
+                monthlyCard.dataset.tooltip = tooltip;
+                monthlyCard.removeAttribute('data-href');
+            } else {
+                monthlyCard.classList.remove('not-written');
+                const isPastMonth = parseInt(year) < todayYear || (parseInt(year) === todayYear && parseInt(month) < todayMonth);
+                const monthlyConf = dashboardConfig.monthly;
+                const monthlyTemplate = isPastMonth 
+                    ? (monthlyConf.pastFilenameTemplate || monthlyConf.filenameTemplate) 
+                    : monthlyConf.filenameTemplate;
+                
+                const monthlyUrl = buildUrl(monthlyConf.baseURL, monthlyTemplate)
+                    .replace(/{YYYY}/g, year).replace(/{YY}/g, String(year).slice(-2))
+                    .replace(/{MM}/g, String(month).padStart(2, '0')).replace(/{M}/g, parseInt(month, 10));
+                monthlyCard.dataset.href = monthlyUrl;
+                monthlyCard.removeAttribute('data-tooltip');
+                
+                // Add memo button and wrapper for monthly card
+                const memoToggleBtn = document.createElement('button');
+                memoToggleBtn.className = 'memo-toggle-btn';
+                memoToggleBtn.dataset.key = monthlyKey;
+                memoToggleBtn.textContent = '+';
+                memoToggleBtn.title = '회의 요약 보기/숨기기';
+                monthlyCard.appendChild(memoToggleBtn);
+
+                const memoText = tempMeetingMemos[monthlyKey] || '';
+                monthlyMemoWrapper.innerHTML = `<textarea data-key="${monthlyKey}" placeholder="월간 회의 요약 내용을 입력하세요...">${memoText}</textarea>`;
+            }
+        }
+        
+        // --- Weekly Cards ---
+        const weeklyConf = dashboardConfig.weekly;
+        const weeksInMonth = getNumberOfWeeksInMonth(year, parseInt(month));
+        
+        for (let w = 1; w <= weeksInMonth; w++) {
+            const weeklyKey = `${year}-${parseInt(month, 10)}-${w}`;
+            
+            const container = document.createElement('div');
+            container.className = 'week-card-container';
+
+            const weeklyCard = document.createElement('div');
+            weeklyCard.className = 'report-card week-card';
+            
+            const isWeeklyManuallySkipped = skippedDates.includes(weeklyKey);
+
+            if (isWeeklyManuallySkipped) {
+                 weeklyCard.classList.add('not-written');
+                 weeklyCard.dataset.tooltip = '수동으로 미작성 처리됨';
+            } else {
+                const isLegacyWeek = (parseInt(year) < 2023) || (parseInt(year) === 2023 && parseInt(month) < 3);
+                const isFutureWeek = (parseInt(year) > todayYear) ||
+                               (parseInt(year) === todayYear && parseInt(month) > todayMonth) ||
+                               (parseInt(year) === todayYear && parseInt(month) === todayMonth && w > todayWeek);
+
+                if (isLegacyWeek || isFutureWeek) {
+                    weeklyCard.classList.add('not-written');
+                    let tooltip = '회의 안건 미작성';
+                    if(isLegacyWeek) tooltip = '해당 날짜는 지원되지 않습니다.';
+                    weeklyCard.dataset.tooltip = tooltip;
+                } else {
+                    weeklyCard.classList.remove('not-written');
+                    const isPastWeek = (parseInt(year) < todayYear) ||
+                                   (parseInt(year) === todayYear && parseInt(month) < todayMonth) ||
+                                   (parseInt(year) === todayYear && parseInt(month) === todayMonth && w < todayWeek);
+                    const weeklyTemplate = isPastWeek
+                        ? (weeklyConf.pastFilenameTemplate || weeklyConf.filenameTemplate)
+                        : weeklyConf.filenameTemplate;
+
+                    const weeklyUrl = buildUrl(weeklyConf.baseURL, weeklyTemplate)
+                        .replace(/{YYYY}/g, year).replace(/{YY}/g, String(year).slice(-2))
+                        .replace(/{MM}/g, String(month).padStart(2, '0')).replace(/{M}/g, parseInt(month, 10))
+                        .replace(/{WW}/g, String(w).padStart(2, '0')).replace(/{W}/g, w);
+                    
+                    weeklyCard.dataset.href = weeklyUrl;
+                    weeklyCard.removeAttribute('data-tooltip');
+                }
+            }
+            
+            if (parseInt(year) === todayYear && parseInt(month) === todayMonth && w === todayWeek) {
+                weeklyCard.classList.add('current');
+            }
+
+            const cardText = document.createElement('span');
+            cardText.textContent = `${w}주차 회의 안건`;
+            weeklyCard.appendChild(cardText);
+            
+            const memoWrapper = document.createElement('div');
+            memoWrapper.className = 'memo-wrapper hidden';
+            memoWrapper.id = `memo-${weeklyKey}`;
+            
+            if (!weeklyCard.classList.contains('not-written')) {
+                const memoToggleBtn = document.createElement('button');
+                memoToggleBtn.className = 'memo-toggle-btn';
+                memoToggleBtn.dataset.key = weeklyKey;
+                memoToggleBtn.textContent = '+';
+                memoToggleBtn.title = '회의 요약 보기/숨기기';
+                weeklyCard.appendChild(memoToggleBtn);
+
+                const memoText = tempMeetingMemos[weeklyKey] || '';
+                memoWrapper.innerHTML = `<textarea data-key="${weeklyKey}" placeholder="주간 회의 요약 내용을 입력하세요...">${memoText}</textarea>`;
+            }
+
+            container.appendChild(weeklyCard);
+            container.appendChild(memoWrapper);
+            weeklyContainer.appendChild(container);
+        }
+
+        document.getElementById('year-view').classList.add('hidden');
+        document.getElementById('month-view').classList.add('visible');
+    }
+
+    function showYearView(skippedDates) {
+        document.getElementById('year-view').classList.remove('hidden');
+        document.getElementById('month-view').classList.remove('visible');
+        currentMonth = null;
+        renderYearView(currentYear, skippedDates);
+    }
+    
+    function populateSkipSelector() {
+        const yearSelect = document.getElementById('batchYearSelect');
+        const monthSelect = document.getElementById('batchMonthSelect');
+        const weekSelect = document.getElementById('batchWeekSelect');
+        
+        yearSelect.innerHTML = '';
+        for (let y = new Date().getFullYear() - 5; y <= new Date().getFullYear() + 5; y++) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = `${y}년`;
+            yearSelect.appendChild(option);
+        }
+        yearSelect.value = currentYear;
+
+        monthSelect.innerHTML = '';
+        for (let m = 1; m <= 12; m++) {
+            const option = document.createElement('option');
+            option.value = m;
+            option.textContent = `${m}월`;
+            monthSelect.appendChild(option);
+        }
+
+        weekSelect.innerHTML = '';
+        for (let w = 1; w <= 6; w++) { 
+            const option = document.createElement('option');
+            option.value = w;
+            option.textContent = `${w}주`;
+            weekSelect.appendChild(option);
+        }
+    }
+
+    function updateAnalyticsTooltip(skippedDates) {
+        let monthlyCount = 0;
+        let weeklyCount = 0;
+        const firstMonthlyDate = '2023-03';
+        const firstWeeklyDate = '2023-03 (1주차)';
+
+        const now = new Date();
+        const startYear = 2023;
+
+        for (let y = startYear; y <= now.getFullYear(); y++) {
+            for (let m = 1; m <= 12; m++) {
+                if (y === now.getFullYear() && m > (now.getMonth() + 1)) continue;
+                
+                const isLegacyMonth = y < 2023 || (y === 2023 && m < 3);
+                if (isLegacyMonth) continue;
+
+                if (!skippedDates.includes(`${y}-${m}`)) {
+                    monthlyCount++;
+                }
+
+                const weeksInMonth = getNumberOfWeeksInMonth(y, m);
+                for (let w = 1; w <= weeksInMonth; w++) {
+                    if(y === now.getFullYear() && m === (now.getMonth() + 1) && w > getWeekOfMonth(now)) continue;
+                    
+                    const isLegacyWeek = y === 2023 && m < 3;
+                    if (isLegacyWeek) continue;
+                    
+                    if (!skippedDates.includes(`${y}-${m}-${w}`)) {
+                        weeklyCount++;
+                    }
+                }
+            }
+        }
+        
+        const tooltipText = `최초 작성 (월간): ${firstMonthlyDate}\n최초 작성 (주간): ${firstWeeklyDate}\n월간 안건 수: ${monthlyCount}건\n주간 안건 수: ${weeklyCount}건`;
+        document.getElementById('manageSkippedBtn').dataset.tooltip = tooltipText;
+    }
+    
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    
+    function closeAllOpenElements() {
+        document.querySelectorAll('.modal-overlay.open').forEach(modal => {
+            closeModal(modal.id);
+        });
+
+        document.querySelectorAll('.memo-wrapper:not(.hidden)').forEach(memoWrapper => {
+            memoWrapper.classList.add('hidden');
+            const cardContainer = memoWrapper.closest('.week-card-container, #monthly-card-container');
+            if (cardContainer) {
+                 const card = cardContainer.querySelector('.report-card');
+                 if (card) {
+                    card.classList.remove('expanded');
+                    const toggleBtn = card.querySelector('.memo-toggle-btn');
+                    if (toggleBtn) {
+                        toggleBtn.textContent = '+';
+                    }
+                }
+            }
+        });
+    }
+
+    async function createNewMeetingFile() {
+        closeAllOpenElements();
+
+        const type = document.getElementById('newMeetingType').value;
+        const dateInput = document.getElementById('newMeetingDate').value;
+        if (!dateInput) {
+            alert('회의 날짜를 선택해주세요.');
+            return;
+        }
+        const date = new Date(dateInput);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const week = getWeekOfMonth(date);
+        const yearYY = String(year).slice(-2);
+        const monthMM = String(month).padStart(2, '0');
+        const weekWW = String(week).padStart(2, '0');
+        
+        let templateContent, filename;
+
+        if (type === 'monthly') {
+            templateContent = MONTHLY_TEMPLATE_HTML;
+            filename = `월간회의_${year}_${monthMM}.html`;
+            templateContent = templateContent
+                .replace(/YY년 MM월/g, `${yearYY}년 ${month}월`)
+                .replace(/’\d{2}년 \d{1,2}월/g, `’${yearYY}년 ${month}월`);
+        } else {
+            templateContent = WEEKLY_TEMPLATE_HTML;
+            filename = `주간회의_${year}_${monthMM}_${weekWW}주차.html`;
+            templateContent = templateContent
+                .replace(/YY년 MM월 W주차/g, `${yearYY}년 ${month}월 ${week}주차`)
+                .replace(/’\d{2}년 \d{1,2}월 \d{1,2}주차/g, `’${yearYY}년 ${month}월 ${week}주차`);
+        }
+
+        if (!templateContent.trim() || templateContent.includes('로딩 실패') || templateContent.includes('로딩 중')) {
+            alert(`${type === 'monthly' ? '월간' : '주간'} 템플릿이 비어있거나 로딩에 실패했습니다. 인터넷 연결을 확인하거나, 설정에서 템플릿을 직접 추가해주세요.`);
+            return;
+        }
+
+        const blob = new Blob([templateContent], { type: 'text/html;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+
+    }
+    
+    function toggleConfigMode(mode) {
+        document.getElementById('urlModeFields').style.display = mode === 'url' ? 'block' : 'none';
+        document.getElementById('desktopModeFields').style.display = mode === 'desktop' ? 'block' : 'none';
+        
+        const urlInputs = document.querySelectorAll('#urlModeFields input');
+        const desktopBtn = document.querySelector('#desktopModeFields button');
+        
+        if (mode === 'url') {
+            urlInputs.forEach(input => input.disabled = false);
+            desktopBtn.disabled = true;
+        } else {
+            urlInputs.forEach(input => input.disabled = true);
+            desktopBtn.disabled = false;
+        }
+    }
+
+    async function selectLocalFolder() {
+        if ('showDirectoryPicker' in window) {
+            try {
+                const dirHandle = await window.showDirectoryPicker();
+                const folderPath = dirHandle.name; 
+                document.getElementById('folderPath').textContent = folderPath;
+            } catch (err) {
+                console.error('폴더 선택 실패:', err);
+            }
+        } else {
+            alert('이 브라우저에서는 로컬 폴더 접근 기능을 지원하지 않습니다.');
+        }
+    }
+    
+    async function loadTemplateFromFile(type) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.html';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = readEvent => {
+                const content = readEvent.target.result;
+                const targetTextareaId = type === 'weekly' ? 'templateWeekly' : 'templateMonthly';
+                document.getElementById(targetTextareaId).value = content;
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+    
+    function loadSettings() {
+        let savedConfig = {};
+        try { 
+            const storedConfig = localStorage.getItem('dashboardConfig');
+            if (storedConfig) { 
+                savedConfig = JSON.parse(storedConfig);
+            } 
+        } catch (e) { console.error("설정 불러오기 오류:", e); savedConfig = {}; }
+
+        dashboardConfig = {
+            configMode: savedConfig.configMode || URL_DEFAULT_CONFIG.configMode,
+            weekly: { ...URL_DEFAULT_CONFIG.weekly, ...(savedConfig.weekly || {}) },
+            monthly: { ...URL_DEFAULT_CONFIG.monthly, ...(savedConfig.monthly || {}) }
+        };
+
+        const configMode = dashboardConfig.configMode;
+        document.querySelector(`input[name="configMode"][value="${configMode}"]`).checked = true;
+        toggleConfigMode(configMode);
+
+        const weeklyConf = dashboardConfig.weekly;
+        const monthlyConf = dashboardConfig.monthly;
+        document.getElementById('confWeeklyBaseURL').value = weeklyConf.baseURL;
+        document.getElementById('confWeeklyTemplate').value = weeklyConf.filenameTemplate;
+        document.getElementById('confWeeklyPastTemplate').value = weeklyConf.pastFilenameTemplate;
+        document.getElementById('confMonthlyBaseURL').value = monthlyConf.baseURL;
+        document.getElementById('confMonthlyTemplate').value = monthlyConf.filenameTemplate;
+        document.getElementById('confMonthlyPastTemplate').value = monthlyConf.pastFilenameTemplate;
+        
+        document.getElementById('templateWeekly').value = WEEKLY_TEMPLATE_HTML;
+        document.getElementById('templateMonthly').value = MONTHLY_TEMPLATE_HTML;
+        
+        document.getElementById('folderPath').textContent = localStorage.getItem('localFolderPath') || '없음';
+    }
+    
+    function saveSettings() {
+        const configToSave = {
+            configMode: document.querySelector('input[name="configMode"]:checked').value,
+            weekly: {
+                baseURL: document.getElementById('confWeeklyBaseURL').value,
+                filenameTemplate: document.getElementById('confWeeklyTemplate').value,
+                pastFilenameTemplate: document.getElementById('confWeeklyPastTemplate').value
+            },
+            monthly: {
+                baseURL: document.getElementById('confMonthlyBaseURL').value,
+                filenameTemplate: document.getElementById('confMonthlyTemplate').value,
+                pastFilenameTemplate: document.getElementById('confMonthlyPastTemplate').value
+            }
+        };
+        localStorage.setItem('dashboardConfig', JSON.stringify(configToSave));
+        alert("URL/템플릿 설정이 저장되었습니다. 페이지를 새로고침합니다.");
+        location.reload();
+    }
+    
+    function checkForUnsavedChanges() {
+        const saveBtn = document.getElementById('saveAllChangesBtn');
+        if (!saveBtn) return;
+
+        const currentMemosString = JSON.stringify(tempMeetingMemos);
+        const currentSkippedDatesString = JSON.stringify([...tempSkippedDates].sort());
+
+        if (currentMemosString !== initialMemosString || currentSkippedDatesString !== initialSkippedDatesString) {
+            saveBtn.disabled = false;
+            saveBtn.style.backgroundColor = 'var(--current-month-color)';
+            saveBtn.style.cursor = 'pointer';
+        } else {
+            saveBtn.disabled = true;
+            saveBtn.style.backgroundColor = ''; 
+            saveBtn.style.cursor = 'not-allowed';
+        }
+    }
+
+    function handleMemoInput(e) {
+        if (!e.target.matches('.memo-wrapper textarea')) return;
+
+        const textarea = e.target;
+        const weeklyKey = textarea.dataset.key;
+        if (textarea.value.trim()) {
+            tempMeetingMemos[weeklyKey] = textarea.value;
+        } else {
+            delete tempMeetingMemos[weeklyKey];
+        }
+        checkForUnsavedChanges();
+    }
+
+    function saveAllChangesAndDownload() {
+        closeAllOpenElements();
+
+        setTimeout(() => {
+            let fullHtml = document.documentElement.outerHTML;
+
+            // Replace memos
+            const memoRegex = /(let HARDCODED_MEETING_MEMOS = )({[\s\S]*?});/;
+            const newMemoString = JSON.stringify(tempMeetingMemos, null, 4);
+            if (memoRegex.test(fullHtml)) {
+                fullHtml = fullHtml.replace(memoRegex, `$1${newMemoString};`);
+            }
+
+            // Replace skipped dates
+            const skippedRegex = /(const HARDCODED_SKIPPED_DATES = )(\[[\s\S]*?\]);/;
+            const newSkippedString = JSON.stringify([...tempSkippedDates].sort(), null, 4);
+             if (skippedRegex.test(fullHtml)) {
+                fullHtml = fullHtml.replace(skippedRegex, `$1${newSkippedString};`);
+            }
+
+            const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = '회의 대시보드 (변경됨).html';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+
+            alert("모든 변경사항이 저장된 새 HTML 파일이 다운로드됩니다.\n\n저장 후 새 파일을 열어 변경사항을 확인하세요.");
+            
+            initialMemosString = JSON.stringify(tempMeetingMemos);
+            initialSkippedDatesString = JSON.stringify([...tempSkippedDates].sort());
+            checkForUnsavedChanges(); 
+        }, 100);
+    }
+
+    async function fetchTemplateFromURL(url, type) {
+        try {
+            const response = await fetch(url, { cache: "no-store" });
+            if (!response.ok) {
+                console.error(`'${type}' 템플릿 로딩 실패: 서버가 ${response.status} 코드를 반환했습니다. URL: ${url}`);
+                return `<!-- '${type}' 템플릿 로딩에 실패했습니다. (HTTP 상태: ${response.status}) -->`;
+            }
+            return await response.text();
+        } catch (error) {
+            console.error(`'${type}' 템플릿 로딩 중 네트워크 오류가 발생했습니다. URL: ${url}`, error);
+            return `<!-- '${type}' 템플릿 로딩 중 오류가 발생했습니다. (오류: ${error.message}) -->`;
+        }
+    }
+
+    function performSearch(e) {
+        const searchTerm = e.target.value.trim();
+        const resultsContainer = document.getElementById('searchResultsContainer');
+        resultsContainer.innerHTML = '';
+
+        if (!searchTerm) {
+            resultsContainer.innerHTML = '<p class="search-placeholder">메모 내용에서 검색합니다.</p>';
+            return;
+        }
+
+        const searchRegex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+        let found = false;
+
+        const sortedKeys = Object.keys(tempMeetingMemos).sort().reverse();
+
+        for (const key of sortedKeys) {
+            const memo = tempMeetingMemos[key];
+            if (memo.toLowerCase().includes(searchTerm.toLowerCase())) {
+                found = true;
+                const keyParts = key.split('-'); // [YYYY, M, (W)]
+                const year = keyParts[0];
+                const month = keyParts[1];
+                
+                let locationText = '';
+                if (keyParts.length > 2) { // Weekly
+                    const week = keyParts[2];
+                    locationText = `${year}년 ${month}월 ${week}주차`;
+                } else { // Monthly
+                    locationText = `${year}년 ${month}월`;
+                }
+
+                const resultItem = document.createElement('div');
+                resultItem.className = 'search-result-item';
+                resultItem.dataset.key = key;
+                resultItem.dataset.year = year;
+                resultItem.dataset.month = month;
+
+                const highlightedMemo = memo.replace(searchRegex, (match) => `<strong>${match}</strong>`);
+
+                resultItem.innerHTML = `
+                    <h5>${locationText}</h5>
+                    <p>${highlightedMemo}</p>
+                `;
+                resultsContainer.appendChild(resultItem);
+            }
+        }
+
+        if (!found) {
+            resultsContainer.innerHTML = '<p class="no-results">검색 결과가 없습니다.</p>';
+        }
+    }
+
+    function handleSearchResultClick(e) {
+        const resultItem = e.target.closest('.search-result-item');
+        if (!resultItem) return;
+
+        const { key, year, month } = resultItem.dataset;
+
+        showMonthView(parseInt(month, 10), parseInt(year, 10), tempSkippedDates);
+        
+        closeModal('searchModal');
+
+        setTimeout(() => {
+            const isWeekly = key.split('-').length > 2;
+            const card = isWeekly 
+                ? document.querySelector(`.memo-toggle-btn[data-key="${key}"]`)?.closest('.report-card')
+                : document.getElementById('monthly-report-card');
+
+            if (!card) return;
+            
+            const cardContainer = card.closest('.week-card-container, #monthly-card-container');
+            if (cardContainer) {
+                 cardContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            
+            card.classList.add('card-highlight');
+            setTimeout(() => card.classList.remove('card-highlight'), 2000);
+
+            const memoToggleBtn = card.querySelector(`.memo-toggle-btn[data-key="${key}"]`);
+            const memoWrapper = isWeekly 
+                ? document.getElementById(`memo-${key}`)
+                : document.getElementById('monthly-memo-wrapper');
+                
+            if (memoToggleBtn && memoWrapper && memoWrapper.classList.contains('hidden')) {
+                memoToggleBtn.click();
+            }
+
+        }, 300); 
+    }
+
+
+    document.addEventListener('DOMContentLoaded', async () => {
+
+        [WEEKLY_TEMPLATE_HTML, MONTHLY_TEMPLATE_HTML] = await Promise.all([
+            fetchTemplateFromURL(TEMPLATE_URL_WEEKLY, '주간'),
+            fetchTemplateFromURL(TEMPLATE_URL_MONTHLY, '월간')
+        ]);
+        
+        loadSettings();
+        
+        try {
+            tempMeetingMemos = JSON.parse(JSON.stringify(HARDCODED_MEETING_MEMOS));
+            tempSkippedDates = [...HARDCODED_SKIPPED_DATES];
+            initialMemosString = JSON.stringify(tempMeetingMemos);
+            initialSkippedDatesString = JSON.stringify([...tempSkippedDates].sort());
+        } catch(e) {
+            console.warn("Could not parse initial data.", e);
+            tempMeetingMemos = {};
+            tempSkippedDates = [];
+        }
+
+        updateAnalyticsTooltip(tempSkippedDates);
+        
+        const now = new Date();
+        currentYear = now.getFullYear();
+        currentMonth = now.getMonth() + 1;
+        
+        showMonthView(currentMonth, currentYear, tempSkippedDates);
+        checkForUnsavedChanges();
+        
+        document.getElementById('manageSkippedBtn').addEventListener('click', () => {
+            populateSkipSelector();
+            openModal('manageSkippedModal');
+        });
+
+        const processBatchUpdate = (markAsSkip) => {
+            const selectedYears = Array.from(document.getElementById('batchYearSelect').selectedOptions).map(opt => opt.value);
+            const selectedMonths = Array.from(document.getElementById('batchMonthSelect').selectedOptions).map(opt => opt.value);
+            const selectedWeeks = Array.from(document.getElementById('batchWeekSelect').selectedOptions).map(opt => opt.value);
+
+            if (selectedYears.length === 0 || selectedMonths.length === 0) {
+                alert("연도와 월을 하나 이상 선택해주세요.");
+                return;
+            }
+
+            let keysToUpdate = [];
+            selectedYears.forEach(year => {
+                selectedMonths.forEach(month => {
+                    if (selectedWeeks.length === 0) {
+                        keysToUpdate.push(`${year}-${parseInt(month, 10)}`);
+                    } else {
+                        selectedWeeks.forEach(week => {
+                            keysToUpdate.push(`${year}-${parseInt(month, 10)}-${week}`);
+                        });
+                    }
+                });
+            });
+
+            if (markAsSkip) {
+                tempSkippedDates = [...new Set([...tempSkippedDates, ...keysToUpdate])];
+            } else {
+                tempSkippedDates = tempSkippedDates.filter(item => !keysToUpdate.includes(item));
+            }
+            
+            if (currentMonth) showMonthView(currentMonth, currentYear, tempSkippedDates);
+            else renderYearView(currentYear, tempSkippedDates);
+            
+            updateAnalyticsTooltip(tempSkippedDates);
+            checkForUnsavedChanges();
+            alert("선택한 항목이 임시 적용되었습니다.");
+        };
+
+        document.getElementById('batchMarkSkippedBtn').addEventListener('click', () => processBatchUpdate(true));
+        document.getElementById('batchMarkWrittenBtn').addEventListener('click', () => processBatchUpdate(false));
+        
+        document.getElementById('prevYearBtn').addEventListener('click', () => {
+            currentYear--;
+            if (currentMonth) showMonthView(currentMonth, currentYear, tempSkippedDates); else renderYearView(currentYear, tempSkippedDates);
+        });
+        document.getElementById('nextYearBtn').addEventListener('click', () => {
+            currentYear++;
+            if (currentMonth) showMonthView(currentMonth, currentYear, tempSkippedDates); else renderYearView(currentYear, tempSkippedDates);
+        });
+        document.getElementById('prevMonthBtnInView').addEventListener('click', () => {
+            if (!currentMonth) return;
+            currentMonth--;
+            if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+            showMonthView(currentMonth, currentYear, tempSkippedDates);
+        });
+        document.getElementById('nextMonthBtnInView').addEventListener('click', () => {
+            if (!currentMonth) return;
+            currentMonth++;
+            if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+            showMonthView(currentMonth, currentYear, tempSkippedDates);
+        });
+
+        document.getElementById('year-grid').addEventListener('click', e => {
+            const card = e.target.closest('.month-card');
+            if(card && !card.classList.contains('not-written')) {
+                showMonthView(card.dataset.month, currentYear, tempSkippedDates);
+            }
+        });
+        document.getElementById('back-to-year-view-btn').addEventListener('click', () => showYearView(tempSkippedDates));
+        
+        document.getElementById('go-to-today-btn').addEventListener('click', () => {
+            const now = new Date();
+            const todayYear = now.getFullYear();
+            const todayMonth = now.getMonth() + 1;
+
+            showMonthView(todayMonth, todayYear, tempSkippedDates);
+
+            setTimeout(() => {
+                const currentWeekCard = document.querySelector('.week-card.current');
+                if (currentWeekCard) {
+                    const cardContainer = currentWeekCard.closest('.week-card-container');
+                    if(cardContainer) {
+                        cardContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        currentWeekCard.classList.add('card-highlight');
+                        setTimeout(() => {
+                            currentWeekCard.classList.remove('card-highlight');
+                        }, 2000);
+                    }
+                }
+            }, 200);
+        });
+
+        document.getElementById('searchToggleBtn').addEventListener('click', () => openModal('searchModal'));
+        document.getElementById('creationPanelToggleBtn').addEventListener('click', () => openModal('creationModal'));
+        document.getElementById('settingsToggleBtn').addEventListener('click', () => openModal('settingsModal'));
+        
+        document.querySelectorAll('.modal-close-btn').forEach(btn => btn.addEventListener('click', (e) => closeModal(e.target.dataset.target)));
+        
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', e => { 
+                if (e.target === overlay && !e.target.querySelector('.modal-content.dragging')) {
+                    closeModal(overlay.id);
+                } 
+            });
+        });
+        
+        document.querySelectorAll('input[name="configMode"]').forEach(radio => radio.addEventListener('change', (e) => toggleConfigMode(e.target.value)));
+        document.getElementById('selectFolderBtn').addEventListener('click', selectLocalFolder);
+        document.getElementById('loadWeeklyTemplateBtn').addEventListener('click', () => loadTemplateFromFile('weekly'));
+        document.getElementById('loadMonthlyTemplateBtn').addEventListener('click', () => loadTemplateFromFile('monthly'));
+
+        document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+        document.getElementById('createNewMeetingBtn').addEventListener('click', createNewMeetingFile);
+        document.getElementById('saveAllChangesBtn').addEventListener('click', saveAllChangesAndDownload);
+
+        document.getElementById('month-view').addEventListener('click', (e) => {
+            const toggleBtn = e.target.closest('.memo-toggle-btn');
+            if (toggleBtn) {
+                const key = toggleBtn.dataset.key;
+                const card = toggleBtn.closest('.report-card');
+                const memoWrapperId = key.split('-').length > 2 ? `memo-${key}` : 'monthly-memo-wrapper';
+                const memoWrapper = document.getElementById(memoWrapperId);
+
+                if (memoWrapper && card) {
+                    const isHidden = memoWrapper.classList.toggle('hidden');
+                    toggleBtn.textContent = isHidden ? '+' : '–';
+                    card.classList.toggle('expanded', !isHidden);
+                }
+                return;
+            }
+
+            const card = e.target.closest('.report-card:not(.not-written)');
+            if (card && card.dataset.href) {
+                window.open(card.dataset.href, '_blank');
+            }
+        });
+        
+        document.getElementById('month-view').addEventListener('input', handleMemoInput);
+        document.getElementById('searchInput').addEventListener('input', performSearch);
+        document.getElementById('searchResultsContainer').addEventListener('click', handleSearchResultClick);
+        
+        flatpickr("#newMeetingDate", { defaultDate: "today", locale: "ko" });
+        
+        function makeModalDraggable(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            const modalContent = modal.querySelector('.modal-content');
+            const modalHeader = modal.querySelector('h3');
+            
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            modalHeader.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                modalContent.classList.add('dragging');
+                const rect = modalContent.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                // Bring modal to front
+                document.querySelectorAll('.modal-overlay').forEach(m => m.style.zIndex = '10011');
+                modal.style.zIndex = '10012';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                let newX = e.clientX - offsetX;
+                let newY = e.clientY - offsetY;
+                modalContent.style.left = `${newX}px`;
+                modalContent.style.top = `${newY}px`;
+                modalContent.style.transform = 'none';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    setTimeout(() => modalContent.classList.remove('dragging'), 0);
+                }
+            });
+        }
+
+        makeModalDraggable('manageSkippedModal');
+        makeModalDraggable('searchModal');
+    });
+</script>
+
+</body></html>
