@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기숙사 및 사택 데이터 추출</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { position: relative; width: 95%; max-width: 1400px; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1, h2 { color: #005a9c; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
+        .container > h1 + p { font-size: 0.8em; color: #555; line-height: 1.5; }
+        .usage-highlight-pink { font-size: 1.2em; color: #FF33CC; font-weight: bold; }
+        .usage-highlight-bold { font-size: 1.2em; font-weight: bold; }
+        h2.view-title { color: #28a745; }
+        .controls { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 20px; padding: 20px; background-color: #eef5ff; border-radius: 8px; }
+        .control-item { display: flex; flex-direction: column; }
+        .control-item label { font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input[type="file"], input[type="text"], button, textarea { padding: 10px 15px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; box-sizing: border-box; }
+        input[type="text"] { flex-grow: 1; min-width: 250px; }
+        textarea { width: 100%; resize: vertical; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color: 0.3s; }
+        .prpo-input-group, .bldg-unit-input-group { display: flex; align-items: center; gap: 10px; }
+        .prpo-input-group input[type="text"], .bldg-unit-input-group input[type="text"] { flex-grow: 1; }
+        .bldg-unit-input-group input[type="text"] { min-width: 115px; } /* 동/호실 입력창 너비 조정 */
+        
+        #prpo-input::placeholder {
+            font-size: 12px;
+        }
+        
+        .input-tooltip {
+            display: none;
+            font-size: 12px;
+            color: #005a9c;
+            background-color: #eef5ff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 5px;
+            max-width: 380px;
+            border: 1px solid #cce0ff;
+        }
+        
+        .execution-controls-group {
+            display: flex; 
+            align-items: center;
+        }
+        
+        #settings-button { 
+            font-size: 24px; 
+            background: none; 
+            border: none; 
+            color: #555; 
+            cursor: pointer; 
+            padding: 5px 10px;
+            margin-left: 10px;
+            transform: scale(1.21); 
+        }
+
+        .settings-panel-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        
+        .settings-panel { 
+            background: #fff; 
+            padding: 0;
+            border-radius: 8px; 
+            width: 90%; 
+            max-width: 600px; 
+            min-width: 400px;
+            max-height: 90vh;
+            min-height: 300px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2); 
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .settings-panel-header {
+            padding: 15px 25px;
+            cursor: move;
+            background-color: #f7f7f7;
+            border-bottom: 1px solid #e0e0e0;
+            position: relative;
+        }
+        .settings-panel-header h2 {
+            margin: 0;
+            padding: 0;
+            border-bottom: none;
+            font-size: 1.2em;
+        }
+        .settings-panel .close-button { 
+            position: absolute; 
+            top: 50%;
+            right: 15px; 
+            font-size: 28px; 
+            background: none; 
+            border: none; 
+            color: #888;
+            transform: translateY(-50%);
+            padding: 0 10px;
+            cursor: pointer;
+        }
+        .settings-panel-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 25px;
+        }
+        .resizer-handle {
+            width: 20px;
+            height: 20px;
+            background: transparent;
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            cursor: se-resize;
+            z-index: 10;
+        }
+        
+        .settings-section { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .settings-section:last-child { border-bottom: none; }
+        .settings-section h3 { margin-top: 0; color: #005a9c; }
+        .settings-section p.description { font-size: 13px; color: #666; margin: -5px 0 10px 0; }
+
+        .collapsible-toggle {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .collapsible-content {
+            display: none; 
+            margin-top: 15px;
+        }
+        .settings-section.active .collapsible-content {
+            display: block;
+        }
+
+        .collapsible-content h4 { margin-top: 20px; margin-bottom: 10px; color: #005a9c; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .collapsible-content h5 { margin-top: 15px; margin-bottom: 5px; color: #333; }
+        .collapsible-content ul { padding-left: 20px; list-style-type: disc; }
+        .collapsible-content li { margin-bottom: 8px; line-height: 1.6; }
+        .collapsible-content code {
+            background-color: #eef5ff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: #d63384;
+            font-size: 0.95em;
+        }
+        .collapsible-content .plan-section { margin-bottom: 15px; }
+        
+        .data-source-option { margin-bottom: 10px; }
+        .data-source-option label { font-weight: normal; margin-left: 5px; }
+        .data-source-inputs > div { display: none; margin-top: 10px; }
+        .data-source-inputs > div.active { display: block; }
+        .data-source-inputs input[type="text"] { width: calc(100% - 34px); }
+        
+        .result-header { position: relative; display: flex; align-items: center; gap: 10px; }
+        #column-select-button { font-size: 1.7em; background: none; border: 1px solid #ccc; border-radius: 5px; color: #555; cursor: pointer; padding: 0px 8px; line-height: 1; }
+        
+        .column-select-panel { display: none; position: absolute; top: 100%; left: 0; background: #fff; border: 1px solid #ccc; border-radius: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); z-index: 100; padding: 10px; }
+        .column-select-controls { padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid #eee; }
+        .column-select-controls input[type="text"] { width: calc(100% - 22px); padding: 5px 10px; border-radius: 5px; border: 1px solid #ccc; }
+        .column-select-controls div { margin-top: 10px; display:flex; gap: 15px; align-items: center; }
+        .column-select-list { max-height: 250px; overflow-y: auto; }
+        .column-select-list ul { list-style: none; margin: 0; padding: 0; }
+        .column-select-list li { padding: 5px; white-space: nowrap; }
+        .column-select-list label { font-weight: normal; margin-left: 5px; cursor: pointer; }
+
+        #initial-columns-container { max-height: 250px; overflow-y: auto; }
+        #initial-columns-container p { font-size: 14px; color: #888; margin: 0; }
+        #initial-columns-container ul { list-style: none; margin: 10px 0 0 0; padding: 0; column-count: 3; column-gap: 20px; }
+        #initial-columns-container li { padding: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #initial-columns-container label { font-weight: normal; margin-left: 5px; cursor: pointer; }
+        .settings-column-controls { padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .settings-column-controls input[type="text"] { width: 100%; padding: 5px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px; margin-bottom: 10px; }
+        .settings-column-controls div { margin-top: 5px; display:flex; gap: 15px; align-items: center; }
+        .restore-button { background: none; border: none; color: #007bff; cursor: pointer; text-decoration: underline; padding: 0; font-size: 0.972em; } 
+
+        .loader { display: none; border: 8px solid #f3f3f3; border-radius: 50%; border-top: 8px solid #3498db; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
+        .results-area { display: none; margin-top: 20px; }
+        .table-container { position: relative; max-height: 400px; overflow: auto; border: 1px solid #ddd; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        thead th { background-color: #f2f2f2; font-weight: bold; text-align: center; position: sticky; top: 0; z-index: 10; user-select: none; }
+        
+        .focus-overlay { 
+            position: absolute; 
+            display: none; 
+            pointer-events: none; 
+            z-index: 5; 
+            box-sizing: border-box; 
+        }
+        .focus-overlay:first-of-type { border-top: 4px solid #ccc; border-bottom: 4px solid #ccc; }
+        .focus-overlay:nth-of-type(2) { border-left: 4px solid #ccc; border-right: 4px solid #ccc; }
+
+        .resizer { position: absolute; top: 0; right: -3px; width: 6px; height: 100%; cursor: col-resize; z-index: 20; }
+        #summary-container td { text-align: right; }
+        #summary-container td:first-child { text-align: left; font-weight: bold; }
+        .header-content { display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; }
+        
+        .sort-arrows {
+            display: flex;
+            flex-direction: column;
+            line-height: 0.8; 
+            margin-left: 5px;
+        }
+        .sort-arrow {
+            color: #ccc; 
+            font-size: 0.96em;
+            transition: color 0.2s ease-in-out;
+        }
+        .sort-arrow.active {
+            color: #007bff; 
+        }
+
+        .filter-icon { cursor: pointer; margin-left: 5px; font-style: normal; color: #007bff; font-size: 1.5em; vertical-align: middle; } 
+        .filter-icon.active { color: #dc3545; font-weight: bold; }
+        .summary-legend { font-size: 0.7em; color: #555; font-weight: normal; margin-left: 10px; vertical-align: middle; }
+        .summary-legend .filter-icon { font-size: 1.2em; }
+
+        #custom-confirm-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; }
+        #custom-confirm-box { background: white; padding: 25px; border-radius: 8px; text-align: center; width: 90%; max-width: 500px; box-shadow: 0 5px 20px rgba(0,0,0,0.25); }
+        #custom-confirm-message { margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; }
+        .highlight-text { font-size: 1.3em; color: red; font-weight: bold; display: block; margin: 10px 0; }
+        #custom-confirm-buttons { display: flex; justify-content: center; gap: 15px; }
+        #custom-confirm-buttons button { padding: 10px 25px; font-size: 16px; border-radius: 5px; cursor: pointer; border: 1px solid #ccc; }
+        #custom-confirm-ok { background-color: #007bff; color: white; border-color: #007bff; }
+        #custom-confirm-cancel { background-color: #f8f9fa; color: #333; }
+        
+        #custom-tooltip {
+            display: none;
+            position: absolute;
+            border: 1px solid #333;
+            background-color: #fffde7;
+            padding: 10px;
+            padding-top: 30px; 
+            z-index: 9999;
+            max-width: 400px;
+            min-width: 150px;
+            text-align: left;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            resize: both;
+            overflow: auto;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.6;
+            cursor: move;
+        }
+        #tooltip-close-btn {
+            position: absolute;
+            top: 2px;
+            right: 5px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            font-weight: bold;
+            color: #888;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .tooltip-source-cell {
+            cursor: help;
+            background-color: #e8f4ff !important;
+        }
+        
+        .label-note {
+            font-size: 0.85em;
+            color: #666;
+            font-weight: normal;
+            margin-left: 10px;
+        }
+        .summary-term {
+            font-size: 1.15em;
+            font-weight: bold;
+        }
+
+        /* ================================================== */
+        /* ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 모바일 최적화 코드 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ */
+        /* ================================================== */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+                width: 100%;
+            }
+            h1 { font-size: 1.6em; }
+            h2 { font-size: 1.3em; }
+            p, .label-note { font-size: 0.9em; }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch; /* 항목들을 컨테이너 너비에 맞게 늘림 */
+                gap: 20px;
+            }
+            .control-item {
+                width: 100%;
+            }
+            input[type="text"] {
+                min-width: 0; /* 최소 너비 제한 해제 */
+                width: 100%;
+            }
+            .bldg-unit-input-group {
+                flex-direction: column; /* 동/호실 입력창 세로로 쌓기 */
+                align-items: stretch;
+                gap: 10px;
+            }
+            .execution-controls-group {
+                justify-content: center;
+                margin-top: 10px;
+            }
+            #run-button {
+                width: 80%;
+                padding: 12px;
+                font-size: 18px;
+            }
+            .settings-panel {
+                width: 95vw; /* 화면 너비의 95% 사용 */
+                min-width: 0; /* 최소 너비 제한 해제 */
+                max-height: 90vh; /* 화면 높이의 90% 사용 */
+            }
+            .settings-panel-content {
+                padding: 15px;
+            }
+            #initial-columns-container ul {
+                column-count: 1; /* 헤더 목록을 1열로 표시 */
+            }
+            .collapsible-content ul {
+                padding-left: 15px;
+            }
+            /* 테이블은 내용이 많아 모바일에서 가로 스크롤이 불가피합니다. */
+            /* 가독성을 위해 셀 패딩과 폰트 크기를 약간 조정합니다. */
+            .table-container {
+                max-height: 50vh; /* 모바일에서 테이블 영역 높이 확보 */
+            }
+            th, td {
+                padding: 8px;
+                font-size: 13px;
+            }
+            .header-content {
+                flex-direction: column;
+            }
+            .sort-arrows {
+                flex-direction: row;
+                margin-left: 0;
+                margin-top: 4px;
+            }
+            #custom-confirm-message {
+                font-size: 15px;
+            }
+            .highlight-text {
+                font-size: 1.2em;
+            }
+        }
+        /* ================================================== */
+        /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 모바일 최적화 코드 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+        /* ================================================== */
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>기숙사 및 사택 데이터 추출</h1>
+        <p>
+            <span class="usage-highlight-pink">⌛URL 자동 로딩⏳</span>
+            <span> 별도 설정 없이 검색값 입력후 추출 실행 메뉴를 클릭 하세요. </span>
+            <span class="usage-highlight-bold">🧾로우데이터 변경 필요시🧾</span>
+            <span> 우측 상단 설정(⚙️)에서 변경할 로우데이터를 선택한 후, 검색값을 입력하고 추출 실행 메뉴를 클릭 하세요.</span>
+        </p>
+        <div class="controls">
+            <div class="control-item"><label for="search-input">1. 검색어 입력</label><input type="text" id="search-input" placeholder="누수,교체,홍길동 (쉼표로 구분)" oninput="adjustPlaceholderSize(this)"></div>
+            <div class="control-item"><label for="prpo-input">2. PR/PO 번호 입력</label><div class="prpo-input-group"><input type="text" id="prpo-input" oninput="adjustPlaceholderSize(this)" placeholder="예: PR,PO번호(쉼표로 구분),접미사X"></div></div>
+            <div class="control-item">
+                <label for="building-input">3. 건물 동 및 세대 호실 입력<span class="label-note">📝🎨1번 + 2번 + 3번 혼합 추출 가능</span></label>
+                <div class="bldg-unit-input-group">
+                    <input type="text" id="building-input" placeholder="건물동 (예: 101)" oninput="adjustPlaceholderSize(this)">
+                    <input type="text" id="unit-input" placeholder="호실 (예: 1504)" oninput="adjustPlaceholderSize(this)">
+                </div>
+                <div id="bldg-unit-tooltip" class="input-tooltip">
+                    <strong>안내:</strong> 건물/호실 검색은 독립 필터로, 별도의 색상 그룹을 생성하지 않습니다. 결과는 기존 색상 그룹 내에서 필터링됩니다.
+                </div>
+            </div>
+            
+            <div class="execution-controls-group">
+                <button id="run-button">추출 실행</button>
+                <button id="settings-button" title="설정">⚙️</button>
+            </div>
+        </div>
+        <div id="loader" class="loader"></div>
+        <div id="results-area" class="results-area">
+            <div class="result-actions"><button id="reset-button">필터 초기화</button></div>
+            <h2>요약<span class="summary-legend">(범례: <i class="filter-icon" style="color:#007bff;">⧱</i> 필터링(클릭 시 결과 표시) | <i class="filter-icon" style="color:#dc3545;">⧱</i> 필터 해제(결과 표시 중))</span></h2>
+            <div id="summary-container" class="table-container"></div>
+            <div class="result-header">
+                <h2>추출 결과</h2>
+                <button id="column-select-button" title="열 선택 패널 열기">⊞</button>
+                <div id="column-select-panel" class="column-select-panel"></div>
+            </div>
+            <div id="result-container" class="table-container"></div>
+        </div>
+    </div>
+    <div id="settings-panel-overlay" class="settings-panel-overlay">
+        <div id="settings-panel" class="settings-panel">
+            <div class="settings-panel-header">
+                <h2>설정</h2>
+                <button id="settings-close-button" class="close-button">×</button>
+            </div>
+            <div class="settings-panel-content">
+                <div class="settings-section">
+                    <h3>데이터 소스</h3>
+                    <div class="data-source-option"><input type="radio" id="source-url" name="dataSource" value="url" checked><label for="source-url">URL (모바일)</label></div>
+                    <div class="data-source-option"><input type="radio" id="source-desktop" name="dataSource" value="desktop"><label for="source-desktop">데스크탑 파일 선택</label></div>
+                    <div class="data-source-inputs">
+                        <div id="url-input-section" class="active"><input type="text" id="url-input" placeholder="엑셀 파일 URL 주소"></div>
+                        <div id="desktop-input-section"><input type="file" id="file-input" accept=".xlsx, .xls"></div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3 class="collapsible-toggle">사용방법 (분석 메뉴얼) <span class="toggle-icon">▶</span></h3>
+                    <div class="collapsible-content">
+                        <p>이 도구는 단순 검색을 넘어, 데이터 속 숨겨진 의미(통찰력)를 발견할 수 있도록 설계되었습니다. 아래의 방법을 활용해 보세요.</p>
+                        
+                        <h4>기본 검색 원리</h4>
+                        <ul>
+                            <li><strong>OR 검색 (또는)</strong>: 한 입력창에 쉼표(<code>,</code>)로 여러 단어를 입력하면, 각 단어 중 하나라도 포함된 모든 결과를 찾아옵니다. 예: <code>누수,결로</code></li>
+                            <li><strong>AND 검색 (그리고)</strong>: 여러 입력창에 각각 다른 조건을 입력하면, 모든 조건을 동시에 만족하는 결과만 찾아옵니다. 예: <code>1. 검색어: 누수</code> + <code>3. 건물동: 101</code></li>
+                        </ul>
+
+                        <h4>전략적 검색 및 분석 방법</h4>
+                        
+                        <h5>1. 비용 및 원인 분석 (문제점 파악)</h5>
+                        <p><strong>목표:</strong> 어떤 문제에 가장 많은 비용이 발생하는지 파악합니다.</p>
+                        <p><strong>사용법:</strong></p>
+                        <ul>
+                            <li><b>'1. 검색어 입력'</b> 창에 문제 원인을 나타내는 키워드를 입력합니다. 예: <code>누수,결로,파손,교체</code></li>
+                            <li><b>'요약'</b> 테이블에서 각 원인별 <strong>총 발생 건수</strong>와 <strong>금액 합계</strong>를 즉시 비교 분석할 수 있습니다. (예: '누수'에 연간 얼마가 쓰였나?)</li>
+                        </ul>
+
+                        <h5>2. 특정 건물/세대 집중 분석 (이력 추적)</h5>
+                        <p><strong>목표:</strong> 특정 장소에서 반복적으로 발생하는 문제를 찾아냅니다.</p>
+                        <p><strong>사용법:</strong></p>
+                        <ul>
+                            <li><b>'3. 건물 동 및 세대 호실 입력'</b> 창에 특정 건물 또는 세대 번호를 입력합니다. 예: 건물동 <code>203</code>, 호실 <code>1001</code></li>
+                            <li><b>'추출 결과'</b>를 통해 해당 세대의 모든 유지보수 이력을 확인하고, 반복적인 문제를 식별하여 근본적인 해결책을 찾을 수 있습니다.</li>
+                        </ul>
+                        
+                        <h5>3. 업체(발주처) 성과 분석</h5>
+                        <p><strong>목표:</strong> 특정 업체의 작업 내역과 총 계약 금액을 분석하여 성과를 평가합니다.</p>
+                        <p><strong>사용법:</strong></p>
+                        <ul>
+                            <li><b>'1. 검색어 입력'</b> 창에 분석하고 싶은 업체명을 입력합니다. 예: <code>삼성물산</code></li>
+                            <li><b>'요약'</b> 테이블에서 해당 업체의 <strong>총 작업 건수</strong>와 <strong>총 계약 금액</strong>을 확인하고, <b>'추출 결과'</b>에서 상세 작업 내역을 파악할 수 있습니다.</li>
+                        </ul>
+
+                        <h5>4. 프로젝트 및 담당자 이력 추적</h5>
+                        <p><strong>목표:</strong> 특정 PR/PO 건의 진행 상황을 추적하거나, 담당자별 업무를 확인합니다.</p>
+                        <p><strong>사용법:</strong></p>
+                        <ul>
+                            <li><b>'2. PR/PO 번호 입력'</b> 창에 추적하고 싶은 번호를 입력합니다.</li>
+                            <li>또는 <b>'1. 검색어 입력'</b> 창에 <b>'특이사항'</b>에 기재된 담당자 이름을 입력합니다. 예: <code>홍길동</code></li>
+                        </ul>
+
+                        <h4>고급 분석 팁</h4>
+                        <ul>
+                            <li><strong>기간별 분석:</strong> <b>'1. 검색어 입력'</b> 창에 <code>2023</code>과 같은 연도를 입력하면, '회계 연도'를 기준으로 해당 연도의 데이터만 필터링하여 분석할 수 있습니다.</li>
+                            <li><strong>복합 조건 심층 분석:</strong> 모든 입력창을 활용하여 매우 구체적인 데이터를 추출할 수 있습니다. <br> (예: <b>검색어:</b> <code>누수</code> + <b>PR/PO:</b> <code>P2023</code> + <b>건물동:</b> <code>101</code> → 101동에서 2023년에 발주된 누수 관련 모든 건)</li>
+                            <li><strong>'특이사항' 활용:</strong> '특이사항' 열은 숨겨진 정보의 보고입니다. 담당자 이름, 특정 자재명, 작업 관련 메모 등 자유로운 키워드로 검색하여 예상치 못한 연관성을 발견할 수 있습니다.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3 class="collapsible-toggle">검색 입력부 분석 및 기능 확장 계획 <span class="toggle-icon">▶</span></h3>
+                    <div class="collapsible-content">
+                        <p>현재 검색 시스템은 <strong>[범용 키워드], [PR/PO ID], [위치]</strong>라는 3대 핵심 축을 중심으로 구성되어 있습니다. 데이터 분석 역량을 극대화하기 위해 다음과 같은 기능 확장을 계획할 수 있습니다.</p>
+                        
+                        <div class="plan-section">
+                            <h4>계획 1: '날짜 범위(Date Range)' 검색 기능 추가</h4>
+                            <ul>
+                                <li><strong>현황 분석:</strong> 현재는 연도(<code>2023</code>) 등 문자열 기반의 기간 검색만 가능하여, "올해 2분기", "지난 30일간" 등 특정 기간에 대한 동향 분석이 제한됩니다.</li>
+                                <li><strong>기능 계획:</strong> `4. 날짜 범위 지정` 영역을 신설하여, 달력에서 [시작일]과 [종료일]을 선택하는 기능을 추가합니다.</li>
+                                <li><strong>기대 효과:</strong> 계절별/분기별 문제 발생 패턴 분석, 특정 기간 내 동향 분석, 정기 업무 보고 자료의 신속한 추출이 가능해집니다.</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="plan-section">
+                            <h4>계획 2: '금액 범위(Numerical Range)' 검색 기능 추가</h4>
+                            <ul>
+                                <li><strong>현황 분석:</strong> 현재는 특정 금액 이상의 고비용 작업이나 특정 금액 이하의 저비용 작업을 직접 필터링할 수 없습니다.</li>
+                                <li><strong>기능 계획:</strong> `5. 금액 범위 지정` 영역을 신설하여, [대상 금액 선택(PO/PR금액 등)], [최소 금액], [최대 금액]을 입력하는 기능을 추가합니다.</li>
+                                <li><strong>기대 효과:</strong> 고비용 작업 집중 관리, 예산 대비 실적 분석, 소액/단순 작업의 빈도 분석을 통한 업무 효율화 방안 모색이 가능해집니다.</li>
+                            </ul>
+                        </div>
+
+                        <div class="plan-section">
+                            <h4>계획 3: '특정 열(Column) 대상' 키워드 검색 기능 추가</h4>
+                            <ul>
+                                <li><strong>현황 분석:</strong> 현재 범용 키워드 검색은 모든 열을 대상으로 하여 편리하지만, 때로는 원치 않는 결과가 포함될 수 있어 분석의 정확성을 저해할 수 있습니다.</li>
+                                <li><strong>기능 계획:</strong> `1. 검색어 입력` 창 옆에 검색 대상을 `전체`, `발주처`, `계약명`, `특이사항` 등으로 한정할 수 있는 드롭다운 메뉴를 추가합니다.</li>
+                                <li><strong>기대 효과:</strong> 검색의 정확성을 비약적으로 향상시켜 분석의 노이즈를 제거하고, `특이사항` 등 특정 열에 숨겨진 정보를 더욱 효과적으로 탐색할 수 있습니다.</li>
+                            </ul>
+                        </div>
+
+                        <h4>종합 결론</h4>
+                        <p>위 기능들이 추가되면, 현재의 <strong>"무엇을(What), 누가(Who), 어디서(Where)"</strong> 중심의 검색에서 나아가, **"언제(When)", "얼마나(How much)", "정확히 어떤 맥락에서(Context)"**를 포함하는 고차원적인 데이터 분석이 가능해집니다.</p>
+
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3 class="collapsible-toggle">화면 표시 헤더 <span class="toggle-icon">▶</span></h3>
+                    <div class="collapsible-content">
+                        <div id="initial-columns-container">
+                            <p>엑셀 파일을 먼저 추출하면 전체 헤더 목록이 표시됩니다.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3 class="collapsible-toggle">핵심 기능 헤더 매핑 <span class="toggle-icon">▶</span></h3>
+                    <div class="collapsible-content">
+                        <p class="description">엑셀 헤더가 변경되었을 때, 이 곳의 값을 수정하여 기능을 유지할 수 있습니다.</p>
+                        <div class="control-item" style="margin-bottom: 10px;">
+                            <label for="pr-header-input">PR 번호 헤더</label>
+                            <input type="text" id="pr-header-input" value="PR번호">
+                        </div>
+                        <div class="control-item" style="margin-bottom: 10px;">
+                            <label for="po-header-input">PO 번호 헤더</label>
+                            <input type="text" id="po-header-input" value="PO번호">
+                        </div>
+                        <div class="control-item" style="margin-bottom: 10px;">
+                            <label for="building-header-input">건물 동 헤더</label>
+                            <input type="text" id="building-header-input" value="건물동">
+                        </div>
+                        <div class="control-item" style="margin-bottom: 10px;">
+                            <label for="unit-header-input">호실 헤더</label>
+                            <input type="text" id="unit-header-input" value="호실">
+                        </div>
+                        <div class="control-item">
+                            <label for="amount-keyword-input">금액 식별 키워드</label>
+                            <input type="text" id="amount-keyword-input" value="금액">
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>추출 결과 저장</h3>
+                    <button id="download-button">엑셀로 다운로드</button>
+                </div>
+                <div class="settings-section">
+                    <h3>설정 템플릿으로 저장</h3>
+                    <p class="description">현재의 '화면 표시 헤더'와 '헤더 매핑' 설정을 포함한 새 HTML 파일을 만듭니다. 특정 엑셀 포맷 전용으로 사용하세요.</p>
+                    <button id="save-html-button">현재 설정으로 HTML 저장</button>
+                </div>
+            </div>
+            <div id="resizer-handle" class="resizer-handle"></div>
+        </div>
+    </div>
+    <div id="custom-confirm-overlay"><div id="custom-confirm-box"><p id="custom-confirm-message"></p><div id="custom-confirm-buttons"><button id="custom-confirm-cancel">취소</button><button id="custom-confirm-ok">확인</button></div></div></div>
+    
+    <div id="custom-tooltip">
+        <button id="tooltip-close-btn">×</button>
+        <span id="tooltip-content"></span>
+    </div>
+
+<script>
+let finalResults = { originalRows: [], displayRows: [], summaryGroups: new Map() };
+let viewState = { colorFilter: null, sortedViewSort: { key: null, direction: 'none' }, visibleColumns: [] };
+
+const DEFAULT_INITIAL_HEADERS = ["회계 연도", "회계 마감", "발주처", "작업유형", "비용배분", "계약명", "낙찰금액", "PO금액", "PR금액", "PO번호", "PR번호", "건물동", "호실", "특이사항"];
+
+const MIN_COLUMN_WIDTH = 120; 
+const MAX_COLUMN_WIDTH = 600; 
+
+const searchInput = document.getElementById('search-input');
+const prpoInput = document.getElementById('prpo-input');
+const buildingInput = document.getElementById('building-input');
+const unitInput = document.getElementById('unit-input');
+const runButton = document.getElementById('run-button');
+const loader = document.getElementById('loader');
+const resultsArea = document.getElementById('results-area');
+const summaryContainer = document.getElementById('summary-container');
+const resultContainer = document.getElementById('result-container');
+const settingsButton = document.getElementById('settings-button');
+const settingsPanelOverlay = document.getElementById('settings-panel-overlay');
+const settingsCloseButton = document.getElementById('settings-close-button');
+const dataSourceRadios = document.querySelectorAll('input[name="dataSource"]');
+const urlInputSection = document.getElementById('url-input-section');
+const desktopInputSection = document.getElementById('desktop-input-section');
+const urlInput = document.getElementById('url-input');
+const fileInput = document.getElementById('file-input');
+const downloadButton = document.getElementById('download-button');
+const columnSelectButton = document.getElementById('column-select-button');
+const columnSelectPanel = document.getElementById('column-select-panel');
+const saveHtmlButton = document.getElementById('save-html-button');
+const bldgUnitTooltip = document.getElementById('bldg-unit-tooltip');
+
+runButton.addEventListener('click', handleRun);
+downloadButton.addEventListener('click', handleDownload);
+saveHtmlButton.addEventListener('click', handleSaveAsHTML);
+document.getElementById('reset-button').addEventListener('click', handleReset);
+summaryContainer.addEventListener('click', handleSummaryInteraction);
+resultContainer.addEventListener('click', handleSortInteraction);
+resultContainer.addEventListener('click', handleCellFocus);
+settingsButton.addEventListener('click', () => { settingsPanelOverlay.style.display = 'flex'; });
+settingsCloseButton.addEventListener('click', () => { settingsPanelOverlay.style.display = 'none'; });
+settingsPanelOverlay.addEventListener('click', (e) => { if (e.target === settingsPanelOverlay) { settingsPanelOverlay.style.display = 'none'; } });
+dataSourceRadios.forEach(radio => { radio.addEventListener('change', (e) => { urlInputSection.classList.toggle('active', e.target.value === 'url'); desktopInputSection.classList.toggle('active', e.target.value === 'desktop'); }); });
+columnSelectButton.addEventListener('click', (e) => { e.stopPropagation(); const isDisplayed = columnSelectPanel.style.display === 'block'; columnSelectPanel.style.display = isDisplayed ? 'none' : 'block'; e.currentTarget.title = isDisplayed ? '열 선택 패널 열기' : '열 선택 패널 닫기'; });
+document.addEventListener('click', (e) => { if (!columnSelectPanel.contains(e.target) && e.target !== columnSelectButton) { if (columnSelectPanel.style.display === 'block') { columnSelectPanel.style.display = 'none'; columnSelectButton.title = '열 선택 패널 열기'; } } });
+
+buildingInput.addEventListener('focus', () => { bldgUnitTooltip.style.display = 'block'; });
+buildingInput.addEventListener('blur', () => { bldgUnitTooltip.style.display = 'none'; });
+unitInput.addEventListener('focus', () => { bldgUnitTooltip.style.display = 'block'; });
+unitInput.addEventListener('blur', () => { bldgUnitTooltip.style.display = 'none'; });
+
+function initialize() { 
+    urlInput.value = "https://jonggunelee.github.io/wyggkr04/RawData/RawData_(기숙사%20및%20사택%20현황).xlsx"; 
+    document.getElementById('source-url').checked = true; 
+    urlInputSection.classList.add('active'); 
+    desktopInputSection.classList.remove('active'); 
+    columnSelectButton.title = '열 선택 패널 열기'; 
+    populateHeaderSettings();
+    makePanelInteractive();
+    setupCollapsibleSections();
+    setupCustomTooltips();
+}
+
+initialize();
+
+
+function adjustPlaceholderSize(inputElement) {
+    const minFontSize = 8; 
+    const maxFontSize = 16; 
+    const textLength = inputElement.value.length;
+    
+    if (textLength > 0) {
+        let newSize = maxFontSize - (textLength / 5);
+        if (newSize < minFontSize) {
+            newSize = minFontSize;
+        }
+        inputElement.style.setProperty('--placeholder-font-size', `${newSize}px`);
+    } else {
+        inputElement.style.setProperty('--placeholder-font-size', `${maxFontSize}px`);
+    }
+}
+
+document.head.insertAdjacentHTML('beforeend', `<style>
+    #search-input, #prpo-input, #building-input, #unit-input {
+        font-size: var(--placeholder-font-size, 16px);
+        transition: font-size 0.2s;
+    }
+</style>`);
+
+function makePanelInteractive() {
+    const panel = document.getElementById('settings-panel');
+    const header = document.querySelector('.settings-panel-header');
+    const resizer = document.getElementById('resizer-handle');
+
+    let isDragging = false;
+    let isResizing = false;
+    let offsetX, offsetY, startX, startY, startWidth, startHeight;
+
+    header.addEventListener('mousedown', (e) => {
+        if (e.target.tagName === 'BUTTON') return;
+        e.preventDefault();
+        isDragging = true;
+        offsetX = e.clientX - panel.offsetLeft;
+        offsetY = e.clientY - panel.offsetTop;
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    });
+    
+    resizer.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        isResizing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = panel.offsetWidth;
+        startHeight = panel.offsetHeight;
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    });
+
+    function onMouseMove(e) {
+        if (isDragging) {
+            panel.style.left = (e.clientX - offsetX) + 'px';
+            panel.style.top = (e.clientY - offsetY) + 'px';
+        }
+        if (isResizing) {
+            const newWidth = startWidth + (e.clientX - startX);
+            const newHeight = startHeight + (e.clientY - startY);
+            panel.style.width = newWidth + 'px';
+            panel.style.height = newHeight + 'px';
+        }
+    }
+
+    function onMouseUp() {
+        isDragging = false;
+        isResizing = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+    }
+}
+
+function setupCollapsibleSections() {
+    document.querySelectorAll('.collapsible-toggle').forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const section = toggle.closest('.settings-section');
+            section.classList.toggle('active');
+            const icon = toggle.querySelector('.toggle-icon');
+            icon.textContent = section.classList.contains('active') ? '▼' : '▶';
+        });
+    });
+}
+
+
+async function handleRun() { 
+    const searchTerms = searchInput.value.split(',').map(term => term.trim()).filter(term => term); 
+    const prpoTerms = prpoInput.value.split(',').map(term => term.trim()).filter(term => term); 
+    const buildingTerm = buildingInput.value.trim();
+    const unitTerm = unitInput.value.trim();
+
+    if (searchTerms.length === 0 && prpoTerms.length === 0 && !buildingTerm && !unitTerm) { 
+        alert('하나 이상의 검색 조건을 입력해주세요.'); 
+        return; 
+    } 
+    
+    loader.style.display = 'block'; 
+    resultsArea.style.display = 'none'; 
+    try { 
+        let arrayBuffer; 
+        const selectedSource = document.querySelector('input[name="dataSource"]:checked').value; 
+        if (selectedSource === 'url') { 
+            const url = urlInput.value; 
+            if (!url) { throw new Error("엑셀 파일 URL 주소를 입력해주세요."); } 
+            const response = await fetch(url); 
+            if (!response.ok) { throw new Error(`URL에서 파일을 가져오는 데 실패했습니다. (상태: ${response.status})`); } 
+            arrayBuffer = await response.arrayBuffer(); 
+        } else { 
+            const file = fileInput.files[0]; 
+            if (!file) { throw new Error("엑셀 파일을 선택해주세요."); } 
+            arrayBuffer = await file.arrayBuffer(); 
+        } 
+        const data = new Uint8Array(arrayBuffer); 
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true }); 
+        const userConfirmed = await getAndConfirmDateRange(workbook); 
+        if (userConfirmed) { 
+            processWorkbook(workbook, searchTerms, prpoTerms, buildingTerm, unitTerm); 
+        } else { 
+            console.log("사용자가 추출을 취소했습니다."); 
+        } 
+    } catch (error) { 
+        console.error("오류:", error); 
+        alert(`처리 중 오류가 발생했습니다:\n${error.message}`); 
+    } finally { 
+        loader.style.display = 'none'; 
+    } 
+}
+function showCustomConfirm(messageParts) { return new Promise(resolve => { const overlay = document.getElementById('custom-confirm-overlay'); const messageBox = document.getElementById('custom-confirm-message'); const okButton = document.getElementById('custom-confirm-ok'); const cancelButton = document.getElementById('custom-confirm-cancel'); messageBox.innerHTML = `<span>${messageParts.part1}</span><span class="highlight-text">${messageParts.highlight}</span><span>${messageParts.part2}</span>`; overlay.style.display = 'flex'; const close = (result) => { overlay.style.display = 'none'; okButton.onclick = null; cancelButton.onclick = null; resolve(result); }; okButton.onclick = () => close(true); cancelButton.onclick = () => close(false); }); }
+async function getAndConfirmDateRange(workbook) { try { const firstSheetName = workbook.SheetNames[0]; const worksheet = workbook.Sheets[firstSheetName]; const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }); if (jsonData.length < 2) return true; const header = jsonData[0]; const dateColumnIndex = header.indexOf('회계 마감'); if (dateColumnIndex === -1) { console.warn("'회계 마감' 열을 찾을 수 없어 범위 확인을 건너뜁니다."); return true; } let minDate = null, maxDate = null; for (let i = 1; i < jsonData.length; i++) { const cellValue = jsonData[i][dateColumnIndex]; let currentDate = null; if (cellValue instanceof Date) { currentDate = cellValue; } else if (typeof cellValue === 'number' && cellValue > 25569) { currentDate = new Date((cellValue - 25569) * 86400 * 1000); } if (currentDate && !isNaN(currentDate.getTime())) { if (!minDate || currentDate < minDate) minDate = currentDate; if (!maxDate || currentDate > maxDate) maxDate = currentDate; } } if (minDate && maxDate) { const formatYearMonthKorean = (date) => `${date.getFullYear()}년 ${String(date.getMonth() + 1).padStart(2, '0')}월`; const startRange = formatYearMonthKorean(minDate); const endRange = formatYearMonthKorean(maxDate); const messageParts = { part1: `검색 범위는 ${startRange} 말부터 ${endRange} 말까지 발행이 완료된 세금계산서 기준 이며,`, highlight: "현재 작업 중인 건은 제외됩니다.", part2: "계속 검색하시겠습니까?" }; return await showCustomConfirm(messageParts); } else { console.warn("'회계 마감' 열에서 유효한 날짜를 찾을 수 없어 범위 확인을 건너뜁니다."); return true; } } catch (e) { console.error("날짜 범위 확인 중 오류 발생:", e); return true; } }
+
+// ▼▼▼▼▼ [핵심 수정] 독립 필터링 및 AND 결합 로직 ▼▼▼▼▼
+function processWorkbook(workbook, searchTerms, prpoTerms, buildingTerm, unitTerm) {
+    let header = [];
+    let amountColumnIndices = [];
+    let prColumnIndex = -1;
+    let poColumnIndex = -1;
+    let buildingColumnIndex = -1;
+    let unitColumnIndex = -1;
+    let specialNotesColumnIndex = -1;
+    let processedRows = [];
+
+    const prHeader = document.getElementById('pr-header-input').value.trim();
+    const poHeader = document.getElementById('po-header-input').value.trim();
+    const buildingHeader = document.getElementById('building-header-input').value.trim();
+    const unitHeader = document.getElementById('unit-header-input').value.trim();
+    const amountKeyword = document.getElementById('amount-keyword-input').value.trim();
+    const suffixRegex = /-[0-9]{2}$/;
+
+    workbook.SheetNames.forEach((sheetName, index) => {
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        if (index === 0) {
+            header = jsonData[0];
+            const isFirstRun = !finalResults.header || finalResults.header.length === 0;
+            if (isFirstRun) {
+                viewState.visibleColumns = header.map(h => DEFAULT_INITIAL_HEADERS.includes(h));
+            } else {
+                const oldVisibleHeaders = finalResults.header.filter((h, i) => viewState.visibleColumns[i]);
+                viewState.visibleColumns = header.map(h => oldVisibleHeaders.includes(h));
+            }
+            header.forEach((h, i) => {
+                const headerText = String(h);
+                if (amountKeyword && headerText.includes(amountKeyword)) amountColumnIndices.push(i);
+                if (prHeader && headerText === prHeader) prColumnIndex = i;
+                if (poHeader && headerText === poHeader) poColumnIndex = i;
+                if (buildingHeader && headerText === buildingHeader) buildingColumnIndex = i;
+                if (unitHeader && headerText === unitHeader) unitColumnIndex = i;
+                if (headerText === '특이사항') specialNotesColumnIndex = i;
+            });
+        }
+        
+        jsonData.slice(1).forEach(row => {
+            const foundTermsInRow = new Set();
+            
+            // --- 필터 1: 키워드 및 PR/PO (독립적 평가) ---
+            // 입력값이 없으면 항상 true, 있다면 하나라도 맞으면 true.
+            let keywordAndPrpoMatch = (searchTerms.length === 0 && prpoTerms.length === 0);
+            if (!keywordAndPrpoMatch) {
+                searchTerms.forEach(term => {
+                    if (row.some(cell => cellContains(cell, term))) {
+                        keywordAndPrpoMatch = true;
+                        foundTermsInRow.add(term);
+                    }
+                });
+                prpoTerms.forEach(term => {
+                    const prValue = prColumnIndex > -1 ? String(row[prColumnIndex] || '') : '';
+                    const poValue = poColumnIndex > -1 ? String(row[poColumnIndex] || '') : '';
+                    const prCellToCompare = prValue.replace(suffixRegex, '').trim();
+                    const poCellToCompare = poValue.replace(suffixRegex, '').trim();
+                    if (prCellToCompare.includes(term) || poCellToCompare.includes(term)) {
+                        keywordAndPrpoMatch = true;
+                        foundTermsInRow.add(term);
+                    }
+                });
+            }
+
+            // --- 필터 2: 건물 동 (독립적 평가) ---
+            // 입력값이 없으면 항상 true, 있다면 isBuildingMatch 결과에 따름.
+            const buildingValue = buildingColumnIndex > -1 ? String(row[buildingColumnIndex] || '') : '';
+            const buildingMatch = !buildingTerm || isBuildingMatch(buildingValue, buildingTerm);
+
+            // --- 필터 3: 세대 호실 (독립적 평가) ---
+            // 입력값이 없으면 항상 true, 있다면 cellContains 결과에 따름.
+            const unitValue = unitColumnIndex > -1 ? String(row[unitColumnIndex] || '') : '';
+            const unitMatch = !unitTerm || cellContains(unitValue, unitTerm);
+
+            // --- 최종 결합: 모든 독립 필터가 AND 조건으로 참이어야 함 ---
+            if (keywordAndPrpoMatch && buildingMatch && unitMatch) {
+                // 그룹핑과 하이라이팅을 위해 일치한 실제 검색어들을 수집
+                if (buildingMatch && buildingTerm) foundTermsInRow.add(buildingTerm);
+                if (unitMatch && unitTerm) foundTermsInRow.add(unitTerm);
+
+                const allSearchTerms = [...searchTerms, ...prpoTerms, buildingTerm, unitTerm].filter(Boolean);
+                const finalTerms = Array.from(foundTermsInRow).length > 0 ? Array.from(foundTermsInRow) : allSearchTerms;
+
+                const groupKey = finalTerms.length > 0 ? finalTerms.sort().join(' + ') : '전체';
+                
+                processedRows.push({ data: row, groupKey: groupKey, matchingTerms: finalTerms });
+            }
+        });
+    });
+
+    const summaryGroups = new Map();
+    processedRows.forEach(row => {
+        if (!summaryGroups.has(row.groupKey)) {
+            summaryGroups.set(row.groupKey, { term: row.groupKey, color: generatePaleColor(), rows: [] });
+        }
+        summaryGroups.get(row.groupKey).rows.push(row);
+    });
+
+    finalResults = { header, amountColumnIndices, specialNotesColumnIndex, originalRows: processedRows, summaryGroups };
+    populateColumnSelector();
+    populateHeaderSettings();
+    handleReset();
+}
+// ▲▲▲▲▲ [핵심 수정] 종료 ▲▲▲▲▲
+
+
+function handleColumnVisibilityChange(index, isChecked) {
+    viewState.visibleColumns[index] = isChecked;
+    const mainPanelCheckbox = document.getElementById(`col-check-${index}`);
+    if (mainPanelCheckbox) mainPanelCheckbox.checked = isChecked;
+    const settingsPanelCheckbox = document.getElementById(`setting-col-check-${index}`);
+    if (settingsPanelCheckbox) settingsPanelCheckbox.checked = isChecked;
+    [document.getElementById('select-all-columns'), document.getElementById('setting-select-all-columns')].forEach(selectAllCb => {
+        if(selectAllCb) {
+             const parent = selectAllCb.closest('.column-select-panel, #initial-columns-container');
+             if(parent) {
+                const allCheckboxes = parent.querySelectorAll('ul input[type="checkbox"]');
+                selectAllCb.checked = [...allCheckboxes].every(c => c.checked);
+             }
+        }
+    });
+    renderResultTable();
+}
+
+function handleRestoreDefaultColumns() {
+    if (!finalResults.header) return;
+    viewState.visibleColumns = finalResults.header.map(h => DEFAULT_INITIAL_HEADERS.includes(h));
+    
+    populateColumnSelector();
+    populateHeaderSettings();
+    renderResultTable();
+}
+
+function populateHeaderSettings() {
+    const container = document.getElementById('initial-columns-container');
+    if (!finalResults || !finalResults.header || finalResults.header.length === 0) {
+        container.innerHTML = '<p>엑셀 파일을 먼저 추출하면 전체 헤더 목록이 표시됩니다.</p>';
+        return;
+    }
+    const controlsHtml = `<div class="settings-column-controls"><input type="text" id="setting-search-column-input" placeholder="열 이름 검색..."><div><label><input type="checkbox" id="setting-select-all-columns"> 전체 선택/해제</label><button class="restore-button" id="setting-restore-defaults">초기 복원</button></div></div>`;
+    const listHtml = finalResults.header.map((h, i) => { const isChecked = viewState.visibleColumns[i] ? 'checked' : ''; return `<li><input type="checkbox" id="setting-col-check-${i}" data-index="${i}" ${isChecked}><label for="setting-col-check-${i}">${h}</label></li>`; }).join('');
+    container.innerHTML = `${controlsHtml}<ul>${listHtml}</ul>`;
+    
+    const searchInput = document.getElementById('setting-search-column-input');
+    const selectAllCheckbox = document.getElementById('setting-select-all-columns');
+    const restoreButton = document.getElementById('setting-restore-defaults');
+    const allCheckboxes = container.querySelectorAll('ul input[type="checkbox"]');
+
+    searchInput.addEventListener('input', (e) => { const searchTerm = e.target.value.toLowerCase(); container.querySelectorAll('ul li').forEach(li => { const label = li.querySelector('label').textContent.toLowerCase(); li.style.display = label.includes(searchTerm) ? '' : 'none'; }); });
+    selectAllCheckbox.addEventListener('change', (e) => { const isChecked = e.target.checked; allCheckboxes.forEach(checkbox => { const index = parseInt(checkbox.dataset.index, 10); if(viewState.visibleColumns[index] !== isChecked) { handleColumnVisibilityChange(index, isChecked); } }); });
+    allCheckboxes.forEach(checkbox => { checkbox.addEventListener('change', (e) => { const index = parseInt(e.target.dataset.index, 10); handleColumnVisibilityChange(index, e.target.checked); }); });
+    
+    restoreButton.addEventListener('click', handleRestoreDefaultColumns);
+    selectAllCheckbox.checked = [...allCheckboxes].every(c => c.checked);
+}
+
+function populateColumnSelector() { 
+    if (!finalResults || !finalResults.header) return;
+    const listHtml = finalResults.header.map((h, i) => { const isChecked = viewState.visibleColumns[i] ? 'checked' : ''; return `<li><input type="checkbox" id="col-check-${i}" data-index="${i}" ${isChecked}><label for="col-check-${i}">${h}</label></li>`; }).join(''); 
+    columnSelectPanel.innerHTML = `<div class="column-select-controls"><input type="text" id="search-column-input" placeholder="열 이름 검색..."><div><label><input type="checkbox" id="select-all-columns"> 전체 선택/해제</label><button class="restore-button" id="panel-restore-defaults">초기 복원</button></div></div><div class="column-select-list"><ul>${listHtml}</ul></div>`; 
+    
+    const searchInput = document.getElementById('search-column-input'); 
+    const selectAllCheckbox = document.getElementById('select-all-columns'); 
+    const restoreButton = document.getElementById('panel-restore-defaults');
+    const columnCheckboxes = columnSelectPanel.querySelectorAll('.column-select-list input[type="checkbox"]'); 
+    
+    searchInput.addEventListener('input', (e) => { const searchTerm = e.target.value.toLowerCase(); columnSelectPanel.querySelectorAll('.column-select-list li').forEach(li => { const label = li.querySelector('label').textContent.toLowerCase(); li.style.display = label.includes(searchTerm) ? '' : 'none'; }); }); 
+    selectAllCheckbox.addEventListener('change', (e) => { const isChecked = e.target.checked; columnCheckboxes.forEach(checkbox => { const index = parseInt(checkbox.dataset.index, 10); if (viewState.visibleColumns[index] !== isChecked) { handleColumnVisibilityChange(index, isChecked); } }); }); 
+    columnCheckboxes.forEach(checkbox => { checkbox.addEventListener('change', (e) => { const index = parseInt(e.target.dataset.index, 10); handleColumnVisibilityChange(index, e.target.checked); }); }); 
+    
+    restoreButton.addEventListener('click', handleRestoreDefaultColumns);
+    selectAllCheckbox.checked = [...columnCheckboxes].every(c => c.checked); 
+}
+
+function updateAndRender() { 
+    let filteredRows = finalResults.originalRows; 
+    if (viewState.colorFilter) { 
+        filteredRows = finalResults.originalRows.filter(row => row.groupKey === viewState.colorFilter);
+    } 
+    finalResults.displayRows = filteredRows; 
+    renderSummary(); 
+    renderResultTable(); 
+    resultsArea.style.display = 'block'; 
+}
+
+function renderSummary() {
+    const { header, amountColumnIndices, summaryGroups } = finalResults;
+    if (!header) return;
+    const summaryHeader = ['검색값', '찾은 행'];
+    amountColumnIndices.forEach(idx => summaryHeader.push(`${header[idx]} 합계`));
+    let html = `<table><colgroup>`;
+    summaryHeader.forEach(() => html += '<col>');
+    html += '</colgroup><thead><tr>';
+    summaryHeader.forEach(h => html += `<th>${h}</th>`);
+    html += '</tr></thead><tbody>';
+
+    const sortedGroups = [...summaryGroups.values()].sort((a, b) => b.rows.length - a.rows.length);
+
+    sortedGroups.forEach(group => {
+        if (viewState.colorFilter && group.term !== viewState.colorFilter) {
+            return;
+        }
+
+        const count = group.rows.length;
+        if (count === 0) return;
+
+        const totals = Array(header.length).fill(0);
+        amountColumnIndices.forEach(idx => {
+            totals[idx] = group.rows.reduce((sum, row) => sum + (typeof row.data[idx] === 'number' ? row.data[idx] : 0), 0);
+        });
+        
+        const isActive = viewState.colorFilter === group.term;
+        const filterTooltip = isActive ? `'${group.term}' 그룹 필터 해제` : `'${group.term}' 그룹으로 필터링`;
+        const countTooltip = `'${group.term}' 조건을 만족하는 행의 총 개수입니다.`;
+
+        html += `<tr style="background-color: ${group.color};">`;
+        html += `<td style="background-color: transparent; text-align: left; display: flex; align-items: center;"><span class="summary-term" data-term="${group.term}">${group.term}</span><i class="filter-icon ${isActive ? 'active' : ''}" data-term="${group.term}" title="${filterTooltip}">⧱</i></td>`;
+        html += `<td style="background-color: transparent; text-align: center;" title="${countTooltip.replace(/"/g, '"')}">${count}</td>`;
+        amountColumnIndices.forEach(idx => html += `<td style="background-color: transparent;">${formatNumber(totals[idx])}</td>`);
+        html += `</tr>`;
+    });
+    
+    html += '</tbody></table>';
+    summaryContainer.innerHTML = html;
+    const table = summaryContainer.querySelector('table');
+    if (table) {
+        adjustAllColumnWidths(table, []); 
+        makeResizable(table);
+    }
+}
+
+function extractDate(value) {
+    if (!value) return null;
+    if (value instanceof Date && !isNaN(value.getTime())) {
+        return value;
+    }
+    if (typeof value === 'number' && value > 25569) {
+        return new Date((value - 25569) * 86400 * 1000);
+    }
+    const strValue = String(value);
+    const match = strValue.match(/(\d{4})[-.](\d{1,2})[-.](\d{1,2})/);
+    if (match) {
+        const year = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10) - 1;
+        const day = parseInt(match[3], 10);
+        const date = new Date(year, month, day);
+        if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
+            return date;
+        }
+    }
+    return null;
+}
+
+function renderTable(container, rows, withSort) {
+    const { header, amountColumnIndices, specialNotesColumnIndex, summaryGroups } = finalResults;
+    let sortedDisplayData = [...rows]; 
+
+    if (withSort && viewState.sortedViewSort.key !== null && viewState.sortedViewSort.direction !== 'none') {
+        const { key, direction } = viewState.sortedViewSort;
+        
+        if (key === -1) {
+            if (direction === 'desc') {
+                sortedDisplayData.reverse();
+            }
+        } else {
+            sortedDisplayData.sort((a, b) => {
+                const valA = a.data[key];
+                const valB = b.data[key];
+                let comparison = 0;
+                const dateA = extractDate(valA);
+                const dateB = extractDate(valB);
+                if (dateA && dateB) {
+                    comparison = dateA.getTime() - dateB.getTime();
+                } else if (dateA) {
+                    comparison = 1;
+                } else if (dateB) {
+                    comparison = -1;
+                } else {
+                    if (typeof valA === 'number' && typeof valB === 'number') {
+                        comparison = valA - valB;
+                    } else {
+                        comparison = String(valA || '').localeCompare(String(valB || ''));
+                    }
+                }
+                return direction === 'asc' ? comparison : -comparison;
+            });
+        }
+    }
+
+    const totalRows = sortedDisplayData.length;
+    const padLength = String(totalRows).length;
+    let html = `<div class="focus-overlay"></div><div class="focus-overlay"></div><table><colgroup><col>`;
+    header.forEach((h, i) => { if (viewState.visibleColumns[i]) { html += '<col>'; } });
+    html += `</colgroup><thead><tr>`;
+    
+    if (withSort) {
+        const { key, direction } = viewState.sortedViewSort;
+        let asc_class = (key === -1 && direction === 'asc') ? 'active' : '';
+        let desc_class = (key === -1 && direction === 'desc') ? 'active' : '';
+        html += `<th>
+                    <div class="header-content" data-key="-1">
+                        번호
+                        <div class="sort-arrows">
+                            <span class="sort-arrow sort-up ${asc_class}">▲</span>
+                            <span class="sort-arrow sort-down ${desc_class}">▼</span>
+                        </div>
+                    </div>
+                 </th>`;
+    } else {
+        html += `<th>번호</th>`;
+    }
+
+    header.forEach((h, i) => {
+        if (viewState.visibleColumns[i]) {
+            if (withSort) {
+                const { key, direction } = viewState.sortedViewSort;
+                let asc_class = (key === i && direction === 'asc') ? 'active' : '';
+                let desc_class = (key === i && direction === 'desc') ? 'active' : '';
+                
+                html += `<th>
+                            <div class="header-content" data-key="${i}">
+                                ${h}
+                                <div class="sort-arrows">
+                                    <span class="sort-arrow sort-up ${asc_class}">▲</span>
+                                    <span class="sort-arrow sort-down ${desc_class}">▼</span>
+                                </div>
+                            </div>
+                         </th>`;
+            } else {
+                html += `<th>${h}</th>`;
+            }
+        }
+    });
+    html += `</tr></thead><tbody>`;
+
+    sortedDisplayData.forEach((row, index) => {
+        let rowColor = '';
+        const group = summaryGroups.get(row.groupKey);
+        if (group) {
+            rowColor = group.color;
+        }
+
+        html += '<tr>';
+        const rowNumber = String(index + 1).padStart(padLength, '0');
+        const numberCellStyle = `background-color: ${rowColor}; text-align: center;`;
+        html += `<td style="${numberCellStyle}">${rowNumber}</td>`;
+
+        row.data.forEach((cell, i) => {
+            if (viewState.visibleColumns[i]) {
+                let cellStyle = '';
+                if (row.matchingTerms && row.matchingTerms.length > 0) {
+                     const isMatchForCell = row.matchingTerms.some(term => {
+                        const buildingHeaderName = document.getElementById('building-header-input').value.trim();
+                        if (header[i] === buildingHeaderName) {
+                           return isBuildingMatch(cell, term);
+                        }
+                        return cellContains(cell, term);
+                     });
+                     if (isMatchForCell) {
+                        cellStyle = `background-color: ${rowColor};`;
+                     }
+                }
+
+                let alignmentStyle = '';
+                if (amountColumnIndices.includes(i)) { alignmentStyle = 'text-align: right;'; } 
+                else if (i !== specialNotesColumnIndex) { alignmentStyle = 'text-align: center;'; }
+                html += `<td style="${cellStyle} ${alignmentStyle}">${formatValue(cell, i)}</td>`;
+            }
+        });
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    const table = container.querySelector('table');
+    if (table) {
+        adjustAllColumnWidths(table, finalResults.displayRows);
+        makeResizable(table);
+    }
+}
+
+function setupCustomTooltips() {
+    const tooltip = document.getElementById('custom-tooltip');
+    const tooltipContent = document.getElementById('tooltip-content');
+    const tooltipCloseBtn = document.getElementById('tooltip-close-btn');
+
+    if (!tooltip || !tooltipContent || !tooltipCloseBtn) return;
+
+    const containers = [resultContainer, summaryContainer];
+    
+    let isDragging = false;
+    let offsetX, offsetY;
+    let sourceCell = null; 
+
+    const hideTooltip = () => {
+        tooltip.style.display = 'none';
+        tooltip.style.width = '';
+        tooltip.style.height = '';
+        if (sourceCell) {
+            sourceCell.classList.remove('tooltip-source-cell');
+            sourceCell = null;
+        }
+    };
+    
+    containers.forEach(container => {
+        container.addEventListener('mouseover', e => {
+            const cell = e.target;
+            if (cell.tagName === 'TD' && cell.scrollWidth > cell.clientWidth) {
+                cell.title = 'Ctrl+Click으로 전체 내용을 확인합니다.';
+            }
+        });
+        container.addEventListener('mouseout', e => {
+            const cell = e.target;
+            if (cell.tagName === 'TD') {
+                cell.title = '';
+            }
+        });
+
+        container.addEventListener('click', e => {
+            if (e.ctrlKey && e.target.tagName === 'TD') {
+                e.preventDefault();
+                const cell = e.target;
+                
+                if (sourceCell) {
+                    sourceCell.classList.remove('tooltip-source-cell');
+                }
+                
+                sourceCell = cell;
+                sourceCell.classList.add('tooltip-source-cell');
+                
+                tooltipContent.textContent = cell.textContent;
+                tooltip.style.left = (e.pageX + 5) + 'px';
+                tooltip.style.top = (e.pageY + 5) + 'px';
+                tooltip.style.display = 'block';
+            }
+        });
+    });
+
+    tooltip.addEventListener('mousedown', e => {
+        if (e.target.id === 'tooltip-close-btn' || getComputedStyle(e.target).cursor === 'se-resize') {
+            return;
+        }
+        isDragging = true;
+        offsetX = e.clientX - tooltip.offsetLeft;
+        offsetY = e.clientY - tooltip.offsetTop;
+        document.addEventListener('mousemove', onDrag);
+        document.addEventListener('mouseup', onStopDrag);
+    });
+
+    function onDrag(e) {
+        if (isDragging) {
+            tooltip.style.left = (e.clientX - offsetX) + 'px';
+            tooltip.style.top = (e.clientY - offsetY) + 'px';
+        }
+    }
+
+    function onStopDrag() {
+        isDragging = false;
+        document.removeEventListener('mousemove', onDrag);
+        document.removeEventListener('mouseup', onStopDrag);
+    }
+    
+    tooltipCloseBtn.addEventListener('click', hideTooltip);
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            hideTooltip();
+        }
+    });
+}
+
+
+function handleDownload() { if (!finalResults || !finalResults.displayRows.length === 0) { alert('다운로드할 데이터가 없습니다.'); return; } const { header, displayRows } = finalResults; const visibleHeader = ['번호', ...header.filter((h, i) => viewState.visibleColumns[i])]; const totalRows = displayRows.length; const padLength = String(totalRows).length; const dataForSheet = displayRows.map((row, rowIndex) => { const rowNumber = String(rowIndex + 1).padStart(padLength, '0'); const visibleRowData = row.data.filter((cell, i) => viewState.visibleColumns[i]); return [rowNumber, ...visibleRowData.map((cell, i) => formatValue(cell, header.indexOf(visibleHeader[i + 1]), true))]; }); const ws = XLSX.utils.aoa_to_sheet([visibleHeader, ...dataForSheet]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data"); XLSX.writeFile(wb, `Export_${new Date().toISOString().slice(0, 19).replace(/[-T:]/g, "")}.xlsx`); }
+function renderResultTable() { 
+    renderTable(resultContainer, finalResults.displayRows, true); 
+}
+function handleSortInteraction(e) { const headerContent = e.target.closest('.header-content'); if (!headerContent) return; const key = Number(headerContent.dataset.key); if (viewState.sortedViewSort.key === key) { const currentDirection = viewState.sortedViewSort.direction; if (currentDirection === 'asc') { viewState.sortedViewSort.direction = 'desc'; } else if (currentDirection === 'desc') { viewState.sortedViewSort.direction = 'none'; } else { viewState.sortedViewSort.direction = 'asc'; } } else { viewState.sortedViewSort = { key, direction: 'asc' }; } renderResultTable(); }
+function handleSummaryInteraction(e) { const filterIcon = e.target.closest('.filter-icon'); if (filterIcon) { const term = filterIcon.dataset.term; viewState.colorFilter = viewState.colorFilter === term ? null : term; updateAndRender(); } }
+function handleReset() { viewState.colorFilter = null; viewState.sortedViewSort = { key: null, direction: 'none' }; if (finalResults && finalResults.originalRows) { updateAndRender(); } else { resultsArea.style.display = 'none'; } }
+function handleCellFocus(e) { 
+    if (e.ctrlKey) return;
+
+    const clickedCell = e.target; 
+    if (clickedCell.tagName !== 'TD' || clickedCell.closest('thead')) return; 
+    const container = clickedCell.closest('.table-container'); 
+    if (!container) return; 
+    const focusOverlays = container.querySelectorAll('.focus-overlay'); 
+    if (focusOverlays.length < 2) return; 
+    const [focusRow, focusCol] = focusOverlays; 
+    focusRow.style.display = 'none'; 
+    focusCol.style.display = 'none'; 
+    const table = clickedCell.closest('table'); 
+    const tbody = table.querySelector('tbody'); 
+    const parentRow = clickedCell.parentNode; 
+    if (!tbody || !parentRow) return; 
+    const containerRect = container.getBoundingClientRect(); 
+    const tableRect = table.getBoundingClientRect(); 
+    const tbodyRect = tbody.getBoundingClientRect();
+    const rowRect = parentRow.getBoundingClientRect(); 
+    const cellRect = clickedCell.getBoundingClientRect(); 
+    
+    const scrollTop = container.scrollTop;
+    const scrollLeft = container.scrollLeft;
+    
+    focusRow.style.top = `${rowRect.top - containerRect.top + scrollTop}px`; 
+    focusRow.style.left = `${tableRect.left - containerRect.left + scrollLeft}px`; 
+    focusRow.style.width = `${tableRect.width}px`; 
+    focusRow.style.height = `${rowRect.height}px`; 
+    
+    focusCol.style.top = `${tbodyRect.top - containerRect.top + scrollTop}px`; 
+    focusCol.style.left = `${cellRect.left - containerRect.left + scrollLeft}px`; 
+    focusCol.style.width = `${cellRect.width}px`; 
+    focusCol.style.height = `${tbodyRect.height}px`; 
+    
+    focusRow.style.clipPath = `polygon(0% 0%, 0% 100%, ${cellRect.left - tableRect.left}px 100%, ${cellRect.left - tableRect.left}px 0%, ${cellRect.right - tableRect.left}px 0%, ${cellRect.right - tableRect.left}px 100%, 100% 100%, 100% 0%)`;
+    focusCol.style.clipPath = `polygon(0% 0%, 100% 0%, 100% ${rowRect.top - tbodyRect.top}px, 0% ${rowRect.top - tbodyRect.top}px, 0% ${rowRect.bottom - tbodyRect.top}px, 100% ${rowRect.bottom - tbodyRect.top}px, 100% 100%, 0% 100%)`;
+
+    focusRow.style.display = 'block'; 
+    focusCol.style.display = 'block'; 
+}
+function hideFocusOnScroll(e) { const container = e.currentTarget; const overlays = container.querySelectorAll('.focus-overlay'); overlays.forEach(overlay => { overlay.style.display = 'none'; }); }
+[resultContainer, summaryContainer].forEach(container => { container.addEventListener('scroll', hideFocusOnScroll); });
+function formatValue(value, index, forExport = false) { if (finalResults && finalResults.amountColumnIndices.includes(index) && typeof value === 'number') { return forExport ? value : formatNumber(value); } if (value instanceof Date) return value.toISOString().split('T')[0]; return value; }
+function cellContains(v, s) { if (v === null || v === undefined || s === null || s === undefined || s === '') return false; return String(v).toLowerCase().includes(s.toLowerCase()); }
+
+// ▼▼▼▼▼ [핵심 수정] 요구사항에 맞게 재검증 및 수정한 건물동 검색 로직 ▼▼▼▼▼
+/**
+ * '건물동' 검색을 위한 특수 매칭 함수. 데이터 포맷에 유연하게 대처하고 규칙을 명확히 적용합니다.
+ * @param {string} cellValue - 엑셀 셀의 '건물동' 값 (예: "3동", "A-101 동", "지원동", "101").
+ * @param {string} searchTerm - 사용자가 입력한 검색어 (예: "3", "101", "지원").
+ * @returns {boolean} - 매칭 여부.
+ */
+function isBuildingMatch(cellValue, searchTerm) {
+    const cleanCellValue = String(cellValue || '').trim();
+    const cleanSearchTerm = String(searchTerm || '').trim();
+
+    if (!cleanCellValue || !cleanSearchTerm) {
+        return false;
+    }
+
+    // --- 특수 숫자 규칙 확인 ---
+    // isSingleDigit: 1-9 사이의 한 자리 숫자
+    // isSpecialThreeDigit: 101-104 사이의 세 자리 숫자
+    const isSingleDigit = /^[1-9]$/.test(cleanSearchTerm);
+    const isSpecialThreeDigit = /^10[1-4]$/.test(cleanSearchTerm);
+
+    if (isSingleDigit || isSpecialThreeDigit) {
+        // 규칙: '4'는 한 자리 숫자일 때만 명시적으로 제외
+        if (isSingleDigit && cleanSearchTerm === '4') {
+            return false;
+        }
+        
+        // [수정된 핵심 로직]
+        // 검색어가 (문자열의 시작 또는 숫자가 아닌 문자) 뒤에 오고,
+        // 그 뒤에는 (숫자가 아닌 문자 또는 문자열의 끝)이 오는 경우에만 일치.
+        // 이를 통해 'A-101동'은 찾고, 'A-1010동'은 제외합니다.
+        const regex = new RegExp(`(^|\\D)${cleanSearchTerm}(\\D|$)`);
+        return regex.test(cleanCellValue);
+    }
+    
+    // --- 일반 검색 ---
+    // 특수 숫자 규칙에 해당하지 않는 모든 경우 (예: "지원", "201")는
+    // 셀 내용에 검색어가 포함되어 있는지 확인합니다.
+    return cellContains(cleanCellValue, cleanSearchTerm);
+}// ▲▲▲▲▲ [핵심 수정] 종료 ▲▲▲▲▲
+
+
+function formatNumber(n) { 
+    if (typeof n === 'number') {
+        return Math.round(n).toLocaleString('ko-KR');
+    }
+    return n;
+}
+
+function generatePaleColor() { const r = Math.floor(Math.random() * 76) + 180; const g = Math.floor(Math.random() * 76) + 180; const b = Math.floor(Math.random() * 76) + 180; return `rgba(${r}, ${g}, ${b}, 0.4)`; }
+const getTextWidth = (text, font) => { const canvas = getTextWidth.canvas || (getTextWidth.canvas = document.createElement("canvas")); const context = canvas.getContext("2d"); context.font = font; return context.measureText(text).width; };
+
+
+function adjustAllColumnWidths(table, dataRows) {
+    if (!table || !finalResults || !finalResults.header) return;
+
+    const PADDING = 35;
+    const FIXED_NUMBER_COL_WIDTH = 60;
+
+    const headers = table.querySelectorAll("thead th");
+    const anyHeaderElement = headers[0];
+    if (!anyHeaderElement) return;
+
+    const style = window.getComputedStyle(anyHeaderElement);
+    const font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    
+    const firstCol = table.querySelector("colgroup col:first-child");
+    const firstHeader = headers[0];
+    if (firstCol && firstHeader && firstHeader.textContent.includes('번호')) {
+        firstCol.style.width = `${FIXED_NUMBER_COL_WIDTH}px`;
+    }
+
+    let visibleColumnDomIndex = (firstCol && firstHeader && firstHeader.textContent.includes('번호')) ? 2 : 1;
+    finalResults.header.forEach((headerText, headerIndex) => {
+        if (!viewState.visibleColumns[headerIndex]) {
+            return;
+        }
+
+        const colElement = table.querySelector(`colgroup col:nth-child(${visibleColumnDomIndex})`);
+        if (!colElement) return;
+
+        let finalWidth;
+
+        if (headerText === '계약명') {
+            let maxWidth = getTextWidth(headerText, font);
+            dataRows.forEach(row => {
+                const cellValue = row.data[headerIndex];
+                const textWidth = getTextWidth(cellValue ? String(cellValue) : '', font);
+                if (textWidth > maxWidth) {
+                    maxWidth = textWidth;
+                }
+            });
+            const constrainedWidth = Math.max(maxWidth + PADDING, MIN_COLUMN_WIDTH);
+            finalWidth = Math.min(constrainedWidth, MAX_COLUMN_WIDTH);
+
+        } else {
+            const headerWidth = getTextWidth(headerText, font);
+            finalWidth = Math.max(headerWidth + PADDING, MIN_COLUMN_WIDTH);
+        }
+        
+        colElement.style.width = `${finalWidth}px`;
+        visibleColumnDomIndex++;
+    });
+}
+
+function makeResizable(table) { if (!table) return; const headers = table.querySelectorAll("thead th"); const cols = table.querySelectorAll("colgroup > col"); const firstHeader = headers[0]; const hasNumberColumn = firstHeader && firstHeader.textContent.includes('번호'); headers.forEach((header, i) => { if ((hasNumberColumn && i === 0) || i === headers.length - 1) return; const resizer = document.createElement("div"); resizer.className = "resizer"; header.appendChild(resizer); resizer.addEventListener("mousedown", (e) => { e.preventDefault(); const startX = e.pageX; const colIndex = i; const startWidth = cols[colIndex].offsetWidth; const handleMouseMove = (me) => { const newWidth = startWidth + (me.pageX - startX); if (newWidth > 30) cols[colIndex].style.width = newWidth + "px"; }; const handleMouseUp = () => { document.removeEventListener("mousemove", handleMouseMove); document.removeEventListener("mouseup", handleMouseUp); }; document.addEventListener("mousemove", handleMouseMove); document.addEventListener("mouseup", handleMouseUp); }); }); }
+
+function handleSaveAsHTML() {
+    const initialHeaders = (finalResults.header || []).filter((h, i) => viewState.visibleColumns[i]);
+    
+    const prValue = document.getElementById('pr-header-input').value;
+    const poValue = document.getElementById('po-header-input').value;
+    const buildingValue = document.getElementById('building-header-input').value;
+    const unitValue = document.getElementById('unit-header-input').value;
+    const amountValue = document.getElementById('amount-keyword-input').value;
+    
+    let newHtml = document.documentElement.outerHTML;
+
+    const newDefaultHeaders = `const DEFAULT_INITIAL_HEADERS = ${JSON.stringify(initialHeaders)};`;
+    newHtml = newHtml.replace(/const DEFAULT_INITIAL_HEADERS = .*?;/, newDefaultHeaders);
+
+    newHtml = newHtml.replace(/(<input.*?id="pr-header-input".*?value=").*?"/, `$1${prValue}"`);
+    newHtml = newHtml.replace(/(<input.*?id="po-header-input".*?value=").*?"/, `$1${poValue}"`);
+    newHtml = newHtml.replace(/(<input.*?id="building-header-input".*?value=").*?"/, `$1${buildingValue}"`);
+    newHtml = newHtml.replace(/(<input.*?id="unit-header-input".*?value=").*?"/, `$1${unitValue}"`);
+    newHtml = newHtml.replace(/(<input.*?id="amount-keyword-input".*?value=").*?"/, `$1${amountValue}"`);
+
+    const blob = new Blob([newHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `추출기_템플릿_${new Date().toISOString().slice(0, 10)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    alert('현재 설정이 포함된 새 HTML 파일이 저장되었습니다.');
+}
+</script>
+</body>
+</html>
