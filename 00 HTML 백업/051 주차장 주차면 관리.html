@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>기숙사 및 사택 주차면 관리 (Final Masterpiece with Advanced UI)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; margin: 25px; background-color: #f8f9fa; color: #212529; }
+        .main-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #aab8c2; padding-bottom: 15px; }
+        .main-header h1 { font-weight: 700; color: #2c3e50; border-bottom: none; padding-bottom: 0; margin: 0; }
+        .main-header .controls { margin: 0; }
+        .btn { background-color: #e9ecef; color: #495057; padding: 6px 14px; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-left: 6px; transition: all 0.2s ease-in-out; }
+        .btn:hover { background-color: #dee2e6; border-color: #ced4da; }
+        .btn:disabled { background-color: #f8f9fa; color: #adb5bd; cursor: not-allowed; }
+        .btn.active { background-color: #ffecd1; border-color: #ffc107; color: #d98e00; }
+        
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content { display: none; position: absolute; right: 0; background-color: #ffffff; min-width: 220px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 100; border-radius: 6px; border: 1px solid #dee2e6; padding: 8px 0; }
+        .dropdown-content a { color: #212529; padding: 10px 16px; text-decoration: none; display: block; font-size: 14px; }
+        .dropdown-content a:hover { background-color: #f8f9fa; }
+        .dropdown-content .divider { height: 1px; margin: 8px 0; overflow: hidden; background-color: #e9ecef; }
+        .show { display: block; }
+        #file-input { display: none; }
+
+        .view-drawing-icon { cursor: pointer; font-size: 1.2em; }
+        
+        h2 { color: #34495e; border-bottom: 1px solid #dce4e9; padding-bottom: 12px; font-weight: 500; margin-top: 40px;}
+        .kpi-container { display: flex; justify-content: space-around; gap: 20px; margin-bottom: 15px; align-items: stretch; }
+        
+        .kpi-card { background: #ffffff; padding: 15px; border-radius: 8px; text-align: center; flex: 1; border: 1px solid #e9ecef; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; justify-content: space-between; }
+        .kpi-card-section { width: 100%; text-align: center; padding: 5px 0; }
+        .kpi-card-section.title h3 { margin: 0; color: #566573; font-weight: 500; font-size: 1em; }
+        .kpi-card-section.value .val { font-size: 2.2em; font-weight: 700; color: #2c3e50; margin: 0; }
+        
+        .kpi-card-section.details { font-size: 0.8em; color: #566573; line-height: 1.5; border-top: 1px solid #f1f3f5; padding-top: 10px; text-align: left; }
+        .kpi-card-section.details.no-change { text-align: center; }
+        
+        .kpi-card.total-spots-card { justify-content: flex-start; }
+        .kpi-card.total-spots-card .kpi-card-section.value { flex-grow: 1; display: flex; align-items: center; justify-content: center; }
+
+        .kpi-summary-container { background: #ffffff; padding: 15px 25px; border-radius: 8px; border: 1px solid #e9ecef; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-bottom: 15px; display: flex; justify-content: space-around; align-items: flex-start; }
+        .kpi-summary-item { text-align: center; flex: 1; }
+        .kpi-summary-item .label { font-size: 1em; color: #566573; font-weight: 500; margin-bottom: 5px; }
+        .kpi-summary-item .value { font-size: 1.4em; color: #2c3e50; font-weight: 700; }
+        .change-details-section, .info-details-section { flex: 1.5; }
+        .detail-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; font-size: 0.9em; margin-top: 5px;}
+        .detail-list span { color: #495057; }
+        .detail-list b { color: #2c3e50; font-weight: 700; }
+        .info-summary-container { padding: 10px 25px; border-radius: 8px; border: 1px solid #e9ecef; margin-bottom: 30px; text-align: center; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);}
+        .info-item { display: inline-block; margin: 0 15px; font-size: 0.85em; color: #6c757d; font-weight: 400; }
+        .table-header-container { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; }
+        .table-header-container h2 { margin: 0; border-bottom: none; padding-bottom: 0; }
+        
+        #kpi-group-details-summary { flex-direction: column; align-items: stretch; }
+        .group-detail-row { display: flex; justify-content: space-around; padding: 8px 0; border-bottom: 1px solid #f1f3f5; }
+        .group-detail-row:last-child { border-bottom: none; }
+        .group-detail-item { flex: 1; text-align: center; }
+        .group-detail-item.header { font-weight: 700; color: #2c3e50; }
+        .group-detail-item span { font-size: 0.95em; }
+        .group-detail-item .value { font-size: 1.1em; color: #34495e; font-weight: 400; }
+        .group-detail-row[data-group-detail] .group-detail-item:first-child span { font-weight: 700; }
+        .group-detail-row.total-row { background-color: #f8f9fa; margin-top: 5px; border-top: 2px solid #e9ecef; font-weight: 700; }
+        .group-detail-row.total-row .group-detail-item .value { font-weight: 700; }
+        .group-detail-row[data-group-detail]:nth-child(even) { background-color: #f8f9fa; }
+        
+        #kpi-group-details-summary .group-detail-row:first-of-type { background-color: #e4eaf1; border-bottom: 2px solid #d0dce8; padding-top: 5px; padding-bottom: 5px; }
+
+        table { border-collapse: collapse; width: 100%; margin-bottom: 30px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); border-radius: 8px; overflow: hidden; font-size: 14px; }
+        th, td { border: 1px solid #e9ecef; padding: 12px; text-align: center; vertical-align: middle; position: relative;}
+        
+        thead th { position: -webkit-sticky; position: sticky; top: 0; background-color: #f1f5f9; z-index: 10; }
+        .editable-base { background-color: #fffaf0; }
+        .editable-desc { background-color: #fdfdfe; }
+        .editable { cursor: pointer; min-height: 20px; }
+        .auto-calc { font-weight: 500; color: #334e68; border-left: 3px solid #a0b4c8; }
+        
+        .group-header th { background-color: #e4eaf1; }
+        .group-header th:first-child { text-align: left; padding-left: 20px; }
+        .group-header-title { cursor: pointer; user-select: none; font-weight: 700; color: #2c3e50; }
+        .group-header-title::before { content: '▶ '; font-size: 0.8em; color: #868e96; }
+        .group-header.expanded .group-header-title::before { content: '▼ '; color: #007bff; }
+
+        tr.collapsed { display: none; }
+        .sub-total td, .grand-total td { background-color: #f1f5f9; font-weight: 500; }
+        .grand-total td { font-weight: 700; color: #2c3e50;}
+        .change-positive { color: #007bff !important; }
+        .change-negative { color: #dc3545 !important; font-weight: 700 !important; }
+        
+        .cell-modified::after { 
+            content: ''; 
+            position: absolute; 
+            top: 0; right: 0; width: 0; height: 0; 
+            border-style: solid; border-width: 0 10px 10px 0; 
+        }
+        .cell-modified.rev-highlight-0::after { border-color: transparent #e57373 transparent transparent; } /* Red */
+        .cell-modified.rev-highlight-1::after { border-color: transparent #81c784 transparent transparent; } /* Green */
+        .cell-modified.rev-highlight-2::after { border-color: transparent #64b5f6 transparent transparent; } /* Blue */
+        .cell-modified.rev-highlight-3::after { border-color: transparent #ffd54f transparent transparent; } /* Amber */
+        .cell-modified.rev-highlight-4::after { border-color: transparent #ba68c8 transparent transparent; } /* Purple */
+
+        #tooltip { position: absolute; display: none; padding: 8px 12px; background-color: #333; color: white; border-radius: 6px; font-size: 0.9em; z-index: 2050; pointer-events: none; line-height: 1.5; }
+        
+        /* --- [변경] 리비전 히스토리 모달 스타일 (이동 및 크기 조절) --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 2000; display: none; justify-content: center; align-items: center; }
+        .modal-content { 
+            background-color: #fff; padding: 0; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); 
+            width: 80%; max-width: 800px; min-width: 400px; max-height: 80vh; min-height: 200px;
+            display: flex; flex-direction: column;
+            /* [추가] 크기 조절 및 위치 설정을 위해 position, top, left 추가 */
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            resize: both; overflow: hidden; /* 크기 조절 핸들 표시 */
+        }
+        .modal-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 1px solid #dee2e6; padding: 15px;
+            cursor: move; /* [추가] 이동 가능한 커서 모양 */
+            background-color: #f1f5f9;
+            border-top-left-radius: 8px; border-top-right-radius: 8px;
+        }
+        .modal-header h3 { margin: 0; color: #2c3e50; }
+        .modal-close-btn { font-size: 1.5rem; font-weight: 700; color: #6c757d; cursor: pointer; background: none; border: none; }
+        #revision-list { list-style-type: none; padding: 10px; margin: 0; flex-grow: 1; overflow-y: auto; }
+        #revision-list li { border-bottom: 1px solid #e9ecef; padding: 15px 10px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+        #revision-list li:last-child { border-bottom: none; }
+        .revision-info { flex-grow: 1; }
+        .revision-info .rev-title { font-weight: 700; color: #34495e; }
+        .revision-info .rev-timestamp { font-size: 0.85em; color: #868e96; margin-left: 10px; }
+        .revision-info .rev-summary { font-size: 0.9em; color: #566573; margin-top: 8px; display: block; max-width: 550px; line-height: 1.6; }
+        .revision-actions .btn { margin-left: 10px; }
+        
+        /* [추가] 리비전별 활성화 버튼 색상 정의 */
+        .btn.active.btn-rev-highlight-0 { background-color: #e57373; border-color: #d32f2f; color: white; }
+        .btn.active.btn-rev-highlight-1 { background-color: #81c784; border-color: #388e3c; color: white; }
+        .btn.active.btn-rev-highlight-2 { background-color: #64b5f6; border-color: #1976d2; color: white; }
+        .btn.active.btn-rev-highlight-3 { background-color: #ffd54f; border-color: #fbc02d; color: #333; }
+        .btn.active.btn-rev-highlight-4 { background-color: #ba68c8; border-color: #7b1fa2; color: white; }
+
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <h1>기숙사 및 사택 주차면 관리</h1>
+        <div class="controls">
+            <div class="dropdown">
+                <button class="btn" onclick="toggleDropdown()">내보내기/가져오기</button>
+                <div id="myDropdown" class="dropdown-content">
+                    <a href="#" onclick="exportTableToExcel()">대시보드 Excel로 내보내기</a>
+                    <a href="#" onclick="saveAsHtml()">HTML로 저장하기</a>
+                    <div class="divider"></div>
+                    <a href="#" onclick="downloadTemplate()">데이터 템플릿 다운로드</a>
+                    <a href="#" onclick="document.getElementById('file-input').click();">Excel 데이터 불러오기</a>
+                </div>
+            </div>
+            <input type="file" id="file-input" accept=".xlsx, .xls" onchange="handleFileUpload(event)">
+            <button class="btn" onclick="window.print()">인쇄하기</button>
+        </div>
+    </div>
+    
+    <p style="margin-top:8px;"><strong>보고일:</strong> <span id="reportDate"></span> | <strong>최종 업데이트:</strong> <span id="lastUpdated"></span></p>
+    
+    <h2>📊 개요</h2>
+    <div class="kpi-container">
+        <div class="kpi-card total-spots-card">
+            <div class="kpi-card-section title"><h3>전체 주차면 수</h3></div>
+            <div class="kpi-card-section value"><div id="kpi-total-spots" class="val"></div></div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-card-section title"><h3>주차면 신설</h3></div>
+            <div class="kpi-card-section value"><div id="kpi-new-spots" class="val"></div></div>
+            <div class="kpi-card-section details">
+                <div id="kpi-new-spots-details-location"></div>
+            </div>
+            <div class="kpi-card-section details">
+                <div id="kpi-new-spots-details-type"></div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-card-section title"><h3>주차면 제거</h3></div>
+            <div class="kpi-card-section value"><div id="kpi-removed-spots" class="val"></div></div>
+            <div class="kpi-card-section details">
+                <div id="kpi-removed-spots-details-location"></div>
+            </div>
+            <div class="kpi-card-section details">
+                <div id="kpi-removed-spots-details-type"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="kpi-summary-container" id="kpi-building-summary">
+    </div>
+    <div class="kpi-summary-container" id="kpi-change-details">
+        <div class="kpi-summary-item change-details-section">
+            <div class="label">주차면 변동 상세</div>
+            <div id="detail-list-dynamic" class="detail-list"></div>
+        </div>
+    </div>
+    <div class="kpi-summary-container" id="kpi-group-details-summary">
+    </div>
+    
+    <div class="info-summary-container">
+        <div class="kpi-summary-item info-details-section">
+            <div class="label">참조 사항</div>
+            <div class="detail-list">
+                <span class="info-item">※ 건축물대장 주차면수: 369대 (A,B동 + 사택) * 3동 제외</span>
+                <span class="info-item">※ 3동 ~ 5동 도로: 10대</span>
+                <span class="info-item">※ AB동 ~ 9동 도로: 9대</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-header-container">
+        <h2>🏢 동별 주차면 현황</h2>
+        <div class="table-controls">
+            <button class="btn" id="showHistoryBtn" onclick="showRevisionHistory()">변경사항 보기</button>
+            <button class="btn" id="saveRevisionBtn" onclick="saveRevision()">변경사항 저장(Rev)</button>
+            <button class="btn" id="undoBtn" onclick="undo()" disabled>실행 취소</button>
+            <button class="btn" id="redoBtn" onclick="redo()" disabled>다시 실행</button>
+        </div>
+    </div>
+
+    <table id="parkingStatusTable">
+        <thead></thead>
+        <tbody id="parkingDataBody"></tbody>
+    </table>
+    
+    <div id="tooltip"></div>
+
+    <div id="revisionHistoryModal" class="modal-overlay">
+        <div id="revisionModalContent" class="modal-content">
+            <div class="modal-header">
+                <h3>변경 이력 (Revision History)</h3>
+                <button class="modal-close-btn" onclick="closeRevisionHistory()">×</button>
+            </div>
+            <ul id="revision-list">
+            </ul>
+        </div>
+    </div>
+
+
+<script>
+let initialOriginalData = []; 
+let originalData = [];        
+let originalDataMap = {}; 
+let currentData = [];
+let historyStack = [];
+let redoStack = [];
+let isHighlighting = false;
+let parkingTypes = [];
+let revisionHistory = [];     
+let activeRevisionIndices = []; // [변경] 단일 선택에서 다중 선택을 위한 배열로 변경
+
+function initializeData() {
+    // [변경] 하드코딩된 데이터를 첨부된 CSV 파일 기준으로 교체
+    const baseData = [
+        { type: 'header', text: '사택 및 3동 (지상/지하)', expanded: false, drawingUrl: 'https://photos.app.goo.gl/cRCU8qfw2SA4Vg1o9'},
+        { type: 'data', id:'d1', location: '1동', width: '2140*4000', drawingUrl: '', 일반: 23, 시간제: 0, 경차: 0, 장애인: 1, 전기차: 0, memo: ''},
+        { type: 'data', id:'d2', location: '2동 뒤', width: '2230*3580', drawingUrl: '', 일반: 25, 시간제: 0, 경차: 0, 장애인: 0, 전기차: 0, memo: '2동 1,2라인뒤 1대 사용제한(차량 통로 확보)'},
+        { type: 'data', id:'d3', location: '3동 뒤', width: '2200*4300', drawingUrl: '', 일반: 22, 시간제: 0, 경차: 0, 장애인: 0, 전기차: 2, memo: ''},
+        { type: 'data', id:'d4', location: '3동 앞', width: '2230*4400', drawingUrl: '', 일반: 26, 시간제: 0, 경차: 0, 장애인: 1, 전기차: 0, memo: ''},
+        { type: 'data', id:'d5', location: '3동 옆(편의점 앞)', width: '1530*4810', drawingUrl: '', 일반: 5, 시간제: 0, 경차: 0, 장애인: 0, 전기차: 0, memo: ''},
+        { type: 'data', id:'d6', location: '6동', width: '1830*4860', drawingUrl: '', 일반: 8, 시간제: 0, 경차: 0, 장애인: 0, 전기차: 0, memo: ''},
+        { type: 'data', id:'d7', location: '7동', width: '1810*4250', drawingUrl: '', 일반: 8, 시간제: 0, 경차: 0, 장애인: 0, 전기차: 0, memo: ''},
+        { type: 'data', id:'d8', location: '8동(지상필로티)', width: '2000*4810', drawingUrl: '', 일반: 12, 시간제: 0, 경차: 0, 장애인: 0, 전기차: 0, memo: '카트 재활용보관장으로 2면 사용제한(총 14면)'},
+        { type: 'data', id:'d9', location: '8동뒤 경사로', width: '', drawingUrl: '', 일반: 0, 시간제: 7, 경차: 0, 장애인: 0, 전기차: 0, memo: ''},
+        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+        // [변경점] '9동 옆'의 일반 주차면이 7 -> 1로, 전기차 주차면이 0 -> 6으로 변경됨
+        { type: 'data', id:'d10', location: '9동 옆', width: '2430*4915(완) 2235*4925(급)', drawingUrl: '', 일반: 1, 시간제: 0, 경차: 0, 장애인: 0, 전기차: 6, memo: '재활용보관장으로 2면 사용 제한(총 9면)'},
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        { type: 'data', id:'d11', location: '놀이터 앞', width: '2145*4855', drawingUrl: '', 일반: 34, 시간제: 0, 경차: 0, 장애인: 1, 전기차: 0, memo: '(22/13)'},
+        { type: 'data', id:'d12', location: '성당방향(재활용보관장 앞)', width: '2145*4550', drawingUrl: '', 일반: 11, 시간제: 2, 경차: 0, 장애인: 1, 전기차: 0, memo: '재활용보관장으로 2면 시간제'},
+        { type: 'data', id:'d13', location: '5~8동 지하주차장', width: '2465*3980', drawingUrl: 'https://photos.app.goo.gl/Caw6BfEFeWVtTQyW9', 일반: 82, 시간제: 1, 경차: 10, 장애인: 0, 전기차: 0, memo: '입구 2면 사용제한. 출구 창고 옆 1면 시간제(총 95면)'},
+        { type: 'subtotal', for: '사택 및 3동 (지상/지하)', text: '사택 및 3동 (지상/지하) 소계' },
+        { type: 'header', text: 'AB동(지상/지하)', expanded: false, drawingUrl: 'https://photos.app.goo.gl/h9EtuBtmzrzp1GQT9'},
+        { type: 'data', id:'ab1', location: 'AㆍB동 지상', width: '3190*3755(장애인)', drawingUrl: '', 일반: 0, 시간제: 0, 경차: 1, 장애인: 5, 전기차: 0, memo: ''},
+        { type: 'data', id:'ab2', location: 'AㆍB동 B1(상)', width: '2145*4820', drawingUrl: '', 일반: 38, 시간제: 0, 경차: 3, 장애인: 0, 전기차: 0, memo: ''},
+        { type: 'data', id:'ab3', location: '1.5~1층 경사로', width: '', drawingUrl: '', 일반: 0, 시간제: 2, 경차: 0, 장애인: 0, 전기차: 0, memo: ''},
+        { type: 'data', id:'ab4', location: 'AㆍB동 B1(하)', width: '2085*4770', drawingUrl: '', 일반: 23, 시간제: 0, 경차: 3, 장애인: 0, 전기차: 0, memo: ''},
+        { type: 'data', id:'ab5', location: '2~1.5층 경사로', width: '', drawingUrl: '', 일반: 0, 시간제: 2, 경차: 0, 장애인: 0, 전기차: 0, memo: ''},
+        { type: 'data', id:'ab6', location: 'AㆍB동 B2(상)', width: '2075*4800', drawingUrl: '', 일반: 38, 시간제: 0, 경차: 3, 장애인: 0, 전기차: 0, memo: ''},
+        { type: 'data', id:'ab7', location: '2.5~2층 경사로', width: '', drawingUrl: '', 일반: 0, 시간제: 2, 경차: 0, 장애인: 0, 전기차: 0, memo: ''},
+        { type: 'data', id:'ab8', location: 'AㆍB동 B2(하)', width: '2085*4785', drawingUrl: '', 일반: 26, 시간제: 0, 경차: 3, 장애인: 0, 전기차: 0, memo: ''},
+        { type: 'subtotal', for: 'AB동(지상/지하)', text: 'AB동 소계' },
+        { type: 'header', text: '101동-104동(지상/지하)', expanded: false, drawingUrl: 'https://photos.app.goo.gl/223evY4uHPUDJdEr9'},
+        { type: 'data', id:'new1', location: '101동-104동 지상', width: '2335*4740', drawingUrl: '', 일반: 4, 시간제: 0, 경차: 0, 장애인: 2, 전기차: 0, memo: '이삿짐, 작업차량, 비상차량외 출입불가'},
+        { type: 'data', id:'new2', location: '101동-104동 B1', width: '2170*4710', drawingUrl: '', 일반: 53, 시간제: 0, 경차: 3, 장애인: 1, 전기차: 0, memo: ''},
+        { type: 'data', id:'new3', location: '101동-104동 B2', width: '2155*5000', drawingUrl: '', 일반: 23, 시간제: 0, 경차: 7, 장애인: 0, 전기차: 0, memo: ''},
+        { type: 'subtotal', for: '101동-104동(지상/지하)', text: '101동-104동 소계' },
+        { type: 'grandtotal', text: '전체 합계' },
+    ];
+    // 이하 함수 로직은 변경 없음
+    initialOriginalData = JSON.parse(JSON.stringify(baseData));
+    initializeDataFromUpload(baseData, false);
+}
+
+function findDataIndexById(id) { return currentData.findIndex(item => item.id === id); }
+function toggleGroup(headerIndex) { currentData[headerIndex].expanded = !currentData[headerIndex].expanded; renderAll(); }
+function pushHistory() { historyStack.push(JSON.stringify({ data: currentData, types: parkingTypes, original: originalData })); redoStack = []; updateUndoRedoButtons(); }
+
+function initializeDataFromUpload(newData, confirmFirst = true) {
+    if (confirmFirst && !confirm("정말로 데이터를 교체하시겠습니까? 현재 수정 중인 내용과 저장된 변경 이력은 모두 사라집니다.")) {
+        return;
+    }
+    
+    if(confirmFirst) {
+        revisionHistory = [];
+        activeRevisionIndices = [];
+        initialOriginalData = JSON.parse(JSON.stringify(newData));
+    }
+
+    const firstDataRow = newData.find(item => item.type === 'data');
+    if (firstDataRow) {
+        parkingTypes = Object.keys(firstDataRow).filter(key => 
+            !['type', 'id', 'location', 'width', 'drawingUrl', 'memo', 'expanded', 'total', 'change'].includes(key)
+        );
+    } else { parkingTypes = []; }
+    originalData = JSON.parse(JSON.stringify(newData));
+    currentData = JSON.parse(JSON.stringify(newData));
+    originalDataMap = {};
+    originalData.forEach(item => {
+        if (item.type === 'data' && !item.id) { item.id = `gen_${Math.random().toString(36).substr(2, 9)}`; }
+        if (item.id) { originalDataMap[item.id] = item; }
+    });
+    historyStack = []; redoStack = [];
+    updateUndoRedoButtons();
+    renderAll();
+}
+
+function undo() {
+    if (historyStack.length === 0) return;
+    redoStack.push(JSON.stringify({ data: currentData, types: parkingTypes, original: originalData }));
+    const prevState = JSON.parse(historyStack.pop());
+    parkingTypes = prevState.types;
+    originalData = prevState.original; 
+    currentData = prevState.data; 
+    originalDataMap = {}; 
+    originalData.forEach(item => { if (item.id) originalDataMap[item.id] = item; });
+    renderAll();
+    updateUndoRedoButtons();
+}
+function redo() {
+    if (redoStack.length === 0) return;
+    historyStack.push(JSON.stringify({ data: currentData, types: parkingTypes, original: originalData }));
+    const nextState = JSON.parse(redoStack.pop());
+    parkingTypes = nextState.types;
+    originalData = nextState.original;
+    currentData = nextState.data; 
+    originalDataMap = {}; 
+    originalData.forEach(item => { if (item.id) originalDataMap[item.id] = item; });
+    renderAll();
+    updateUndoRedoButtons();
+}
+function updateRow(id, field, value) {
+    const index = findDataIndexById(id);
+    if (index === -1) return;
+    const item = currentData[index];
+    const isNumeric = parkingTypes.includes(field);
+    const newValue = isNumeric ? (parseInt(value.trim(), 10) || 0) : value;
+    if (item[field] !== newValue) {
+        pushHistory(); 
+        item[field] = newValue;
+        renderAll();
+    } else {
+        renderAll();
+    }
+}
+
+function renderAll() {
+    const grandTotal = {}; parkingTypes.forEach(type => grandTotal[type] = 0); grandTotal.total = 0; grandTotal.change = 0;
+    const grandChangeDetails = {}; parkingTypes.forEach(type => grandChangeDetails[type] = 0);
+    let buildingGroupTotals = {}; let buildingGroupDetails = {};
+    let newSpotsTotal = 0; let removedSpotsTotal = 0;
+    const locationChangeDetails = { new: [], removed: [] };
+    const typeChangeDetails = { new: {}, removed: {} };
+    let currentGroupName = '';
+    currentData.forEach((currentItem) => {
+        if (currentItem.type === 'header') { currentGroupName = currentItem.text; }
+        else if (currentItem.type === 'data') {
+            const originalItem = originalDataMap[currentItem.id] || {}; let currentItemTotal = 0; let originalItemTotal = 0;
+            parkingTypes.forEach(type => {
+                currentItemTotal += (currentItem[type] || 0);
+                originalItemTotal += (originalItem[type] || 0);
+            });
+            const itemChange = currentItemTotal - originalItemTotal; currentItem.total = currentItemTotal; currentItem.change = itemChange;
+            if (itemChange > 0) newSpotsTotal += itemChange; if (itemChange < 0) removedSpotsTotal += Math.abs(itemChange);
+            if (itemChange !== 0) { const changeText = itemChange > 0 ? `+${itemChange}면` : `${itemChange}면`; const changeClass = itemChange > 0 ? 'change-positive' : 'change-negative'; locationChangeDetails[itemChange > 0 ? 'new' : 'removed'].push(`${currentItem.location}: <span class="${changeClass}">${changeText}</span>`); }
+            parkingTypes.forEach(type => { const typeChange = (currentItem[type] || 0) - (originalItem[type] || 0); if (typeChange !== 0) { grandChangeDetails[type] = (grandChangeDetails[type] || 0) + typeChange; typeChangeDetails[typeChange > 0 ? 'new' : 'removed'][type] = (typeChangeDetails[typeChange > 0 ? 'new' : 'removed'][type] || 0) + typeChange; } });
+        } else if (currentItem.type === 'subtotal' || currentItem.type === 'grandtotal') {
+            let subTotal = { total: 0, change: 0 }; parkingTypes.forEach(type => subTotal[type] = 0);
+            let groupItems = [];
+            if(currentItem.type === 'subtotal') { const headerIndex = currentData.findIndex(h => h.text === currentItem.for); let endIndex = currentData.length; for(let i = headerIndex + 1; i < currentData.length; i++) { if(currentData[i].type === 'header') { endIndex = i; break; } } groupItems = currentData.slice(headerIndex + 1, endIndex).filter(d => d.type === 'data');
+            } else { groupItems = currentData.filter(d => d.type === 'data'); }
+            groupItems.forEach(d => {
+                parkingTypes.forEach(type => { subTotal[type] += (d[type] || 0); });
+                subTotal.total += (d.total || 0); subTotal.change += (d.change || 0);
+            });
+            Object.assign(currentItem, subTotal);
+            if(currentItem.type === 'subtotal') { buildingGroupTotals[currentItem.for] = currentItem.total; buildingGroupDetails[currentItem.for] = { ...currentItem };
+            } else { Object.assign(grandTotal, currentItem); }
+        }
+    });
+    const formatZeroAsDash = (value) => (value === 0 ? '-' : value);
+    document.getElementById('kpi-total-spots').textContent = formatZeroAsDash(grandTotal.total); document.getElementById('kpi-new-spots').textContent = formatZeroAsDash(newSpotsTotal); document.getElementById('kpi-removed-spots').textContent = formatZeroAsDash(removedSpotsTotal);
+    const renderChangeDetails = (div, details) => { if (details.length > 0) { div.innerHTML = details.join(', '); div.parentElement.classList.remove('no-change'); } else { div.innerHTML = '<span>-</span>'; div.parentElement.classList.add('no-change'); } };
+    renderChangeDetails(document.getElementById('kpi-new-spots-details-location'), locationChangeDetails.new); renderChangeDetails(document.getElementById('kpi-removed-spots-details-location'), locationChangeDetails.removed);
+    const newTypeSummary = Object.keys(typeChangeDetails.new).map(key => `${key}: <span class="change-positive">+${typeChangeDetails.new[key]}</span>`); const removedTypeSummary = Object.keys(typeChangeDetails.removed).map(key => `${key}: <span class="change-negative">${typeChangeDetails.removed[key]}</span>`);
+    renderChangeDetails(document.getElementById('kpi-new-spots-details-type'), newTypeSummary); renderChangeDetails(document.getElementById('kpi-removed-spots-details-type'), removedTypeSummary);
+    const buildingSummary = document.getElementById('kpi-building-summary'); buildingSummary.innerHTML = ''; currentData.filter(item => item.type === 'header').forEach(header => { buildingSummary.innerHTML += `<div class="kpi-summary-item"><div class="label">${header.text}</div><div class="value" data-summary-building="${header.text}">${formatZeroAsDash(buildingGroupTotals[header.text] || 0)}</div></div>`; });
+    const detailListDynamic = document.getElementById('detail-list-dynamic'); detailListDynamic.innerHTML = '';
+    parkingTypes.forEach(type => {
+        const changeValue = grandChangeDetails[type] || 0; let valueHtml = formatZeroAsDash(changeValue); let className = '';
+        if (changeValue > 0) { valueHtml = `+${changeValue}`; className = 'change-positive'; } if (changeValue < 0) { className = 'change-negative'; }
+        detailListDynamic.innerHTML += `<span>${type}: <b data-change-type="${type}" class="${className}">${valueHtml}</b></span>`;
+    });
+    const groupDetailsSummary = document.getElementById('kpi-group-details-summary'); let headerHtml = `<div class="group-detail-item header"><span>구분</span></div>`; parkingTypes.forEach(type => headerHtml += `<div class="group-detail-item header"><span>${type}</span></div>`);
+    let groupDetailsHtml = `<div class="group-detail-row">${headerHtml}</div>`;
+    currentData.filter(item => item.type === 'header').forEach(header => {
+        const groupName = header.text; const details = buildingGroupDetails[groupName]; let rowHtml = `<div class="group-detail-item"><span>${groupName}</span></div>`;
+        if (details) { parkingTypes.forEach(type => { rowHtml += `<div class="group-detail-item"><span class="value" data-group-value="${type}">${formatZeroAsDash(details[type])}</span></div>`; }); }
+        groupDetailsHtml += `<div class="group-detail-row" data-group-detail="${groupName}">${rowHtml}</div>`;
+    });
+    let totalRowHtml = `<div class="group-detail-item"><span>전체 합계</span></div>`; parkingTypes.forEach(type => { totalRowHtml += `<div class="group-detail-item"><span class="value" data-group-total-value="${type}">${formatZeroAsDash(grandTotal[type])}</span></div>`; });
+    groupDetailsHtml += `<div class="group-detail-row total-row">${totalRowHtml}</div>`; groupDetailsSummary.innerHTML = groupDetailsHtml;
+    const tableHead = document.querySelector('#parkingStatusTable thead'); const tableBody = document.querySelector('#parkingStatusTable tbody');
+    let headContent = `<tr><th style="width:20%">구분</th><th style="width:5%">도면</th>`; parkingTypes.forEach(type => headContent += `<th>${type}</th>`);
+    headContent += `<th class="auto-calc" style="width:8%">합계</th><th class="auto-calc" style="width:8%">증감</th><th style="width:24%">비고</th></tr>`; tableHead.innerHTML = headContent;
+    let bodyContent = ''; let currentGroupHeader = null;
+    currentData.forEach((item, index) => {
+        if (item.type === 'header') {
+            currentGroupHeader = item;
+            let drawingIcon = (item.drawingUrl) ? `<span class="view-drawing-icon" onclick="event.stopPropagation(); openDrawingLink('${item.drawingUrl}')">🔍</span>` : '';
+            bodyContent += `<tr class="group-header ${item.expanded ? 'expanded' : ''}">
+                <th><span class="group-header-title" onclick="toggleGroup(${index})">${item.text}</span></th>
+                <th>${drawingIcon}</th>
+                <th colspan="${parkingTypes.length + 3}"></th>
+            </tr>`;
+        } else if (item.type === 'data') {
+            let rowClass = (currentGroupHeader && !currentGroupHeader.expanded) ? 'collapsed' : '';
+            let drawingIcon = (item.drawingUrl) ? `<span class="view-drawing-icon" onclick="openDrawingLink('${item.drawingUrl}')">🔍</span>` : '';
+            let cells = `<td data-field="location" class="editable editable-desc" contenteditable="true" onfocus="cellOnFocus(this)" onblur="cellOnBlur(this, '${item.id}', 'location')" onmousemove="showWidthTooltip(event, '${item.id}')" onmouseout="hideTooltip()">${item.location || ''}</td>`;
+            cells += `<td>${drawingIcon}</td>`;
+            parkingTypes.forEach(type => { cells += `<td data-field="${type}" class="editable editable-base" contenteditable="true" onfocus="cellOnFocus(this)" onblur="cellOnBlur(this, '${item.id}', '${type}')">${item[type] === 0 ? '' : item[type] || ''}</td>`; });
+            cells += `<td class="auto-calc total-col">${item.total || ''}</td><td class="auto-calc change-col">${item.change}</td><td data-field="memo" class="editable editable-desc" contenteditable="true" onfocus="cellOnFocus(this)" onblur="cellOnBlur(this, '${item.id}', 'memo')">${item.memo || ''}</td>`;
+            bodyContent += `<tr class="${rowClass}" data-row-id="${item.id}">${cells}</tr>`;
+        } else if (item.type === 'subtotal' || item.type === 'grandtotal') {
+            let rowClass = item.type === 'subtotal' ? 'sub-total' : 'grand-total'; let cells = `<td>${item.text}</td><td></td>`;
+            parkingTypes.forEach(type => { cells += `<td data-sum-col="${type}">${item[type] || ''}</td>`; });
+            cells += `<td data-sum-col="total" class="auto-calc">${item.total || ''}</td><td data-sum-col="change" class="auto-calc">${item.change}</td><td></td>`;
+            bodyContent += `<tr class="${rowClass}">${cells}</tr>`;
+        }
+    });
+    tableBody.innerHTML = bodyContent; formatCells(); if(isHighlighting) applyHighlighting();
+    const now = new Date(); document.getElementById('reportDate').innerText = now.toISOString().split('T')[0]; document.getElementById('lastUpdated').innerText = now.toLocaleString('ko-KR');
+}
+function formatCells() { document.querySelectorAll('.editable-base, .auto-calc').forEach(cell => { let text = cell.textContent.trim(); let value = parseFloat(text); if(isNaN(value)) return; if (value === 0 && !cell.classList.contains('change-col') && !cell.hasAttribute('data-sum-col')) { cell.textContent = ''; } }); document.querySelectorAll('.change-col, [data-sum-col="change"]').forEach(cell => { let text = cell.textContent.trim(); let value = parseFloat(text); if (isNaN(value) || value === 0) { cell.textContent = ''; return; } cell.classList.remove('change-positive', 'change-negative'); if(value > 0) { cell.textContent = `+${value}`; cell.classList.add('change-positive'); } else if(value < 0) { cell.classList.add('change-negative'); } });}
+function updateUndoRedoButtons() { document.getElementById('undoBtn').disabled = historyStack.length === 0; document.getElementById('redoBtn').disabled = redoStack.length === 0; }
+function cellOnFocus(cell) { if (cell.textContent.trim() === '' && cell.classList.contains('editable-base')) { cell.textContent = '0'; } }
+function cellOnBlur(cell, id, field) { if(cell.textContent.trim() === '' && cell.classList.contains('editable-base')) cell.textContent = '0'; updateRow(id, field, cell.textContent); }
+
+// [변경] 다중 리비전 하이라이팅 적용 함수
+function applyHighlighting() {
+    const REVISION_HIGHLIGHT_COLORS = 5;
+    // 모든 하이라이트 클래스 초기화
+    document.querySelectorAll('td.cell-modified').forEach(cell => { 
+        cell.classList.remove('cell-modified');
+        for (let i = 0; i < REVISION_HIGHLIGHT_COLORS; i++) {
+            cell.classList.remove(`rev-highlight-${i}`);
+        }
+        cell.removeEventListener('mousemove', showChangeTooltip); 
+        cell.removeEventListener('mouseout', hideTooltip); 
+    });
+
+    document.getElementById('showHistoryBtn').classList.toggle('active', isHighlighting);
+
+    if (!isHighlighting || activeRevisionIndices.length === 0) return;
+    
+    // 각 활성 리비전에 대해 변경점 계산 및 하이라이트 적용
+    activeRevisionIndices.forEach(revIndex => {
+        const highlightClass = `rev-highlight-${revIndex % REVISION_HIGHLIGHT_COLORS}`;
+        const currentRevisionData = revisionHistory[revIndex].data;
+        const previousRevisionData = (revIndex > 0) ? revisionHistory[revIndex - 1].data : initialOriginalData;
+        
+        const prevDataMap = {};
+        previousRevisionData.filter(item => item.type === 'data').forEach(item => { prevDataMap[item.id] = item; });
+        
+        currentRevisionData.forEach(currentItem => {
+            if (currentItem.type !== 'data') return;
+            const previousItem = prevDataMap[currentItem.id] || {};
+            const row = document.querySelector(`tr[data-row-id='${currentItem.id}']`);
+            if (!row) return;
+
+            for (const field in currentItem) {
+                if (JSON.stringify(currentItem[field]) !== JSON.stringify(previousItem[field])) {
+                    const cell = row.querySelector(`td[data-field='${field}']`);
+                    if (cell) {
+                        cell.classList.add('cell-modified', highlightClass);
+                        cell.addEventListener('mousemove', showChangeTooltip);
+                        cell.addEventListener('mouseout', hideTooltip);
+                    }
+                }
+            }
+        });
+    });
+}
+function showWidthTooltip(event, id) {
+    const item = currentData.find(item => item.id === id); if (!item || !item.width) { hideTooltip(); return; };
+    const tooltip = document.getElementById('tooltip'); tooltip.innerHTML = `<strong>주차 넓이:</strong> ${item.width}`;
+    tooltip.style.display = 'block'; tooltip.style.left = (event.pageX + 15) + 'px'; tooltip.style.top = (event.pageY + 15) + 'px';
+}
+function showChangeTooltip(event) {
+    const cell = event.target; const row = cell.closest('tr'); const id = row.dataset.rowId; const field = cell.dataset.field;
+    const currentItem = currentData.find(item => item.id === id); 
+    
+    // 툴팁에 표시할 이전 값을 찾기 위해 어떤 리비전의 변경인지 확인
+    let originalValue = 'N/A';
+    for(let i = activeRevisionIndices.length -1; i >= 0; i--) {
+        const revIndex = activeRevisionIndices[i];
+        const previousData = (revIndex > 0) ? revisionHistory[revIndex-1].data : initialOriginalData;
+        const originalItem = previousData.find(item => item.id === id);
+        if(originalItem && JSON.stringify(currentItem[field]) !== JSON.stringify(originalItem[field])){
+             originalValue = originalItem[field];
+             break;
+        }
+    }
+    
+    let currentValue = currentItem[field];
+    const tooltip = document.getElementById('tooltip'); tooltip.innerHTML = `이전: ${originalValue || ' '}<br>현재: ${currentValue || ' '}`;
+    tooltip.style.display = 'block'; tooltip.style.left = (event.pageX + 15) + 'px'; tooltip.style.top = (event.pageY + 15) + 'px';
+}
+function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+function toggleDropdown() { document.getElementById("myDropdown").classList.toggle("show"); }
+window.onclick = function(event) { if (!event.target.matches('.btn')) { var dropdowns = document.getElementsByClassName("dropdown-content"); for (var i = 0; i < dropdowns.length; i++) { var openDropdown = dropdowns[i]; if (openDropdown.classList.contains('show')) { openDropdown.classList.remove('show'); } } } }
+
+function handleFileUpload(event) {
+    const file = event.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheetName = workbook.SheetNames[0]; const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" }); 
+            const { valid, newData, error } = processUploadedData(jsonData);
+            if (!valid) { alert(`파일 처리 중 오류가 발생했습니다:\n${error}`); return; }
+            initializeDataFromUpload(newData);
+        } catch (error) { console.error(error); alert("파일을 읽는 중 오류가 발생했습니다. 템플릿 양식이 올바른지 확인해주세요.");
+        } finally { event.target.value = ''; }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function processUploadedData(jsonData) {
+    if (jsonData.length === 0) return { valid: false, error: '업로드한 파일에 데이터가 없습니다.' };
+    
+    const uploadedHeaders = Object.keys(jsonData[0]);
+    if (!uploadedHeaders.includes('그룹') || !uploadedHeaders.includes('구분')) {
+        return { valid: false, error: `필수 컬럼인 '그룹' 또는 '구분'이 누락되었습니다.`};
+    }
+
+    const newParkingTypes = uploadedHeaders.filter(h => !['그룹', '구분', '주차넓이', '도면 링크', '그룹 도면 링크', '비고'].includes(h));
+    
+    let newBaseData = [];
+    const addedGroups = new Set();
+    const subtotalTemplates = {}; 
+    
+    const originalOrInitialData = originalData.length > 0 ? originalData : [];
+    originalOrInitialData.forEach(item => { if(item.type === 'subtotal') subtotalTemplates[item.for] = item.text; });
+
+    jsonData.forEach((row, index) => {
+        const groupName = row['그룹'] || (addedGroups.size > 0 ? [...addedGroups].pop() : '미지정 그룹');
+        if (!groupName) return; 
+
+        if (!addedGroups.has(groupName)) {
+            newBaseData.push({ type: 'header', text: groupName, expanded: false, drawingUrl: row['그룹 도면 링크'] || '' });
+            addedGroups.add(groupName);
+        }
+        
+        const dataRow = { type: 'data', id: `row_${index}_${Date.now()}` };
+        dataRow.location = row['구분'] || `항목 ${index + 1}`;
+        dataRow.width = row['주차넓이'] || '';
+        dataRow.drawingUrl = row['도면 링크'] || '';
+        dataRow.memo = row['비고'] || '';
+        newParkingTypes.forEach(type => {
+            dataRow[type] = parseInt(row[type], 10) || 0;
+        });
+        newBaseData.push(dataRow);
+    });
+    
+    const finalData = [];
+    addedGroups.forEach(groupName => {
+        const header = newBaseData.find(item => item.type === 'header' && item.text === groupName);
+        if(header) finalData.push(header);
+        
+        const groupDataRows = newBaseData.filter(item => {
+            const rowData = jsonData.find(j => j['구분'] === item.location && j['그룹'] === groupName);
+            return item.type === 'data' && rowData;
+        });
+        finalData.push(...groupDataRows);
+        
+        if (groupDataRows.length > 0) {
+            finalData.push({
+                type: 'subtotal',
+                for: groupName,
+                text: subtotalTemplates[groupName] || `${groupName} 소계`,
+            });
+        }
+    });
+
+    if (finalData.length > 0) {
+        finalData.push({ type: 'grandtotal', text: '전체 합계' });
+    }
+    
+    return { valid: true, newData: finalData };
+}
+
+function downloadTemplate() {
+    const headers = ['그룹', '그룹 도면 링크', '구분', '주차넓이', '도면 링크', ...parkingTypes, '비고'];
+    const templateData = [];
+    let currentGroup = '';
+    
+    currentData.forEach(item => {
+        if (item.type === 'header') {
+            currentGroup = item.text;
+        } else if (item.type === 'data') {
+            const row = { '그룹': currentGroup };
+            const groupHeader = currentData.find(h => h.type === 'header' && h.text === currentGroup);
+            row['그룹 도면 링크'] = groupHeader ? groupHeader.drawingUrl : '';
+            headers.slice(2).forEach(header => {
+                const key = header === '구분' ? 'location' : (header === '주차넓이' ? 'width' : (header === '도면 링크' ? 'drawingUrl' : (header === '비고' ? 'memo' : header)));
+                row[header] = item[key] !== undefined ? item[key] : '';
+            });
+            templateData.push(row);
+        }
+    });
+
+    const finalTemplateData = []; const processedGroups = new Set();
+    templateData.forEach(row => {
+        if (!processedGroups.has(row['그룹'])) {
+            finalTemplateData.push(row);
+            processedGroups.add(row['그룹']);
+        } else {
+            const newRow = {...row};
+            newRow['그룹 도면 링크'] = '';
+            finalTemplateData.push(newRow);
+        }
+    });
+    const ws = XLSX.utils.json_to_sheet(finalTemplateData);
+    const colWidths = [{wch:30}, {wch:30}, {wch:30}, {wch:20}, {wch:30}, ...parkingTypes.map(() => ({wch:10})), {wch:30}];
+    ws['!cols'] = colWidths;
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "데이터 수정 템플릿");
+    XLSX.writeFile(wb, "주차면_데이터_템플릿.xlsx");
+}
+
+function getAllFunctionsAsString() {
+    const functions = [
+        initializeData, findDataIndexById, updateRow, renderAll, formatCells, saveAsHtml, getAllFunctionsAsString, exportTableToExcel,
+        pushHistory, updateUndoRedoButtons, undo, redo, applyHighlighting,
+        showWidthTooltip, showChangeTooltip, hideTooltip, toggleGroup,
+        toggleDropdown, handleFileUpload, processUploadedData, initializeDataFromUpload, downloadTemplate,
+        openDrawingLink,
+        cellOnFocus, cellOnBlur,
+        saveRevision, showRevisionHistory, closeRevisionHistory, viewRevisionChanges, updateRevisionModalButtons,
+        makeModalDraggable // [추가] HTML 저장에 포함될 함수
+    ];
+    return functions.map(fn => fn.toString()).join('\n\n');
+}
+
+function saveAsHtml() {
+    try {
+        document.getElementById("myDropdown").classList.remove("show");
+        const clonedDocument = document.documentElement.cloneNode(true);
+        const oldScript = clonedDocument.querySelector('body > script'); if(oldScript) oldScript.remove();
+        const sheetJsScript = document.createElement('script');
+        sheetJsScript.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+        sheetJsScript.defer = true; clonedDocument.querySelector('head').appendChild(sheetJsScript);
+        
+        const dataToSave = JSON.parse(JSON.stringify(currentData)); dataToSave.forEach(item => { if(item.type === 'header') item.expanded = false; });
+        const originalDataToSave = JSON.parse(JSON.stringify(originalData)); originalDataToSave.forEach(item => { if(item.type === 'header') item.expanded = false; });
+        
+        const initialOriginalDataString = JSON.stringify(initialOriginalData, null, 4);
+        const originalDataString = JSON.stringify(originalDataToSave, null, 4); 
+        const currentDataString = JSON.stringify(dataToSave, null, 4);
+        const revisionHistoryString = JSON.stringify(revisionHistory, null, 4);
+        
+        const allFunctionsString = getAllFunctionsAsString();
+        
+        const scriptToSave = `
+    let initialOriginalData = ${initialOriginalDataString};
+    let originalData = ${originalDataString}; 
+    let currentData = ${currentDataString}; 
+    let revisionHistory = ${revisionHistoryString};
+    let parkingTypes = ${JSON.stringify(parkingTypes)};
+    let activeRevisionIndices = []; // HTML 로드 시 초기화
+    let originalDataMap = {}; 
+    let historyStack = []; 
+    let redoStack = []; 
+    let isHighlighting = false;
+    
+    ${allFunctionsString}
+    
+    window.onload = () => {
+        if (typeof initialOriginalData !== 'undefined' && initialOriginalData.length > 0) {
+            originalData.forEach(item => { if (item.id) originalDataMap[item.id] = item; });
+            renderAll();
+            updateUndoRedoButtons();
+            makeModalDraggable(); // 저장된 파일 로드 시에도 모달 이동 기능 활성화
+        } else {
+            initializeData();
+        }
+    };`;
+        const newScript = document.createElement('script'); newScript.textContent = scriptToSave;
+        const bodyElement = clonedDocument.querySelector('body');
+        if (bodyElement) { bodyElement.appendChild(newScript); } else { throw new Error("Cloned document does not have a body element."); }
+        const finalHtml = `<!DOCTYPE html>\n` + clonedDocument.outerHTML;
+        const blob = new Blob([finalHtml], { type: 'text/html;charset=utf-8' });
+        const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
+        const today = new Date(); const filename = `기숙사_사택_주차면_관리_${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}.html`;
+        link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href);
+    } catch (e) { console.error("HTML 저장 중 오류 발생:", e); alert("HTML 파일을 저장하는 중 오류가 발생했습니다. 개발자 콘솔(F12)을 확인해주세요."); }
+}
+
+function exportTableToExcel() {
+    if (typeof XLSX === 'undefined') { alert('엑셀 라이브러리를 불러오지 못했습니다.'); return; }
+    const wb = XLSX.utils.book_new();
+    const today = new Date();
+    const filename = `기숙사_사택_주차면_현황_${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}.xlsx`;
+    const stripHtml = (html) => { let doc = new DOMParser().parseFromString(html, 'text/html'); return doc.body.textContent || ""; }
+    const kpiData = [
+        ['항목', '값', '상세 내용 (건물별)', '상세 내용 (유형별)'],
+        ['전체 주차면 수', document.getElementById('kpi-total-spots').textContent, '', ''],
+        ['주차면 신설', document.getElementById('kpi-new-spots').textContent, stripHtml(document.getElementById('kpi-new-spots-details-location').innerHTML), stripHtml(document.getElementById('kpi-new-spots-details-type').innerHTML)],
+        ['주차면 제거', document.getElementById('kpi-removed-spots').textContent, stripHtml(document.getElementById('kpi-removed-spots-details-location').innerHTML), stripHtml(document.getElementById('kpi-removed-spots-details-type').innerHTML)]
+    ];
+    const ws_kpi = XLSX.utils.aoa_to_sheet(kpiData); ws_kpi['!cols'] = [{wch: 20}, {wch: 10}, {wch: 40}, {wch: 40}]; XLSX.utils.book_append_sheet(wb, ws_kpi, '핵심 요약 (KPI)');
+    const changeDetailsData = [['주차면 유형', '변동 수']];
+    document.querySelectorAll('#detail-list-dynamic span').forEach(span => { const type = span.textContent.split(':')[0].trim(); const value = span.querySelector('b').textContent; changeDetailsData.push([type, value]); });
+    const ws_change = XLSX.utils.aoa_to_sheet(changeDetailsData); ws_change['!cols'] = [{wch: 15}, {wch: 10}]; XLSX.utils.book_append_sheet(wb, ws_change, '주차면 변동 상세');
+    const summaryData = [['[건물별 총 주차면]'], ['건물', '전체 주차면 수']];
+    document.querySelectorAll('#kpi-building-summary .kpi-summary-item').forEach(item => { summaryData.push([item.querySelector('.label').textContent, item.querySelector('.value').textContent]); });
+    summaryData.push([], ['[동별 상세 내역 요약]']);
+    document.querySelectorAll('#kpi-group-details-summary .group-detail-row').forEach(row => { const rowData = []; row.querySelectorAll('.group-detail-item').forEach(cell => { rowData.push(cell.textContent); }); summaryData.push(rowData); });
+    const ws_summary = XLSX.utils.aoa_to_sheet(summaryData); ws_summary['!cols'] = [{wch: 25}, ...parkingTypes.map(() => ({wch:12}))]; XLSX.utils.book_append_sheet(wb, ws_summary, '요약 취합');
+    const infoData = [['참조 사항']]; document.querySelectorAll('.info-summary-container .info-item').forEach(item => { infoData.push([item.textContent]); });
+    const ws_info = XLSX.utils.aoa_to_sheet(infoData); ws_info['!cols'] = [{wch: 60}]; XLSX.utils.book_append_sheet(wb, ws_info, '참조 사항');
+    const dashboardHeaders = ['구분', '도면 링크', '주차넓이', ...parkingTypes, '합계', '증감', '비고']; const dashboardData = [dashboardHeaders];
+    currentData.forEach(item => {
+        let row = [];
+        if (item.type === 'header') { row.push(item.text, item.drawingUrl || ''); } 
+        else if (item.type === 'data') { row.push(item.location, item.drawingUrl || '', item.width || ''); parkingTypes.forEach(type => row.push(item[type] || 0)); row.push(item.total, item.change, item.memo); }
+        else if (item.type === 'subtotal' || item.type === 'grandtotal') { row.push(item.text, '', ''); parkingTypes.forEach(type => row.push(item[type] || 0)); row.push(item.total, item.change, ''); }
+        dashboardData.push(row);
+    });
+    const ws_dashboard = XLSX.utils.aoa_to_sheet(dashboardData); ws_dashboard['!cols'] = [{wch:25}, {wch:30}, {wch:20}, ...parkingTypes.map(() => ({wch:10})), {wch:10}, {wch:10}, {wch:30}]; XLSX.utils.book_append_sheet(wb, ws_dashboard, '대시보드 현황');
+    const rawHeaders = ['ID', '구분', '주차넓이', '도면 링크', ...parkingTypes, '비고'];
+    const currentRawData = [rawHeaders, ...currentData.filter(item => item.type === 'data').map(item => { let row = [item.id, item.location, item.width || '', item.drawingUrl || '']; parkingTypes.forEach(type => row.push(item[type] || 0)); row.push(item.memo); return row; })];
+    const ws_current_raw = XLSX.utils.aoa_to_sheet(currentRawData); ws_current_raw['!cols'] = [{wch:10}, {wch:25}, {wch:20}, {wch:30}, ...parkingTypes.map(() => ({wch:10})), {wch:30}]; XLSX.utils.book_append_sheet(wb, ws_current_raw, '수정 데이터 상세');
+    const originalRawData = [rawHeaders, ...originalData.filter(item => item.type === 'data').map(item => { let row = [item.id, item.location, item.width || '', item.drawingUrl || '']; parkingTypes.forEach(type => row.push(item[type] || 0)); row.push(item.memo); return row; })];
+    const ws_original_raw = XLSX.utils.aoa_to_sheet(originalRawData); ws_original_raw['!cols'] = [{wch:10}, {wch:25}, {wch:20}, {wch:30}, ...parkingTypes.map(() => ({wch:10})), {wch:30}]; XLSX.utils.book_append_sheet(wb, ws_original_raw, '원본 데이터');
+    XLSX.writeFile(wb, filename);
+}
+
+function openDrawingLink(url) {
+    if (url && url.trim() !== '') {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+}
+
+// --- [추가/변경] 리비전 히스토리 관련 함수들 ---
+
+function saveRevision() {
+    const previousDataState = revisionHistory.length > 0 ? revisionHistory[revisionHistory.length - 1].data : initialOriginalData;
+    const previousDataMap = {};
+    previousDataState.filter(item => item.type === 'data').forEach(item => previousDataMap[item.id] = item);
+
+    let changes = [];
+    currentData.forEach(currentItem => {
+        if (currentItem.type !== 'data') return;
+        const previousItem = previousDataMap[currentItem.id] || {};
+        
+        Object.keys(currentItem).forEach(field => {
+            if (['type', 'expanded', 'total', 'change'].includes(field)) return;
+            
+            const currentValue = currentItem[field];
+            const previousValue = previousItem[field];
+            
+            if (JSON.stringify(currentValue) !== JSON.stringify(previousValue)) {
+                changes.push(`${currentItem.location}: ${field}(${previousValue || ' ' }→${currentValue || ' '})`);
+            }
+        });
+    });
+
+    if (changes.length === 0) {
+        alert("저장할 변경사항이 없습니다.");
+        return;
+    }
+
+    const summary = changes.join(', ');
+    const newRevision = {
+        timestamp: new Date().toLocaleString('ko-KR'),
+        data: JSON.parse(JSON.stringify(currentData)),
+        summary: summary
+    };
+
+    revisionHistory.push(newRevision);
+
+    originalData = JSON.parse(JSON.stringify(currentData));
+    originalDataMap = {};
+    originalData.forEach(item => { if (item.id) originalDataMap[item.id] = item; });
+
+    historyStack = [];
+    redoStack = [];
+    updateUndoRedoButtons();
+    
+    isHighlighting = false;
+    activeRevisionIndices = [];
+    renderAll();
+    
+    alert(`Rev ${revisionHistory.length}이(가) 저장되었습니다.`);
+}
+
+// [변경] 모달 토글 기능 추가
+function showRevisionHistory() {
+    const modal = document.getElementById('revisionHistoryModal');
+    // 모달이 이미 열려있으면 닫기
+    if (modal.style.display === 'flex') {
+        closeRevisionHistory();
+        return;
+    }
+
+    const list = document.getElementById('revision-list');
+    list.innerHTML = ''; 
+
+    if (revisionHistory.length === 0) {
+        list.innerHTML = '<li>저장된 변경 이력이 없습니다.</li>';
+    } else {
+        revisionHistory.forEach((rev, index) => {
+            const isCurrentlyActive = activeRevisionIndices.includes(index);
+            const buttonText = isCurrentlyActive ? '보기 취소' : '변경점 보기';
+            const highlightClass = `btn-rev-highlight-${index % 5}`;
+            const buttonClass = isCurrentlyActive ? `btn active ${highlightClass}` : 'btn';
+
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `
+                <div class="revision-info">
+                    <span class="rev-title">Rev ${index + 1}</span>
+                    <span class="rev-timestamp">${rev.timestamp}</span>
+                    <span class="rev-summary"><b>변경 요약:</b> ${rev.summary}</span>
+                </div>
+                <div class="revision-actions">
+                    <button class="${buttonClass}" data-rev-index="${index}" onclick="viewRevisionChanges(${index})">${buttonText}</button>
+                </div>
+            `;
+            list.appendChild(listItem);
+        });
+    }
+    modal.style.display = 'flex';
+}
+
+function closeRevisionHistory() {
+    document.getElementById('revisionHistoryModal').style.display = 'none';
+    document.getElementById('showHistoryBtn').classList.remove('active');
+}
+
+// [변경] 버튼 상태 업데이트 함수 - 다중 선택 및 색상 클래스 반영
+function updateRevisionModalButtons() {
+    const REVISION_HIGHLIGHT_COLORS = 5;
+    const modalButtons = document.querySelectorAll('#revision-list .btn');
+    modalButtons.forEach(button => {
+        const revIndex = parseInt(button.dataset.revIndex, 10);
+        const isCurrentlyActive = activeRevisionIndices.includes(revIndex);
+        const highlightClass = `btn-rev-highlight-${revIndex % REVISION_HIGHLIGHT_COLORS}`;
+        
+        button.textContent = isCurrentlyActive ? '보기 취소' : '변경점 보기';
+        
+        // 이전 색상 클래스 모두 제거
+        for(let i=0; i < REVISION_HIGHLIGHT_COLORS; i++) {
+            button.classList.remove(`btn-rev-highlight-${i}`);
+        }
+
+        if (isCurrentlyActive) {
+            button.classList.add('active', highlightClass);
+        } else {
+            button.classList.remove('active');
+        }
+    });
+}
+
+// [변경] 리비전 보기 함수 - 다중 선택 토글 로직
+function viewRevisionChanges(revIndex) {
+    const indexInArray = activeRevisionIndices.indexOf(revIndex);
+    
+    if (indexInArray > -1) { // 이미 활성화된 경우: 배열에서 제거 (취소)
+        activeRevisionIndices.splice(indexInArray, 1);
+    } else { // 비활성화된 경우: 배열에 추가 (선택)
+        activeRevisionIndices.push(revIndex);
+        activeRevisionIndices.sort((a,b) => a-b); // 순서대로 정렬
+    }
+    
+    if (activeRevisionIndices.length > 0) {
+        isHighlighting = true;
+        // 테이블에 보여줄 데이터는 활성화된 리비전 중 가장 최신 버전으로 설정
+        const latestActiveIndex = Math.max(...activeRevisionIndices);
+        currentData = JSON.parse(JSON.stringify(revisionHistory[latestActiveIndex].data));
+        
+        // '증감' 계산의 기준이 될 데이터는 선택된 리비전의 바로 이전 상태로 설정
+        const previousDataForLatest = (latestActiveIndex > 0) ? revisionHistory[latestActiveIndex - 1].data : initialOriginalData;
+        originalData = JSON.parse(JSON.stringify(previousDataForLatest));
+    } else {
+        isHighlighting = false;
+        // 활성화된 리비전이 없으면, 최종 저장 상태로 복귀
+        const lastSavedState = revisionHistory.length > 0 ? revisionHistory[revisionHistory.length - 1].data : initialOriginalData;
+        currentData = JSON.parse(JSON.stringify(lastSavedState));
+        originalData = JSON.parse(JSON.stringify(lastSavedState)); // 증감/변경 없음으로 표시
+    }
+    
+    originalDataMap = {};
+    originalData.forEach(item => { if (item.id) originalDataMap[item.id] = item; });
+    
+    renderAll();
+    updateRevisionModalButtons();
+}
+
+// [추가] 모달을 드래그 가능하게 만드는 함수
+function makeModalDraggable() {
+    const modalContent = document.getElementById("revisionModalContent");
+    const modalHeader = modalContent.querySelector(".modal-header");
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    modalHeader.onmousedown = function(e) {
+        isDragging = true;
+        // 모달의 현재 위치(left, top)와 마우스 클릭 지점의 차이 계산
+        offsetX = e.clientX - modalContent.offsetLeft;
+        offsetY = e.clientY - modalContent.offsetTop;
+        
+        document.onmousemove = function(e) {
+            if (isDragging) {
+                // 마우스 이동에 따라 모달 위치 업데이트
+                modalContent.style.left = (e.clientX - offsetX) + 'px';
+                modalContent.style.top = (e.clientY - offsetY) + 'px';
+                // 드래그 중 transform 속성 초기화
+                modalContent.style.transform = 'none';
+            }
+        };
+
+        document.onmouseup = function() {
+            isDragging = false;
+            document.onmousemove = null;
+            document.onmouseup = null;
+        };
+    };
+}
+
+
+window.onload = () => {
+    if (typeof initialOriginalData !== 'undefined' && initialOriginalData.length > 0) {
+        originalData.forEach(item => { if (item.id) originalDataMap[item.id] = item; });
+        renderAll();
+        updateUndoRedoButtons();
+    } else {
+        initializeData();
+    }
+    // [추가] 페이지 로드 시 모달 이동/크기조절 기능 활성화
+    makeModalDraggable();
+};
+</script>
+</body>
+</html>
