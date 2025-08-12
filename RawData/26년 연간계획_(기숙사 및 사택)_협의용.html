@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>26년 연간계획 (양식)</title>
+    <style type="text/css">
+        /* --- 기본 및 기능 구현 스타일 --- */
+        body { font-family: "Malgun Gothic", sans-serif; user-select: none; }
+        .grid-container { padding: 10px; }
+        .title-container { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 10px; }
+        .s0 { font-weight: bold; font-size: 18pt; }
+        
+        #main-table {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #999;
+        }
+
+        #main-table th, #main-table td {
+            border: 1px solid #cccccc;
+            padding: 8px 5px;
+            font-size: 10pt;
+            white-space: normal;
+            word-wrap: break-word;
+            position: relative;
+        }
+        
+        #main-table td {
+            vertical-align: middle;
+            text-align: left;
+        }
+
+        /* 행 교차 색상 (Zebra Striping) */
+        #main-table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        #main-table .no-cell, #main-table thead th {
+            cursor: pointer;
+        }
+
+        #main-table .no-cell {
+            text-align: center;
+            vertical-align: middle;
+            user-select: none;
+        }
+        
+        /* '적용' 열 체크박스 스타일 */
+        #main-table .checkbox-cell {
+            text-align: center;
+            font-weight: bold;
+            font-size: 14pt;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* '투자금액' 열 숫자 스타일 */
+        #main-table .currency-cell {
+            text-align: right;
+        }
+
+        #main-table tbody tr {
+            position: relative; 
+        }
+
+        #main-table thead th {
+            background-color: #deeaf6;
+            text-align: center;
+            vertical-align: middle;
+            font-weight: bold;
+            font-size: 11pt;
+            border: 1px solid #999999;
+            user-select: none;
+        }
+        
+        #control-panel { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;}
+        #control-panel .button-group { display: flex; align-items: center; gap: 8px;}
+        #control-panel button { background-color: #f0f0f0; border: 1px solid #cccccc; padding: 5px 12px; font-family: "Malgun Gothic", sans-serif; font-size: 10pt; cursor: pointer; border-radius: 4px; font-weight: bold; color: #333; }
+        #control-panel button:hover { background-color: #e0e0e0; border-color: #999999; }
+        [contenteditable] { -webkit-user-select: text; user-select: text; }
+        [contenteditable]:focus { outline: 2px solid #4d90fe; outline-offset: -2px; }
+        #text-editor-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; background-color: #fff; border: 1px solid #ccc; border-radius: 6px; padding: 4px 6px; }
+        #text-editor-menu .editor-group { display: inline-flex; align-items: center; gap: 5px; }
+        #text-editor-menu button { background-color: transparent; border: none; color: #333; cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+        #text-editor-menu button svg { width: 18px; height: 18px; fill: #333; }
+        #text-editor-menu button:hover, #text-editor-menu button.active { background-color: #e9e9e9; }
+        #text-editor-menu select, #text-editor-menu input[type="color"] { background-color: #fff; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 2px; font-family: "Malgun Gothic", sans-serif; font-size: 10pt; height: 28px; }
+        #text-editor-menu input[type="color"] { padding: 1px; width: 28px; border: 1px solid #ccc; cursor: pointer; }
+        .editor-separator { width: 1px; height: 20px; background-color: #ccc; margin: 0 4px; }
+        .cell-selected { background-color: #d9eaff !important; outline: 2px solid #1a73e8 !important; outline-offset: -2px; }
+
+        .resizer-col { position: absolute; top: 0; right: -4px; width: 8px; height: 100%; cursor: col-resize; z-index: 10; }
+        .resizer-row { position: absolute; left: 0; bottom: -4px; width: 100%; height: 8px; cursor: row-resize; z-index: 10; }
+
+        #context-menu {
+            display: none; position: absolute; z-index: 1000; background-color: #f9f9f9;
+            border: 1px solid #ccc; border-radius: 5px; box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+            padding: 5px 0; font-family: "Malgun Gothic", sans-serif; font-size: 10pt;
+        }
+        #context-menu ul { list-style: none; margin: 0; padding: 0; }
+        #context-menu li { padding: 8px 15px; cursor: pointer; }
+        #context-menu li:hover { background-color: #e0e0e0; }
+        #context-menu .separator { height: 1px; background-color: #ccc; margin: 4px 0; }
+    </style>
+</head>
+<body>
+
+<div class="grid-container">
+    <div class="title-container">
+        <span class="s0" contenteditable="true">'26년 연간 계획 ( 협의용 )&nbsp;</span>
+        <div id="control-panel">
+             <div id="text-editor-menu">
+                <div class="editor-group">
+                    <button id="editor-bold" title="굵게" class=""><svg viewBox="0 0 24 24"><path d="M15.6,10.79c.97-.67,1.65-1.77,1.65-2.79,0-2.26-1.75-4-4.25-4H7v14h7.04c2.1,0,3.71-1.7,3.71-3.78,0-1.52-.86-2.82-2.15-3.43Zm-5.6-4.79h3.4c1.14,0,2.1.92,2.1,2.05,0,1.13-.96,2.05-2.1,2.05h-3.4V6Zm3.54,9H9.5V13h3.04c1.14,0,2.06.92,2.06,2.05,0,1.13-.92,2.04-2.06,2.04Z"></path></svg></button>
+                    <button id="editor-italic" title="기울임"><svg viewBox="0 0 24 24"><path d="M10,4v3h2.21l-3.42,8H6v3h8v-3h-2.21l3.42-8H18V4Z"></path></svg></button>
+                    <button id="editor-underline" title="밑줄"><svg viewBox="0 0 24 24"><path d="M12,17c3.31,0,6-2.69,6-6V3h-2.5v8c0,1.93-1.57,3.5-3.5,3.5S8.5,12.93,8.5,11V3H6v8c0,3.31,2.69,6,6,6Zm-7,2v2h14v-2Z"></path></svg></button>
+                    <button id="editor-link" title="링크 삽입"><svg viewBox="0 0 24 24"><path d="M3.9,12c0-1.71,1.39-3.1,3.1-3.1h4V7H7c-2.76,0-5,2.24-5,5s2.24,5,5,5h4v-1.9H7C5.29,15.1,3.9,13.71,3.9,12z M8,13h8v-2H8V13z M17,7h-4v1.9h4c1.71,0,3.1,1.39,3.1,3.1s-1.39,3.1-3.1,3.1h-4V17h4c2.76,0,5-2.24,5-5S19.76,7,17,7z"></path></svg></button>
+                    <button id="editor-unlink" title="링크 제거"><svg viewBox="0 0 24 24"><path d="M17,7h-4v1.9h4c1.71,0,3.1,1.39,3.1,3.1s-1.39,3.1-3.1,3.1h-4V17h4c2.76,0,5-2.24,5-5S19.76,7,17,7z M10.1,14.5l-1.5-1.5L14.5,7H17v2.5l-4.4,4.4V17h-2.5L10.1,14.5z M7,15.1c-1.71,0-3.1-1.39-3.1-3.1s1.39-3.1,3.1-3.1h4V7H7c-2.76,0-5,2.24-5,5s2.24,5,5,5h4v-1.9H7z"></path></svg></button>
+                </div>
+                <div class="editor-separator"></div>
+                <div class="editor-group">
+                    <select id="editor-fontsize" title="글자 크기"><option value="">기본</option><option value="10pt">10pt</option><option value="11pt">11pt</option><option value="12pt">12pt</option><option value="14pt">14pt</option><option value="16pt">16pt</option><option value="18pt">18pt</option></select>
+                    <input type="color" id="editor-color" title="글자 색" value="#000000">
+                </div>
+                <div class="editor-separator"></div>
+                <div class="editor-group" id="align-h-group">
+                    <button id="align-left" title="왼쪽 정렬" class=""><svg viewBox="0 0 24 24"><path d="M15 15H3v2h12v-2zm0-8H3v2h12V7zM3 13h18v-2H3v2zm0 8h18v-2H3v2zM3 3v2h18V3H3z"></path></svg></button>
+                    <button id="align-center" title="가운데 정렬" class=""><svg viewBox="0 0 24 24"><path d="M7 15v2h10v-2H7zm-4 6h18v-2H3v2zm0-8h18v-2H3v2zm4-6v2h10V7H7zM3 3v2h18V3H3z"></path></svg></button>
+                    <button id="align-right" title="오른쪽 정렬" class=""><svg viewBox="0 0 24 24"><path d="M3 21h18v-2H3v2zm6-4h12v-2H9v2zm-6-4h18v-2H3v2zm6-4h12V7H9v2zM3 3v2h18V3H3z"></path></svg></button>
+                </div>
+                 <div class="editor-separator"></div>
+                <div class="editor-group" id="align-v-group">
+                    <button id="align-top" title="위쪽 정렬"><svg viewBox="0 0 24 24"><path d="M8 11h3v10h2V11h3l-4-4-4 4zM4 3v2h16V3H4z"></path></svg></button>
+                    <button id="align-middle" title="중간 정렬" class=""><svg viewBox="0 0 24 24"><path d="M8 15h3v4h2v-4h3l-4-4-4 4zM4 11v2h16v-2H4zM8 9h3V5h2v4h3l-4 4-4-4z"></path></svg></button>
+                    <button id="align-bottom" title="아래쪽 정렬"><svg viewBox="0 0 24 24"><path d="M8 13h3V3h2v10h3l-4 4-4-4zM4 21v-2h16v2H4z"></path></svg></button>
+                </div>
+            </div>
+             <div class="button-group">
+                <input type="file" id="excel-file-input" accept=".xls, .xlsx" style="display: none;">
+                <button id="importExcelBtn">엑셀 매핑</button>
+                <button id="exportExcelBtn">엑셀 추출</button>
+                <button id="saveHtmlBtn">HTML 저장</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><div class="resizer-row"></div><table id="main-table">
+        <colgroup>
+            <col style="width: 43px;">
+            <col style="width: 79px;">
+            <col style="width: 361px;">
+            <col style="width: 79px;">
+            <col style="width: 58px;">
+            <col style="width: 55px;">
+            <col style="width: 47px;">
+            <col style="width: 488px;">
+            <col style="width: 144px;">
+        </colgroup>
+        <thead>
+            <tr>
+                <th>NO.<div class="resizer-col"></div></th><th>구분<div class="resizer-col"></div></th><th>공사명<div class="resizer-col"></div></th><th>투자금액<br>(천원)<div class="resizer-col"></div></th><th>입고월<br>(예정)<div class="resizer-col"></div></th><th>공종<div class="resizer-col"></div></th><th>적용<div class="resizer-col"></div></th><th>투자목적 및 기대효과<div class="resizer-col"></div></th><th>비고<div class="resizer-col"></div></th>
+            </tr>
+        </thead>
+        <tbody><tr><td class="no-cell">1</td><td contenteditable="true" class="" style="text-align: center;">투자
+(자산)</td><td contenteditable="true" class="">기숙사 AB동 지하기계실 노후 진공온수 보일러 교체</td><td contenteditable="true" class="currency-cell">75,000</td><td contenteditable="true" class="" style="text-align: center;">8월</td><td contenteditable="true" class="" style="text-align: center;">기계</td><td class="checkbox-cell"></td><td contenteditable="true" class="">총 3대중 ('23년,'24년 각 1대씩 교체 완료)
+24년 실적가의 단가상승율 20% 예상
+기존 1대 한신보일러  제조사 (단종)-&gt;부스타보일러
+보일러 제작물/납품성(원가절감), 3개월전 발주
+배관,연도개조 / 기존 보일러 반출후 폐기물처리</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">2</td><td contenteditable="true" class="" style="text-align: center;">투자
+(자산)</td><td contenteditable="true" class="">사택 101-103동 세대내 개별난방 보일러 교체</td><td contenteditable="true" class="currency-cell">14,000</td><td contenteditable="true" class="" style="text-align: center;">연중</td><td contenteditable="true" class="" style="text-align: center;">기계</td><td class="checkbox-cell"></td><td contenteditable="true" class="">노후로 인한 교체(10년)→ 63세대(교체대상)
+→ 12세대(25년 하반기 실적)*110만원(납품성)</td><td contenteditable="true" class="">고장시 교체중
+(자산)</td><div class="resizer-row"></div></tr><tr><td class="no-cell">3</td><td contenteditable="true" class="" style="text-align: center;">투자
+(자산)</td><td contenteditable="true" class="">기숙사/사택 기계실 노후 펌프 및 배관 액서리 교체</td><td contenteditable="true" class="currency-cell">50,000</td><td contenteditable="true" class="" style="text-align: center;">연중</td><td contenteditable="true" class="" style="text-align: center;">기계</td><td class="checkbox-cell"></td><td contenteditable="true" class="">노후 펌프 및 배관 액세서리 포함(연간 부분 교체 및 보수)
+예상 총비용: 1.01억원
+3동: 2,700백만원 / AB동 6,600백만원
+102동: 470만원 / 공동구 270만원</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">4</td><td contenteditable="true" class="" style="text-align: center;">수선
+(자산)</td><td contenteditable="true" class="">기숙사 AB동 지하 주차장 유인휀 교체</td><td contenteditable="true" class="currency-cell">30,000</td><td contenteditable="true" class="" style="text-align: center;">5월</td><td contenteditable="true" class="" style="text-align: center;">기계</td><td class="checkbox-cell"></td><td contenteditable="true" class="">전년도 이월
+지하 주차장 천장형 환기휀 : 20대
+기존 20대 철거 및 신규 설치</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">5</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">외부임차 사택 수장공사</td><td contenteditable="true" class="currency-cell">26,000</td><td contenteditable="true" class="" style="text-align: center;">연중</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">연평균 기준 ('3년)</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">6</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">기숙사/사택 긴급공사 비상복구 수선비용</td><td contenteditable="true" class="currency-cell">20,000</td><td contenteditable="true" class="" style="text-align: center;">연중</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">전년도 계획 기준</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">7</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">기숙사동 및 어린이집 EHP 케어</td><td contenteditable="true" class="currency-cell">10,000</td><td contenteditable="true" class="" style="text-align: center;">4월</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">전년도 이월
+기숙사동 및 공용부 : 필터 청소
+어린이집 : 오버홀 세척</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">8</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 어린이집 전열교환기 필터 및 전열소자 교체</td><td contenteditable="true" class="currency-cell">7,000</td><td contenteditable="true" class="" style="text-align: center;">4월/9월</td><td contenteditable="true" class="" style="text-align: center;">기계</td><td class="checkbox-cell"></td><td contenteditable="true" class="">전년도 이월
+상,하반기 고효율 필터 교체 및 취출구 세척</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">9</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 공가세대 수장공사</td><td contenteditable="true" class="currency-cell">200,000</td><td contenteditable="true" class="" style="text-align: center;">연중</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">연평균 50세대(3개년 평균)*400만원(3개년 평균)</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">10</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 세대내 환경개선 (5동,8동,9동)</td><td contenteditable="true" class="currency-cell">150,000</td><td contenteditable="true" class="" style="text-align: center;">연중</td><td contenteditable="true" class="" style="text-align: center;">공통</td><td class="checkbox-cell"></td><td contenteditable="true" class="">세대내 바닥난방 홈파기 및 노후 매립배관 교체(기계,건축)
+세대당 3,000만원*5세대/연간예정세대</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">11</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 지붕 기와 보수</td><td contenteditable="true" class="currency-cell">20,000</td><td contenteditable="true" class="" style="text-align: center;">연중</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">25년 8동 정면 기와 배수로 교체(타공-&gt;막힘) , '25년 실적가
+23년 7동 기와 도장 완료/ 잔여 배수로  : 5동 , 7동 , 8동 , 9동</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">12</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 씽크대 수리 및 붙박이장 보수</td><td contenteditable="true" class="currency-cell">15,000</td><td contenteditable="true" class="" style="text-align: center;">연중</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">노후 씽크대 수리로 전환
+25년 하반기 집행비 기준(13건): 14,000천원</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">13</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 누수 보수 공사</td><td contenteditable="true" class="currency-cell">17,000</td><td contenteditable="true" class="" style="text-align: center;">연중</td><td contenteditable="true" class="" style="text-align: center;">기계</td><td class="checkbox-cell"></td><td contenteditable="true" class="">전년도 계획 기준</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">14</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 단지내 아스팔트 노면 보수 ( 도로 )</td><td contenteditable="true" class="currency-cell">40,000</td><td contenteditable="true" class="" style="text-align: center;">11월</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">전년도 이월
+AB동,8동 : 재활용장 앞 / 1,2동 진입로 / 5동 주출입로  </td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">15</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 5동 경비실 내부 환경개선 공사(건축,전기,소방)</td><td contenteditable="true" class="currency-cell">60,000</td><td contenteditable="true" class="" style="text-align: center;">11월</td><td contenteditable="true" class="" style="text-align: center;">공통</td><td class="checkbox-cell"></td><td contenteditable="true" class="">전년도 이월
+천장,책상,파티션등(환경개선 이미지 작성비 포함)</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">16</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 101-104동 옥상 방수 보수</td><td contenteditable="true" class="currency-cell">30,000</td><td contenteditable="true" class="" style="text-align: center;">9월</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">전년도 이월
+바닥면적 : 2,675m2 =&gt; 부분보수 작업
+우레탄(바닥 3t , 벽 0.5t)=&gt;기존 벽마감 철거후 방수
+바닥 줄눈 코킹 작업 , 옥상층 E/V PIT 벽 및 바닥 포함</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">17</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 7동 세대내 LED등 교체 </td><td contenteditable="true" class="currency-cell">10,000</td><td contenteditable="true" class="" style="text-align: center;">연중</td><td contenteditable="true" class="" style="text-align: center;">전기</td><td class="checkbox-cell"></td><td contenteditable="true" class="">25년 실적 기준
+총 40세대중 21세대(하반기) 완료</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">18</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">기계실 안전변 교체 및 급탕 시스템 플러싱</td><td contenteditable="true" class="currency-cell">5,000</td><td contenteditable="true" class="" style="text-align: center;">8월</td><td contenteditable="true" class="" style="text-align: center;">일반</td><td class="checkbox-cell"></td><td contenteditable="true" class="">안전밸브→ AB동: 5개 / 3동: 4개 / 102동: 1개
+급탕 시스템 플러싱(기계실에서 공급)→ AB동 및 3동</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">19</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 공용 출입구 현관 계단 보수</td><td contenteditable="true" class="currency-cell">50,000</td><td contenteditable="true" class="" style="text-align: center;">9월</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">전년도 이월
+2동(3개 현관입구) / 5동(3개 현관입구) / 8동(5개 현관입구)</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">20</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">기숙사동 흡연부스측 주도로 매립 오수배관 부분 교체</td><td contenteditable="true" class="currency-cell">30,000</td><td contenteditable="true" class="" style="text-align: center;">8월</td><td contenteditable="true" class="" style="text-align: center;">공통</td><td class="checkbox-cell"></td><td contenteditable="true" class="">전년도 이월
+깊이 약 2m~3m 하부 오수배관 깨짐 교체
+건축 : 도로 절개 철거 및 배관 교체후 도로 복원
+기계 : 매립 이중 복합관 부분 교체 (임시 가설  훼손  설치)</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">21</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">기숙사 및 사택 긴급보수 작업(기계)</td><td contenteditable="true" class="currency-cell">10,000</td><td contenteditable="true" class="" style="text-align: center;">수시</td><td contenteditable="true" class="" style="text-align: center;">기계</td><td class="checkbox-cell"></td><td contenteditable="true" class="">25년 하반기 실적 기준
+비품성/소액성 긴급 대응</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">22</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">기숙사 및 사택 긴급보수 작업(건축)</td><td contenteditable="true" class="currency-cell">30,000</td><td contenteditable="true" class="" style="text-align: center;">수시</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">25년 하반기 실적 기준
+비품성/소액성 긴급 대응</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">23</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">기숙사 AB동 노후 시스템 창호용 방충망 교체 (공용)</td><td contenteditable="true" class="currency-cell">18,000</td><td contenteditable="true" class="" style="text-align: center;">상시</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">공용주방 58개소+복도 64개소=122개소 (화학제외)
+25년 공용주방 = 58개소 * 30만원 =17,400,000
+공용부 전체 = 30만원*122개소 = 36,600,000</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">24</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">기숙사 AB동 노후 시스템 창호용 방충망 교체 (세대내)</td><td contenteditable="true" class="currency-cell">8,000</td><td contenteditable="true" class="" style="text-align: center;">상시</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">304세대(VIP세대 및 화학 제외)
+25년 퇴거예정 25세대 (공가시 교체)
+30만원*25개소 = 7,500,000</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">25</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 102동 어린이집 놀이터 입구 보도블럭 교체</td><td contenteditable="true" class="currency-cell">20,000</td><td contenteditable="true" class="" style="text-align: center;">상시</td><td contenteditable="true" class="" style="text-align: center;">건축</td><td class="checkbox-cell"></td><td contenteditable="true" class="">1-2 / 3-4 라인 : 놀이터 입구 및 현관 앞 전면부 침하 부분
+5-6 라인 : 세대 입구 현관 트렌치 앞 전면부 침하 부분
+🔎 철거후 내부 점검시 보수 필요 부분은 별도견적 협의</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr><tr><td class="no-cell">26</td><td contenteditable="true" class="" style="text-align: center;">수선</td><td contenteditable="true" class="">사택 세대내 노후 전원 차단기 및 분전반 교체</td><td contenteditable="true" class="currency-cell">52,000</td><td contenteditable="true" class="" style="text-align: center;">상시</td><td contenteditable="true" class="" style="text-align: center;">전기</td><td class="checkbox-cell"></td><td contenteditable="true" class="">26년 2개동 예상(5동,9동)
+1라인당 : 차단기(현관/세대)+회로분리=&gt;약650만원*4개 라인(평균)
+** 1개동 평균=&gt; 2,600만원 (2동,5동,8동,9동,7동)
+** 대상 전체동 약 1.3억 예상</td><td contenteditable="true" class=""></td><div class="resizer-row"></div></tr></tbody>
+    </table>
+</div>
+
+<div id="context-menu" style="display: none;">
+    <ul>
+        <li id="insert-row-above">위에 행 삽입</li>
+        <li id="insert-row-below">아래에 행 삽입</li>
+        <li id="delete-row">행 삭제</li>
+        <li class="separator"></li>
+        <li id="insert-col-left">왼쪽에 열 삽입</li>
+        <li id="insert-col-right">오른쪽에 열 삽입</li>
+        <li id="delete-col">열 삭제</li>
+    </ul>
+</div>
+
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- 1. 요소 및 변수 초기화 ---
+    const table = document.getElementById('main-table');
+    const controlPanel = document.getElementById('control-panel');
+    const contextMenu = document.getElementById('context-menu');
+    const importExcelBtn = document.getElementById('importExcelBtn');
+    const excelFileInput = document.getElementById('excel-file-input');
+    let selectedCells = [];
+    let contextTargetCell = null;
+    let currencyColIndex = -1;
+    let checkboxColIndex = -1;
+
+    function findSpecialColumns() {
+        const headers = Array.from(table.querySelectorAll('thead th'));
+        currencyColIndex = headers.findIndex(th => th.innerText.includes('투자금액'));
+        checkboxColIndex = headers.findIndex(th => th.innerText.includes('적용'));
+    }
+
+    // --- 2. 셀 선택 및 UI 업데이트 ---
+    function clearSelection() {
+        selectedCells.forEach(cell => cell.classList.remove('cell-selected'));
+        selectedCells = [];
+        updateEditorUI();
+    }
+
+    function addCellToSelection(cell) {
+        if (!selectedCells.includes(cell) && !cell.classList.contains('no-cell') && cell.tagName === 'TD') {
+            selectedCells.push(cell);
+            cell.classList.add('cell-selected');
+        }
+    }
+
+    function updateEditorUI() {
+        document.querySelectorAll('#text-editor-menu button.active').forEach(b => b.classList.remove('active'));
+        if (selectedCells.length === 0) return;
+        const firstCell = selectedCells[0];
+        const style = window.getComputedStyle(firstCell);
+        
+        document.querySelector(`#align-${style.textAlign}`)?.classList.add('active');
+        document.querySelector(`#align-${style.verticalAlign}`)?.classList.add('active');
+        
+        if (style.fontWeight === '700' || style.fontWeight === 'bold') document.getElementById('editor-bold').classList.add('active');
+        if (style.fontStyle === 'italic') document.getElementById('editor-italic').classList.add('active');
+        if (style.textDecorationLine.includes('underline')) document.getElementById('editor-underline').classList.add('active');
+        
+        document.getElementById('editor-fontsize').value = style.fontSize;
+        document.getElementById('editor-color').value = rgbToHex(style.color);
+    }
+    
+    table.addEventListener('click', function(e) {
+        const headerCell = e.target.closest('th');
+        const targetCell = e.target.closest('td');
+
+        if (targetCell && targetCell.classList.contains('checkbox-cell')) {
+            e.preventDefault();
+            targetCell.innerText = targetCell.innerText === '✓' ? '' : '✓';
+            return;
+        }
+
+        if (headerCell) {
+            e.preventDefault();
+            clearSelection();
+            const colIndex = headerCell.cellIndex;
+            if (colIndex === 0) {
+                 table.querySelectorAll('tbody td:not(.no-cell)').forEach(cell => addCellToSelection(cell));
+            } else {
+                table.querySelectorAll('tbody tr').forEach(row => {
+                    if (row.cells[colIndex]) addCellToSelection(row.cells[colIndex]);
+                });
+            }
+            updateEditorUI();
+            return;
+        }
+
+        if (targetCell && targetCell.classList.contains('no-cell')) {
+            e.preventDefault();
+            clearSelection();
+            const row = targetCell.closest('tr');
+            Array.from(row.cells).forEach(cell => addCellToSelection(cell));
+            updateEditorUI();
+            return;
+        }
+
+        if (targetCell) {
+             if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                clearSelection();
+                addCellToSelection(targetCell);
+            } else if (e.ctrlKey || e.metaKey) {
+                if (selectedCells.includes(targetCell)) {
+                    targetCell.classList.remove('cell-selected');
+                    selectedCells = selectedCells.filter(c => c !== targetCell);
+                } else {
+                    addCellToSelection(targetCell);
+                }
+            } else if (e.shiftKey && selectedCells.length > 0) {
+                const allCells = Array.from(table.querySelectorAll('td:not(.no-cell)'));
+                const firstIndex = allCells.indexOf(selectedCells[0]);
+                const lastIndex = allCells.indexOf(targetCell);
+                
+                clearSelection();
+                const start = Math.min(firstIndex, lastIndex);
+                const end = Math.max(firstIndex, lastIndex);
+                for (let i = start; i <= end; i++) {
+                    addCellToSelection(allCells[i]);
+                }
+            }
+            updateEditorUI();
+        }
+    });
+
+    // --- 3. 텍스트 에디터 및 특수 기능 ---
+    function applyStyle(style, value, toggleValue = '') {
+        if (selectedCells.length === 0) { alert("편집할 셀을 먼저 선택해주세요."); return; }
+        selectedCells.forEach(cell => {
+            if (!cell.classList.contains('checkbox-cell')) {
+                 cell.style[style] = cell.style[style] === value ? toggleValue : value;
+            }
+        });
+        updateEditorUI();
+    }
+    
+    function applyAlignment(property, value) {
+        if (selectedCells.length === 0) { alert("정렬할 셀을 먼저 선택해주세요."); return; }
+        selectedCells.forEach(cell => {
+             if (!cell.classList.contains('checkbox-cell')) {
+                cell.style[property] = value;
+             }
+        });
+        updateEditorUI();
+    }
+
+    table.addEventListener('focusin', (e) => {
+        if (e.target.matches('.currency-cell')) {
+            e.target.innerText = e.target.innerText.replace(/,/g, '');
+        }
+    });
+
+    table.addEventListener('focusout', (e) => {
+        if (e.target.matches('.currency-cell')) {
+            const value = parseFloat(e.target.innerText.replace(/,/g, ''));
+            e.target.innerText = !isNaN(value) ? value.toLocaleString('en-US') : '';
+        }
+    });
+    
+    function formatAllCurrencyCells() {
+        if (currencyColIndex === -1) return;
+        table.querySelectorAll(`tbody td:nth-child(${currencyColIndex + 1})`).forEach(cell => {
+            const value = parseFloat(cell.innerText.replace(/,/g, ''));
+            cell.innerText = !isNaN(value) ? value.toLocaleString('en-US') : '';
+        });
+    }
+
+    document.getElementById('editor-bold').addEventListener('click', () => applyStyle('fontWeight', 'bold', 'normal'));
+    document.getElementById('editor-italic').addEventListener('click', () => applyStyle('fontStyle', 'italic', 'normal'));
+    document.getElementById('editor-underline').addEventListener('click', () => applyStyle('textDecoration', 'underline', 'none'));
+    document.getElementById('editor-fontsize').addEventListener('change', (e) => applyStyle('fontSize', e.target.value));
+    document.getElementById('editor-color').addEventListener('input', (e) => applyStyle('color', e.target.value));
+    document.getElementById('align-left').addEventListener('click', () => applyAlignment('textAlign', 'left'));
+    document.getElementById('align-center').addEventListener('click', () => applyAlignment('textAlign', 'center'));
+    document.getElementById('align-right').addEventListener('click', () => applyAlignment('textAlign', 'right'));
+    document.getElementById('align-top').addEventListener('click', () => applyAlignment('verticalAlign', 'top'));
+    document.getElementById('align-middle').addEventListener('click', () => applyAlignment('verticalAlign', 'middle'));
+    document.getElementById('align-bottom').addEventListener('click', () => applyAlignment('verticalAlign', 'bottom'));
+    
+    document.getElementById('editor-link').addEventListener('click', () => {
+        if (selectedCells.length === 0) { alert("링크를 삽입할 셀을 먼저 선택해주세요."); return; }
+        const url = prompt("링크할 URL을 입력하세요:", "https://");
+        if (url) {
+            selectedCells[0].focus();
+            document.execCommand('createLink', false, url);
+        }
+    });
+    
+    document.getElementById('editor-unlink').addEventListener('click', () => {
+        if (selectedCells.length === 0) { alert("링크를 제거할 셀을 먼저 선택해주세요."); return; }
+        selectedCells[0].focus();
+        document.execCommand('unlink', false, null);
+    });
+
+    function rgbToHex(rgb) {
+        if (!rgb || !/^rgb/.test(rgb)) return '#000000';
+        let parts = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        if (!parts) return '#000000';
+        delete(parts[0]);
+        let hex = "#";
+        for (let i = 1; i <= 3; ++i) {
+            let part = parseInt(parts[i]).toString(16);
+            hex += (part.length == 1) ? '0' + part : part;
+        }
+        return hex;
+    }
+
+    // --- 4. 파일 I/O ---
+    document.getElementById('saveHtmlBtn').addEventListener('click', () => {
+        // ★★★★★ 하이라이트 문제 해결 로직 ★★★★★
+        // 1. 현재 문서를 메모리에 복제
+        const clonedDoc = document.documentElement.cloneNode(true);
+        // 2. 복제된 문서에서만 선택 클래스를 제거
+        clonedDoc.querySelectorAll('.cell-selected').forEach(cell => {
+            cell.classList.remove('cell-selected');
+        });
+        // 3. 깨끗해진 복제본의 HTML을 저장
+        const pageHTML = '<!DOCTYPE html>\n' + clonedDoc.outerHTML;
+        // ★★★★★ 로직 종료 ★★★★★
+
+        const blob = new Blob([pageHTML], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '26년_연간계획_양식.html';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    });
+
+    document.getElementById('exportExcelBtn').addEventListener('click', () => {
+        const wb = XLSX.utils.table_to_book(table, { sheet: "26년 연간 계획" });
+        XLSX.writeFile(wb, "26년_연간계획_목록.xlsx");
+    });
+
+    importExcelBtn.addEventListener('click', () => excelFileInput.click());
+
+    excelFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                populateTableWithData(jsonData);
+                alert('엑셀 데이터를 성공적으로 매핑했습니다.');
+            } catch (error) {
+                console.error("엑셀 파일 처리 중 오류:", error);
+                alert('엑셀 파일을 처리하는 중 오류가 발생했습니다.');
+            } finally {
+                e.target.value = '';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+    
+    function populateTableWithData(data) {
+        if (!data || data.length < 1) { alert('매핑할 데이터가 없습니다.'); return; }
+        
+        const thead = table.tHead;
+        const tbody = table.tBodies[0];
+        const excelHeaders = data[0].map(h => String(h).replace(/\n/g, ' '));
+        const currentHeaders = Array.from(thead.rows[0].cells).map(th => th.innerText.replace(/\n/g, ' '));
+        
+        if (JSON.stringify(excelHeaders) !== JSON.stringify(currentHeaders)) {
+            alert('엑셀 파일의 헤더가 현재 테이블 양식과 일치하지 않습니다.');
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        const dataRows = data.slice(1);
+        dataRows.forEach(rowData => {
+            const newRow = tbody.insertRow();
+            newRow.insertCell(0).classList.add('no-cell');
+            for (let i = 1; i < currentHeaders.length; i++) {
+                const cell = newRow.insertCell(i);
+                const cellValue = rowData[i] || '';
+                if (i === checkboxColIndex) {
+                    cell.classList.add('checkbox-cell');
+                    cell.innerText = cellValue === '✓' ? '✓' : '';
+                } else {
+                    cell.contentEditable = 'true';
+                    cell.innerHTML = cellValue;
+                    if (i === currencyColIndex) {
+                        cell.classList.add('currency-cell');
+                    }
+                }
+            }
+        });
+
+        updateRowNumbers();
+        initializeResizableTable();
+        formatAllCurrencyCells();
+        clearSelection();
+    }
+
+    // --- 5. 테이블 크기 조절 ---
+    function attachColResizer(th, colIndex) {
+        if (th.querySelector('.resizer-col')) th.querySelector('.resizer-col').remove();
+        const resizer = document.createElement('div');
+        resizer.className = 'resizer-col';
+        th.appendChild(resizer);
+        
+        resizer.addEventListener('mousedown', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            let startX = e.pageX;
+            const colElement = table.querySelector('colgroup').children[colIndex];
+            let startWidth = colElement.offsetWidth;
+            
+            const onMouseMove = (moveEvent) => {
+                const newWidth = startWidth + (moveEvent.pageX - startX);
+                if (newWidth > 30) colElement.style.width = newWidth + 'px';
+            };
+            const onMouseUp = () => document.removeEventListener('mousemove', onMouseMove);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp, { once: true });
+        });
+    }
+
+    function attachRowResizer(row) {
+        if (row.querySelector('.resizer-row')) row.querySelector('.resizer-row').remove();
+        const resizer = document.createElement('div');
+        resizer.className = 'resizer-row';
+        row.appendChild(resizer);
+        
+        resizer.addEventListener('mousedown', (e) => {
+             e.preventDefault(); e.stopPropagation();
+             let startY = e.pageY;
+             let startHeight = row.offsetHeight;
+             
+             const onMouseMove = (moveEvent) => {
+                const newHeight = startHeight + (moveEvent.pageY - startY);
+                if (newHeight > 30) row.style.height = newHeight + 'px';
+             };
+             const onMouseUp = () => document.removeEventListener('mousemove', onMouseMove);
+             document.addEventListener('mousemove', onMouseMove);
+             document.addEventListener('mouseup', onMouseUp, { once: true });
+        });
+    }
+
+    function initializeResizableTable() {
+        table.querySelectorAll('thead th').forEach((th, i) => attachColResizer(th, i));
+        table.querySelectorAll('tbody tr').forEach(row => attachRowResizer(row));
+    }
+
+    // --- 6. 자동 번호 및 행/열 관리 ---
+    function updateRowNumbers() {
+        table.querySelectorAll('tbody tr').forEach((row, index) => {
+            const noCell = row.cells[0];
+            if (noCell) { noCell.innerText = index + 1; }
+        });
+    }
+
+    function insertRow(index, above = true) {
+        const tbody = table.tBodies[0];
+        const colCount = table.rows[0].cells.length;
+        const targetIndex = above ? index : index + 1;
+        const newRow = tbody.insertRow(targetIndex);
+
+        newRow.insertCell(0).classList.add('no-cell');
+        for (let i = 1; i < colCount; i++) {
+            const newCell = newRow.insertCell(i);
+            if (i === checkboxColIndex) {
+                 newCell.classList.add('checkbox-cell');
+            } else {
+                 newCell.contentEditable = 'true';
+                 if (i === currencyColIndex) {
+                    newCell.classList.add('currency-cell');
+                }
+            }
+        }
+        attachRowResizer(newRow);
+        updateRowNumbers();
+    }
+
+    function deleteRow(index) {
+        if (table.tBodies[0].rows.length > 1) {
+            table.tBodies[0].deleteRow(index);
+            updateRowNumbers();
+        } else {
+            alert("마지막 행은 삭제할 수 없습니다.");
+        }
+    }
+
+    function insertColumn(index, before = true) {
+        if (index === 0 && before) { alert("'NO.' 열의 왼쪽에 열을 추가할 수 없습니다."); return; }
+        const targetIndex = before ? index : index + 1;
+        
+        table.querySelector('colgroup').children[targetIndex-1].insertAdjacentHTML('afterend', '<col style="width: 10%;">');
+        table.tHead.rows[0].cells[targetIndex-1].insertAdjacentHTML('afterend', '<th contenteditable="true">새 항목</th>');
+        Array.from(table.tBodies[0].rows).forEach(row => {
+            row.cells[targetIndex-1].insertAdjacentHTML('afterend', '<td contenteditable="true"></td>');
+        });
+        
+        findSpecialColumns();
+        initializeResizableTable();
+    }
+
+    function deleteColumn(index) {
+        if (index === 0) { alert("'NO.' 열은 삭제할 수 없습니다."); return; }
+        if (table.rows[0].cells.length > 2) {
+            table.querySelector('colgroup').children[index].remove();
+            Array.from(table.rows).forEach(row => row.deleteCell(index));
+            findSpecialColumns();
+            initializeResizableTable();
+        } else {
+            alert("마지막 항목 열은 삭제할 수 없습니다.");
+        }
+    }
+
+    // --- 7. 컨텍스트 메뉴 관리 ---
+    table.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const target = e.target.closest('td, th');
+        if (!target) return;
+        
+        contextTargetCell = target;
+        const isNoColumn = contextTargetCell.cellIndex === 0;
+        document.getElementById('delete-col').style.display = isNoColumn ? 'none' : 'block';
+        document.getElementById('insert-col-left').style.display = isNoColumn ? 'none' : 'block';
+
+        contextMenu.style.display = 'block';
+        contextMenu.style.left = `${e.pageX}px`;
+        contextMenu.style.top = `${e.pageY}px`;
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!contextMenu.contains(e.target) && !e.target.closest('#control-panel')) {
+             contextMenu.style.display = 'none';
+        }
+        if (!table.contains(e.target) && !controlPanel.contains(e.target) && !contextMenu.contains(e.target)) {
+            clearSelection();
+        }
+    });
+
+    contextMenu.addEventListener('click', (e) => {
+        if (!contextTargetCell) return;
+        
+        const cellIndex = contextTargetCell.cellIndex;
+        const tr = contextTargetCell.closest('tr');
+        const rowIndex = Array.from(tr.parentNode.children).indexOf(tr);
+
+        switch (e.target.id) {
+            case 'insert-row-above': if (tr.parentNode.tagName === 'TBODY') insertRow(rowIndex, true); break;
+            case 'insert-row-below': if (tr.parentNode.tagName === 'TBODY') insertRow(rowIndex, false); break;
+            case 'delete-row': if (contextTargetCell.tagName === 'TD') deleteRow(rowIndex); break;
+            case 'insert-col-left': insertColumn(cellIndex, true); break;
+            case 'insert-col-right': insertColumn(cellIndex, false); break;
+            case 'delete-col': deleteColumn(cellIndex); break;
+        }
+        contextMenu.style.display = 'none';
+    });
+
+    // --- 8. 최종 초기화 실행 ---
+    findSpecialColumns();
+    initializeResizableTable();
+    updateRowNumbers();
+    formatAllCurrencyCells();
+    clearSelection();
+});
+</script>
+
+
+</body></html>
