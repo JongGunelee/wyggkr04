@@ -1,0 +1,3052 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>월별 비용 절감 대시보드</title>
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f2f5;
+      position: relative;
+      min-height: 100vh;
+      overflow-x: hidden;
+      width: 100vw;
+      box-sizing: border-box;
+    }
+    /* Header wrapper that contains title and controls. Fixed to top and centers content. */
+    #topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #f0f2f5;
+      padding: clamp(8px, 1.5vw, 15px);
+      z-index: 2000;
+      border-bottom: 2px solid #1a237e;
+      box-sizing: border-box;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      min-height: 70px; /* 제목의 최소 높이 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #topbar h1 {
+      text-align: center;
+      color: #1a237e;
+      font-size: clamp(16px, 2.5vw, 32px);
+      margin: 0;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      width: auto;
+      box-sizing: border-box;
+    }
+    #dashboard-title-year-suffix {
+      font-size: 60%;
+      color: #555;
+      margin-left: 8px;
+      font-weight: normal;
+    }
+    /* Position controls inside the topbar and vertically center relative to the header. */
+    #controls {
+      position: absolute; /* absolute within #topbar */
+      top: 50%;
+      left: 20px;
+      transform: translateY(-50%) scale(0.95);
+      transform-origin: left center;
+      z-index: 2001;
+      background: #f0f2f5;
+      padding: 4px;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 4px;
+      max-width: none;
+      transition: all 0.3s ease;
+    }
+  /* Removed prior h1 translate tweak; header wrapper now handles vertical centering. */
+    .file-input-wrapper {
+      position: relative;
+      min-width: 58px;
+      cursor: pointer;
+      margin-right: 1px;
+    }
+    #file-input {
+      display: none;
+    }
+    .file-input-label {
+      display: block;
+      width: 100%;
+      padding: 2.5px 3px;
+      background: #e0e0e0;
+      color: #666666;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 6.8px;
+      text-align: center;
+      transition: all 0.3s ease;
+      position: relative;
+      z-index: 1;
+      white-space: nowrap;
+    }
+
+    .file-input-label:hover::before {
+      content: "CSV 파일을 선택하여 데이터를 업로드합니다";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 2001;
+      margin-top: 5px;
+    }
+
+    .file-input-wrapper:hover .file-input-label {
+      background: #c0c0c0;
+      border-color: #e0e0e0;
+      transform: translateY(-1px);
+    }
+    #message {
+      display: none;
+    }
+    #dashboard-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 22px;
+      padding: 22px;
+      flex-wrap: nowrap;
+      position: relative;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 120px;
+      max-width: 100vw;
+      z-index: 1;
+    }
+    #chart {
+      width: 31.5%;
+      max-width: 525px;
+      height: calc(100vh - 200px);
+      aspect-ratio: 1;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
+      margin: 0;
+      padding-left: 30px;
+      position: relative;
+      box-sizing: border-box;
+    }
+    svg {
+      overflow: visible;
+      width: 100%;
+      height: 100%;
+    }
+    .node {
+      transform-style: preserve-3d;
+      transition: opacity 0.3s ease, filter 0.3s ease;
+      cursor: pointer;
+      will-change: opacity, filter;
+    }
+    .node:hover {
+      opacity: 0.9;
+    }
+    .node circle {
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+      transition: all 0.3s ease;
+      will-change: filter, stroke-width, r;
+    }
+    .node.selected circle {
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
+      stroke-width: 4;
+      opacity: 1 !important;
+    }
+    .node:not(.selected) circle {
+      opacity: 0.3;
+      stroke: #cccccc;
+    }
+    .node text {
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+      transition: font-weight 0.3s ease;
+    }
+    .node.selected text {
+      font-weight: bold;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+      opacity: 1;
+    }
+    .node:not(.selected) text {
+      opacity: 0.3;
+    }
+    #table-container {
+      width: 77%;
+      max-width: 1100px;
+      min-width: 400px;
+      background: white;
+      padding: 16.5px;
+      border-radius: 8.8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      font-size: 14.3px;
+      overflow-y: auto;
+      position: relative;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      margin-top: 0;
+      min-height: 400px;
+      max-height: calc(100vh - 195px);
+      flex-grow: 1;
+    }
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      table-layout: auto;
+      position: relative;
+      margin-bottom: 30px;
+      display: none;
+    }
+    thead {
+      background: white;
+    }
+    thead th {
+      background: #f8f9fa;
+      font-size: 13px;
+      padding: 6px;
+      border-bottom: 2px solid #dee2e6;
+      white-space: normal;
+    }
+    th, td {
+      padding: 6px;
+      border: 1px solid #dee2e2;
+      text-align: center;
+      font-size: 13px;
+      word-wrap: break-word;
+      white-space: normal;
+      overflow: hidden;
+      max-width: 300px;
+    }
+    th:nth-child(1), td:nth-child(1) { width: 7%; }
+    th:nth-child(2), td:nth-child(2) { width: 10%; }
+    th:nth-child(3), td:nth-child(3) { width: 18%; }
+    th:nth-child(4), td:nth-child(4) { width: 10%; }
+    th:nth-child(5), td:nth-child(5) { width: 10%; }
+    th:nth-child(6), td:nth-child(6) { width: 10%; }
+    th:nth-child(7), td:nth-child(7) { width: 35%; }
+    tr.group-header td {
+      background: #f8f9fa;
+      font-weight: bold;
+      text-align: left;
+    }
+    tr.subtotal td {
+      font-weight: bold;
+      background: #e3f2fd;
+      color: #1976d2;
+      font-size: 15.6px;
+    }
+    tr:hover td:not(tr.subtotal td):not(tr.sticky-total-row td) {
+      background: #f1f3f5;
+    }
+    .year-checkbox, .month-checkbox {
+      display: flex;
+      align-items: center;
+      padding: 4px 8px;
+      background: transparent;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 12px;
+      color: #333;
+      margin: 2px;
+    }
+    .year-checkbox:hover, .month-checkbox:hover {
+      background: #e9ecef;
+    }
+    .year-checkbox.selected, .month-checkbox.selected {
+      background: #e3f2fd;
+      color: #1976d2;
+      font-weight: bold;
+    }
+    .year-checkbox.selected::before, .month-checkbox.selected::before {
+      content: "✓";
+      margin-right: 5px;
+      color: #1976d2;
+    }
+    #select-all-container {
+      text-align: center;
+      margin: 0;
+      padding: 3.3px; /* Base padding */
+      background: #f0f2f5;
+      border-radius: 4.4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      width: 132px;
+      position: fixed;
+      top: 95px;
+      left: 22px;
+      z-index: 1999;
+      padding-top: 8px; /* Specific padding */
+      padding-bottom: 8px; /* Specific padding */
+      margin-top: 10px;
+      box-sizing: border-box;
+    }
+
+    #select-all-checkbox {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      padding: 2px 4px;
+      font-size: 11px;
+      color: #666;
+      transition: all 0.2s ease;
+      background: white;
+      border-radius: 3px;
+      /* padding: 4px 8px; Controlled by parent's padding */
+    }
+
+    #select-all-checkbox input {
+      margin: 0;
+      width: 12px;
+      height: 12px;
+    }
+
+    #select-all-checkbox input:checked + span {
+      color: #1a237e;
+      font-weight: 500;
+    }
+
+    #year-filter-container {
+      text-align: center;
+      margin: 0 auto 11px;
+      max-width: 15%;
+      min-width: 120px;
+      position: fixed;
+      top: 95px;
+      left: 160px;
+      z-index: 1999;
+      background: #f0f2f5;
+      padding-top: 8px; /* Match select-all-container */
+      padding-bottom: 8px; /* Match select-all-container */
+      margin-top: 10px; /* Match select-all-container */
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: auto; /* Allow content to define height based on padding and button */
+    }
+
+    #year-filter-btn {
+      padding: 4px 10px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      color: #333;
+      width: calc(100% - 10px);
+      box-sizing: border-box;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+       /* Ensure button height is consistent with select-all checkbox for alignment */
+      line-height: normal; /* Or match the line-height of select-all checkbox content */
+       min-height: 22px; /* Approximate height of select-all checkbox */
+    }
+    #year-filter-btn:hover {
+      background-color: #e9ecef;
+    }
+
+    #year-filter-popup {
+      display: none;
+      position: absolute;
+      top: calc(100% + 5px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      z-index: 2001;
+      padding: 10px;
+      min-width: 200px; /* Increased width to accommodate new buttons */
+      max-height: 250px; /* Increased max-height */
+      overflow-y: auto;
+    }
+    #year-filter-popup.show-popup {
+      display: block;
+    }
+    #year-checkboxes-popup {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-bottom: 10px; /* Add margin below checkboxes */
+    }
+    .year-popup-buttons {
+        display: flex;
+        justify-content: space-between; /* Distribute buttons */
+        margin-top: 10px;
+        gap: 5px; /* Add gap between buttons */
+    }
+    .year-popup-btn { /* Common style for new buttons */
+        padding: 5px 8px;
+        background-color: #f0f0f0;
+        color: #333;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 11px;
+        flex-grow: 1; /* Allow buttons to grow */
+        text-align: center;
+    }
+    .year-popup-btn:hover {
+        background-color: #e0e0e0;
+    }
+    #close-year-popup-btn { /* Style for existing close button */
+      /* display: block; /* Removed to allow flex layout */
+      /* margin: 10px auto 0; /* Removed for flex layout */
+      padding: 5px 10px;
+      background-color: #1a237e;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      flex-grow: 1; /* Allow button to grow */
+    }
+    #close-year-popup-btn:hover {
+      background-color: #0d47a1;
+    }
+
+
+    #month-filter-container {
+      text-align: center;
+      margin: 0 auto 11px;
+      /* padding: 0; Original, let's match others */
+      position: fixed;
+      top: 95px;
+      left: calc(160px + 15% + 10px);
+      min-width: 120px;
+      right: 20px;
+      z-index: 1999;
+      background: #f0f2f5;
+      /* padding: 5.5px 0; Original */
+      padding-top: 8px; /* Match select-all-container & year-filter */
+      padding-bottom: 8px; /* Match select-all-container & year-filter */
+      margin-top: 10px; /* Match select-all-container & year-filter */
+      box-sizing: border-box;
+      height: auto;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+    #select-all-months-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      padding: 2px 4px;
+      font-size: 11px;
+      color: #666;
+      background: white;
+      border-radius: 3px;
+      white-space: nowrap;
+      border: 1px solid #ccc;
+      height: 22px; /* Match year filter button height */
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+    #select-all-months-label:hover {
+      background-color: #e9ecef;
+    }
+    #select-all-months-label input {
+      margin: 0;
+      width: 12px;
+      height: 12px;
+    }
+    #select-all-months-label input:checked + span {
+      color: #1a237e;
+      font-weight: 500;
+    }
+   /* === 비파괴적 오버라이드: 월 전체선택 메뉴 라벨과 동작만 제거 ===
+     - 라벨/체크박스를 CSS로 숨기고
+     - JS에서 캡처 단계(click/change)를 차단하여 기존 핸들러가 실행되지 않도록 함
+     이 방식은 원본 로직(월 리스트, 월 필터 로직, 다른 메뉴 라벨)은 건드리지 않습니다. */
+   #select-all-months-label { display: none !important; }
+   #select-all-months { pointer-events: none !important; visibility: hidden !important; }
+    #month-checkboxes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      justify-content: flex-start;
+      max-height: 30px; /* Limit height if many months */
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+
+    @media (max-width: 1400px) {
+      #chart { width: 25%; max-width: 400px; }
+      #table-container { width: 75%; max-width: 900px; min-width: 300px; flex-grow: 1; }
+      h1 { font-size: clamp(14px, 2vw, 28px); padding: clamp(7px, 1.2vw, 12px); }
+      #year-filter-container { left: 160px; max-width: 150px; }
+      #month-filter-container { left: calc(160px + 150px + 10px); max-width: calc(100% - (160px + 150px + 10px) - 20px); }
+    }
+    @media (max-width: 1200px) {
+      #dashboard-container { flex-wrap: wrap; margin-top: 144px; gap: 40px; padding: 10px; }
+      #chart { width: 100%; max-width: 800px; height: 600px; margin: 0 auto; }
+      #table-container { width: 100%; max-width: 1000px; min-width: 200px; position: static; margin: 0 auto; flex-grow: 1; overflow: auto; }
+      .file-input-wrapper { min-width: 90px; }
+      .file-input-label { font-size: 9px; padding: 4px 6px; }
+      .control-btn { min-width: 55px; font-size: 6.5px; padding: 2px 3px; }
+      #controls { top: 10px; transform: scale(1); transform-origin: left top; }
+      h1 { font-size: clamp(12px, 1.8vw, 24px); padding: clamp(6px, 1vw, 10px); min-height: 50px; }
+
+      #select-all-container, #year-filter-container, #month-filter-container {
+          top: 72px;
+          margin-top: 0;
+          padding-top: 4px;
+          padding-bottom: 4px;
+      }
+      #select-all-container { width: 140px; left: 10px; }
+      #year-filter-container { left: 155px; max-width: 120px; }
+      #month-filter-container {
+          left: calc(155px + 120px + 10px); right: 10px; max-width: none;
+          gap: 5px;
+          padding-left: 5px;
+          padding-right: 5px;
+      }
+
+      #year-checkboxes-popup, #month-checkboxes { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-left: 5px; padding-right: 5px;}
+      #month-checkboxes { flex-wrap: wrap; max-height: none; }
+      .year-checkbox, .month-checkbox { font-size: 11px; padding: 3px 6px; }
+
+      th, td { font-size: 14.28px; padding: 7px; }
+      .sticky-total-row td { font-size: 16.32px; }
+      thead, thead th { top: 0; }
+      .summary-card h3 { font-size: 17.7px; }
+      .summary-item { font-size: 14.75px; margin: 12px 0; line-height: 1.5; }
+      #type-summary .summary-item { margin: 4px 0; }
+      .summary-value { font-size: 14.75px; }
+    }
+    .sticky-total-row { background: #fff5f5; }
+    .sticky-total-row td { font-weight: bold; color: #e74c3c; font-size: 15.912px; }
+    tbody tr:not(.sticky-total-row) { position: relative; z-index: 1; }
+    td:nth-child(7) { font-size: 12px; text-align: center; padding-left: 10px; white-space: normal; word-break: break-word; cursor: pointer; transition: all 0.2s ease; }
+    .min-labor-cost-link { color: #1a237e; text-decoration: underline; cursor: pointer; font-weight: 500; transition: all 0.2s ease; }
+    .min-labor-cost-link:hover { color: #0d47a1; text-decoration: none; }
+    .detail-link, .note-link { color: #FF33CC; text-decoration: underline; cursor: pointer; transition: all 0.3s ease; }
+    .detail-link:hover, .note-link:hover { color: #B800B8; text-decoration: none; }
+    .node.selected ~ #table-container td:nth-child(7) { font-size: 11px; line-height: 1.3; }
+    th:nth-child(3), td:nth-child(3) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: auto; }
+    /* td:nth-child(3):hover { white-space: nowrap; overflow: hidden; position: static; z-index: auto; background-color: transparent; box-shadow: none; } */ /* Removed to allow alternating color to persist */
+    .node.selected ~ #table-container th:nth-child(3),
+    .node.selected ~ #table-container td:nth-child(3) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    th:nth-child(5) { white-space: normal; word-wrap: break-word; word-break: break-word; line-height: 1.2; }
+    th:nth-child(1), td:nth-child(1),
+    th:nth-child(2), td:nth-child(2) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: auto; }
+    td:nth-child(1):hover,
+    td:nth-child(2):hover { white-space: nowrap; overflow: hidden; position: static; z-index: auto; background-color: transparent; box-shadow: none; }
+    th:nth-child(6), td:nth-child(6) { text-align: center; }
+    .control-btn { min-width: 58px; padding: 2.5px 3px; background: #e0e0e0; color: #666666; border: 1px solid #e0e0e0; border-radius: 3px; cursor: pointer; font-size: 6.8px; transition: all 0.3s ease; text-align: center; white-space: nowrap; margin: 0 1px; position: relative; }
+    .control-btn:hover { background: #c0c0c0; border-color: #e0e0e0; }
+    /* Table-specific small xls button (inserted into '비고' header) */
+    #table-xls-btn {
+      display: inline-block;
+      margin-right: 6px;
+      padding: 4px 6px;
+      font-size: 11px;
+      background: #e0e0e0;
+      color: #333;
+      border: 1px solid #d0d0d0;
+      border-radius: 3px;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+    #table-xls-btn:hover { background: #c8e6ff; color: #0d47a1; }
+    .control-btn:hover::before { content: attr(data-tooltip); position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; white-space: nowrap; z-index: 2001; margin-top: 5px; }
+    /* === 메뉴 버튼 통일 스타일 (Raw Up 기준) === */
+    /* 적용 대상: Raw Up, Hyper Up, HTML Dn, Raw Dn, Hyper Dn, xls↑ */
+    #controls .control-btn#raw-upload-btn,
+    #controls .control-btn#upload-link-btn,
+    #controls .control-btn#download-html-btn,
+    #controls .control-btn#download-csv-btn,
+    #controls .control-btn#download-link-btn,
+    #controls .control-btn#xls-export-btn {
+      font-size: calc(6.8px * 1.5) !important; /* Raw Up의 확대 스타일을 기준으로 통일 */
+      padding: 4px 8px !important; /* 라벨에 맞춘 패딩 */
+      min-width: auto !important;
+      width: auto !important;
+      margin: 0 4px 0 0 !important; /* 오른쪽 마진만 작게 유지 */
+      box-sizing: border-box;
+    }
+    /* 컨테이너가 너무 넓게 잡히는 경우 버튼에 맞춰 정렬 */
+    #controls { display: flex; align-items: center; gap: 6px; }
+    .zoomed-cell { font-size: 16px !important; background-color: #f0f7ff !important; border: 2px solid #1a237e !important; z-index: 10; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.2); padding: 10px !important; line-height: 1.5 !important; white-space: normal !important; overflow: visible !important; max-width: none !important; width: auto !important; height: auto !important; }
+    tr:has(.zoomed-cell) { position: relative; z-index: 100; height: auto !important; }
+    #table-container:has(.zoomed-cell) { overflow: visible !important; }
+    .note-popup { position: fixed; background-color: #ffffff; border: 2px solid #1a237e; border-radius: 8px; padding: 15px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); z-index: 1000; max-width: 90%; max-height: 240px; overflow-y: auto; font-size: 19px; line-height: 1.6; white-space: nowrap; word-break: keep-all; overflow-x: auto; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #1a237e; font-weight: 500; }
+    .node.selected ~ #table-container th:nth-child(1), .node.selected ~ #table-container td:nth-child(1) { width: 6%; }
+    .node.selected ~ #table-container th:nth-child(2), .node.selected ~ #table-container td:nth-child(2) { width: 9%; }
+    .node.selected ~ #table-container th:nth-child(3), .node.selected ~ #table-container td:nth-child(3) { width: 22%; }
+    .node.selected ~ #table-container th:nth-child(4), .node.selected ~ #table-container td:nth-child(4) { width: 8%; }
+    .node.selected ~ #table-container th:nth-child(5), .node.selected ~ #table-container td:nth-child(5) { width: 8%; }
+    .node.selected ~ #table-container th:nth-child(6), .node.selected ~ #table-container td:nth-child(6) { width: 7%; }
+    .node.selected ~ #table-container th:nth-child(7), .node.selected ~ #table-container td:nth-child(7) { width: 40%; }
+    .analysis-summary { padding: 15px; background: #f8f9fa; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); flex-direction: column; align-items: center; justify-content: flex-start; overflow-y: auto; height: 100%; box-sizing: border-box; margin-top: 0; }
+    .analysis-summary.show { display: flex; margin: 0; }
+    .summary-cards { display: grid; grid-template-columns: 1.5fr 1fr 1.5fr; gap: 20px; margin-top: 0; width: 100%; max-width: 1200px; }
+    .summary-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; display: flex; flex-direction: column; }
+    .summary-card > div { display: flex; flex-direction: column; justify-content: flex-start; flex-grow: 1; }
+    .summary-card:nth-child(1) { min-width: 300px; }
+    .summary-card:nth-child(3) { min-width: 300px; }
+    .summary-card:nth-child(2) { min-width: 200px; }
+    .summary-card h3 { margin: 0 0 10px 0; color: #1a237e; font-size: 15.73px; font-weight: 600; border-bottom: 2px solid #e3f2fd; padding-bottom: 6px; flex-shrink: 0; }
+    .summary-item { margin: 12px 0; font-size: 13.76px; line-height: 1.4; }
+    #total-summary .summary-item:first-child { flex-shrink: 0; }
+    #type-summary .summary-item { margin: 8px 0;  }
+    .summary-item strong { color: #1976d2; margin-right: 6px; font-size: 13.76px; }
+    .summary-value { font-weight: bold; color: #2c3e50; font-size: 14.75px; }
+    .summary-value.positive { color: #2e7d32; }
+    .summary-value.negative { color: #c62828; }
+    .summary-value small { font-size: 11.8px; font-weight: normal; margin-left: 2px; }
+    .summary-item small { font-size: 11.8px; color: #666; margin-left: 4px; }
+    #total-summary .summary-item:first-child strong { font-size: 1.16em !important; }
+    #total-summary .summary-item:first-child .summary-value { font-size: 1.85em !important; }
+    #total-summary .summary-item:first-child > div > span:not(.summary-value) { font-size: 0.92em !important; }
+    @media (max-width: 1200px) {
+      .analysis-summary {}
+      .summary-cards { grid-template-columns: 1fr; gap: 15px; margin-top: 0; }
+      .summary-card h3 { font-size: 17.7px; }
+      .summary-item { font-size: 14.75px; margin: 12px 0; }
+      #type-summary .summary-item { margin: 4px 0; }
+      #table-container { max-height: calc(100vh - 250px); }
+      thead, thead th { top: 0; }
+      .sticky-total-row {}
+    }
+    #controls.compact { transform: scale(0.8) !important; transform-origin: left top !important; top: 0 !important; }
+    #controls.compact .control-btn { min-width: 50px; font-size: 6px; padding: 2px 3px; }
+    .hyperlink-month, .hyperlink-type, .hyperlink-detail, .hyperlink-note { text-decoration: underline; cursor: pointer; transition: all 0.2s ease; }
+    .hyperlink-month { color: #1a237e; } .hyperlink-type { color: #1a237e; } .hyperlink-detail { color: #1a237e; } .hyperlink-note { color: #1a237e; }
+    .hyperlink-month:hover, .hyperlink-type:hover, .hyperlink-detail:hover, .hyperlink-note:hover { opacity: 0.8; text-decoration: none; }
+    .hyperlink-style-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 2000; width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; display: block !important; }
+    .hyperlink-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1999; display: block !important; }
+    .hyperlink-style-panel h3 { color: #1a237e; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 2px solid #e3f2fd; }
+    .hyperlink-type-section { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; }
+    .hyperlink-type-section h4 { color: #1a237e; margin: 0 0 15px 0; }
+    .style-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+    .style-control { display: flex; flex-direction: column; gap: 5px; }
+    .style-control label { font-size: 14px; color: #666; }
+    .style-control input, .style-control select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+    .style-preview { margin-top: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: white; }
+    .panel-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
+    .panel-button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.2s ease; }
+    .panel-button.apply { background: #1a237e; color: white; } .panel-button.cancel { background: #e0e0e0; color: #666; }
+    .panel-button:hover { opacity: 0.9; transform: translateY(-1px); }
+    a:not(.min-labor-cost-link):not(.detail-link):not(.note-link) { color: #FF00FF !important; text-decoration: underline; cursor: pointer; transition: all 0.2s ease; }
+    a:not(.min-labor-cost-link):not(.detail-link):not(.note-link):hover { color: #FF00FF !important; text-decoration: none; }
+    .min-labor-cost-link, .detail-link, .note-link, .hyperlink-month, .hyperlink-type, .hyperlink-detail, .hyperlink-note { color: #FF00FF !important; text-decoration: underline; cursor: pointer; transition: all 0.2s ease; }
+    .min-labor-cost-link:hover, .detail-link:hover, .note-link:hover, .hyperlink-month:hover, .hyperlink-type:hover, .hyperlink-detail:hover, .hyperlink-note:hover { color: #FF00FF !important; text-decoration: none; }
+
+    /* --- 개선 사항: 특정 메뉴 버튼 크기 50% 확대 --- */
+    /* 메뉴("Raw Up", "Hyper Up", "HTML Dn", "Hyper Dn", "Raw Dn")에 대해서 원본 크기의 50% 확대 적용 */
+    #raw-upload-btn,
+    #upload-link-btn,
+    #download-html-btn,
+    #download-link-btn,
+    #download-csv-btn { /* "Raw Dn" 버튼 ID 추가 */
+      min-width: calc(58px * 1.5) !important; /* 원본 min-width(58px)의 150% */
+      padding-top: calc(2.5px * 1.5) !important; /* 원본 padding(2.5px)의 150% */
+      padding-bottom: calc(2.5px * 1.5) !important;
+      padding-left: calc(3px * 1.5) !important; /* 원본 padding(3px)의 150% */
+      padding-right: calc(3px * 1.5) !important;
+      font-size: calc(6.8px * 1.5) !important; /* 원본 font-size(6.8px)의 150% */
+    }
+    /* --- 개선 사항 끝 --- */
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <h1>월별 비용 절감 대시보드<span id="dashboard-title-year-suffix"></span></h1>
+    <div id="controls">
+    <input type="file" id="file-input" accept=".csv">
+    <button id="raw-upload-btn" class="control-btn" data-tooltip="CSV 파일을 선택하여 데이터를 업로드합니다">Raw Up</button>
+    <button id="upload-link-btn" class="control-btn" data-tooltip="하이퍼링크 설정을 업로드합니다">Hyper Up</button>
+    <button id="download-html-btn" class="control-btn" data-tooltip="현재 데이터가 포함된 HTML 파일을 다운로드합니다">HTML Dn</button>
+    <button id="download-csv-btn" class="control-btn" data-tooltip="현재 데이터를 CSV 파일로 다운로드합니다">Raw Dn</button>
+    <button id="download-link-btn" class="control-btn" data-tooltip="하이퍼링크 설정을 다운로드합니다">Hyper Dn</button>
+    </div>
+  </div>
+  <div id="select-all-container">
+    <label id="select-all-checkbox">
+      <input type="checkbox" id="select-all">
+      <span>전체 버블 선택/해제</span>
+    </label>
+  </div>
+  <div id="year-filter-container">
+    <button id="year-filter-btn">연도 필터 ▼</button>
+    <div id="year-filter-popup">
+        <div id="year-checkboxes-popup"></div>
+        <div class="year-popup-buttons"> <button id="deselect-all-years-btn" class="year-popup-btn">전체 해제</button>
+            <button id="close-year-popup-btn">닫기</button>
+            <button id="select-all-years-btn" class="year-popup-btn">전체 선택</button>
+        </div>
+    </div>
+  </div>
+  <div id="month-filter-container">
+    <label id="select-all-months-label" style="display: none;">
+      <input type="checkbox" id="select-all-months">
+      <span>월 전체선택</span>
+    </label>
+    <div id="month-checkboxes"></div>
+  </div>
+  <div id="dashboard-container">
+    <svg id="chart"></svg>
+    <div id="table-container">
+      <table>
+        <thead>
+          <tr><th>월</th><th>작업유형</th><th>절감항목</th><th>A.집행비</th><th>B.공사비 적용시</th><th>절감비(A-B)</th><th>비고</th></tr>
+        </thead>
+        <tbody>
+          <tr class="sticky-total-row">
+            <td></td>
+            <td></td>
+            <td>총 절감합계</td>
+            <td></td>
+            <td></td>
+            <td id="total-top">-</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="analysis-summary">
+        <div class="summary-cards">
+          <div class="summary-card">
+            <h3>총 절감 분석</h3>
+            <div id="total-summary">
+            </div>
+          </div>
+          <div class="summary-card">
+            <h3>월별 절감 현황</h3>
+            <div id="monthly-summary">
+            </div>
+          </div>
+          <div class="summary-card">
+            <h3>작업 유형별 통계</h3>
+            <div id="type-summary">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // --- Add Excel export button next to 'Hyper Dn' menu and load SheetJS ---
+    (function addExcelExportNextToMenu(){
+      const hyperBtn = document.getElementById('download-link-btn');
+      if (!hyperBtn || !hyperBtn.parentNode) return;
+      const btn = document.createElement('button');
+      btn.id = 'xls-export-btn';
+      btn.textContent = 'xls↑';
+      btn.className = 'control-btn';
+      btn.setAttribute('data-tooltip', '엑셀 추출');
+      // style to match menu sizing
+      btn.style.minWidth = '58px'; btn.style.padding = '6px 8px'; btn.style.marginLeft = '6px';
+      hyperBtn.parentNode.insertBefore(btn, hyperBtn.nextSibling);
+
+      // load SheetJS if not already
+      if (typeof XLSX === 'undefined') {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js'; // 버전 고정
+        s.onload = () => { console.log('SheetJS loaded'); };
+        document.head.appendChild(s);
+      }
+
+      const buildAndDownload = function(){
+        if (typeof XLSX === 'undefined') { alert('SheetJS 로드 중입니다. 잠시 후 다시 시도하세요.'); return; }
+        const wb = XLSX.utils.book_new();
+        try { const raw = allData.map(d => Object.assign({}, d)); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(raw), 'AllData'); } catch(e){console.error(e);} 
+        try { const table = document.querySelector('#table-container table'); if(table) XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(table), 'TableView'); } catch(e){console.error(e);} 
+        try { const monthly = d3.rollups(allData.filter(d=>d.saving!==0), v=>({ total:d3.sum(v,d=>d.saving), count:v.length, avg:v.length>0?d3.sum(v,d=>d.saving)/v.length:0 }), d=>d.month).map(([m,s])=>({ month:m, total:s.total, count:s.count, avg:s.avg })); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(monthly),'MonthlySummary'); } catch(e){console.error(e);} 
+        try { const types = d3.rollups(allData.filter(d=>d.saving!==0), v=>({ total:d3.sum(v,d=>d.saving), count:v.length, avg:v.length>0?d3.sum(v,d=>d.saving)/v.length:0 }), d=>d.type).map(([t,s])=>({ type:t, total:s.total, count:s.count, avg:s.avg })); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(types),'TypeSummary'); } catch(e){console.error(e);} 
+        try { const bubbleData = (typeof packData!=='undefined' && Array.isArray(packData))?packData.map(([k,v])=>({ key:k, value:JSON.stringify(v) })):[]; XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(bubbleData),'BubbleData'); } catch(e){console.error(e);} 
+        try{ XLSX.writeFile(wb, 'dashboard_export.xlsx'); } catch(e){ console.error(e); alert('엑셀 생성 중 오류'); }
+      };
+
+      btn.addEventListener('click', buildAndDownload);
+    })();
+    // Ensure the script runs after the DOM is fully loaded
+    // DOM이 완전히 로드된 후 스크립트가 실행되도록 보장합니다.
+    window.addEventListener('load', function() {
+      document.body.style.zoom = '100%';
+
+      // Restore saved state if available (from downloaded HTML)
+      // 저장된 상태 복원 (다운로드된 HTML에서)
+      if (typeof savedSelectedYears !== 'undefined' && savedSelectedYears !== null) { // Check if placeholder was replaced
+        selectedYears = new Set(savedSelectedYears);
+      }
+      if (typeof savedSelectedMonths !== 'undefined' && savedSelectedMonths !== null) {
+        selectedMonths = new Set(savedSelectedMonths);
+      }
+      if (typeof savedSelectedTypes !== 'undefined' && savedSelectedTypes !== null) {
+        selectedTypes = new Set(savedSelectedTypes);
+      }
+      if (typeof savedDisplayMode !== 'undefined' && savedDisplayMode !== null) {
+        displayMode = savedDisplayMode;
+      } else {
+        displayMode = 'summary'; // Default if not saved // 저장되지 않은 경우 기본값
+      }
+      // csvLoadedInitialYear는 HTML 다운로드 시 스크립트 내에 직접 값으로 저장되므로,
+      // 여기에서 별도로 savedCsvLoadedInitialYear를 읽어올 필요가 없습니다.
+      // let csvLoadedInitialYear = null; 또는 let csvLoadedInitialYear = "2023"; 형태로 저장됩니다.
+      // 만약 HTML에 csvLoadedInitialYear 값이 저장되어 있다면, 전역 변수 csvLoadedInitialYear는 해당 값으로 초기화됩니다.
+      // isYearFilterManuallySetAllOrNone 상태도 HTML에 저장하고 로드 시 복원합니다.
+      if (typeof savedIsYearFilterManuallySetAllOrNone !== 'undefined' && savedIsYearFilterManuallySetAllOrNone !== null) {
+        isYearFilterManuallySetAllOrNone = savedIsYearFilterManuallySetAllOrNone;
+      }
+      // isInitialMonthClick 상태도 HTML에 저장하고 로드 시 복원합니다.
+      if (typeof savedInitialMonthClick !== 'undefined' && savedInitialMonthClick !== null) {
+        isInitialMonthClick = savedInitialMonthClick;
+      }
+
+
+      const tableContainer = document.getElementById('table-container');
+      if (tableContainer) { // Store initial max-height of table container // 테이블 컨테이너의 초기 최대 높이 저장
+          const computedMaxHeight = getComputedStyle(tableContainer).maxHeight;
+          if (computedMaxHeight && computedMaxHeight !== 'none') {
+              initialTableContainerMaxHeight = computedMaxHeight;
+          } else {
+               initialTableContainerMaxHeight = 'calc(100vh - 195px)'; // Default fallback // 기본 대체값
+          }
+      }
+
+      if (allData && allData.length > 0) {
+        initChart();
+        drawChart();
+        // CSV 로드 시 초기 연도에 따른 월 자동 선택 및 UI 업데이트를 위해
+        // updateYearFilter() 와 updateMonthFilter() 호출 순서 및 내용이 중요합니다.
+        // loadAndRenderData 함수 내부에서 이 로직이 처리됩니다.
+        updateYearFilter(); // 연도 필터 UI(체크박스)는 여기서 초기화
+        // selectedMonths는 loadAndRenderData에서 selectedYears 기준으로 채워짐
+        updateMonthFilter(); // 채워진 selectedMonths 기준으로 월 필터 UI(체크박스) 초기화
+
+  // ...existing code...
+      } else {
+        updateYearFilter();
+        updateMonthFilter();
+      }
+      renderDashboardView(); // 분석 카드 업데이트 포함
+      updateSelectAllCheckboxState();
+      updateDashboardTitle();
+      updateYearFilterButtonText();
+    });
+
+    let svg = null;
+    let width = 0;
+    let height = 0;
+    const margin = 10;
+    let allData = [];
+    let selectedTypes = new Set();
+    let selectedMonths = new Set();
+    let selectedYears = new Set();
+    let colorScale = null;
+    let hyperlinkRules = [];
+    // Placeholders for saved state - will be replaced if HTML is downloaded & reloaded
+    // 저장된 상태에 대한 플레이스홀더 - HTML을 다운로드하고 다시 로드하면 대체됩니다.
+    let savedSelectedYears = null;
+    let savedSelectedMonths = null;
+    let savedSelectedTypes = null;
+    let savedDisplayMode = null;
+    let csvLoadedInitialYear = null; // CSV 로드 시 초기 선택된 연도 저장
+    let isYearFilterManuallySetAllOrNone = false; // "전체 선택" 또는 "전체 해제"로 연도가 명시적으로 설정되었는지 여부
+    let isInitialMonthClick = true; // 월 필터 첫 클릭 여부. true이면 단일 선택, false이면 누적 선택.
+    let savedIsYearFilterManuallySetAllOrNone = null, savedInitialMonthClick = null; // HTML 저장/로드용
+
+
+    let initialTableContainerMaxHeight = 'calc(100vh - 195px)';
+    let displayMode = 'summary'; // 'summary' or 'table' // '요약' 또는 '테이블'
+
+
+    // Default hyperlink rules (can be overridden by uploaded rules)
+    // 기본 하이퍼링크 규칙 (업로드된 규칙으로 덮어쓸 수 있음)
+    const defaultHyperlinkRules = [
+        { column: '절감항목', searchText: '사택 102-401 세대내 고장 보일러 교체', linkUrl: 'https://photos.app.goo.gl/ZSpjCao7BtfsuDmU8', linkType: 'detail', description: '사택 102-401 보일러 교체 관련 사진' },
+        { column: '절감항목', searchText: '사택 9-501 누수탐지 및 바닥 매립배관 보수', linkUrl: 'https://photos.app.goo.gl/VysKu4vh8CJci2s38', linkType: 'detail', description: '사택 9-501 누수탐지 및 바닥 매립배관 보수 사진' },
+        { column: '절감항목', searchText: '기숙사 및 사택 긴급보수 작업(건축)-1차', linkUrl: 'https://photos.app.goo.gl/kgQVvQyvHmAoMDcq7', linkType: 'detail', description: '기숙사 사택 긴급보수 건축 1차 사진' },
+        { column: '절감항목', searchText: '사택 5-401 누수 난방분배기 교체', linkUrl: 'https://photos.app.goo.gl/wi2X32C25LtwxwV17', linkType: 'detail', description: '사택 5-401 누수 난방분배기 교체 사진' },
+        { column: '절감항목', searchText: '기숙사동 및 사택 저수조 안전 브라켓', linkUrl: 'https://photos.app.goo.gl/orM3oQ4oymfL2sAGA', linkType: 'detail', description: '기숙사동 사택 저수조 안전 브라켓 사진' },
+        { column: '절감항목', searchText: '기숙사동 및 사택 소방 지적사항 보완', linkUrl: 'https://photos.app.goo.gl/EzqSAa5XAneNd5E47', linkType: 'detail', description: '기숙사동 사택 소방 지적사항 보완 사진' },
+        { column: '비고', searchText: '기계 최소인건비', linkUrl: 'https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A', linkType: 'note', description: '기계 최소인건비 산정 기준 정보' },
+        { column: '비고', searchText: '건축 최소인건비', linkUrl: 'https://photos.app.goo.gl/RY4GxypvWKuGJnuu7', linkType: 'note', description: '건축 최소인건비 산정 기준 정보' },
+        { column: '비고', searchText: '전기 최소인건비', linkUrl: 'https://photos.app.goo.gl/htiYjUpzb8U7YtdW8', linkType: 'note', description: '전기 최소인건비 산정 기준 정보' },
+        { column: '비고', searchText: '비용 추정(보수적)', linkUrl: 'https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8', linkType: 'note', description: '비용 추정 관련 사진/근거' }
+    ];
+
+    // Helper function to format month string
+    // 월 문자열 형식 지정 도우미 함수
+    function formatMonth(month) {
+      // Assuming month is like "YYYY-MM" or "MM월"
+      // 월이 "YYYY-MM" 또는 "MM월" 형식이라고 가정합니다.
+      if (typeof month === 'string' && month.includes('-')) {
+        // Input like "YYYY-MM" -> show only month as "MM월"
+        const parts = month.split('-');
+        const mm = String(parts[1]).padStart(2, '0');
+        return `${mm}월`;
+      }
+      // If already in a month-like form, normalize to 'MM월'
+      if (typeof month === 'string') {
+        const digits = month.match(/(\d{1,4})/g);
+        if (digits && digits.length > 0) {
+          const last = digits[digits.length - 1];
+          const mm = String(Number(last)).padStart(2, '0');
+          return `${mm}월`;
+        }
+        return month; // fallback: return as-is
+      }
+      return month;
+    }
+
+    // Function to switch between summary and table view
+    // 요약 보기와 테이블 보기 간 전환 기능
+    function renderDashboardView() {
+        const tableElement = document.querySelector('#table-container table');
+        const analysisSummary = document.querySelector('#table-container .analysis-summary');
+        const tableContainer = document.getElementById('table-container');
+        const thead = tableElement.querySelector('thead');
+        const monthFilterContainer = document.getElementById('month-filter-container');
+        const totalRow = tableElement.querySelector('.sticky-total-row');
+
+        if (displayMode === 'summary') {
+            tableElement.style.display = 'none';
+            analysisSummary.style.display = 'flex';
+            analysisSummary.classList.add('show');
+
+            if(tableContainer) {
+                tableContainer.style.overflowY = 'visible';
+                tableContainer.style.maxHeight = 'none';
+            }
+            if(thead) { thead.style.position = 'static'; }
+            if(totalRow) { totalRow.style.position = 'static'; }
+            if (monthFilterContainer) monthFilterContainer.style.display = 'flex'; // 개선사항 2: 종합 섹션 보일 때 월 필터 표시
+
+            updateAnalysisSummary();
+        } else { // displayMode === 'table'
+            analysisSummary.style.display = 'none';
+            analysisSummary.classList.remove('show');
+            if (monthFilterContainer) monthFilterContainer.style.display = 'none'; // 개선사항 2: 종합 섹션 사라질 때 월 필터 숨김
+            tableElement.style.display = 'table';
+
+            if(tableContainer) {
+                tableContainer.style.overflowY = 'auto';
+                tableContainer.style.maxHeight = initialTableContainerMaxHeight;
+            }
+            if(thead) { thead.style.position = 'sticky'; thead.style.top = '0px'; thead.style.zIndex = '3'; }
+            if(totalRow && thead) {
+                 requestAnimationFrame(() => {
+                    const theadHeight = thead.offsetHeight;
+                    totalRow.style.position = 'sticky';
+                    totalRow.style.top = `${theadHeight}px`;
+                    totalRow.style.zIndex = '2';
+                     totalRow.querySelectorAll('td').forEach(td => {
+                         td.style.top = `${theadHeight}px`;
+                     });
+                });
+            } else if(totalRow) {
+                totalRow.style.position = 'static';
+            }
+            updateTable();
+        }
+    }
+
+    // Function to update the dashboard title with selected year(s)
+    // 선택된 연도로 대시보드 제목 업데이트 기능
+    function updateDashboardTitle() {
+        const titleSuffixElement = document.getElementById('dashboard-title-year-suffix');
+        if (!titleSuffixElement) return;
+
+        const allAvailableYears = [...new Set(allData.map(d => d.year))].filter(y => y).sort((a,b) => a-b);
+
+        if (allData.length > 0 && selectedYears.size === 0 && allAvailableYears.length > 0) {
+            titleSuffixElement.textContent = '(선택 되지 않음)'; // Updated text // 업데이트된 텍스트
+        } else if (selectedYears.size > 0 && selectedYears.size === allAvailableYears.length) {
+            const sortedSelectedYears = Array.from(selectedYears).sort((a,b) => a-b);
+            titleSuffixElement.textContent = `(${sortedSelectedYears.join('년, ')}년)`;
+        } else if (selectedYears.size > 0) {
+            const sortedSelectedYears = Array.from(selectedYears).sort((a,b) => a-b);
+            if (sortedSelectedYears.length > 2) {
+                 titleSuffixElement.textContent = `(${sortedSelectedYears[0]}년 외 ${sortedSelectedYears.length -1}개)`;
+            } else {
+                titleSuffixElement.textContent = `(${sortedSelectedYears.join('년, ')}년)`;
+            }
+        } else {
+             titleSuffixElement.textContent = '';
+        }
+    }
+
+    // Function to update the text of the year filter button
+    // 연도 필터 버튼의 텍스트 업데이트 기능
+    function updateYearFilterButtonText() {
+        const yearFilterBtn = document.getElementById('year-filter-btn');
+        if (!yearFilterBtn) return;
+
+        if (allData.length === 0) {
+            yearFilterBtn.textContent = '연도 필터 ▼';
+            return;
+        }
+
+        const allAvailableYears = [...new Set(allData.map(d => d.year))].filter(y => y);
+
+        if (selectedYears.size === 0 && allAvailableYears.length > 0) {
+            yearFilterBtn.textContent = '연도 (전체 해제) ▼';
+        } else if (allAvailableYears.length > 0 && selectedYears.size === allAvailableYears.length) {
+            yearFilterBtn.textContent = '연도 (전체 선택) ▼';
+        } else if (selectedYears.size === 1) {
+            const selectedYear = selectedYears.values().next().value;
+            yearFilterBtn.textContent = `연도 (${selectedYear}년) ▼`;
+        } else if (selectedYears.size > 1) {
+            yearFilterBtn.textContent = `연도 (${selectedYears.size}개) ▼`;
+        } else {
+             yearFilterBtn.textContent = '연도 필터 ▼';
+        }
+    }
+
+    // Function to update the state of the "Select All Bubbles" checkbox
+    // "모든 버블 선택" 체크박스 상태 업데이트 기능
+    function updateSelectAllCheckboxState() {
+      const selectAllCheckbox = document.getElementById('select-all');
+      if (!selectAllCheckbox || allData.length === 0) {
+          if(selectAllCheckbox) selectAllCheckbox.checked = false;
+          return;
+      }
+
+      // 변경된 로직: 체크박스는 '최신 연도 프리셋'이 활성화되었는지를 나타냅니다.
+      const allAvailableYears = [...new Set(allData.map(d => d.year).filter(y => y))].sort((a, b) => b - a);
+
+      // 데이터가 없으면 체크할 수 없습니다.
+      if (allAvailableYears.length === 0) {
+          selectAllCheckbox.checked = false;
+          return;
+      }
+
+      const latestYear = allAvailableYears[0];
+
+      // 조건 1: 최신 연도만 선택되었는가?
+      const isLatestYearSelected = selectedYears.size === 1 && selectedYears.has(latestYear);
+
+      // 조건 2: 해당 최신 연도의 모든 월이 선택되었는가?
+      const monthsForLatestYear = new Set(allData.filter(d => d.year === latestYear).map(d => d.month).filter(m => m));
+      let areAllMonthsForLatestYearSelected = monthsForLatestYear.size > 0 && selectedMonths.size === monthsForLatestYear.size && [...monthsForLatestYear].every(m => selectedMonths.has(m));
+      if (monthsForLatestYear.size === 0 && selectedMonths.size === 0) {
+          areAllMonthsForLatestYearSelected = true; // 해당 연도에 월 데이터가 없는 경우도 참으로 간주
+      }
+
+      // 조건 3: 모든 작업 유형이 선택되었는가?
+      const allPossibleTypesInData = new Set(allData.map(d => d.type).filter(t => t));
+      const areAllTypesSelected = allPossibleTypesInData.size > 0 ? selectedTypes.size === allPossibleTypesInData.size : selectedTypes.size === 0;
+
+      // 세 조건이 모두 충족될 때 체크박스가 활성화됩니다.
+      selectAllCheckbox.checked = isLatestYearSelected && areAllMonthsForLatestYearSelected && areAllTypesSelected;
+    }
+
+  // Centralized full view refresh that can optionally skip recalculating selectedMonths
+  // skipMonthRecalc: when true, do not recalculate selectedMonths (used for manual month interactions)
+  function updateAllViews(skipMonthRecalc) {
+    if (!skipMonthRecalc) {
+      // Recalculate selectedMonths based on selectedYears (same behavior as previous centralized logic)
+      selectedMonths.clear();
+      if (selectedYears.size > 0) {
+        allData.forEach(d => {
+          if (selectedYears.has(d.year) && d.month) {
+            selectedMonths.add(d.month);
+          }
+        });
+      }
+      // If selectedYears is empty then selectedMonths stays empty (explicit deselect case)
+    }
+
+    // UI & data updates
+    updateYearFilter();
+    updateYearFilterButtonText();
+    updateDashboardTitle();
+    updateMonthFilter();
+    renderDashboardView();
+    updateBubbleOpacity();
+    updateBubbleTextsBasedOnFilter();
+    updateSelectAllCheckboxState();
+    updateSelectAllMonthsCheckboxState();
+  // Reapply locked left position for month filter container to avoid horizontal jumps
+  try { applyLockedLeftCSS(); } catch (err) { /* non-fatal */ }
+  }
+
+  // --- 통합된 레거시 연동 함수: 중앙 업데이트 파이프라인으로 위임 ---
+  // 기존에 많은 위치에서 호출되므로 함수명을 유지하고 내부에서 중앙화된
+  // updateAllViews(false)를 호출하여 동작을 단일 경로로 통합합니다.
+  function updateLinkedFiltersAndRender() {
+    // 위임: selectedMonths 재계산이 필요하므로 skipMonthRecalc=false
+    updateAllViews(false);
+  }
+  // --- 통합 완료 ---
+
+
+    // Function to populate and handle year filter options in the popup
+    // 팝업에서 연도 필터 옵션 채우기 및 처리 기능
+    function updateYearFilter() {
+      const yearCheckboxesPopup = document.getElementById('year-checkboxes-popup');
+      const allAvailableYears = [...new Set(allData.map(d => d.year).filter(y=>y))].sort((a,b) => b-a);
+
+      // 연도 필터 팝업 내 체크박스 목록을 다시 그림.
+      // selectedYears Set에 포함된 연도는 체크되고, 'selected' 클래스가 라벨에 추가됨.
+      yearCheckboxesPopup.innerHTML = allAvailableYears.map(y => `
+        <label class="year-checkbox ${selectedYears.has(y) ? 'selected' : ''}">
+          <input type="checkbox" value="${y}" ${selectedYears.has(y) ? 'checked' : ''}>
+          ${y}년
+        </label>
+      `).join('');
+
+      yearCheckboxesPopup.querySelectorAll('.year-checkbox').forEach(checkboxLabel => {
+        checkboxLabel.addEventListener('click', function(event) {
+          event.stopPropagation(); // 이벤트 버블링 중단 (팝업 닫힘 방지)
+
+          const yearInput = this.querySelector('input');
+          const year = yearInput.value;
+
+          // 라벨 클릭 시 input의 checked 상태는 이미 변경된 후임.
+          if (yearInput.checked) {
+            selectedYears.add(year);
+            // this.classList.add('selected'); // updateLinkedFiltersAndRender -> updateYearFilter에서 처리
+          } else {
+            selectedYears.delete(year);
+            // this.classList.remove('selected'); // updateLinkedFiltersAndRender -> updateYearFilter에서 처리
+          }
+          isInitialMonthClick = true; // 연도 변경 시 월 필터 클릭 상태 초기화
+          isYearFilterManuallySetAllOrNone = false; // 개별 연도 선택 시 플래그 해제
+
+          displayMode = 'summary'; // 연도 필터 변경 시 기본적으로 요약 보기
+          updateLinkedFiltersAndRender(); // 통합된 업데이트 함수 호출
+        });
+      });
+      // 초기 로드 시 또는 데이터 없을 때도 버튼 텍스트는 업데이트 필요
+      updateYearFilterButtonText();
+      updateDashboardTitle();
+    }
+
+    // Function to populate and handle month filter options
+    // 월 필터 옵션 채우기 및 처리 기능
+    function updateMonthFilter() {
+      const selectAllMonthsLabel = document.getElementById('select-all-months-label');
+      const monthCheckboxes = document.getElementById('month-checkboxes');
+      let yearFilteredData = allData;
+
+      // selectedYears에 따라 표시할 월 목록을 결정
+      if (selectedYears.size > 0) {
+          yearFilteredData = allData.filter(d => selectedYears.has(d.year));
+      } else {
+          // 선택된 연도가 없으면 (예: "전체 해제" 시) 모든 데이터를 기반으로 가능한 월 목록을 보여주되, 선택은 하지 않음
+          // 또는, 연도가 선택되지 않으면 월 목록을 비울 수도 있음. 현재는 모든 데이터를 기반으로 함.
+          // 만약 isYearFilterManuallySetAllOrNone가 true이고 selectedYears가 비어있으면, 실제로 월을 보여주지 않아야 할 수 있음.
+          // 이 부분은 updateLinkedFiltersAndRender에서 selectedMonths가 이미 비워져 있으므로 괜찮음.
+          if (isYearFilterManuallySetAllOrNone && selectedYears.size === 0) {
+              yearFilteredData = []; // 명시적 전체 해제 시 월 목록도 비움
+          }
+      }
+
+      const allAvailableMonthsForDisplay = [...new Set(yearFilteredData.map(d => d.month).filter(m=>m))].sort((a,b) => {
+          const [aYear, aMon] = a.split('-').map(Number);
+          const [bYear, bMon] = b.split('-').map(Number);
+          if (aYear !== bYear) return aYear - bYear;
+          return aMon - bMon;
+      });
+
+      // Show or hide the master checkbox based on month availability
+      if (allAvailableMonthsForDisplay.length > 0) {
+          selectAllMonthsLabel.style.display = 'flex';
+      } else {
+          selectAllMonthsLabel.style.display = 'none';
+      }
+
+      // selectedMonths는 updateLinkedFiltersAndRender 또는 다른 핸들러에서 이미 설정됨.
+      // 여기서는 해당 selectedMonths를 기반으로 UI만 업데이트.
+      monthCheckboxes.innerHTML = allAvailableMonthsForDisplay.map(m => `
+        <label class="month-checkbox ${selectedMonths.has(m) ? 'selected' : ''}">
+          <input type="checkbox" value="${m}" ${selectedMonths.has(m) ? 'checked' : ''}>
+          ${formatMonth(m)}
+        </label>
+      `).join('');
+
+      // 개선 사항: 월 필터 누적 선택 기능 구현
+      monthCheckboxes.querySelectorAll('.month-checkbox').forEach(checkboxLabel => {
+        checkboxLabel.addEventListener('mousedown', function(e) {
+            e.preventDefault(); // 기본 동작(체크박스 토글)을 막고 커스텀 로직 실행
+            const monthInput = this.querySelector('input');
+            const month = monthInput.value;
+
+            // 첫 클릭 시: 다른 월 선택을 모두 해제하고 현재 월만 선택
+            if (isInitialMonthClick) {
+                selectedMonths.clear();
+                selectedMonths.add(month);
+                isInitialMonthClick = false; // 다음 클릭부터는 누적 모드로 변경
+            } else {
+                // 누적 모드: 이미 선택된 월이면 해제, 아니면 추가
+                if (selectedMonths.has(month)) {
+                    selectedMonths.delete(month);
+                } else {
+                    selectedMonths.add(month);
+                }
+            }
+
+            isYearFilterManuallySetAllOrNone = false;
+            displayMode = 'summary';
+
+            // 월 상태가 수동으로 변경되었으므로, 월 재계산 없이(true) 뷰 업데이트
+            updateAllViews(true);
+            // 버블 상태 즉시 업데이트
+            updateBubbleOpacity();
+            updateBubbleTextsBasedOnFilter();
+        });
+      });
+      updateSelectAllMonthsCheckboxState();
+    }
+
+    // Function to update the state of the "Select All Months" checkbox
+    // "월 전체선택" 체크박스 상태 업데이트 기능
+    function updateSelectAllMonthsCheckboxState() {
+        const selectAllMonthsCheckbox = document.getElementById('select-all-months');
+        if (!selectAllMonthsCheckbox) return;
+
+        let yearFilteredData = allData;
+        if (selectedYears.size > 0) {
+            yearFilteredData = allData.filter(d => selectedYears.has(d.year));
+        } else if (isYearFilterManuallySetAllOrNone && selectedYears.size === 0) {
+            yearFilteredData = [];
+        }
+
+    let availableMonths = [...new Set(yearFilteredData.map(d => d.month).filter(m => m))];
+
+  // If no months are available because the year filter is empty (explicit deselect),
+  // avoid globally selecting months from disparate years which can cause data/visual conflicts.
+  // Instead, limit month selection to the latest year present in the data.
+  if (availableMonths.length === 0 && selectedYears.size === 0) {
+    const yearsInData = [...new Set(allData.map(d => d.year).filter(y => y))].map(Number);
+    if (yearsInData.length > 0) {
+      const latestYear = Math.max(...yearsInData);
+      availableMonths = [...new Set(allData.filter(d => Number(d.year) === latestYear).map(d => d.month).filter(m => m))];
+    } else {
+      availableMonths = [];
+    }
+  }
+        const availableMonthCount = availableMonths.length;
+        // Count only selected months that are available in the current year selection
+        const relevantSelectedMonthCount = availableMonths.filter(m => selectedMonths.has(m)).length;
+
+        if (availableMonthCount === 0) {
+            selectAllMonthsCheckbox.checked = false;
+            selectAllMonthsCheckbox.indeterminate = false;
+            selectAllMonthsCheckbox.disabled = true;
+        } else {
+            selectAllMonthsCheckbox.disabled = false;
+            if (relevantSelectedMonthCount === 0) {
+                selectAllMonthsCheckbox.checked = false;
+                selectAllMonthsCheckbox.indeterminate = false;
+            } else if (relevantSelectedMonthCount === availableMonthCount) {
+                selectAllMonthsCheckbox.checked = true;
+                selectAllMonthsCheckbox.indeterminate = false;
+            } else {
+                selectAllMonthsCheckbox.checked = false;
+                selectAllMonthsCheckbox.indeterminate = true;
+            }
+        }
+    }
+
+    // Function to update the opacity of bubbles based on current filters
+    // 현재 필터를 기반으로 버블 불투명도 업데이트 기능
+    function updateBubbleOpacity() {
+        if (!svg) return;
+        svg.selectAll('.node').each(function(d_node) {
+            const node = d3.select(this);
+            const isTypeSelectedBySet = selectedTypes.has(d_node.data.type);
+
+            const nodeYears = d_node.data.years || [];
+            const nodeMonths = d_node.data.months || [];
+
+            // 연도 필터: "전체 해제" (selectedYears.size === 0 이지만 isYearFilterManuallySetAllOrNone가 true인 경우)는 데이터 없음으로 간주
+            const allYearsInData = new Set(allData.map(d => d.year).filter(y => y));
+            let isYearEffectivelySelected = selectedYears.size > 0 ? nodeYears.some(y => selectedYears.has(y)) : true;
+            if (selectedYears.size === 0 && isYearFilterManuallySetAllOrNone && allYearsInData.size > 0) {
+                isYearEffectivelySelected = false; // 명시적 전체 해제 시 버블 비활성화
+            } else if (selectedYears.size === 0 && allYearsInData.size === 0) { // 데이터 로드 전
+                isYearEffectivelySelected = true; // 또는 false, 상황에 따라
+            }
+
+            // --- 월 필터 로직 개선 ---
+            // 현재 연도 필터에 따라 선택 가능한 월 목록을 먼저 결정합니다.
+            let yearFilteredDataForMonthCheck = allData;
+            if (selectedYears.size > 0) {
+                yearFilteredDataForMonthCheck = allData.filter(d => selectedYears.has(d.year));
+            } else if (isYearFilterManuallySetAllOrNone && allYearsInData.size > 0) {
+                yearFilteredDataForMonthCheck = [];
+            }
+            const availableMonthsAfterYearFilter = [...new Set(yearFilteredDataForMonthCheck.map(d => d.month).filter(m => m))];
+
+            let isMonthMatch;
+            if (selectedMonths.size > 0) { // 선택된 월이 있을 경우
+                // 이 버블의 월 중에 선택된 월이 있는지 확인합니다.
+                isMonthMatch = nodeMonths.some(m => selectedMonths.has(m));
+            } else {
+                // 선택된 월이 없을 때:
+                // - 선택 가능한 월이 애초에 없었다면 월 필터는 무시됩니다 (true).
+                // - 선택 가능한 월이 있었는데 선택된 월이 없다면, 사용자가 모두 해제한 것이므로 매치되지 않습니다 (false).
+                isMonthMatch = availableMonthsAfterYearFilter.length === 0;
+            }
+            // --- 월 필터 로직 개선 끝 ---
+
+            let opacity = 0.3;
+            let stroke = '#cccccc';
+            let strokeWidth = 2;
+            let isNodeEffectivelySelected = false;
+
+      if (isTypeSelectedBySet && isYearEffectivelySelected && isMonthMatch) {
+        opacity = 1;
+        stroke = '#000000';
+        strokeWidth = 4;
+        isNodeEffectivelySelected = true;
+      } else if (selectedTypes.size === 0 && isYearEffectivelySelected && isMonthMatch && selectedMonths.size > 0) {
+        // Explicit month-only selection: highlight matching bubbles fully
+        opacity = 1;
+        stroke = '#000000';
+        strokeWidth = 3;
+        isNodeEffectivelySelected = true;
+      } else if (selectedTypes.size === 0 && isYearEffectivelySelected && isMonthMatch) {
+        // No explicit month selection and no type filter: dimmed default
+        opacity = 0.5;
+      } else if (isTypeSelectedBySet && (!isYearEffectivelySelected || !isMonthMatch)) {
+                opacity = 0.1;
+            } else if (selectedTypes.size > 0 && !isTypeSelectedBySet){
+                 opacity = 0.1;
+            } else if (!isYearEffectivelySelected) {
+                opacity = 0.1; // 연도 필터가 효과적으로 선택되지 않은 경우
+            }
+
+
+            node.classed('selected', isNodeEffectivelySelected);
+            node.style('opacity', opacity);
+            node.select('circle')
+              .attr('stroke', stroke)
+              .attr('stroke-width', strokeWidth)
+              .transition().duration(100)
+              .attr('r', isNodeEffectivelySelected ? d_node.r * 1.3 : d_node.r);
+            node.select('text').style('font-weight', isNodeEffectivelySelected ? 'bold' : 'normal');
+        });
+    }
+
+    // Function to update the text within bubbles based on current filters
+    // 현재 필터를 기반으로 버블 내 텍스트 업데이트 기능
+    function updateBubbleTextsBasedOnFilter() {
+      if (!svg || !allData.length) return;
+
+      svg.selectAll('.node').each(function(d_node) {
+        const nodeElement = d3.select(this);
+        const type = d_node.data.type;
+
+        let filteredDataForType = allData.filter(item => item.type === type);
+
+        // 연도 필터: "전체 해제" 시 데이터 없도록 처리
+        const allYearsInData = new Set(allData.map(d => d.year).filter(y => y));
+        if (selectedYears.size > 0) {
+            filteredDataForType = filteredDataForType.filter(item => selectedYears.has(item.year));
+        } else if (allData.length > 0 && allYearsInData.size > 0 && isYearFilterManuallySetAllOrNone) { // "전체 해제" 상태
+            filteredDataForType = [];
+        }
+
+        // --- 월 필터 로직 개선 ---
+        const availableMonthsAfterYearAndTypeFilter = [...new Set(filteredDataForType.map(d => d.month).filter(m => m))];
+        if (selectedMonths.size > 0) {
+            filteredDataForType = filteredDataForType.filter(item => selectedMonths.has(item.month));
+        } else {
+            // 연도/유형 필터링 후 선택 가능한 월이 있었지만, 선택된 월이 없는 경우 (사용자가 모든 월 선택을 해제함)
+            if (availableMonthsAfterYearAndTypeFilter.length > 0) {
+                filteredDataForType = [];
+            }
+        }
+        // --- 월 필터 로직 개선 끝 ---
+
+        currentTotalSavings = d3.sum(filteredDataForType, item => item.saving);
+        currentItemCount = filteredDataForType.filter(item => item.saving !== 0).length;
+
+        const amountTspan = nodeElement.select('text .amount-tspan');
+        const countTspan = nodeElement.select('text .count-tspan');
+
+        if (amountTspan.node()) {
+            amountTspan.text(d3.format(',')(currentTotalSavings));
+        }
+        if (countTspan.node()) {
+            countTspan.text(`${currentItemCount}건`);
+        }
+      });
+    }
+
+    // Function to initialize the chart area
+    // 차트 영역 초기화 기능
+    function initChart() {
+      const chartContainer = document.getElementById('chart');
+      const containerWidth = chartContainer.clientWidth;
+      const containerHeight = chartContainer.clientHeight;
+      width = Math.min(containerWidth, containerHeight);
+      height = width;
+
+      const baseFontSize = Math.min(18, width / 18);
+
+      if (!svg || svg.attr('width') !== width || svg.attr('height') !== height) {
+        d3.select('#chart').selectAll('*').remove();
+        svg = d3.select('#chart')
+          .attr('width', width)
+          .attr('height', height)
+          .attr('viewBox', `0 0 ${width} ${height}`)
+          .attr('preserveAspectRatio', 'xMidYMid meet');
+      }
+      window.chartFontSize = baseFontSize;
+    }
+
+    // Function to draw the bubble chart
+    // 버블 차트 그리기 기능
+    function drawChart() {
+      if (!svg) initChart();
+
+      if (svg.selectAll('*').size() > 0) {
+        svg.selectAll('*').remove();
+      }
+
+      const backgroundRect = svg.append('rect')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('fill', 'transparent');
+
+      // --- 개선 사항: 빈 화면 클릭/더블 클릭 시 동작 변경 ---
+      const handleBackgroundClick = function() {
+          isInitialMonthClick = true; // 월 필터 클릭 상태 초기화
+          selectedTypes.clear();
+          selectedMonths.clear();
+          // isYearFilterManuallySetAllOrNone가 true이면 selectedYears를 유지 (단, selectedYears가 비어있으면 csvLoadedInitialYear로 시도)
+          // 그렇지 않으면(개별 연도 선택 상태였거나, 초기 CSV 로드 상태로 돌아가야 할 때) csvLoadedInitialYear로 복원
+          if (!isYearFilterManuallySetAllOrNone) {
+            selectedYears.clear();
+            if (csvLoadedInitialYear) {
+                selectedYears.add(csvLoadedInitialYear);
+            }
+          } else if (selectedYears.size === 0 && csvLoadedInitialYear) { // "전체 해제" 상태에서 배경 클릭 시 초기 연도로 복원
+             selectedYears.add(csvLoadedInitialYear);
+             isYearFilterManuallySetAllOrNone = false; // 이 경우, 명시적 "전체 해제" 상태는 풀림
+          }
+          // isYearFilterManuallySetAllOrNone 플래그는 배경 클릭 시 변경하지 않음.
+          // 이 플래그는 연도 필터 팝업 내 버튼 또는 개별 연도 체크박스 클릭 시에만 변경됨.
+
+          displayMode = 'summary';
+          document.getElementById('year-filter-popup').classList.remove('show-popup');
+          updateAllViews(false);
+      };
+
+      backgroundRect.on('click', function(event) {
+          if (event.detail === 2) return; // 더블 클릭의 일부인 경우 무시
+          handleBackgroundClick();
+      });
+
+      backgroundRect.on('dblclick', function(event) {
+          event.preventDefault();
+          event.stopPropagation();
+          handleBackgroundClick();
+      });
+      // --- 개선 사항 끝 ---
+
+
+      const packData = d3.rollups(allData,
+        v => {
+          const validData = v.filter(d => d.month && d.type && d.detail && d.year);
+          const itemCount = validData.length;
+          return {
+            value: d3.sum(validData, d => Math.abs(d.saving)) || 1,
+            total: d3.sum(validData, d => d.saving) || 0,
+            months: [...new Set(validData.map(d => d.month))],
+            years: [...new Set(validData.map(d => d.year))],
+            itemCount: itemCount
+          };
+        },
+        d => d.type
+      ).map(([type, stats]) => ({ type, ...stats }));
+
+      const sizeScale = 0.95;
+      const pack = d3.pack()
+        .size([(width - margin*2) * sizeScale, (height - margin*2) * sizeScale])
+        .padding(4);
+
+      const root = pack(d3.hierarchy({ children: packData }).sum(d => d.value));
+      colorScale = d3.scaleOrdinal().domain(packData.map(d=>d.type)).range(d3.schemeTableau10);
+
+      updateSelectAllCheckboxState();
+
+      const bubbleHeightValue = d3.max(root.leaves(), d => d.y + d.r) - d3.min(root.leaves(), d => d.y - d.r);
+      const offsetY = (height - bubbleHeightValue) / 2 - d3.min(root.leaves(), d => d.y - d.r);
+      const offsetX = margin + 35;
+
+      const nodes = svg.selectAll('g.node').data(root.leaves(), d=>d.data.type).enter().append('g')
+        .attr('class', 'node')
+        .attr('transform', d=>`translate(${d.x + offsetX},${d.y + offsetY + margin})`)
+        .on('click', function(event, d_node) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const clickedType = d_node.data.type;
+          if (event.ctrlKey || event.metaKey) { // Ctrl 또는 Cmd 키와 함께 클릭 시 다중 선택/해제
+            if (selectedTypes.has(clickedType)) {
+              selectedTypes.delete(clickedType);
+            } else {
+              selectedTypes.add(clickedType);
+            }
+          } else { // 단독 클릭 시
+            if (selectedTypes.has(clickedType) && selectedTypes.size === 1) { // 이미 선택된 버블을 다시 클릭하면 선택 해제
+              selectedTypes.clear();
+            } else { // 새로운 버블 선택 또는 다른 버블로 변경
+              selectedTypes.clear();
+              selectedTypes.add(clickedType);
+            }
+          }
+          isYearFilterManuallySetAllOrNone = false; // 버블 클릭 시에는 명시적 전체 선택/해제 상태 해제
+
+
+          // --- 개선 사항: 버블 클릭 시 월 필터 연동 ---
+          selectedMonths.clear(); // 먼저 기존 월 선택 해제
+          if (selectedTypes.size > 0) { // 선택된 작업 유형이 있을 경우
+            allData.forEach(d => {
+              // 현재 선택된 연도 필터(selectedYears)와 선택된 작업 유형(selectedTypes) 모두에 해당하는 월만 추가
+              if (selectedTypes.has(d.type) && (selectedYears.size === 0 || selectedYears.has(d.year))) {
+                if (d.month) {
+                  selectedMonths.add(d.month);
+                }
+              }
+            });
+          } else { // 선택된 작업 유형이 없을 경우 (모든 버블 선택 해제 시)
+            // 현재 선택된 연도(selectedYears)에 해당하는 모든 월을 선택
+            allData.forEach(d => {
+              if (selectedYears.size === 0 || selectedYears.has(d.year)) {
+                if (d.month) {
+                  selectedMonths.add(d.month);
+                }
+              }
+            });
+          }
+          // --- 개선 사항 끝 ---
+
+          displayMode = 'table'; // 버블 클릭 시 테이블 모드로 전환
+
+          // 중앙화된 업데이트 호출 (월 재계산을 건너뛰어 수동으로 설정한 selectedMonths 유지)
+          updateAllViews(true);
+        });
+
+      nodes.append('circle')
+        .attr('r', d=>d.r)
+        .attr('fill', d=>colorScale(d.data.type));
+
+      nodes.append('text')
+        .attr('text-anchor','middle')
+        .attr('dominant-baseline','middle')
+        .style('fill', d=> {
+          const c = d3.color(colorScale(d.data.type)).rgb();
+          return (0.299*c.r + 0.587*c.g + 0.114*c.b) > 150 ? '#2c3e50' : '#fff';
+        })
+        .each(function(d) {
+          const t = d3.select(this);
+          t.text('');
+
+          const typeText = d.data.type;
+          const typeWords = typeText.split(' ');
+          let currentLine = '';
+          let lines = [];
+
+          const maxTextWidth = d.r * 1.8;
+          const fontSize = Math.min(window.chartFontSize, d.r / 3);
+
+          typeWords.forEach(word => {
+            if ((currentLine + word).length * fontSize / 2 > maxTextWidth) {
+              lines.push(currentLine.trim());
+              currentLine = word;
+            } else {
+              currentLine += (currentLine ? ' ' : '') + word;
+            }
+          });
+          if (currentLine) lines.push(currentLine.trim());
+
+          const lineHeight = fontSize * 1.2;
+          const amountText = d3.format(',')(d.data.total);
+          const amountFontSize = Math.min(fontSize, d.r / 4);
+          const countText = `${d.data.itemCount}건`;
+          const countFontSize = Math.min(amountFontSize, d.r / 5);
+
+          const totalTextHeight = lines.length * lineHeight + lineHeight * 1.5 + lineHeight * 1.2;
+          const startY = -totalTextHeight / 2 + lineHeight / 2;
+
+          lines.forEach((line, i) => {
+            t.append('tspan')
+              .attr('x', 0)
+              .attr('dy', i === 0 ? startY + 'px' : lineHeight + 'px')
+              .text(line)
+              .style('font-size', fontSize + 'px');
+          });
+
+          const typeToAmountGap = lineHeight * 1.5;
+          t.append('tspan')
+            .attr('class', 'amount-tspan')
+            .attr('x', 0)
+            .attr('dy', typeToAmountGap + 'px')
+            .text(amountText)
+            .style('font-size', amountFontSize + 'px');
+
+          const amountToCountGap = lineHeight * 1.2;
+          t.append('tspan')
+            .attr('class', 'count-tspan')
+            .attr('x', 0)
+            .attr('dy', amountToCountGap + 'px')
+            .text(countText)
+            .style('font-size', countFontSize + 'px');
+        });
+        updateBubbleOpacity();
+        updateBubbleTextsBasedOnFilter();
+    }
+
+    window.addEventListener('resize', function() {
+      if (allData.length > 0) {
+        initChart();
+        drawChart();
+      }
+      checkMenuOverlap();
+    });
+
+    const fileInput = document.getElementById('file-input');
+    document.getElementById('raw-upload-btn').addEventListener('click', function() {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+
+      function formatNumberWithCommas(str) {
+        if (/^-?\d+$/.test(str)) {
+          return str.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        return str.replace(/(\d{3,})/g, function(match) {
+          return match.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        });
+      }
+
+      reader.onload = function(ev) {
+        try {
+          const rawData = d3.csvParse(ev.target.result);
+          if (!rawData || !rawData.length) {
+            console.error('CSV 파일을 분석할 수 없습니다.');
+            return;
+          }
+
+          function processData(rawData) {
+            return rawData.map(d => {
+              const monthRaw = d['월'] || '';
+              let year = '', month = '';
+
+              if (monthRaw.includes('-')) {
+                  const parts = monthRaw.split('-');
+                  year = parts[0];
+                  month = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+              } else if (monthRaw.length === 4 && !isNaN(monthRaw)) {
+                  year = monthRaw;
+                  month = monthRaw;
+              }
+
+              const type = d['작업유형'] || '';
+              const detail = d['절감항목'] || '';
+              const note = d['비고'] || '';
+              const actual = parseFloat((d['A.집행비'] || '0').replace(/,/g, '')) || 0;
+              const estimated = parseFloat((d['B.공사비 적용시'] || '0').replace(/,/g, '')) || 0;
+              const saving = parseFloat((d['절감비(A-B)'] || '0').replace(/,/g, '')) || 0;
+
+              const formattedDetail = formatNumberWithCommas(detail);
+              let formattedNote = formatNumberWithCommas(note);
+
+              const minLaborCostLinks = {
+                '기계 최소인건비': 'https://photos.app.goo.gl/od8H1Cn9ZXcyttq6A',
+                '건축 최소인건비': 'https://photos.app.goo.gl/RY4GxypvWKuGJnuu7',
+                '전기 최소인건비': 'https://photos.app.goo.gl/htiYjUpzb8U7YtdW8'
+              };
+              Object.entries(minLaborCostLinks).forEach(([text, url]) => {
+                if (formattedNote.includes(text)) {
+                  formattedNote = formattedNote.replace(
+                    text,
+                    `<span class="min-labor-cost-link" onclick="window.open('${url}', '_blank')">${text}</span>`
+                  );
+                }
+              });
+
+              return {
+                year: year,
+                month: month, type: type, detail: formattedDetail,
+                actual: actual, estimated: estimated, saving: saving, note: formattedNote
+              };
+            }).sort((a, b) => {
+              if (a.year !== b.year) return a.year.localeCompare(b.year);
+              if (a.month !== b.month) return a.month.localeCompare(b.month);
+              return a.type.localeCompare(b.type);
+            });
+          }
+
+          function loadAndRenderData(rawData) {
+            allData = processData(rawData);
+            selectedTypes.clear();
+            selectedMonths.clear(); // CSV 로드 시 월 선택 초기화
+            selectedYears.clear();  // CSV 로드 시 연도 선택 초기화
+            csvLoadedInitialYear = null; // 초기 연도도 리셋
+            isYearFilterManuallySetAllOrNone = false; // CSV 로드 시에는 명시적 전체 선택/해제 상태가 아님
+            isInitialMonthClick = true; // 데이터 로드 시 월 필터 클릭 상태 초기화
+            displayMode = 'summary';
+            document.getElementById('year-filter-popup').classList.remove('show-popup');
+
+            // 개선 사항 1 & 3: 로우데이터 업로드 시 최신 연도와 해당 월, 모든 유형을 자동 선택합니다. (더블클릭 동작과 통일)
+            const allAvailableYears = [...new Set(allData.map(d => d.year).filter(y => y))].sort((a, b) => b - a);
+            const allAvailableTypes = [...new Set(allData.map(d => d.type).filter(t => t))];
+
+            if (allAvailableYears.length > 0) {
+                const latestYear = allAvailableYears[0];
+                csvLoadedInitialYear = latestYear; // 나중에 초기화할 수 있도록 최신 연도 저장
+                selectedYears.add(latestYear); // 최신 연도만 선택
+
+                const monthsForLatestYear = [...new Set(allData.filter(d => d.year === latestYear).map(d => d.month).filter(m => m))];
+                selectedMonths = new Set(monthsForLatestYear); // 해당 연도의 모든 월 선택
+            }
+
+            selectedTypes = new Set(allAvailableTypes); // 모든 작업 유형 선택
+            isYearFilterManuallySetAllOrNone = false; // '전체 선택' 상태가 아니므로 false로 설정
+
+      // Ensure the month filter container's locked left is captured (if not already)
+      try {
+        const mfc = document.getElementById('month-filter-container');
+        if (mfc && (!mfc.dataset || !mfc.dataset.lockedLeft)) {
+          const computedLeft = getComputedStyle(mfc).left;
+          if (mfc.dataset) mfc.dataset.lockedLeft = computedLeft || '';
+          applyLockedLeftCSS();
+        }
+      } catch (e) { /* non-fatal */ }
+
+
+            const chartContainer = document.getElementById('chart');
+            chartContainer.style.width = '100%';
+            chartContainer.style.height = '100%';
+
+            setTimeout(() => {
+              initChart();
+              drawChart();
+              // Centralized refresh to ensure months/years/types pipeline is applied to chart and UI
+              updateAllViews(false);
+
+              const tableContainer = document.getElementById('table-container');
+               if (tableContainer) {
+                  const computedMaxHeight = getComputedStyle(tableContainer).maxHeight;
+                  if (computedMaxHeight && computedMaxHeight !== 'none') {
+                      initialTableContainerMaxHeight = computedMaxHeight;
+                  } else {
+                       initialTableContainerMaxHeight = 'calc(100vh - 195px)';
+                  }
+              }
+
+            }, 50);
+          }
+
+          loadAndRenderData(rawData);
+        } catch (error) {
+          console.error('파일 처리 중 오류가 발생했습니다:', error);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = null;
+    });
+
+    function updateTable() {
+      const tbody = document.querySelector('#table-container table tbody');
+      const totalRow = document.querySelector('#table-container .sticky-total-row');
+
+      tbody.innerHTML = '';
+      tbody.appendChild(totalRow);
+
+      let filteredData = allData;
+      const allAvailableYearsInData = new Set(allData.map(d => d.year).filter(y => y));
+
+      if (selectedYears.size > 0) {
+        filteredData = filteredData.filter(d => selectedYears.has(d.year));
+      } else if (allData.length > 0 && allAvailableYearsInData.size > 0 && isYearFilterManuallySetAllOrNone) {
+        // "전체 해제"로 연도가 명시적으로 설정된 경우 데이터 필터링
+        filteredData = [];
+      }
+
+      const availableMonthsAfterYearFilter = [...new Set(filteredData.map(d => d.month).filter(m => m))];
+      if (selectedMonths.size > 0) {
+        filteredData = filteredData.filter(d => selectedMonths.has(d.month) && (selectedYears.size === 0 || selectedYears.has(d.year)));
+      } else if (availableMonthsAfterYearFilter.length > 0) {
+        // 선택 가능한 월이 있었지만 아무것도 선택되지 않은 경우 (사용자가 모든 월 선택을 해제함)
+        filteredData = [];
+      }
+
+      if (selectedTypes.size > 0) {
+        filteredData = filteredData.filter(d => selectedTypes.has(d.type));
+      }
+
+      const typeGroups = d3.group(filteredData, d => d.type);
+      let totalSum = 0;
+
+      let maxNoteWidth = 0;
+      let maxNoteText = '';
+      let maxDetailWidth = 0;
+      let maxDetailText = '';
+
+      typeGroups.forEach((rows, type) => {
+          rows.forEach(row => {
+          if (row.note && row.note.length > maxNoteText.length) { maxNoteText = row.note; maxNoteWidth = Math.max(maxNoteWidth, row.note.length * 8); }
+          if (row.detail && row.detail.length > maxDetailText.length) { maxDetailText = row.detail; maxDetailWidth = Math.max(maxDetailWidth, row.detail.length * 8); }
+          });
+      });
+
+      const tableContainerElement = document.getElementById('table-container');
+      const tableElementForStyle = document.querySelector('#table-container table');
+
+      if(tableContainerElement && tableElementForStyle.style.display !== 'none') {
+          const tableWidth = tableContainerElement.clientWidth;
+          let noteColumnWidth = Math.min(Math.max(maxNoteWidth + 20, tableWidth * (selectedTypes.size === 1 ? 0.4 : 0.35)), tableWidth * (selectedTypes.size === 1 ? 0.5 : 0.45));
+          let detailColumnWidth = Math.min(Math.max(maxDetailWidth + 20, tableWidth * (selectedTypes.size === 1 ? 0.22 : 0.18)), tableWidth * (selectedTypes.size === 1 ? 0.3 : 0.25));
+          const styleId = 'dynamic-column-styles';
+          let styleElement = document.getElementById(styleId);
+          if (!styleElement) { styleElement = document.createElement('style'); styleElement.id = styleId; document.head.appendChild(styleElement); }
+          styleElement.textContent = `@media (min-width: 1200px) { th:nth-child(7), td:nth-child(7) { width: ${noteColumnWidth}px !important; max-width: ${noteColumnWidth}px !important; } th:nth-child(3), td:nth-child(3) { width: ${detailColumnWidth}px !important; max-width: ${detailColumnWidth}px !important; }}`;
+      } else if (tableContainerElement && tableElementForStyle.style.display === 'none') {
+          const styleElement = document.getElementById('dynamic-column-styles');
+          if (styleElement) styleElement.textContent = '';
+      }
+
+      const bHeader = document.querySelector('#table-container th:nth-child(5)');
+      if (bHeader && bHeader.textContent.includes('B.공사비 적용시')) { bHeader.innerHTML = 'B.공사비<br>적용시'; bHeader.style.cssText = 'white-space: normal; word-wrap: break-word; word-break: break-word; line-height: 1.2;'; }
+
+      let currentMonthForColoring = null;
+      let colorToggle = false;
+      const monthGroupBgColors = ['#FFFFFF', '#fffde7']; // Updated alternating color // 업데이트된 교대 색상
+
+      typeGroups.forEach((rows, type) => {
+          rows.forEach(row => {
+          const tr = document.createElement('tr');
+          if (row.month !== currentMonthForColoring) { currentMonthForColoring = row.month; colorToggle = !colorToggle; }
+          const currentBgColor = monthGroupBgColors[colorToggle ? 1 : 0];
+          ['month','type','detail','actual','estimated','saving','note'].forEach(key => {
+              const td = document.createElement('td');
+              td.style.backgroundColor = currentBgColor;
+              let val = row[key];
+              if (['actual','estimated','saving'].includes(key)) {
+              td.textContent = val === 0 ? '-' : d3.format(',')(val);
+              if (val < 0) td.style.color = 'red';
+              } else if (key === 'month') {
+              td.textContent = formatMonth(val);
+              } else if (key === 'note') {
+              td.innerHTML = val;
+              // Ensure the base background color is applied before specific styles for note
+              // 노트에 대한 특정 스타일 전에 기본 배경색이 적용되었는지 확인합니다.
+              td.style.backgroundColor = currentBgColor;
+              td.style.textAlign = 'center';
+              td.style.paddingLeft = '10px';
+              td.style.whiteSpace = 'normal';
+              td.style.wordBreak = 'break-word';
+              td.style.cursor = 'pointer';
+
+              if (val && typeof val === 'string' && val.includes('비용 추정(보수적)')) { td.innerHTML = val.replace('비용 추정(보수적)', `<a href="https://photos.app.goo.gl/RmJhxWhF3xZW7zAu8" target="_blank" class="note-link">비용 추정(보수적)</a>`);}
+              if (selectedTypes.size === 1) { td.style.fontSize = '11px'; td.style.lineHeight = '1.3';}
+
+              td.addEventListener('click', function(e) {
+                  e.stopPropagation();
+                  const currentlyZoomed = document.querySelector('.zoomed-cell');
+                  if (currentlyZoomed && currentlyZoomed !== this) {
+                      currentlyZoomed.classList.remove('zoomed-cell');
+                      const existingPopup = document.querySelector('.note-popup');
+                      if (existingPopup) existingPopup.remove();
+                  }
+                  this.classList.toggle('zoomed-cell');
+                  if (this.classList.contains('zoomed-cell')) {
+                      const popup = document.createElement('div');
+                      popup.className = 'note-popup';
+                      popup.innerHTML = this.innerHTML;
+                      document.body.appendChild(popup);
+                      const closeBtn = document.createElement('button');
+                      closeBtn.textContent = '×';
+                      closeBtn.style.cssText = `position: absolute; right: 5px; top: 5px; background: none; border: none; font-size: 22px; cursor: pointer; color: #1a237e;`;
+                      closeBtn.onclick = function(ev) { ev.stopPropagation(); popup.remove(); td.classList.remove('zoomed-cell'); };
+                      popup.appendChild(closeBtn);
+                      document.addEventListener('click', function closePopupOnClickOutside(ev) {
+                          if (!popup.contains(ev.target) && ev.target !== td) {
+                              popup.remove(); td.classList.remove('zoomed-cell');
+                              document.removeEventListener('click', closePopupOnClickOutside);
+                          }
+                      }, { once: true });
+                  } else {
+                      const popup = document.querySelector('.note-popup');
+                      if (popup) popup.remove();
+                  }
+              });
+              } else if (key === 'detail') {
+              td.textContent = val; td.title = val;
+              const detailLinks = {
+                  '사택 102-401 세대내 고장 보일러 교체': 'https://photos.app.goo.gl/ZSpjCao7BtfsuDmU8',
+                  '사택 9-501 누수탐지 및 바닥 매립배관 보수': 'https://photos.app.goo.gl/VysKu4vh8CJci2s38',
+                  '기숙사 및 사택 긴급보수 작업(건축)-1차': 'https://photos.app.goo.gl/kgQVvQyvHmAoMDcq7',
+                  '사택 5-401 누수 난방분배기 교체': 'https://photos.app.goo.gl/wi2X32C25LtwxwV17',
+                  '기숙사동 및 사택 저수조 안전 브라켓': 'https://photos.app.goo.gl/orM3oQ4oymfL2sAGA',
+                  '기숙사동 및 사택 소방 지적사항 보완': 'https://photos.app.goo.gl/EzqSAa5XAneNd5E47'
+              };
+              if (val && typeof val === 'string' && detailLinks[val]) { td.innerHTML = `<a href="${detailLinks[val]}" target="_blank" class="detail-link">${val}</a>`; }
+
+              td.style.backgroundColor = currentBgColor; // Explicitly set alternating color // 명시적으로 교대 색상 설정
+              td.style.whiteSpace = 'nowrap';
+              td.style.overflow = 'hidden';
+              td.style.textOverflow = 'ellipsis';
+              if (selectedTypes.size === 1) {
+                td.style.fontSize = '11px';
+                td.style.lineHeight = '1.3';
+              }
+
+              td.addEventListener('mouseenter', function() {
+                this.style.whiteSpace = 'normal';
+                this.style.overflow = 'visible';
+                this.style.position = 'relative';
+                this.style.zIndex = '5';
+                this.style.backgroundColor = '#f8f9fa';
+                this.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+              });
+              td.addEventListener('mouseleave', function() {
+                this.style.whiteSpace = 'nowrap';
+                this.style.overflow = 'hidden';
+                this.style.position = 'static';
+                this.style.zIndex = 'auto';
+                this.style.backgroundColor = currentBgColor;
+                this.style.boxShadow = 'none';
+                this.style.textOverflow = 'ellipsis';
+              });
+              } else {
+              td.textContent = val;
+              }
+              tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+          });
+          const subtotal = rows.reduce((sum, r) => sum + r.saving, 0);
+          totalSum += subtotal;
+          const trSub = document.createElement('tr'); trSub.className = 'subtotal';
+          const typeColor = colorScale ? colorScale(type) : '#1976d2';
+          ['','',`${type} 소계`,'','', subtotal === 0 ? '-' : d3.format(',')(subtotal), ''].forEach((text, i) => {
+              const td = document.createElement('td');
+              td.textContent = text;
+              if (i === 2 || i === 5) td.style.color = typeColor;
+              trSub.appendChild(td);
+          });
+          tbody.appendChild(trSub);
+      });
+
+      const totalTopCell = document.getElementById('total-top');
+      totalTopCell.textContent = totalSum === 0 ? '-' : d3.format(',')(totalSum);
+      totalTopCell.style.color = totalSum < 0 ? 'red' : '#e74c3c';
+      applyHyperlinkRules();
+    }
+
+    function updateAnalysisSummary() {
+      // 개선 사항: 종합 분석 섹션이 표시(업데이트)될 때마다 월 필터도 항상 표시되도록 강제합니다.
+      // 이렇게 하면 다른 화면 전환 로직에서 실수가 있더라도, 요약 뷰가 보이면 월 필터도 보이게 됩니다.
+      const monthFilterContainer = document.getElementById('month-filter-container');
+      if (monthFilterContainer) {
+        monthFilterContainer.style.display = 'flex';
+      }
+
+      const totalSummary = document.getElementById('total-summary');
+      const monthlySummaryContainer = document.getElementById('monthly-summary');
+      const typeSummaryContainer = document.getElementById('type-summary');
+
+      if (!totalSummary || !monthlySummaryContainer || !typeSummaryContainer) return;
+
+      let filteredForSummary = [...allData];
+
+      const allAvailableYearsInData = new Set(allData.map(d => d.year).filter(y => y));
+
+      if (selectedYears.size > 0) {
+          filteredForSummary = filteredForSummary.filter(d => selectedYears.has(d.year));
+      } else {
+          if (allData.length > 0 && allAvailableYearsInData.size > 0 && isYearFilterManuallySetAllOrNone) { // 명시적으로 "전체 해제"된 경우
+              filteredForSummary = []; // 연도 "전체 해제" 시 요약 데이터 없음
+          }
+          // isYearFilterManuallySetAllOrNone가 false이고 selectedYears.size가 0이면 (예: CSV 로드 전 또는 초기 연도 복원 실패 시)
+          // filteredForSummary는 allData (빈 배열일 수 있음)로 유지됨.
+      }
+
+      const availableMonthsAfterYearFilter = [...new Set(filteredForSummary.map(d => d.month).filter(m => m))];
+      if (selectedMonths.size > 0) {
+          filteredForSummary = filteredForSummary.filter(d => selectedMonths.has(d.month));
+      } else {
+          // 연도 필터링 후 선택 가능한 월이 있었지만, 선택된 월이 없는 경우 (사용자가 모든 월 선택을 해제함)
+          if (availableMonthsAfterYearFilter.length > 0) {
+              filteredForSummary = [];
+          }
+      }
+
+      if (selectedTypes.size > 0) {
+          filteredForSummary = filteredForSummary.filter(d => selectedTypes.has(d.type));
+      }
+
+      if (filteredForSummary.length === 0) {
+        let message;
+        if (allData.length === 0) {
+            message = "CSV 파일을 업로드하면 분석 결과가 표시됩니다.";
+        } else {
+            message = "현재 필터 조건에 맞는 데이터가 없습니다.";
+        }
+        totalSummary.innerHTML = `
+          <div class="summary-item" style="color:#c62828; text-align:center; padding: 20px;">
+            <strong>${message}</strong>
+          </div>
+        `;
+        monthlySummaryContainer.innerHTML = '';
+        typeSummaryContainer.innerHTML = '';
+        return;
+      }
+
+      const totalSaving = d3.sum(filteredForSummary, d => d.saving);
+      const totalCount = filteredForSummary.length;
+      const avgSaving = totalCount > 0 ? totalSaving / totalCount : 0;
+
+      const monthsInSummaryDataSorted = [...new Set(filteredForSummary.map(d => d.month).filter(m=>m))].sort((a,b) => {
+          const [aYear, aMon] = a[0].split('-').map(Number);
+          const [bYear, bMon] = b[0].split('-').map(Number);
+          if (aYear !== bYear) return aYear - bYear;
+          return aMon - bMon;
+      });
+      let monthChangeStr = '-';
+      if (monthsInSummaryDataSorted.length >= 2) {
+        const prevMonth = monthsInSummaryDataSorted[monthsInSummaryDataSorted.length - 2];
+        const lastMonth = monthsInSummaryDataSorted[monthsInSummaryDataSorted.length - 1];
+        const prevSum = d3.sum(filteredForSummary.filter(d => d.month === prevMonth), d => d.saving);
+        const lastSum = d3.sum(filteredForSummary.filter(d => d.month === lastMonth), d => d.saving);
+        const diff = lastSum - prevSum;
+        monthChangeStr = `
+          <span class="summary-value ${diff >= 0 ? 'positive' : 'negative'}">${formatNumber(diff)}</span><br>
+          <small>(${formatMonth(prevMonth)} → ${formatMonth(lastMonth)})</small>
+        `;
+      }
+
+      const sortedBySaving = [...filteredForSummary].sort((a, b) => Math.abs(b.saving) - Math.abs(a.saving));
+      const top3 = sortedBySaving.slice(0, 3);
+
+      const constructionData = filteredForSummary.filter(d => !d.type.includes('관리소') && d.saving !== 0);
+      const maintenanceData = filteredForSummary.filter(d => d.type.includes('관리소') && d.saving !== 0);
+      const constructionSaving = d3.sum(constructionData, d => d.saving);
+      const constructionCount = constructionData.length;
+      const constructionAvg = constructionCount > 0 ? constructionSaving / constructionCount : 0;
+      const maintenanceSaving = d3.sum(maintenanceData, d => d.saving);
+      const maintenanceCount = maintenanceData.length;
+      const maintenanceAvg = maintenanceCount > 0 ? maintenanceSaving / maintenanceCount : 0;
+
+      totalSummary.innerHTML = `
+        <div class="summary-item" style="
+          text-align: center; padding: 12px; border-radius: 8px;
+          background-color: #f8f9fa; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink: 0;">
+          <strong style="display: block; color: #495057; margin-bottom: 4px;">총 절감액 (필터 적용)</strong>
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+            <span class="summary-value ${totalSaving >= 0 ? 'positive' : 'negative'}" style="font-weight: bolder; color: ${totalSaving >= 0 ? '#28a745' : '#dc3545'}; line-height: 1.15;">
+              ${formatNumber(totalSaving)}
+            </span>
+            <span style="color: #6c757d; line-height: 1.15;">
+              (${totalCount}건, <br>평균 ${formatNumber(avgSaving)})
+            </span>
+          </div>
+          <div style="width: 60%; height: 2px; background-color: ${totalSaving >= 0 ? '#28a745' : '#dc3545'}; margin: 8px auto 0; border-radius: 2px;"></div>
+        </div>
+        <div class="summary-item"><strong>전월 대비 증감:</strong> ${monthChangeStr}</div>
+        <div class="summary-item">
+          <strong>공사성 vs. 영선 전환<span style="color: #666;">:</span></strong><br>
+          <ul style="margin:3px 0 0 10px;padding:0; list-style-type: none;">
+            <li style="font-size:12.8px; color:#888;">
+              <div class="type-category" data-category="construction" style="cursor: pointer; margin: 4px 0;">
+                <span class="summary-value ${constructionSaving >= 0 ? 'positive' : 'negative'}">${formatNumber(constructionSaving)}</span>
+                <span style="font-weight: bold; text-decoration: underline;">공사성 절감비</span>
+                <br><small>(${constructionCount}건, 평균 ${formatNumber(constructionAvg)})</small>
+              </div>
+            </li>
+            <li style="font-size:12.8px; color:#888;">
+              <div class="type-category" data-category="maintenance" style="cursor: pointer; margin: 4px 0;">
+                <span class="summary-value ${maintenanceSaving >= 0 ? 'positive' : 'negative'}">${formatNumber(maintenanceSaving)}</span>
+                <span style="font-weight: bold; text-decoration: underline;">영선 전환(관리소) 절감비</span>
+                <br><small>(${maintenanceCount}건, 평균 ${formatNumber(maintenanceAvg)})</small>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="summary-item">
+          <strong>상위 2개 절감항목:</strong>
+          <ul style="margin:3px 0 0 10px;padding:0; list-style-type: none;">
+            ${top3.slice(0, 2).map(item => `<li style="font-size:12.8px; color:#888; margin-bottom: 5px;">
+              <span class="summary-value ${item.saving >= 0 ? 'positive' : 'negative'}">${formatNumber(item.saving)}</span><br>
+              <span style="color:${colorScale ? colorScale(item.type) : '#1976d2'}; cursor:pointer; text-decoration:underline;" class="type-label" data-type="${item.type}" data-detail-month="${item.month}" data-detail-year="${item.year}">${item.detail}</span>
+              <small>(${formatMonth(item.month)}, ${item.year}년)</small>
+            </li>`).join('')}
+          </ul>
+        </div>
+      `;
+
+      // "작업 유형별 통계" 및 "상위 2개 절감항목" 내의 레이블 클릭 이벤트 핸들러
+      const handleTypeLabelClick = function(e) {
+          e.stopPropagation();
+          const type = this.getAttribute('data-type');
+          const detailMonth = this.getAttribute('data-detail-month'); // "상위 2개 항목" 클릭 시에만 유효
+          const detailYear = this.getAttribute('data-detail-year');   // "상위 2개 항목" 클릭 시에만 유효
+
+          if (!svg) return;
+          isYearFilterManuallySetAllOrNone = false; // 개별 항목 클릭 시 명시적 전체 선택/해제 상태 해제
+
+          selectedTypes = new Set([type]); // 클릭된 유형만 선택
+
+          if (detailYear && detailMonth) { // "상위 2개 절감항목"에서 클릭한 경우: 특정 연도/월로 필터링
+              selectedYears = new Set([detailYear]);
+              selectedMonths = new Set([detailMonth]);
+          } else { // "작업 유형별 통계"에서 클릭한 경우: 현재 연도 필터를 유지하고, 해당 유형의 월만 선택
+              // selectedYears.clear(); // 이 줄을 제거하여 현재 연도 필터를 유지합니다.
+              selectedMonths.clear(); // 월 선택 초기화
+
+              // 현재 선택된 연도 필터를 존중하는 데이터 소스를 결정합니다.
+              let dataForMonthSelection = allData;
+              if (selectedYears.size > 0) {
+                  dataForMonthSelection = allData.filter(d => selectedYears.has(d.year));
+              }
+              dataForMonthSelection.forEach(d => {
+                  if (selectedTypes.has(d.type) && d.month) {
+                      selectedMonths.add(d.month);
+                  }
+              });
+          }
+
+          displayMode = 'table';
+          // 모든 UI 업데이트
+          updateYearFilter(); // 연도 필터 UI는 현재 selectedYears 상태를 반영
+          updateMonthFilter(); // 새로 계산/설정된 selectedMonths로 월 UI 업데이트
+          renderDashboardView();
+          updateBubbleOpacity();
+          updateBubbleTextsBasedOnFilter();
+          updateSelectAllCheckboxState();
+          updateDashboardTitle();
+          updateYearFilterButtonText();
+      };
+
+
+      document.querySelectorAll('.type-category').forEach(category => {
+        category.removeEventListener('click', handleTypeCategoryClick);
+        category.addEventListener('click', handleTypeCategoryClick);
+      });
+
+      // Rollup monthly totals (do not change original filteredForSummary)
+      const monthlyData = d3.rollups(
+        filteredForSummary.filter(d => d.saving !== 0), // Use filteredForSummary
+        v => ({ total: d3.sum(v, d => d.saving), count: v.length, avg: v.length > 0 ? d3.sum(v, d => d.saving) / v.length : 0 }),
+        d => d.month
+      );
+
+      // Determine current month and previous month strings in YYYY-MM format
+      const today = new Date();
+      const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const prevMonthStr = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+
+      const monthsAvailableSet = new Set(monthlyData.map(d => d[0]));
+      // If current month is absent but previous month exists, highlight previous month with translucent background
+      const highlightMonth = (!monthsAvailableSet.has(currentMonthStr) && monthsAvailableSet.has(prevMonthStr)) ? prevMonthStr : null;
+
+      // Sort monthly cards by total saving ascending (smallest amounts first)
+      const monthlyDataSortedByTotal = [...monthlyData].sort((a, b) => a[1].total - b[1].total);
+
+      monthlySummaryContainer.innerHTML = monthlyDataSortedByTotal.map(([month, stats]) => {
+        const isHighlight = month === highlightMonth;
+        // Use a subtle yellow translucent background for previous-month highlight to match request
+  // Use opaque yellow background for clear previous-month highlight as requested
+  const bgStyle = isHighlight ? 'background-color: #FFEB3B; border-radius:6px; padding:8px;' : '';
+        return `
+        <div class="summary-item" style="${bgStyle}">
+          <strong><span class="summary-month-label" data-month="${month}" style="color:#1976d2; cursor:pointer; text-decoration:underline; font-size:120%;">
+              ${formatMonth(month)}:</span></strong>
+          <span class="summary-value ${stats.total >= 0 ? 'positive' : 'negative'}">${formatNumber(stats.total)}</span>
+          <br><small>(${stats.count}건, 평균 ${formatNumber(stats.avg)})</small>
+        </div>
+      `;
+      }).join('');
+
+      monthlySummaryContainer.querySelectorAll('.summary-month-label').forEach(label => {
+        label.removeEventListener('click', handleSummaryMonthLabelClick);
+        label.addEventListener('click', handleSummaryMonthLabelClick);
+      });
+
+      const typeData = d3.rollups(
+        filteredForSummary.filter(d => d.saving !== 0), // Use filteredForSummary
+        v => ({ total: d3.sum(v, d => d.saving), count: v.length, avg: v.length > 0 ? d3.sum(v, d => d.saving) / v.length : 0 }),
+        d => d.type
+      ).sort((a, b) => Math.abs(b[1].total) - Math.abs(a[1].total));
+
+      if (typeSummaryContainer) {
+        typeSummaryContainer.innerHTML = typeData.map(([type, stats]) => {
+          const typeColor = colorScale ? colorScale(type) : '#1976d2';
+          return `
+            <div class="summary-item">
+              <strong style="color: ${typeColor}; cursor: pointer;" class="type-label" data-type="${type}">${type}:</strong>
+              <span class="summary-value ${stats.total >= 0 ? 'positive' : 'negative'}">${formatNumber(stats.total)}</span>
+              <br><small>(${stats.count}건, 평균 ${formatNumber(stats.avg)})</small>
+            </div>`;
+        }).join('');
+      }
+      document.querySelectorAll('.analysis-summary .type-label').forEach(label => {
+          label.removeEventListener('click', handleTypeLabelClick);
+          label.addEventListener('click', handleTypeLabelClick);
+      });
+    }
+
+    // --- "총 절감 분석" 카드 내 "공사성 vs. 영선 전환" 클릭 시 동작 수정 ---
+    const handleTypeCategoryClick = function(e) {
+        e.stopPropagation();
+        const categoryType = this.getAttribute('data-category');
+
+        // 기존에 선택되어 있던 selectedYears는 변경되지 않고 유지됩니다.
+        isYearFilterManuallySetAllOrNone = false; // 명시적 전체 선택/해제 상태 해제
+
+        selectedTypes = new Set(
+            allData.filter(d => categoryType === 'construction' ? !d.type.includes('관리소') : d.type.includes('관리소')).map(d => d.type)
+        );
+
+        selectedMonths.clear(); // 월 선택 초기화
+        // 현재 selectedYears (선택된 연도가 있다면) 내에서, 또는 모든 연도에서
+        // 선택된 카테고리의 유형에 해당하는 모든 월을 selectedMonths에 추가
+        let dataToFilterMonths = allData;
+        if(selectedYears.size > 0){ // 기존 연도 선택 유지
+            dataToFilterMonths = allData.filter(d => selectedYears.has(d.year));
+        }
+        // 만약 selectedYears가 비어있다면(예: "전체 해제" 상태였다면), dataToFilterMonths는 allData가 되어 모든 연도에서 월을 찾음.
+
+        dataToFilterMonths.forEach(d => {
+            if (selectedTypes.has(d.type) && d.month) {
+                selectedMonths.add(d.month);
+            }
+        });
+
+        displayMode = 'table';
+
+        // 모든 UI 업데이트
+        updateYearFilter(); // 연도 필터 UI는 현재 selectedYears 상태를 반영하여 업데이트
+        updateMonthFilter(); // 새로 계산된 selectedMonths로 월 UI 업데이트
+        renderDashboardView();
+        updateBubbleOpacity();
+        updateBubbleTextsBasedOnFilter();
+        updateSelectAllCheckboxState();
+        updateDashboardTitle();
+        updateYearFilterButtonText();
+    };
+    // --- 개선 사항 끝 ---
+
+
+    // --- 개선 사항: "월별 절감 현황"의 월 클릭 시 해당 월 데이터만 테이블에 표시 ---
+    const handleSummaryMonthLabelClick = function(e) {
+        e.stopPropagation();
+        const month = this.getAttribute('data-month'); // "YYYY-MM" 형식
+        const year = month.substring(0,4);
+
+        selectedYears = new Set([year]); // 해당 월의 연도만 선택
+        selectedMonths = new Set([month]); // 클릭된 월만 선택
+        selectedTypes.clear(); // 유형 선택은 초기화 (특정 월의 모든 유형을 보여주기 위함)
+        isYearFilterManuallySetAllOrNone = false; // 개별 항목 클릭 시 명시적 전체 선택/해제 상태 해제
+
+        displayMode = 'table'; // 테이블 뷰로 전환
+
+  // Use centralized update to ensure consistent refresh; skip month recalculation
+  updateAllViews(true);
+    };
+    // --- 개선 사항 끝 ---
+
+
+    function formatNumber(num) {
+      if (num === 0) return '0';
+      if (isNaN(num)) return '0';
+      const absNum = Math.abs(num);
+      const suffixes = ['원', '천원', '백만원', '십억원', '조원'];
+      const suffixNum = absNum > 0 ? Math.floor(Math.log10(absNum) / 3) : 0;
+      const actualSuffixNum = Math.min(suffixNum, suffixes.length - 1);
+      const shortNum = absNum / Math.pow(1000, actualSuffixNum);
+      const roundedNum = Math.round(shortNum * 100) / 100;
+      return `${num < 0 ? '-' : ''}${roundedNum}<small>${suffixes[actualSuffixNum]}</small>`;
+    }
+
+    document.getElementById('select-all').addEventListener('change', function(e) {
+      isInitialMonthClick = true; // 필터 초기화 시 월 클릭 상태도 초기화
+      if (e.target.checked) {
+        // 개선 사항: '전체 선택' 시 최신 연도와 해당 데이터를 기준으로 필터링합니다.
+        const allAvailableYears = [...new Set(allData.map(d => d.year).filter(y => y))].sort((a, b) => b - a);
+        const allAvailableTypes = [...new Set(allData.map(d => d.type).filter(t => t))];
+
+        selectedYears.clear();
+        selectedMonths.clear();
+
+        if (allAvailableYears.length > 0) {
+            const latestYear = allAvailableYears[0];
+            selectedYears.add(latestYear);
+
+            const monthsForLatestYear = [...new Set(allData.filter(d => d.year === latestYear).map(d => d.month).filter(m => m))];
+            selectedMonths = new Set(monthsForLatestYear);
+        }
+
+        selectedTypes = new Set(allAvailableTypes);
+        isYearFilterManuallySetAllOrNone = false; // 특정 프리셋이므로 '전체 선택' 상태가 아님
+        displayMode = 'summary'; // 최신 연도 요약을 보여줌
+      } else {
+        // 체크 해제 시 모든 필터를 초기화합니다.
+        selectedTypes.clear();
+        selectedMonths.clear();
+        selectedYears.clear();
+        isYearFilterManuallySetAllOrNone = true; // "전체 해제"로 명시적 설정
+        displayMode = 'summary';
+      }
+  document.getElementById('year-filter-popup').classList.remove('show-popup');
+  updateAllViews(false); // Centralized full update (recalculate months)
+  // Reapply locked left position to avoid horizontal shift of month filter
+  try {
+    const m = document.getElementById('month-filter-container');
+    if (m && m.dataset && m.dataset.lockedLeft) {
+      m.style.left = m.dataset.lockedLeft;
+    }
+  } catch (err) { /* non-fatal */ }
+    });
+
+  document.getElementById('select-all-months').addEventListener('click', function(e) {
+  // Use `this` to reliably reference the checkbox element itself
+  // (e.target can be a child element like <span> or the label when clicked)
+  const checkbox = this;
+  // Prevent the default click behavior to implement our own 3-state logic.
+  e.preventDefault();
+
+  // Determine the logical state BEFORE our action.
+  const wasIndeterminate = checkbox.indeterminate;
+  const wasChecked = checkbox.checked && !wasIndeterminate;
+
+  // Get available months based on the current year filter
+  let yearFilteredData = allData;
+  if (selectedYears.size > 0) {
+    yearFilteredData = allData.filter(d => selectedYears.has(d.year));
+  } else if (isYearFilterManuallySetAllOrNone && selectedYears.size === 0) {
+    yearFilteredData = [];
+  }
+  let availableMonths = [...new Set(yearFilteredData.map(d => d.month).filter(m => m))];
+
+  // If no months are available because the year filter is empty (explicit deselect),
+  // fall back to allData months so "월 전체선택" can select all months globally.
+  if (availableMonths.length === 0 && selectedYears.size === 0) {
+    availableMonths = [...new Set(allData.map(d => d.month).filter(m => m))];
+  }
+
+  // Logic: if it was checked or indeterminate, the next state is unchecked (clear all).
+  // If it was unchecked, the next state is checked (select all).
+  if (wasChecked || wasIndeterminate) {
+    selectedMonths.clear();
+  } else { // wasUnchecked
+    availableMonths.forEach(m => selectedMonths.add(m));
+  }
+  isYearFilterManuallySetAllOrNone = false;
+  displayMode = 'summary';
+
+  // Update all UIs. updateMonthFilter will call updateSelectAllMonthsCheckboxState
+  // which will set the new visual state of the master checkbox.
+  // Use centralized update; allow recalculation of selectedMonths based on years.
+  updateAllViews(false);
+  });
+
+    const yearFilterBtn = document.getElementById('year-filter-btn');
+    const yearFilterPopup = document.getElementById('year-filter-popup');
+    const closeYearPopupBtn = document.getElementById('close-year-popup-btn');
+    const deselectAllYearsBtn = document.getElementById('deselect-all-years-btn');
+    const selectAllYearsBtn = document.getElementById('select-all-years-btn');
+
+
+    yearFilterBtn.addEventListener('click', function(event) {
+        event.stopPropagation();
+        yearFilterPopup.classList.toggle('show-popup');
+        if (yearFilterPopup.classList.contains('show-popup')) {
+            // updateYearFilter 함수는 연도 체크박스 UI만 업데이트하고,
+            // 실제 데이터 연동 업데이트는 updateLinkedFiltersAndRender에서 처리
+            updateYearFilter();
+        }
+    });
+    closeYearPopupBtn.addEventListener('click', function() {
+        yearFilterPopup.classList.remove('show-popup');
+    });
+
+    deselectAllYearsBtn.addEventListener('click', function() {
+        selectedYears.clear();
+        isInitialMonthClick = true; // 월 필터 클릭 상태 초기화
+        isYearFilterManuallySetAllOrNone = true; // "전체 해제"로 명시적 설정
+        if (!document.getElementById('select-all').checked) {
+             selectedTypes.clear();
+        }
+        displayMode = 'summary';
+  updateAllViews(false);
+    });
+
+    selectAllYearsBtn.addEventListener('click', function() {
+        const allAvailableYears = [...new Set(allData.map(d => d.year).filter(y=>y))];
+        allAvailableYears.forEach(y => selectedYears.add(y));
+        isInitialMonthClick = true; // 월 필터 클릭 상태 초기화
+        isYearFilterManuallySetAllOrNone = true; // "전체 선택"으로 명시적 설정
+        displayMode = 'summary';
+  updateAllViews(false);
+    });
+
+    document.addEventListener('click', function(event) {
+      // Close year filter popup if clicked outside
+      // 외부를 클릭하면 연도 필터 팝업 닫기
+      if (yearFilterPopup.classList.contains('show-popup') &&
+          !yearFilterPopup.contains(event.target) &&
+          event.target !== yearFilterBtn ) {
+          yearFilterPopup.classList.remove('show-popup');
+      }
+
+      // Define areas that, if clicked, should NOT trigger a filter reset
+      // 클릭 시 필터 재설정을 트리거해서는 안 되는 영역 정의
+      const interactiveAreas = [
+          'svg', // Includes chart background and bubbles // 차트 배경 및 버블 포함
+          '#table-container', // Includes table and summary cards // 테이블 및 요약 카드 포함
+          '#controls',
+          '#select-all-container',
+          '#year-filter-container', // Includes year filter button and popup itself // 연도 필터 버튼 및 팝업 자체 포함
+          '#month-filter-container', // Includes month checkboxes // 월 체크박스 포함
+          '.note-popup', // Zoomed note popups // 확대된 노트 팝업
+          // yearFilterPopup is implicitly covered by #year-filter-container if click is within
+          // yearFilterPopup은 클릭이 내부에 있는 경우 #year-filter-container에 암시적으로 포함됩니다.
+      ];
+
+      let clickedInInteractiveArea = interactiveAreas.some(selector => event.target.closest(selector));
+
+      // If the click was on the SVG background itself (not a bubble), the SVG's own click handler
+      // would have already managed the state. We only want to proceed here if the click
+      // was truly outside *all* defined interactive dashboard elements.
+      // 클릭이 SVG 배경 자체(버블 아님)에 있는 경우 SVG 자체 클릭 핸들러가
+      // 이미 상태를 관리했을 것입니다. 클릭이
+      // 정의된 모든 대화형 대시보드 요소 *외부*에 실제로 있는 경우에만 여기에서 진행합니다.
+      if (event.target.closest('svg#chart') && event.target.tagName.toLowerCase() === 'rect') {
+          // This was a click on the SVG background rect, handled by its own listener.
+          // Or, if it's a dblclick, that's also handled by its own listener.
+          // 이것은 SVG 배경 사각형에 대한 클릭이었으며 자체 리스너에 의해 처리되었습니다.
+          // 또는 더블 클릭인 경우 자체 리스너에 의해 처리됩니다.
+          return;
+      }
+
+      if (clickedInInteractiveArea) return;
+
+      // Click was outside all interactive areas.
+      let monthOrTypeFiltersActive = selectedTypes.size > 0 || selectedMonths.size > 0;
+
+      if (monthOrTypeFiltersActive || displayMode === 'table') { // 테이블 모드일 때도 초기 상태로 (요약뷰, 초기 연도)
+          isInitialMonthClick = true; // 필터 초기화 시 월 클릭 상태도 초기화
+          selectedMonths.clear();
+          selectedTypes.clear();
+          // isYearFilterManuallySetAllOrNone가 true이면 (즉, "전체 선택/해제" 버튼으로 설정된 상태) selectedYears를 유지
+          // 그렇지 않으면 (개별 연도 선택 상태였거나, 유형/월 클릭 등으로 isYearFilterManuallySetAllOrNone가 false가 된 경우) csvLoadedInitialYear로 복원
+          if (!isYearFilterManuallySetAllOrNone) {
+            selectedYears.clear();
+            if (csvLoadedInitialYear) {
+                selectedYears.add(csvLoadedInitialYear);
+            }
+          }
+          // isYearFilterManuallySetAllOrNone 플래그는 배경 클릭 시 변경하지 않음.
+          displayMode = 'summary';
+          updateAllViews(false); // 모든 UI 업데이트
+      }
+    });
+
+    async function downloadCSV() {
+      if (!allData || allData.length === 0) { alert('다운로드할 데이터가 없습니다.'); return; }
+      try {
+        const headers = ['월', '작업유형', '절감항목', 'A.집행비', 'B.공사비 적용시', '절감비(A-B)', '비고'];
+        const csvRows = [
+          headers.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','),
+          ...allData.map(row => [
+            row.month, row.type, row.detail.replace(/<[^>]*>?/gm, ''),
+            row.actual, row.estimated, row.saving, row.note.replace(/<[^>]*>?/gm, '')
+          ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+        ];
+        const csvContent = '\uFEFF' + csvRows.join('\n');
+        const today = new Date(); const currentYear = today.getFullYear();
+        const currentMonth = String(today.getMonth() + 1).padStart(2, '0'); const currentDay = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${currentYear}${currentMonth}${currentDay}`; const filename = `월별 비용 절감 목록_(기숙사 및 사택)_RawDn_${dateStr}.csv`;
+
+        if ('showSaveFilePicker' in window) {
+          try {
+            const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'CSV 파일', accept: { 'text/csv': ['.csv'] } }] });
+            const writable = await handle.createWritable(); await writable.write(csvContent); await writable.close(); return;
+          } catch (err) { if (err.name !== 'AbortError') console.error('File System Access API 실패:', err); }
+        }
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob);
+        const link = document.createElement('a'); link.href = url; link.download = filename;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+      } catch (error) { console.error('다운로드 중 오류 발생:', error); alert('파일 다운로드 중 오류가 발생했습니다.'); }
+    }
+    document.getElementById('download-csv-btn').addEventListener('click', downloadCSV);
+
+    async function downloadHTML() {
+      if (!allData || allData.length === 0) {
+        const confirmation = confirm('다운로드할 데이터가 없습니다. 현재 하이퍼링크 및 필터 설정만 포함된 빈 템플릿 형태의 HTML을 다운로드하시겠습니까?');
+        if (!confirmation) return;
+      }
+      try {
+        let htmlContent = document.documentElement.outerHTML;
+        const dataString = JSON.stringify(allData || []);
+        const hyperlinkRulesString = JSON.stringify(hyperlinkRules || []);
+        const selectedYearsString = JSON.stringify(Array.from(selectedYears));
+        const selectedMonthsString = JSON.stringify(Array.from(selectedMonths));
+        const selectedTypesString = JSON.stringify(Array.from(selectedTypes));
+        const displayModeString = JSON.stringify(displayMode);
+        const csvLoadedInitialYearString = JSON.stringify(csvLoadedInitialYear);
+        const isYearFilterManuallySetAllOrNoneString = JSON.stringify(isYearFilterManuallySetAllOrNone);
+        const isInitialMonthClickString = JSON.stringify(isInitialMonthClick);
+
+
+        // Replace 로직을 개선하여 변수의 현재 값에 관계없이 대체하도록 수정
+        htmlContent = htmlContent.replace(/(let allData\s*=\s*)[^;]*;/g, `let allData = ${dataString};`);
+        htmlContent = htmlContent.replace(/(let hyperlinkRules\s*=\s*)[^;]*;/g, `let hyperlinkRules = ${hyperlinkRulesString};`);
+        htmlContent = htmlContent.replace(/(let savedSelectedYears\s*=\s*)[^;]*;/g, `let savedSelectedYears = ${selectedYearsString};`);
+        htmlContent = htmlContent.replace(/(let savedSelectedMonths\s*=\s*)[^;]*;/g, `let savedSelectedMonths = ${selectedMonthsString};`);
+        htmlContent = htmlContent.replace(/(let savedSelectedTypes\s*=\s*)[^;]*;/g, `let savedSelectedTypes = ${selectedTypesString};`);
+        htmlContent = htmlContent.replace(/(let savedDisplayMode\s*=\s*)[^;]*;/g, `let savedDisplayMode = ${displayModeString};`);
+        htmlContent = htmlContent.replace(/(let csvLoadedInitialYear\s*=\s*)[^;]*;/g, `let csvLoadedInitialYear = ${csvLoadedInitialYearString};`);
+        htmlContent = htmlContent.replace(/(let isYearFilterManuallySetAllOrNone\s*=\s*)[^;]*;/g, `let isYearFilterManuallySetAllOrNone = ${isYearFilterManuallySetAllOrNoneString};`);
+        htmlContent = htmlContent.replace(/(let isInitialMonthClick\s*=\s*)[^;]*;/g, `let isInitialMonthClick = ${isInitialMonthClickString};`);
+        htmlContent = htmlContent.replace(/(let savedIsYearFilterManuallySetAllOrNone\s*=\s*)[^;]*;/, `let savedIsYearFilterManuallySetAllOrNone = ${isYearFilterManuallySetAllOrNoneString}, savedInitialMonthClick = ${isInitialMonthClickString};`);
+
+
+        const today = new Date(); const currentYear = today.getFullYear();
+        const currentMonth = String(today.getMonth() + 1).padStart(2, '0'); const currentDay = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${currentYear}${currentMonth}${currentDay}`; const filename = `월별 비용 절감 목록_(기숙사 및 사택)_html_${dateStr}.html`;
+        if ('showSaveFilePicker' in window) {
+          try {
+            const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'HTML 파일', accept: { 'text/html': ['.html'] } }] });
+            const writable = await handle.createWritable(); await writable.write(htmlContent); await writable.close(); return;
+          } catch (err) { if (err.name !== 'AbortError') console.error('File System Access API 실패:', err); }
+        }
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' }); const url = URL.createObjectURL(blob);
+        const link = document.createElement('a'); link.href = url; link.download = filename;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+      } catch (error) { console.error('HTML 다운로드 중 오류 발생:', error); alert('HTML 파일 다운로드 중 오류가 발생했습니다.'); }
+    }
+
+    document.getElementById('download-html-btn').addEventListener('click', downloadHTML);
+
+    function checkMenuOverlap() {
+      const controls = document.getElementById('controls');
+      const title = document.querySelector('h1');
+      if (!controls || !title) return;
+
+      const controlsRect = controls.getBoundingClientRect();
+      const titleRect = title.getBoundingClientRect();
+
+      if (controls.classList.contains('compact')) {
+      } else {
+        if (controlsRect.bottom > titleRect.bottom + 5) {
+          controls.classList.add('compact');
+        } else {
+          controls.classList.remove('compact');
+        }
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        checkMenuOverlap();
+    // Lock the initial left position of the month filter container to avoid layout jumps
+    try {
+      const monthFilterContainer = document.getElementById('month-filter-container');
+      if (monthFilterContainer) {
+        // store computed left and reapply when needed
+        const computedLeft = getComputedStyle(monthFilterContainer).left;
+        monthFilterContainer.dataset.lockedLeft = computedLeft || '';
+  // enforce via CSS
+  applyLockedLeftCSS();
+      }
+    } catch (e) { /* non-fatal */ }
+    });
+
+  // Apply a CSS rule to force the left position of the month filter container if dataset.lockedLeft exists
+  function applyLockedLeftCSS() {
+    try {
+      const m = document.getElementById('month-filter-container');
+      if (!m || !m.dataset || !m.dataset.lockedLeft) return;
+      const locked = m.dataset.lockedLeft;
+      let existing = document.getElementById('locked-month-filter-left-style');
+      if (existing) existing.parentNode.removeChild(existing);
+      const style = document.createElement('style');
+      style.id = 'locked-month-filter-left-style';
+      style.innerHTML = `#month-filter-container { left: ${locked} !important; }`;
+      document.head.appendChild(style);
+    } catch (err) { /* non-fatal */ }
+  }
+
+    function handleHyperlinkUpload(event) {
+      const file = event.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = d3.csvParse(e.target.result);
+          hyperlinkRules = data.map(rule => ({
+            column: rule['대상열'] ? rule['대상열'].trim() : '', searchText: rule['검색텍스트'] ? rule['검색텍스트'].trim() : '',
+            linkUrl: rule['링크URL'] ? rule['링크URL'].trim() : '', linkType: rule['링크유형'] ? rule['링크유형'].trim() : 'note',
+            description: rule['설명'] ? rule['설명'].trim() : ''
+          })).filter(rule => rule.column && rule.searchText && rule.linkUrl);
+          if(allData && allData.length > 0) renderDashboardView();
+          alert('하이퍼링크 설정이 적용되었습니다.');
+        } catch (error) { console.error('하이퍼링크 CSV 파싱 오류:', error); alert('하이퍼링크 CSV 파일 형식이 올바르지 않습니다. 템플릿을 다운로드하여 사용해주세요.');}
+      };
+      reader.readAsText(file); event.target.value = null;
+    }
+
+    function applyHyperlinkRules() {
+      const tbody = document.querySelector('#table-container table tbody');
+      if (!tbody) return;
+
+      const combinedRules = getCombinedHyperlinkRules();
+
+       tbody.querySelectorAll('tr:not(.sticky-total-row):not(.subtotal) a[class^="hyperlink-"], tr:not(.sticky-total-row):not(.subtotal) span[class^="min-labor-cost-link"], tr:not(.sticky-total-row):not(.subtotal) a.detail-link, tr:not(.sticky-total-row):not(.subtotal) a.note-link').forEach(el => {
+            const textNode = document.createTextNode(el.textContent);
+            if (el.parentNode) {
+                el.parentNode.replaceChild(textNode, el);
+            }
+       });
+
+      const headers = Array.from(document.querySelectorAll('#table-container thead th')).map(th => th.textContent.trim());
+
+      tbody.querySelectorAll('tr:not(.sticky-total-row):not(.subtotal) td').forEach(cell => {
+        const columnIndex = Array.from(cell.parentNode.children).indexOf(cell);
+        const columnName = headers[columnIndex];
+        if (!columnName) return;
+
+        const rulesForColumn = combinedRules.filter(rule => rule.column === columnName);
+        const originalBackgroundColor = cell.style.backgroundColor;
+
+        if (rulesForColumn.length > 0) {
+          let currentHtml = cell.innerHTML;
+          let currentText = cell.textContent || "";
+
+          rulesForColumn.forEach(rule => {
+             const searchText = rule.searchText;
+             const linkUrl = rule.linkUrl;
+             const linkType = rule.linkType || 'note';
+             const description = rule.description || searchText;
+
+             if (currentText.includes(searchText)) {
+                 let tag = 'a';
+                 let cssClass = '';
+
+                 if (linkType === 'month') { cssClass = 'hyperlink-month'; tag = 'a'; }
+                 else if (linkType === 'type') { cssClass = 'hyperlink-type'; tag = 'a'; }
+                 else if (linkType === 'detail') { cssClass = 'detail-link'; tag = 'a'; }
+                 else if (linkType === 'note') {
+                     if (searchText.includes('최소인건비')) {
+                          cssClass = 'min-labor-cost-link'; tag = 'span';
+                     } else {
+                         cssClass = 'note-link'; tag = 'a';
+                     }
+                 } else {
+                      cssClass = 'hyperlink-unknown'; tag = 'a';
+                 }
+
+                 const linkHtml = `<${tag} ${tag === 'a' ? `href="${linkUrl}" target="_blank"` : (cssClass === 'min-labor-cost-link' ? `onclick="window.open('${linkUrl}', '_blank')"`:'')} class="${cssClass}" title="${description}">${searchText}</${tag}>`;
+                 const escapedSearchText = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                 const regex = new RegExp(`(?![^<]*?<\/(?:a|span)>)${escapedSearchText}(?![^<]*?<\\/(?:a|span)>)(?![^<>]*?>)`, 'g');
+
+                 if (!currentHtml.includes(linkHtml)) {
+                    currentHtml = currentHtml.replace(regex, (match) => {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = match;
+                        if (tempDiv.firstChild && (tempDiv.firstChild.nodeName === 'A' || tempDiv.firstChild.nodeName === 'SPAN')) {
+                            return match;
+                        }
+                        return linkHtml;
+                    });
+                 }
+             }
+          });
+          cell.innerHTML = currentHtml;
+        }
+        if (originalBackgroundColor) {
+            cell.style.backgroundColor = originalBackgroundColor;
+        }
+      });
+    }
+
+    function getCombinedHyperlinkRules() {
+      const combinedRulesList = [];
+      const ruleMap = new Map();
+
+      if (defaultHyperlinkRules && defaultHyperlinkRules.length > 0) {
+           defaultHyperlinkRules.forEach(rule => {
+               if (rule.column && rule.searchText && rule.linkUrl) {
+                   const key = `${rule.column}|${rule.searchText}`;
+                   ruleMap.set(key, rule);
+               }
+           });
+       }
+      if (hyperlinkRules && hyperlinkRules.length > 0) {
+          hyperlinkRules.forEach(rule => {
+              if (rule.column && rule.searchText && rule.linkUrl) {
+                  const key = `${rule.column}|${rule.searchText}`;
+                  ruleMap.set(key, rule);
+              }
+          });
+      }
+       combinedRulesList.push(...ruleMap.values());
+       return combinedRulesList;
+    }
+
+    function downloadHyperlinkRules() {
+      try {
+        const rulesToDownload = getCombinedHyperlinkRules();
+
+        if (rulesToDownload.length === 0) {
+          alert('저장된 하이퍼링크 규칙이 없습니다. 기본 규칙 또는 업로드된 규칙이 없습니다.');
+          return;
+        }
+
+        const csvLines = [];
+        csvLines.push(
+          ['대상열', '검색텍스트', '링크URL', '링크유형', '설명']
+            .map(field => `"${String(field).replace(/"/g, '""')}"`)
+            .join(',')
+        );
+
+        rulesToDownload.forEach(rule => {
+          csvLines.push(
+            [
+              rule.column || '',
+              rule.searchText || '',
+              rule.linkUrl || '',
+              rule.linkType || 'note',
+              rule.description || ''
+            ]
+            .map(field => `"${String(field).replace(/"/g, '""')}"`)
+            .join(',')
+          );
+        });
+
+        const csvContent = '\uFEFF' + csvLines.join('\n');
+
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+        const currentDay = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${currentYear}${currentMonth}${currentDay}`;
+        const filename = `월별 비용 절감 목록_(기숙사 및 사택)_hyperDn_${dateStr}.csv`;
+
+        if ('showSaveFilePicker' in window) {
+          window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{
+              description: 'CSV 파일',
+              accept: { 'text/csv': ['.csv'] },
+            }],
+          }).then(async (handle) => {
+            const writable = await handle.createWritable();
+            await writable.write(csvContent);
+            await writable.close();
+          }).catch((err) => {
+            if (err.name !== 'AbortError') {
+              console.error('File System Access API 다운로드 실패:', err);
+              downloadBlob(csvContent, filename, 'text/csv;charset=utf-8');
+              alert('파일 시스템 접근 오류로 인해 일반 다운로드를 시도합니다.');
+            } else {
+              console.log('File save cancelled by user.');
+            }
+          });
+        } else {
+          console.warn('File System Access API 미지원. 일반 다운로드를 사용합니다.');
+          downloadBlob(csvContent, filename, 'text/csv;charset=utf-8');
+        }
+
+      } catch (error) {
+         console.error('하이퍼링크 규칙 다운로드 중 오류 발생:', error);
+         alert('하이퍼링크 규칙 다운로드 중 오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+      }
+    }
+
+    function downloadBlob(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('download-link-btn').addEventListener('click', function() {
+      try {
+        const dialog = document.createElement('div'); dialog.className = 'hyperlink-download-dialog';
+        dialog.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 2000; text-align: center;`;
+        dialog.innerHTML = `<h3 style="margin-top: 0; color: #1a237e;">하이퍼링크 다운로드 선택</h3><p style="margin-bottom: 20px;">다운로드할 항목을 선택해주세요.</p><div style="display: flex; gap: 10px; justify-content: center;"><button id="download-template-btn" style="padding: 8px 16px; background: #1a237e; color: white; border: none; border-radius: 4px; cursor: pointer;">템플릿 다운로드</button><button id="download-current-rules-btn" style="padding: 8px 16px; background: #1a237e; color: white; border: none; border-radius: 4px; cursor: pointer;">현재 규칙 다운로드</button></div><button id="cancel-download-dialog-btn" style="margin-top: 15px; padding: 6px 12px; background: #e0e0e0; border: none; border-radius: 4px; cursor: pointer;">취소</button>`;
+        const overlay = document.createElement('div'); overlay.style.cssText = `position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1999;`;
+        document.body.appendChild(overlay); document.body.appendChild(dialog);
+        const closeDialog = () => { dialog.remove(); overlay.remove(); };
+        dialog.querySelector('#download-template-btn').onclick = () => { downloadHyperlinkTemplate(); closeDialog(); };
+        dialog.querySelector('#download-current-rules-btn').onclick = () => { downloadHyperlinkRules(); closeDialog(); };
+        dialog.querySelector('#cancel-download-dialog-btn').onclick = closeDialog;
+        overlay.addEventListener('click', closeDialog);
+      } catch (error) { console.error('다이얼로그 생성 중 오류 발생:', error); alert('다이얼로그 생성 중 오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.'); }
+    });
+
+    function downloadHyperlinkTemplate() {
+      const templateData = [
+        ['대상열', '검색텍스트', '링크URL', '링크유형', '설명'],
+        ['월', '2025-01', 'https://example.com/month/2025-01', 'month', '1월 데이터 링크'],
+        ['작업유형', '건축', 'https://example.com/type/construction', 'type', '건축 작업 관련 링크'],
+        ['절감항목', '특정 보일러 모델', 'https://example.com/detail/boiler-model-xyz', 'detail', 'XYZ 보일러 상세 정보 링크'],
+        ['비고', '공사 표준 단가표', 'https://example.com/note/standard-costs', 'note', '관련 표준 단가 정보 링크']
+      ];
+      const csvContent = '\uFEFF' + templateData.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const today = new Date(); const currentYearVal = today.getFullYear(); const currentMonthVal = String(today.getMonth() + 1).padStart(2, '0'); const currentDayVal = String(today.getDate()).padStart(2, '0');
+      const dateStr = `${currentYearVal}${currentMonthVal}${currentDayVal}`; const filename = `월별 비용 절감 목록_(기숙사 및 사택)_hyperTemplate_${dateStr}.csv`;
+      if ('showSaveFilePicker' in window) {
+        window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'CSV 파일', accept: { 'text/csv': ['.csv'] } }]
+        }).then(async handle => { const writable = await handle.createWritable(); await writable.write(csvContent); await writable.close();
+        }).catch(err => { if (err.name !== 'AbortError') console.error('File System Access API 실패:', err); }); return;
+      }
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob);
+      const link = document.createElement('a'); link.href = url; link.download = filename;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('upload-link-btn').addEventListener('click', function() {
+      const hyperlinkFileInput = document.createElement('input');
+      hyperlinkFileInput.type = 'file'; hyperlinkFileInput.accept = '.csv';
+      hyperlinkFileInput.onchange = handleHyperlinkUpload;
+      hyperlinkFileInput.click();
+    });
+
+    // === Table-specific XLS export button insertion ===
+    (function tableXlsButtonHandler(){
+      const ensureSheetJS = (cb) => {
+        if (typeof XLSX !== 'undefined') return cb();
+        const s = document.createElement('script');
+        s.src = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js'; // 버전 고정
+        s.onload = cb; s.onerror = () => console.warn('SheetJS load failed');
+        document.head.appendChild(s);
+      };
+
+      function createBtn() {
+        const existing = document.getElementById('table-xls-btn');
+        if (existing) return existing;
+        const btn = document.createElement('button');
+        btn.id = 'table-xls-btn';
+        btn.type = 'button';
+        btn.textContent = 'xls';
+        btn.title = '현재 테이블을 엑셀로 다운로드';
+        btn.addEventListener('click', function(e){
+          e.stopPropagation();
+          const table = document.querySelector('#table-container table');
+          if (!table || table.style.display === 'none') { alert('테이블이 표시되지 않았습니다.'); return; }
+          ensureSheetJS(() => {
+            try {
+              const wb = XLSX.utils.book_new();
+              // Clone full table and place in hidden container so table_to_sheet can read layout
+              const clone = table.cloneNode(true);
+              // Remove rows that are hidden in original
+              const originalRows = Array.from(document.querySelectorAll('#table-container table tr'));
+              const clonedRows = Array.from(clone.querySelectorAll('tr'));
+              // Keep rows that correspond to visible original rows by index
+              const visibleRowIndexes = originalRows.map((r,i)=> ({i, v: (r.style.display !== 'none' && r.offsetParent !== null)})).filter(x=>x.v).map(x=>x.i);
+              clonedRows.forEach((r, idx) => { if (!visibleRowIndexes.includes(idx)) r.remove(); });
+
+              const holder = document.createElement('div'); holder.style.cssText = 'position:fixed; left:-9999px; top:-9999px; visibility:hidden;';
+              holder.appendChild(clone);
+              document.body.appendChild(holder);
+              const ws = XLSX.utils.table_to_sheet(clone);
+              XLSX.utils.book_append_sheet(wb, ws, 'Table');
+              XLSX.writeFile(wb, 'table_view.xlsx');
+              holder.remove();
+            } catch (err) { console.error(err); alert('엑셀로 변환 중 오류가 발생했습니다.'); }
+          });
+        });
+        return btn;
+      }
+
+      function insertBtnIfTableVisible(){
+        const table = document.querySelector('#table-container table');
+        if (!table) return;
+        const thead = table.querySelector('thead');
+        if (!thead || table.style.display === 'none') {
+          // remove btn if exists
+          const existing = document.getElementById('table-xls-btn'); if (existing) existing.remove();
+          return;
+        }
+        // find '비고' header (Korean) by text
+        const ths = Array.from(thead.querySelectorAll('th'));
+        const remarkTh = ths.find(th => (th.textContent || '').trim().startsWith('비고')) || ths[ths.length-1];
+        if (!remarkTh) return;
+        const btn = createBtn();
+        // insert before remarkTh's text
+        if (!remarkTh.querySelector('#table-xls-btn')) {
+          remarkTh.insertBefore(btn, remarkTh.firstChild);
+        }
+      }
+
+      // Observe display changes on table container
+      const tableContainer = document.getElementById('table-container');
+      if (tableContainer && window.MutationObserver) {
+        const mo = new MutationObserver(() => { setTimeout(insertBtnIfTableVisible, 30); });
+        mo.observe(tableContainer, { attributes: true, childList: true, subtree: true, attributeFilter: ['style'] });
+      }
+      // Also run on load and when render mode switches
+      window.addEventListener('load', insertBtnIfTableVisible);
+      window.addEventListener('resize', () => { setTimeout(insertBtnIfTableVisible, 30); });
+      // Hook into renderDashboardView by wrapping the function if present
+      if (typeof renderDashboardView === 'function') {
+        const orig = renderDashboardView;
+        window.renderDashboardView = function(){ orig(); insertBtnIfTableVisible(); };
+      }
+    })();
+
+  // Note: The select-all-months UI was visually hidden earlier; keep visual removal but allow logic to run.
+
+    // === 월 필터 목록 좌측 정렬 보정: '.summary-cards'의 좌측 라인과 수평 정렬 ===
+    (function alignMonthCheckboxesToCards(){
+      const getElements = () => ({
+        monthBoxes: document.getElementById('month-checkboxes'),
+        cards: document.querySelector('.summary-cards'),
+        tableContainer: document.getElementById('table-container'),
+        monthContainer: document.getElementById('month-filter-container')
+      });
+
+      function applyAlignment(){
+        const els = getElements();
+        if (!els.monthBoxes || !els.monthContainer) return;
+
+        const monthBoxes = els.monthBoxes;
+
+        // 개선된 로직: 요약 뷰가 활성화되어 있고, 카드(.summary-cards)가 실제로 화면에 보이며, 데스크탑 뷰(1200px 이상)일 때만 정렬 로직을 실행합니다.
+        const shouldAlign = displayMode === 'summary' &&
+                            els.cards &&
+                            els.cards.offsetParent !== null &&
+                            window.innerWidth >= 1200;
+
+        if (shouldAlign) {
+            // 정렬 로직 실행
+            const targetEl = els.cards || document.querySelector('.summary-card') || els.tableContainer;
+            if (!targetEl) return;
+
+            const firstLabel = monthBoxes.querySelector('.month-checkbox');
+            if (!firstLabel) return;
+
+            const glyph = firstLabel.querySelector('input') || firstLabel;
+            const glyphRect = glyph.getBoundingClientRect();
+            const targetRect = targetEl.getBoundingClientRect();
+            const boxesRect = monthBoxes.getBoundingClientRect();
+
+            const desiredLeft = Math.round(targetRect.left);
+            const desiredTop = Math.round(boxesRect.top);
+
+            window.requestAnimationFrame(() => {
+                try {
+                    monthBoxes.style.position = 'fixed';
+                    monthBoxes.style.left = desiredLeft + 'px';
+                    monthBoxes.style.top = desiredTop + 'px';
+                    monthBoxes.style.zIndex = '2000';
+                    monthBoxes.dataset.__monthFixed = '1';
+                } catch (e) { console.error('applyAlignment fixed error', e); }
+            });
+        } else {
+            // 그 외의 모든 경우 (테이블 뷰, 모바일 뷰 등)에는 이전에 적용된 fixed 포지셔닝을 제거하여 기본 상태로 되돌립니다.
+            if (monthBoxes.dataset.__monthFixed) {
+                monthBoxes.style.position = '';
+                monthBoxes.style.left = '';
+                monthBoxes.style.top = '';
+                monthBoxes.style.zIndex = '';
+                delete monthBoxes.dataset.__monthFixed;
+            }
+        }
+      }
+
+      // Debounced reapply helpers
+      let rafId = null;
+      function scheduleAlignment() {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => { applyAlignment(); rafId = null; });
+      }
+
+      // Apply on load and resize
+      window.addEventListener('load', applyAlignment);
+      window.addEventListener('resize', () => { setTimeout(applyAlignment, 60); });
+
+      // Reapply when month DOM changes (month checkboxes get re-rendered)
+      const container = document.getElementById('month-filter-container');
+      if (container && window.MutationObserver) {
+        const mo = new MutationObserver(() => { setTimeout(applyAlignment, 30); });
+        mo.observe(container, { childList: true, subtree: true });
+      }
+
+      // expose for debugging/rollback
+      window.__alignMonthCheckboxesApplied = true;
+    })();
+
+    // 개선 사항: 바탕화면 더블클릭으로 초기화 기능 추가
+    document.body.addEventListener('dblclick', function(event) {
+        // 더블클릭이 상호작용 가능한 요소(버튼, 차트, 테이블 등) 위에서 발생했는지 확인
+        const interactiveAreas = [
+            'button', 'a', 'input', '.node', '#table-container', '#controls',
+            '#select-all-container', '#year-filter-container', '#month-filter-container', '.note-popup'
+        ];
+        if (interactiveAreas.some(selector => event.target.closest(selector))) {
+            return; // 상호작용 요소 위에서는 아무것도 하지 않음
+        }
+
+        // 데이터가 없으면 아무것도 하지 않음
+        if (allData.length === 0) return;
+
+        // 개선 사항: "최신 연도 프리셋"을 적용하여 요청된 모든 UI 상태를 한번에 설정합니다.
+        const allYears = [...new Set(allData.map(d => d.year).filter(y => y))].sort((a, b) => b - a);
+        if (allYears.length === 0) return; // 데이터가 없으면 더 이상 진행하지 않음
+
+        const latestYearToSelect = allYears[0];
+        const monthsForLatestYear = new Set(allData.filter(d => d.year === latestYearToSelect).map(d => d.month).filter(m => m));
+        const allTypesToSelect = new Set(allData.map(d => d.type).filter(t => t));
+
+        // 1. 필터 상태를 '최신 연도 프리셋'으로 설정
+        selectedYears = new Set([latestYearToSelect]);
+        selectedMonths = monthsForLatestYear;
+        selectedTypes = allTypesToSelect;
+
+        // 2. UI 상태 업데이트
+        isYearFilterManuallySetAllOrNone = false; // '최신 연도 프리셋'은 '전체 선택' 상태가 아님
+        isInitialMonthClick = true; // 월 필터 클릭 상태 초기화
+        displayMode = 'summary'; // 요약 뷰 표시
+        // 3. 모든 뷰와 UI 컴포넌트(체크박스 포함)를 한번에 업데이트
+        updateAllViews(false);
+    });
+  </script>
+</body>
+</html>
