@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2동 정전 공사 상세 일정</title>
+    <!-- Tailwind CSS CDN 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 기본 폰트 및 배경 설정 */
+        body {
+            font-family: 'Inter', 'Malgun Gothic', 'Dotum', sans-serif;
+            background-color: #f8fafc; /* 매우 밝은 회색 배경 */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* 수직 정렬을 상단(top)으로 변경하여 공간 확보 */
+            min-height: 100vh; /* 뷰포트 높이만큼 최소 높이 설정 (화면 꽉 채우기) */
+            padding: 0; /* body 패딩 제거 */
+            margin: 0; /* body 마진 제거 */
+            box-sizing: border-box; /* 패딩과 보더가 너비/높이에 포함되도록 설정 */
+            overflow-y: hidden; /* 스크롤바 숨김 (내용이 꽉차게 보여야 함) */
+        }
+        .notice-container {
+            width: 100%; /* 너비를 100%로 설정하여 화면 전체 사용 */
+            height: 100vh; /* 뷰포트 높이만큼 정확히 높이 설정 */
+            /* max-width: 800px;  최대 너비 제한 해제 */
+            box-shadow: none; /* 전체 화면 사용 시 그림자 제거 */
+            border-radius: 0; /* 전체 화면 사용 시 모서리 둥글기 제거 */
+            display: flex;
+            flex-direction: column; /* 내용이 위에서 아래로 흐르도록 설정 */
+        }
+        /* 표 가독성 향상 - 세로 공간 확보를 위해 패딩 및 폰트 크기 조정 */
+        .schedule-table th, .schedule-table td {
+            padding: 10px 8px; /* 패딩을 줄여 세로 공간 확보 */
+            text-align: center;
+            vertical-align: middle;
+        }
+        .schedule-table th {
+            font-size: 1rem; /* 헤더 글자 크기 조정 */
+        }
+        .date-cell {
+            font-size: 1.125rem; /* 날짜 글자 크기 조정 */
+            font-weight: 900;
+        }
+        .line-cell {
+            text-align: left; /* 라인 정보 왼쪽 정렬 */
+            padding-left: 16px; /* 패딩 약간 축소 */
+        }
+        .line-cell > div:first-child {
+            font-size: 1rem; /* 라인 번호 글자 크기 조정 */
+        }
+        .line-cell > div:last-child {
+            font-size: 0.875rem; /* 호실 정보 글자 크기 조정 */
+        }
+        .time-cell {
+            font-size: 1.125rem; /* 시간 글자 크기 조정 */
+        }
+
+        /* 최종 안내 문구 패딩 조정 */
+        .final-notice {
+            padding: 10px;
+        }
+    </style>
+</head>
+<body class="p-0 sm:p-0 md:p-0">
+
+    <div class="notice-container mx-auto bg-white overflow-hidden">
+        
+        <!-- Header (제목만 남김) - 높이가 고정되어 내용이 밀리지 않도록 flex-shrink-0 적용 -->
+        <h1 class="text-center py-2 bg-red-600 text-white text-2xl sm:text-3xl font-extrabold flex-shrink-0">
+            ⚡ 2동 정전 공사 상세 일정표
+        </h1>
+
+        <!-- Power Outage Schedule - (가독성 최대화) -->
+        <!-- flex-grow를 적용하여 남은 공간을 모두 차지하도록 하고, 스크롤 제거 -->
+        <section class="px-2 py-1 sm:px-3 flex-grow overflow-y-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y-2 divide-blue-400 schedule-table border-collapse">
+                    <thead class="bg-blue-600 text-white">
+                        <tr>
+                            <th class="font-bold w-1/5">날짜</th>
+                            <th class="font-bold w-3/5">라인 및 해당 호실</th>
+                            <th class="font-bold w-1/5">정전 시간</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 text-gray-800">
+                        <!-- 11.10. (월) -->
+                        <tr class="hover:bg-blue-50">
+                            <td rowspan="2" class="date-cell text-red-700 border-r-2 border-gray-300">11.10. (월)</td>
+                            <td class="line-cell">
+                                <div class="font-bold text-gray-900">① 1호 라인</div>
+                                <div class="text-gray-600">(101, 201, 301, 401호)</div>
+                            </td>
+                            <td class="font-extrabold text-green-700 whitespace-nowrap time-cell">09:30 &ndash; 13:00</td> 
+                        </tr>
+                        <tr class="hover:bg-blue-50">
+                            <td class="line-cell">
+                                <div class="font-bold text-gray-900">② 2호 라인</div>
+                                <div class="text-gray-600">(102, 202, 302, 402호)</div>
+                            </td>
+                            <td class="font-extrabold text-green-700 whitespace-nowrap time-cell">13:30 &ndash; 17:00</td>
+                        </tr>
+                        
+                        <!-- 간격 확보 및 시각적 구분 -->
+                        <tr class="h-2 bg-gray-100"><td colspan="3"></td></tr>
+
+                        <!-- 11.11. (화) -->
+                        <tr class="hover:bg-blue-50 bg-blue-100">
+                            <td rowspan="2" class="date-cell text-red-700 border-r-2 border-gray-300">11.11. (화)</td>
+                            <td class="line-cell">
+                                <div class="font-bold text-gray-900">③ 3호 라인</div>
+                                <div class="text-gray-600">(103, 203, 303, 403호)</div>
+                            </td>
+                            <td class="font-extrabold text-green-700 whitespace-nowrap time-cell">09:30 &ndash; 13:00</td>
+                        </tr>
+                        <tr class="hover:bg-blue-50 bg-blue-100">
+                            <td class="line-cell">
+                                <div class="font-bold text-gray-900">④ 4호 라인</div>
+                                <div class="text-gray-600">(104, 204, 304, 404호)</div>
+                            </td>
+                            <td class="font-extrabold text-green-700 whitespace-nowrap time-cell">13:30 &ndash; 17:00</td>
+                        </tr>
+                        
+                        <!-- 간격 확보 및 시각적 구분 -->
+                        <tr class="h-2 bg-gray-100"><td colspan="3"></td></tr>
+
+                        <!-- 11.12. (수) -->
+                        <tr class="hover:bg-blue-50">
+                            <td rowspan="2" class="date-cell text-red-700 border-r-2 border-gray-300">11.12. (수)</td>
+                            <td class="line-cell">
+                                <div class="font-bold text-gray-900">⑤ 5호 라인</div>
+                                <div class="text-gray-600">(105, 205, 305, 405호)</div>
+                            </td>
+                            <td class="font-extrabold text-green-700 whitespace-nowrap time-cell">09:30 &ndash; 13:00</td>
+                        </tr>
+                        <tr class="hover:bg-blue-50">
+                            <td class="line-cell">
+                                <div class="font-bold text-gray-900">⑥ 6호 라인</div>
+                                <div class="text-gray-600">(106, 206, 306, 406호)</div>
+                            </td>
+                            <td class="font-extrabold text-green-700 whitespace-nowrap time-cell">13:30 &ndash; 17:00</td>
+                        </tr>
+                        
+                        <!-- 간격 확보 및 시각적 구분 -->
+                        <tr class="h-2 bg-gray-100"><td colspan="3"></td></tr>
+
+                         <!-- 11.13. (목) -->
+                        <tr class="hover:bg-blue-50 bg-blue-100">
+                            <td rowspan="2" class="date-cell text-red-700 border-r-2 border-gray-300">11.13. (목)</td>
+                            <td class="line-cell">
+                                <div class="font-bold text-gray-900">⑦ 7호 라인</div>
+                                <div class="text-gray-600">(107, 207, 307, 407호)</div>
+                            </td>
+                            <td class="font-extrabold text-green-700 whitespace-nowrap time-cell">09:30 &ndash; 13:00</td>
+                        </tr>
+                        <tr class="hover:bg-blue-50 bg-blue-100">
+                            <td class="line-cell">
+                                <div class="font-bold text-gray-900">⑧ 8호 라인</div>
+                                <div class="text-gray-600">(108, 208, 308, 408호)</div>
+                            </td>
+                            <td class="font-extrabold text-green-700 whitespace-nowrap time-cell">13:30 &ndash; 17:00</td>
+                        </tr>
+                        
+                        <!-- 간격 확보 및 시각적 구분 -->
+                        <tr class="h-2 bg-gray-100"><td colspan="3"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+        </section>
+        
+        <!-- 최종 안내 문구 - 높이가 고정되어 내용이 밀리지 않도록 flex-shrink-0 적용 -->
+        <!-- mt-2 제거하여 상단 내용과의 겹침 문제 해결 시도 -->
+        <div class="text-center py-1 bg-yellow-100 border-t-2 border-yellow-400 final-notice flex-shrink-0">
+            <p class="text-base font-bold text-red-700">
+                ⚠️ 최종 일정 확인: 공사 미완료 세대는 11월 14일 (금)에 추가 진행됩니다.
+            </p>
+            <p class="text-xs text-gray-600 mt-1">
+                (현장 여건에 따라 시간이 변동될 수 있습니다.)
+            </p>
+        </div>
+        
+    </div>
+</body>
+</html>
