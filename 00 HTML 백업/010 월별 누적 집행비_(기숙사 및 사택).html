@@ -1,0 +1,3810 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>월별 누적 집행비 대시보드</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        // 전역 범위에 확대 기능 관련 변수 선언
+        let isZoomModeActive = false;
+        let isZoomed = false;
+        let isDraggingZoomArea = false;
+        let zoomStartPoint = null; // { xValue, yValue, xPixel, yPixel }
+        let zoomEndPoint = null;   // { xValue, yValue, xPixel, yPixel }
+        let originalScales = null;
+        let budgetChart = null;
+        let zoomPreviewRectAnnotation = null;
+
+        // 테이블 가시성 상태 변수: 초기값을 false로 변경하여 기본적으로 숨김
+        let isTableVisibleUserSettings = false;
+
+        // 연도별 데이터 저장 및 현재 표시 연도
+        window.allYearsData = {};
+        window.currentDisplayedYear = new Date().getFullYear();
+
+        // 현재 표시 연도의 데이터 (updateDisplay 함수에서 설정됨)
+        let originalDatasetsData = [];
+        let chartMonths = [];
+        window.tableRowsData = []; // This will hold data for the current year, including isAvg flag
+        let originalJiphangBData = {};
+        let isXAxisReversed = false;
+        let currentXAxisLabels = [];
+
+        // 테이블 드래그 및 리사이즈 관련 변수
+        let isDraggingTable = false;
+        let tableDragOffsetX, tableDragOffsetY;
+        let dataTableDiv = null;
+        let isHeaderCollapsed = false;
+        let isResizingTable = false;
+        let tableResizeStartX, tableResizeStartY, tableInitialWidth, tableInitialHeight;
+
+
+        // FileUploadManager 클래스 정의
+        class FileUploadManager {
+            constructor() {
+                this.uploadedFiles = new Map();
+                this.uploadMode = 'single';
+            }
+
+            setUploadMode(mode) {
+                this.uploadMode = mode;
+            }
+
+            async processFiles(files) {
+                const results = {
+                    success: [],
+                    failed: []
+                };
+
+                for (const file of files) {
+                    try {
+                        const dataContent = await this.readFile(file);
+                        const year = this.extractYearFromFileName(file.name); // Year from filename
+                        if (!year) {
+                            throw new Error('파일명에서 연도를 추출할 수 없습니다. 파일명에 4자리 연도를 포함해주세요 (예: data_2023.csv).');
+                        }
+                        const parsedDataForValidation = this.parseCSVForValidation(dataContent);
+                        if (!this.validateCSVData(parsedDataForValidation)) {
+                            // validateCSVData throws an error if validation fails
+                        }
+                        results.success.push({
+                            name: file.name,
+                            year: year,
+                            data: parsedDataForValidation,
+                            originalContent: dataContent
+                        });
+                    } catch (error) {
+                        console.error(`파일 처리 실패: ${file.name}`, error);
+                        results.failed.push({
+                            name: file.name,
+                            error: error.message
+                        });
+                    }
+                }
+                return results;
+            }
+
+            readFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('파일 읽기 실패'));
+                    reader.readAsText(file, 'UTF-8');
+                });
+            }
+
+            extractYearFromFileName(fileName) {
+                const shortYearMatch = fileName.match(/_(\d{2})\.csv$/i);
+                if (shortYearMatch && shortYearMatch[1]) {
+                    const yearSuffix = parseInt(shortYearMatch[1], 10);
+                    if (yearSuffix >= 0 && yearSuffix <= 99) {
+                        return (yearSuffix < 50 ? 2000 : 1900) + yearSuffix;
+                    }
+                }
+                const longYearMatch = fileName.match(/_(\d{4})\.csv$/i);
+                if (longYearMatch && longYearMatch[1]) {
+                    return parseInt(longYearMatch[1], 10);
+                }
+                const generalLongYearMatch = fileName.match(/\d{4}/);
+                if (generalLongYearMatch) {
+                    return parseInt(generalLongYearMatch[0], 10);
+                }
+                return null;
+            }
+
+            parseCSVForValidation(csvData) {
+                const actualCsvLines = csvData.split(/\r?\n/).filter(line =>
+                    line.trim() &&
+                    !line.startsWith("상세내역 보기,#HYPERLINK#") &&
+                    !line.startsWith("유형별 분석,#WORKTYPELINK#") &&
+                    !line.startsWith("작업유형별 보기,#WORKTYPELINK#") &&
+                    !line.startsWith("절감비 현황,#COSTSAVINGSLINK#")
+                );
+
+                if (actualCsvLines.length < 2) {
+                    throw new Error('CSV 파일에 실제 데이터가 부족합니다. (링크 정보 제외, 헤더와 최소 1줄의 데이터 필요)');
+                }
+
+                let headers = actualCsvLines[0].split(',').map(h => h.trim());
+
+                if (headers.length > 0 && headers[0].charCodeAt(0) === 0xFEFF) {
+                    headers[0] = headers[0].substring(1);
+                }
+
+                headers = headers.map(header => {
+                    const monthMatch = header.match(/^0?(\d{1,2})월$/);
+                    if (monthMatch) {
+                        return `${parseInt(monthMatch[1], 10)}월`;
+                    }
+                    return header;
+                });
+
+                const data = [];
+                for (let i = 1; i < actualCsvLines.length; i++) {
+                    if (!actualCsvLines[i].trim()) continue;
+
+                    const values = actualCsvLines[i].split(',').map(v => v.trim());
+                    if (values.length !== headers.length) {
+                        console.warn(`CSV 파일의 ${i + 1}번째 줄의 열 개수(${values.length}개)가 헤더의 열 개수(${headers.length}개)와 일치하지 않습니다.`);
+                        throw new Error(`줄 ${i + 1}의 데이터 열 수가 헤더와 일치하지 않습니다. (예상: ${headers.length}, 실제: ${values.length})`);
+                    }
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index];
+                    });
+                    data.push(row);
+                }
+                return data;
+            }
+
+            validateCSVData(data) {
+                if (!Array.isArray(data) || data.length === 0) {
+                    console.error("Validation failed: Data is not an array or is empty.");
+                    throw new Error("파싱된 데이터가 배열이 아니거나 비어있습니다.");
+                }
+
+                const requiredColumns = ['구분', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+                const firstRow = data[0];
+                if (!firstRow) {
+                    console.error("Validation failed: First row is undefined (data is likely empty after parsing).");
+                    throw new Error("파싱 후 데이터의 첫 번째 행을 찾을 수 없습니다.");
+                }
+                const headersInUploadedFile = Object.keys(firstRow);
+
+                const hasAllColumns = requiredColumns.every(col => headersInUploadedFile.includes(col));
+                if (!hasAllColumns) {
+                    const missingColumns = requiredColumns.filter(col => !headersInUploadedFile.includes(col));
+                    console.error("Validation failed: Missing one or more required columns. Required:", requiredColumns, "Found in file:", headersInUploadedFile, "Missing:", missingColumns);
+                    throw new Error(`필수 열이 누락되었습니다: ${missingColumns.join(', ')}`);
+                }
+
+                return data.every((row, rowIndex) => {
+                    if (typeof row['구분'] !== 'string' || row['구분'].trim() === '') {
+                        console.error(`Validation failed for row ${rowIndex + 1}: '구분' column is not a non-empty string. Value: '${row['구분']}'`);
+                        throw new Error(`행 ${rowIndex + 2}의 '구분' 값이 비어있거나 문자열이 아닙니다.`);
+                    }
+
+                    for (const col of requiredColumns) {
+                        if (col === '구분') continue;
+
+                        const val = row[col];
+                        if (val === '' || val === null || val === undefined) continue;
+
+                        const num = Number(val);
+                        if (isNaN(num) || num < 0) {
+                            console.error(`Validation failed for row ${rowIndex + 1}, column '${col}': Value '${val}' is not a non-negative number.`);
+                            throw new Error(`행 ${rowIndex + 2}, 열 '${col}'의 값 '${val}'이 음수가 아닌 유효한 숫자가 아닙니다.`);
+                        }
+                    }
+                    return true;
+                });
+            }
+        }
+
+        const fileUploadManager = new FileUploadManager();
+
+        const legendPositioningPlugin = {
+            id: 'legendPositioningPlugin',
+            afterUpdate(chart) {
+                const legend = chart.legend;
+                if (!legend.options.display || legend.options.position !== 'bottom') {
+                    return;
+                }
+
+                const leftControls = document.getElementById('legend-controls');
+                const rightControls = document.getElementById('bottom-controls');
+                if (!leftControls || !rightControls) return;
+
+                const leftEnd = leftControls.getBoundingClientRect().right;
+                const rightStart = rightControls.getBoundingClientRect().left;
+                const availableWidth = rightStart - leftEnd;
+
+                // 수평 중앙 정렬: 좌/우 컨트롤 메뉴 사이의 가용 공간 중앙에 범례를 배치합니다.
+                legend.left = leftEnd + (availableWidth - legend.width) / 2;
+
+                // 수직 위치 조정: 범례가 보이지 않는 문제를 해결하기 위해 위치 계산법을 수정합니다.
+                // 범례를 캔버스 영역의 가장 하단에 위치시켜 하단 컨트롤 메뉴와 가깝게 배치합니다.
+                if (chart.height && legend.height) {
+                    legend.top = chart.height - legend.height - 5; // 5px의 하단 여백을 줍니다.
+                }
+            }
+        };
+        Chart.register(legendPositioningPlugin);
+
+        function handleYearDisplayChange() {
+            const selector = document.getElementById('yearDisplaySelector');
+            if (!selector || !selector.value) return;
+            const selectedYear = parseInt(selector.value, 10);
+            if (window.currentDisplayedYear !== selectedYear) {
+                if (window.allYearsData[selectedYear]) switchToYear(selectedYear);
+                else showStatusMessage(`${selectedYear}년 데이터를 찾을 수 없습니다.`, 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- 헤더 토글 기능 설정 ---
+            const headerToggleHandle = document.getElementById('header-toggle-handle');
+            if (headerToggleHandle) {
+                headerToggleHandle.addEventListener('click', () => {
+                    isHeaderCollapsed = !isHeaderCollapsed;
+                    updateHeaderAndChartLayout();
+                });
+            }
+            updateHeaderAndChartLayout();
+            window.addEventListener('resize', updateHeaderAndChartLayout);
+            // --- 헤더 토글 기능 설정 끝 ---
+
+            const zoomToggleBtn = document.getElementById('zoomToggleBtn');
+            const instruction = document.getElementById('zoomInstruction');
+            const canvas = document.getElementById('budgetChart');
+            const toggleTableBtn = document.getElementById('toggleTableBtn');
+            const showTableIcon = document.getElementById('showTableIcon');
+            const toggleXAxisOrderBtn = document.getElementById('toggleXAxisOrderBtn');
+            dataTableDiv = document.getElementById('data-table');
+
+            const uploadCsvBtn = document.getElementById('upload-csv-btn');
+            const fileInput = document.getElementById('file-input');
+            const uploadModeSelector = document.getElementById('upload-mode-selector');
+
+            if (uploadModeSelector) {
+                uploadModeSelector.addEventListener('change', function () {
+                    const mode = this.value;
+                    fileUploadManager.setUploadMode(mode);
+                    fileInput.multiple = mode === 'multiple';
+                    fileInput.value = '';
+                });
+            }
+
+            if (uploadCsvBtn) {
+                uploadCsvBtn.addEventListener('click', function () {
+                    fileInput.multiple = uploadModeSelector.value === 'multiple';
+                    fileInput.click();
+                });
+            }
+
+            if (fileInput) {
+                fileInput.addEventListener('change', async function (e) {
+                    const files = Array.from(e.target.files);
+                    if (files.length === 0) return;
+
+                    const currentUploadMode = uploadModeSelector.value;
+                    if (currentUploadMode === 'single' && files.length > 1) {
+                        showStatusMessage('단일 파일 업로드 모드에서는 하나의 파일만 선택할 수 있습니다.', 'error');
+                        e.target.value = '';
+                        return;
+                    }
+
+                    showStatusMessage('파일 업로드 중...', 'info', 2000);
+
+                    const results = await fileUploadManager.processFiles(files);
+                    let lastSuccessfullyProcessedYear = null;
+
+                    if (results.success.length > 0) {
+                        if (uploadModeSelector.value === 'single') {
+                            window.allYearsData = {};
+                            console.log("window.allYearsData has been cleared for single file upload.");
+                        }
+
+
+                        for (const successResult of results.success) {
+                            const year = successResult.year;
+                            const originalCsvString = successResult.originalContent;
+                            parseCSVAndStore(originalCsvString, year);
+                            lastSuccessfullyProcessedYear = year;
+                        }
+
+                        populateYearDisplaySelector();
+
+                        if (lastSuccessfullyProcessedYear) {
+                            switchToYear(lastSuccessfullyProcessedYear);
+                        } else if (results.success.length > 0 && window.allYearsData[results.success[0].year]) {
+                            switchToYear(results.success[0].year);
+                        }
+
+                        let successMessage = `${results.success.length}개 파일 업로드 성공.`;
+                        if (results.failed.length > 0) {
+                            successMessage += ` (${results.failed.length}개 실패)`;
+                        }
+                        showStatusMessage(successMessage, results.failed.length > 0 ? 'warning' : 'success', 4000);
+
+
+                        showCustomConfirm('변경된 내용을 HTML 파일로 저장하시겠습니까?', function (confirmed) {
+                            if (confirmed) {
+                                saveUpdatedHtml();
+                            }
+                        });
+
+                    } else if (results.failed.length > 0) {
+                        showStatusMessage('파일 업로드에 실패했습니다. 모든 파일 처리 중 오류가 발생했습니다.', 'error', 5000);
+                    }
+
+
+                    if (results.failed.length > 0) {
+                        let failedFilesDetail = results.failed.map(f => `${f.name}: ${f.error}`).join('\n');
+                        console.error("파일 업로드 실패 상세:", failedFilesDetail);
+                    }
+
+                    e.target.value = '';
+                });
+            }
+
+
+            const yearDisplaySelector = document.getElementById('yearDisplaySelector');
+            if (yearDisplaySelector) {
+                yearDisplaySelector.addEventListener('change', handleYearDisplayChange);
+            }
+
+            if (zoomToggleBtn) {
+                zoomToggleBtn.addEventListener('click', function () {
+                    if (!isZoomed && !isZoomModeActive) {
+                        isZoomModeActive = true;
+                        this.innerText = '확대 취소';
+                        if (instruction) instruction.innerText = '확대할 영역을 마우스로 드래그하세요.';
+                        removeZoomPreview();
+                    } else {
+                        resetZoom();
+                    }
+                });
+            }
+
+            if (canvas) {
+                canvas.addEventListener('mousedown', (evt) => {
+                    if (isZoomModeActive) handleZoomDragStart(evt);
+                });
+
+                canvas.addEventListener('click', (evt) => {
+                    if (isDraggingTable || isResizingTable || isZoomModeActive || isDraggingZoomArea) return;
+                    if (typeof addMonthSelectionFeatureLogic === 'function') {
+                        addMonthSelectionFeatureLogic(evt);
+                    }
+                });
+            }
+
+            if (toggleTableBtn) {
+                toggleTableBtn.addEventListener('click', function () {
+                    isTableVisibleUserSettings = !isTableVisibleUserSettings;
+                    updateTableAndControlsVisibility();
+                });
+            }
+
+            if (showTableIcon) {
+                showTableIcon.addEventListener('click', function () {
+                    isTableVisibleUserSettings = true;
+                    updateTableAndControlsVisibility();
+                });
+            }
+
+            if (toggleXAxisOrderBtn) {
+                toggleXAxisOrderBtn.addEventListener('click', function () {
+                    isXAxisReversed = !isXAxisReversed;
+                    updateDisplay();
+                });
+            }
+
+            updateTableAndControlsVisibility();
+            attachTableExpansionListeners();
+            makeTableDraggable();
+            makeTableResizable();
+
+        });
+
+        function handleZoomDragStart(evt) {
+            if (!isZoomModeActive || isDraggingZoomArea || evt.button !== 0) return;
+
+            isDraggingZoomArea = true;
+            const canvas = evt.target;
+            const rect = canvas.getBoundingClientRect();
+            const xPixel = evt.clientX - rect.left;
+            const yPixel = evt.clientY - rect.top;
+
+            const xValue = budgetChart.scales.x.getValueForPixel(xPixel);
+            const yValue = budgetChart.scales.y.getValueForPixel(yPixel);
+
+            zoomStartPoint = { xValue, yValue, xPixel, yPixel };
+
+            document.addEventListener('mousemove', handleZoomDrag);
+            document.addEventListener('mouseup', handleZoomDragEnd);
+        }
+
+        function handleZoomDrag(evt) {
+            if (!isDraggingZoomArea || !zoomStartPoint) return;
+
+            const canvas = budgetChart.canvas;
+            const rect = canvas.getBoundingClientRect();
+            const currentXPixel = evt.clientX - rect.left;
+            const currentYPixel = evt.clientY - rect.top;
+
+            drawZoomPreview(zoomStartPoint.xPixel, zoomStartPoint.yPixel, currentXPixel, currentYPixel);
+        }
+
+        function handleZoomDragEnd(evt) {
+            if (!isDraggingZoomArea || !zoomStartPoint) return;
+
+            isDraggingZoomArea = false;
+            document.removeEventListener('mousemove', handleZoomDrag);
+            document.removeEventListener('mouseup', handleZoomDragEnd);
+
+            const canvas = budgetChart.canvas;
+            const rect = canvas.getBoundingClientRect();
+            const xPixel = evt.clientX - rect.left;
+            const yPixel = evt.clientY - rect.top;
+
+            if (Math.abs(xPixel - zoomStartPoint.xPixel) < 5 && Math.abs(yPixel - zoomStartPoint.yPixel) < 5) {
+                removeZoomPreview();
+                zoomStartPoint = null;
+                return;
+            }
+
+            const xValue = budgetChart.scales.x.getValueForPixel(xPixel);
+            const yValue = budgetChart.scales.y.getValueForPixel(yPixel);
+            zoomEndPoint = { xValue, yValue, xPixel, yPixel };
+
+            drawZoomPreview(zoomStartPoint.xPixel, zoomStartPoint.yPixel, xPixel, yPixel);
+
+            showCustomConfirm("이 영역으로 확대하시겠습니까?", function (confirmed) {
+                if (confirmed) {
+                    applyZoom();
+                } else {
+                    zoomEndPoint = null;
+                    zoomStartPoint = null;
+                    removeZoomPreview();
+                    const instruction = document.getElementById('zoomInstruction');
+                    if (instruction) instruction.innerText = '확대할 영역을 다시 드래그하세요.';
+                }
+            });
+        }
+
+        function showCustomConfirm(message, callback) {
+            const dialogId = 'custom-confirm-dialog';
+            const existingDialog = document.getElementById(dialogId);
+            if (existingDialog) {
+                existingDialog.remove();
+            }
+
+            const dialog = document.createElement('div');
+            dialog.id = dialogId;
+            dialog.style.cssText = `
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 25px; border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 2000;
+            text-align: center; min-width: 300px;
+        `;
+            dialog.innerHTML = `
+            <p style="margin:0 0 20px 0; font-size: 16px;">${message}</p>
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <button id="custom-confirm-yes" style="padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">예</button>
+                <button id="custom-confirm-no" style="padding:10px 20px; background:#f44336; color:white; border:none; border-radius:4px; cursor:pointer;">아니오</button>
+            </div>
+        `;
+            document.body.appendChild(dialog);
+
+            document.getElementById('custom-confirm-yes').onclick = function () {
+                if (dialog.parentNode) document.body.removeChild(dialog);
+                callback(true);
+            };
+            document.getElementById('custom-confirm-no').onclick = function () {
+                if (dialog.parentNode) document.body.removeChild(dialog);
+                callback(false);
+            };
+        }
+
+        function updateTableAndControlsVisibility() {
+            const dataTableDiv = document.getElementById('data-table');
+            const toggleTableBtn = document.getElementById('toggleTableBtn');
+            const showTableIcon = document.getElementById('showTableIcon');
+            const resizeHandle = document.getElementById('table-resize-handle');
+
+            if (isTableVisibleUserSettings) {
+                attachTableExpansionListeners();
+                makeTableDraggable();
+                makeTableResizable();
+            }
+            if (!dataTableDiv || !toggleTableBtn || !showTableIcon || !resizeHandle) return;
+
+            if (isZoomed) {
+                dataTableDiv.style.display = 'none';
+                dataTableDiv.classList.remove('table-expanded');
+                delete dataTableDiv.dataset.dragged;
+                resizeHandle.style.display = 'none';
+                showTableIcon.style.display = 'none';
+                toggleTableBtn.innerText = '테이블 보이기';
+            } else {
+                if (isTableVisibleUserSettings) {
+                    dataTableDiv.style.display = '';
+                    dataTableDiv.classList.add('table-expanded');
+                    resizeHandle.style.display = 'block';
+                    toggleTableBtn.innerText = '테이블 숨기기';
+                    showTableIcon.style.display = 'none';
+
+                    if (dataTableDiv.dataset.dragged === 'true' && dataTableDiv.style.left && dataTableDiv.style.top) {
+                        let currentScale = 1.08;
+                        const currentTransform = dataTableDiv.style.transform;
+                        if (currentTransform && currentTransform.includes('scale')) {
+                            const scaleMatch = currentTransform.match(/scale\(([^)]+)\)/);
+                            if (scaleMatch && scaleMatch[1]) {
+                                currentScale = parseFloat(scaleMatch[1]);
+                            }
+                        }
+                        dataTableDiv.style.transform = `scale(${currentScale})`;
+                        dataTableDiv.style.transformOrigin = 'top left';
+                    } else {
+                        dataTableDiv.style.left = '50%';
+                        dataTableDiv.style.top = '60px';
+                        dataTableDiv.style.width = '';
+                        dataTableDiv.style.height = '';
+                        dataTableDiv.style.transform = 'translateX(-50%) scale(1.08) translateY(-12px)';
+                        dataTableDiv.style.transformOrigin = 'center center';
+                    }
+                } else {
+                    dataTableDiv.style.display = 'none';
+                    dataTableDiv.classList.remove('table-expanded');
+                    resizeHandle.style.display = 'none';
+                    toggleTableBtn.innerText = '테이블 보이기';
+                    showTableIcon.style.display = 'flex';
+
+                    dataTableDiv.style.left = '50%';
+                    dataTableDiv.style.top = '60px';
+                    dataTableDiv.style.width = '';
+                    dataTableDiv.style.height = '';
+                    dataTableDiv.style.transform = 'translateX(-50%) scale(0.7)';
+                    dataTableDiv.style.transformOrigin = 'center center';
+                    delete dataTableDiv.dataset.dragged;
+                }
+            }
+        }
+
+        function drawZoomPreview(x1, y1, x2, y2) {
+            if (!budgetChart) return;
+            removeZoomPreview();
+
+            const xMinPixel = Math.min(x1, x2);
+            const xMaxPixel = Math.max(x1, x2);
+            const yMinPixel = Math.min(y1, y2);
+            const yMaxPixel = Math.max(y1, y2);
+
+            const xMin = budgetChart.scales.x.getValueForPixel(xMinPixel);
+            const xMax = budgetChart.scales.x.getValueForPixel(xMaxPixel);
+            const yMin = budgetChart.scales.y.getValueForPixel(yMaxPixel);
+            const yMax = budgetChart.scales.y.getValueForPixel(yMinPixel);
+
+
+            zoomPreviewRectAnnotation = {
+                type: 'box',
+                xMin: xMin,
+                xMax: xMax,
+                yMin: yMin,
+                yMax: yMax,
+                borderColor: 'rgba(255, 99, 132, 0.7)',
+                borderWidth: 2,
+                borderDash: [6, 6],
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                drawTime: 'afterDraw'
+            };
+
+            if (!budgetChart.options.plugins.annotation) {
+                budgetChart.options.plugins.annotation = { annotations: {} };
+            }
+            budgetChart.options.plugins.annotation.annotations.zoomPreviewRect = zoomPreviewRectAnnotation;
+            budgetChart.update('none');
+        }
+
+        function removeZoomPreview() {
+            if (budgetChart && budgetChart.options.plugins.annotation && budgetChart.options.plugins.annotation.annotations.zoomPreviewRect) {
+                delete budgetChart.options.plugins.annotation.annotations.zoomPreviewRect;
+                zoomPreviewRectAnnotation = null;
+                budgetChart.update('none');
+            }
+        }
+
+        function applyZoom() {
+            if (!budgetChart || !zoomStartPoint || !zoomEndPoint) {
+                resetZoom(); return;
+            }
+
+            const xMin = Math.min(zoomStartPoint.xValue, zoomEndPoint.xValue);
+            const xMax = Math.max(zoomStartPoint.xValue, zoomEndPoint.xValue);
+            const yMin = Math.min(zoomStartPoint.yValue, zoomEndPoint.yValue);
+            const yMax = Math.max(zoomStartPoint.yValue, zoomEndPoint.yValue);
+
+            const finalXMin = Math.max(0, xMin);
+            const finalXMax = Math.min(chartMonths.length - 1, xMax);
+
+            let finalYMin = yMin;
+            let finalYMax = yMax;
+
+            if (finalYMin === finalYMax) {
+                let dataBasedYMin = Number.MAX_VALUE, dataBasedYMax = -Number.MAX_VALUE;
+                budgetChart.data.datasets.forEach(ds => {
+                    if (!ds.hidden) {
+                        ds.data.forEach(point => {
+                            if (point.x >= finalXMin && point.x <= finalXMax && point.y !== null && !isNaN(point.y)) {
+                                dataBasedYMin = Math.min(dataBasedYMin, point.y);
+                                dataBasedYMax = Math.max(dataBasedYMax, point.y);
+                            }
+                        });
+                    }
+                });
+
+                if (dataBasedYMin !== Number.MAX_VALUE && dataBasedYMax !== -Number.MAX_VALUE) {
+                    finalYMin = dataBasedYMin * 0.9; finalYMax = dataBasedYMax * 1.1;
+                    if (finalYMin === finalYMax) { finalYMin -= 1; finalYMax += 1; }
+                } else {
+                    const originalYScale = (originalScales && originalScales.y) ? originalScales.y : budgetChart.options.scales.y;
+                    const yAxisDefaultMin = originalYScale.min !== undefined ? originalYScale.min : 0;
+                    const yAxisDefaultMax = originalYScale.max !== undefined ? originalYScale.max : (yMin + 10000000);
+                    const yRange = (yAxisDefaultMax - yAxisDefaultMin) || 10000000;
+                    finalYMin = yMin - yRange * 0.05;
+                    finalYMax = yMax + yRange * 0.05;
+                    if (finalYMin === finalYMax) { finalYMin -= 1; finalYMax += 1; }
+                }
+            }
+
+
+            if (!originalScales) {
+                originalScales = {
+                    x: { ...budgetChart.options.scales.x },
+                    y: { ...budgetChart.options.scales.y }
+                };
+            }
+
+            budgetChart.options.scales.x.min = finalXMin;
+            budgetChart.options.scales.x.max = finalXMax;
+            budgetChart.options.scales.y.min = finalYMin;
+            budgetChart.options.scales.y.max = finalYMax;
+
+            budgetChart.update();
+            isZoomed = true;
+            isZoomModeActive = false;
+            removeZoomPreview();
+            updateTableAndControlsVisibility();
+
+            const instruction = document.getElementById('zoomInstruction');
+            if (instruction) instruction.innerText = "확대 완료. '확대 취소' 버튼으로 원래대로 돌아갑니다.";
+            const zoomToggleBtn = document.getElementById('zoomToggleBtn');
+            if (zoomToggleBtn) zoomToggleBtn.innerText = '확대 취소';
+
+            zoomStartPoint = null;
+            zoomEndPoint = null;
+        }
+
+        function resetZoom() {
+            if (!budgetChart) return;
+            removeZoomPreview();
+
+            if (originalScales) {
+                budgetChart.options.scales.x = { ...originalScales.x };
+                budgetChart.options.scales.y = { ...originalScales.y };
+                const yMaxFromData = calculateMaxY(budgetChart.data.datasets);
+                budgetChart.options.scales.y.max = yMaxFromData;
+                originalScales = null;
+            } else {
+                delete budgetChart.options.scales.x.min;
+                delete budgetChart.options.scales.x.max;
+                delete budgetChart.options.scales.y.min;
+                const yMaxFromData = calculateMaxY(budgetChart.data.datasets);
+                budgetChart.options.scales.y.max = yMaxFromData;
+            }
+            budgetChart.update();
+            isZoomed = false;
+            isZoomModeActive = false;
+            zoomStartPoint = null;
+            zoomEndPoint = null;
+            isDraggingZoomArea = false; // 확대 취소 시 드래그 상태 초기화
+            updateTableAndControlsVisibility();
+
+            const instruction = document.getElementById('zoomInstruction');
+            if (instruction) instruction.innerText = '';
+            const zoomToggleBtn = document.getElementById('zoomToggleBtn');
+            if (zoomToggleBtn) zoomToggleBtn.innerText = '확대 시작';
+        }
+    </script>
+    <script>
+        function updateHeaderAndChartLayout() {
+            const headerWrapper = document.getElementById('header-wrapper');
+            const chartContainer = document.getElementById('chart-container');
+            if (!headerWrapper || !chartContainer) return;
+
+            if (isHeaderCollapsed) {
+                headerWrapper.classList.add('collapsed');
+                chartContainer.style.paddingTop = '25px';
+            } else {
+                headerWrapper.classList.remove('collapsed');
+                // 반응형 상태에 따라 헤더 높이에 맞춰 padding 결정
+                if (window.innerWidth <= 768) {
+                    chartContainer.style.paddingTop = '140px';
+                } else {
+                    chartContainer.style.paddingTop = '110px';
+                }
+            }
+            // 헤더의 접기/펼치기 애니메이션(0.3s)이 끝난 후 차트 크기를 다시 계산하도록 합니다.
+            // 이렇게 하면 차트 컨테이너의 크기 변경에 차트가 올바르게 반응하여 범례가 잘리는 현상을 방지합니다.
+            if (budgetChart) {
+                setTimeout(() => {
+                    budgetChart.resize();
+                }, 310); // CSS transition duration(0.3s)보다 약간 길게 설정
+            }
+        }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        /* --- 헤더 접기/펼치기 스타일 시작 --- */
+        #header-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 102;
+            background: #1a237e;
+            height: 105px;
+            /* 데스크탑 기본 높이 */
+            transition: height 0.3s ease-in-out;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+        }
+
+        #header-wrapper>*:not(#header-toggle-handle) {
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        #header-toggle-handle {
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 20px;
+            background: #1a237e;
+            border: 1px solid #303f9f;
+            border-top: none;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #header-toggle-handle:hover {
+            background: #283593;
+        }
+
+        #header-toggle-handle svg {
+            color: #fff;
+            width: 20px;
+            height: 20px;
+        }
+
+        #header-toggle-handle .arrow-down {
+            display: none;
+        }
+
+        /* --- 헤더 접기/펼치기 스타일 끝 --- */
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', Arial, sans-serif;
+            background: #f5f7fa;
+            color: #222;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        #chart-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 110px;
+            /* JS에 의해 동적으로 제어됨 */
+            transition: padding-top 0.3s ease-in-out;
+            padding-bottom: 10px;
+            /* 범례와 하단 메뉴의 수직 정렬을 위해 여백 미세 조정 */
+            box-sizing: border-box;
+            /* 컨테이너 높이 계산에 padding을 포함시켜 하단 잘림 방지 */
+        }
+
+        h1 {
+            position: relative;
+            /* wrapper 내부에서 위치 */
+            color: #fff;
+            font-size: 22px;
+            font-weight: 700;
+            text-align: center;
+            padding: 16px 0 12px 0;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+
+        #controls {
+            position: absolute;
+            top: 60px;
+            right: 16px;
+            z-index: 101;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            transform: scale(0.8);
+            transform-origin: top right;
+            width: auto;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-grow: 1;
+            flex-basis: 0;
+            justify-content: center;
+        }
+
+        .control-group:first-child {
+            justify-content: flex-start;
+            flex-grow: 1.5;
+        }
+
+        .control-group:last-child {
+            justify-content: flex-end;
+        }
+
+
+        #secondary-controls-strip {
+            position: absolute;
+            top: 60px;
+            left: 16px;
+            z-index: 101;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: scale(0.8);
+            transform-origin: top left;
+        }
+
+        #label-pos-controls {
+            /* This group is now inside #controls, so container styles are removed to blend in. */
+            display: flex;
+            flex-direction: row;
+            gap: 5px;
+            /* Gap adjusted for consistency */
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+
+        #year-display-control {
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #yearDisplaySelector {
+            font-size: 1em;
+            padding: 2px 4px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+
+        #controls button,
+        #legend-controls button,
+        #label-pos-controls button,
+        #controls .icon-btn,
+        #bottom-controls button,
+        #bottom-controls .icon-btn {
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        #controls .icon-btn,
+        #bottom-controls .icon-btn {
+            padding: 6px;
+            line-height: 0;
+        }
+
+        #controls .icon-btn svg {
+            vertical-align: middle;
+        }
+
+
+        #controls button:hover,
+        #legend-controls button:hover,
+        #label-pos-controls button:hover,
+        #controls .icon-btn:hover,
+        #bottom-controls button:hover,
+        #bottom-controls .icon-btn:hover {
+            background: #0d47a1;
+        }
+
+        #label-pos-controls button.active {
+            background: #0d47a1;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        #label-pos-controls button {
+            padding: 7px 14px;
+            font-size: 13.5px;
+        }
+
+        #label-pos-controls span {
+            font-size: 12px;
+            color: #555;
+            white-space: nowrap;
+        }
+
+
+        #controls input[type="file"] {
+            display: none;
+        }
+
+        #data-table {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.7);
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid #cfd8dc;
+            border-radius: 8px;
+            overflow-y: auto;
+            overflow-x: auto;
+            max-height: calc(100vh - 100px);
+            z-index: 10;
+            padding: 8px 10px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            min-width: 320px;
+            max-width: 95vw;
+            transition: transform 0.3s, opacity 0.3s, visibility 0.3s, box-shadow 0.2s;
+            transform-origin: center center;
+        }
+
+        #data-table.table-expanded {
+            box-shadow: 0 -4px 24px rgba(25, 118, 210, 0.13);
+            z-index: 105;
+        }
+
+        #data-table.dragging {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            z-index: 107;
+        }
+
+        #table-resize-handle {
+            position: absolute;
+            bottom: 0px;
+            right: 0px;
+            width: 18px;
+            height: 18px;
+            cursor: nwse-resize;
+            z-index: 108;
+            display: none;
+            background: repeating-linear-gradient(-45deg,
+                    #999,
+                    #999 2px,
+                    transparent 2px,
+                    transparent 5px);
+            border-top: 1px solid #888;
+            border-left: 1px solid #888;
+            opacity: 0.7;
+        }
+
+        #table-resize-handle:hover {
+            opacity: 1;
+        }
+
+        #data-table.table-expanded #table-resize-handle {
+            display: block;
+        }
+
+        .close-table-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: transparent;
+            color: #555;
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1;
+            cursor: pointer;
+            transition: color 0.2s, transform 0.2s;
+            z-index: 110;
+            padding: 0;
+        }
+
+        .close-table-btn:hover {
+            color: #d32f2f;
+            transform: scale(1.1);
+        }
+
+        .icon-btn-table {
+            background: transparent;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            color: #555;
+            line-height: 1;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .icon-btn-table:hover {
+            color: #1976d2;
+            transform: scale(1.1);
+        }
+
+        #data-table table {
+            border-collapse: collapse;
+            font-size: 13px;
+            width: 100%;
+            background: transparent;
+            table-layout: auto;
+        }
+
+        #data-table th,
+        #data-table td {
+            border: 1px solid #e3e6ea;
+            padding: 5px 8px;
+            text-align: center;
+            background: transparent;
+            white-space: nowrap;
+            height: auto;
+            min-width: 40px;
+            max-width: 300px;
+            word-break: keep-all;
+        }
+
+        #table-drag-handle {
+            cursor: grab;
+            position: relative;
+        }
+
+        #data-table.dragging #table-drag-handle {
+            cursor: grabbing;
+        }
+
+        #data-table tr {
+            height: auto;
+        }
+
+        #data-table thead tr:nth-child(1) th {
+            text-align: center;
+            font-size: 17px;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 10px;
+        }
+
+        #data-table thead tr:nth-child(2) th {
+            text-align: right;
+            font-size: 11px;
+            color: #666;
+            background: #f5f7fa;
+            padding-bottom: 6px;
+        }
+
+        #data-table thead tr:nth-child(3) th {}
+
+        #data-table thead th .month-filter-checkbox,
+        #data-table thead th #select-all-months-checkbox,
+        #data-table thead th #select-current-range-checkbox {
+            margin-left: 5px;
+            vertical-align: middle;
+            cursor: pointer;
+        }
+
+        #data-table thead th .checkbox-label {
+            margin-left: 2px;
+            font-size: 11px;
+            font-weight: normal;
+            color: #555;
+        }
+
+        #data-table tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+
+        #data-table tr:hover td {
+            background: #e3f2fd;
+        }
+
+        #data-table th[scope="row"] {
+            background: #f0f4ff;
+            font-weight: 600;
+        }
+
+        #data-table tr.group-mokpyo td,
+        #data-table tr.group-mokpyo th {
+            background: #e3f0ff !important;
+            color: #0d47a1 !important;
+        }
+
+        #data-table tr.group-siljeok td,
+        #data-table tr.group-siljeok th {
+            background: #e8f5e9 !important;
+            color: #616161 !important;
+        }
+
+        #data-table tr.group-jiphaeng td,
+        #data-table tr.group-jiphaeng th {
+            background: #fff3e0 !important;
+            color: #d32f2f !important;
+        }
+
+        #data-table tr.group-mokpyo:hover td,
+        #data-table tr.group-mokpyo:hover th {
+            background: #bbdefb !important;
+        }
+
+        #data-table tr.group-siljeok:hover td,
+        #data-table tr.group-siljeok:hover th {
+            background: #b2dfdb !important;
+        }
+
+        #data-table tr.group-jiphaeng:hover td,
+        #data-table tr.group-jiphaeng:hover th {
+            background: #ffe0b2 !important;
+        }
+
+        .avg-number-cell {
+            color: #b0b0b0 !important;
+            font-weight: 500;
+            opacity: 0.75;
+        }
+
+
+        #status-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #222;
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            z-index: 3000;
+            display: none;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
+            animation: fadeInOut 3s ease-in-out forwards;
+            max-width: 80%;
+            word-wrap: break-word;
+            text-align: center;
+        }
+
+        #status-message.success {
+            background-color: #4CAF50;
+        }
+
+        #status-message.error {
+            background-color: #f44336;
+        }
+
+        #status-message.info {
+            background-color: #2196F3;
+        }
+
+        #status-message.warning {
+            background-color: #ff9800;
+        }
+
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        #showTableIcon {
+            display: none;
+            position: fixed;
+            bottom: 5px;
+            right: 20px;
+            cursor: pointer;
+            z-index: 102;
+            background-color: #1976d2;
+            color: white;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        #showTableIcon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        #bottom-controls {
+            position: fixed;
+            bottom: 10px;
+            right: 74px;
+            /* Positioned to the left of the showTableIcon */
+            z-index: 101;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 4px 6px;
+            transform: scale(0.74);
+            /* 현재 크기에서 추가로 5% 축소 */
+            transform-origin: bottom right;
+        }
+
+        /* --- 헤더 접혔을 때 스타일 시작 --- */
+        #header-wrapper.collapsed {
+            height: 0px;
+            /* 헤더 영역을 100% 완전히 접습니다. */
+            box-shadow: none;
+            /* 접혔을 때 그림자 제거 */
+        }
+
+        #header-wrapper.collapsed>*:not(#header-toggle-handle) {
+            visibility: hidden;
+            opacity: 0;
+        }
+
+        /* 접혔을 때 토글 버튼의 위치와 스타일을 조정하여 상단에 고정시킵니다. */
+        #header-wrapper.collapsed #header-toggle-handle {
+            top: 0;
+            bottom: auto;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+
+        /* 접혔을 때 버튼의 배경은 없애고 기호(SVG)만 보이도록 스타일을 지정합니다. */
+        #header-wrapper.collapsed #header-toggle-handle svg {
+            color: #303f9f;
+            /* 아이콘 색상을 어둡게 변경하여 가시성 확보 */
+            background: rgba(255, 255, 255, 0.9);
+            /* 아이콘에 배경 추가 */
+            border-radius: 50%;
+            padding: 2px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* 접혔을 때 아이콘에 마우스 오버 효과를 추가합니다. */
+        #header-wrapper.collapsed #header-toggle-handle:hover svg {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        #header-wrapper.collapsed #header-toggle-handle .arrow-up {
+            display: none;
+        }
+
+        #header-wrapper.collapsed #header-toggle-handle .arrow-down {
+            display: block;
+        }
+
+        /* --- 헤더 접혔을 때 스타일 끝 --- */
+
+        @media (max-width: 768px) {
+
+            /* 반응형: 펼쳐진 헤더 높이 조정 */
+            #header-wrapper:not(.collapsed) {
+                height: 135px;
+            }
+
+            h1 {
+                font-size: 17px;
+                padding: 12px 0 8px 0;
+            }
+
+            #controls {
+                top: 50px;
+                right: 5px;
+                transform: scale(0.75);
+                transform-origin: top right;
+                width: calc(100% - 10px);
+                padding: 4px;
+                gap: 4px;
+                flex-wrap: wrap;
+                justify-content: space-around;
+            }
+
+            #controls>.control-group {
+                flex-basis: content;
+                margin: 2px 0;
+            }
+
+            #controls button {
+                padding: 5px 8px;
+                font-size: 10px;
+            }
+
+            #zoomInstruction {
+                font-size: 9px !important;
+                margin-left: 3px !important;
+                flex-shrink: 1;
+                min-width: 50px;
+            }
+
+            #secondary-controls-strip {
+                top: 90px;
+                left: 5px;
+                right: 5px;
+                width: calc(100% - 10px);
+                transform: scale(0.70);
+                transform-origin: top left;
+                gap: 5px;
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+
+            #label-pos-controls {
+                gap: 3px;
+                /* Padding removed as it's now part of the main controls bar */
+            }
+
+            #label-pos-controls button {
+                padding: 6px 8px;
+                font-size: 11px;
+            }
+
+            #label-pos-controls span {
+                font-size: 10px;
+            }
+
+            #year-display-control {
+                padding: 6px 8px;
+            }
+
+            #yearDisplaySelector {
+                font-size: 0.9em;
+            }
+
+
+            #data-table {
+                top: 125px;
+                min-width: 180px;
+                font-size: 11px;
+                max-height: calc(100vh - 145px);
+            }
+
+            #data-table.table-expanded {
+                left: 50%;
+                transform: translateX(-50%) scale(0.9) translateY(-10px);
+            }
+
+            #data-table table {
+                font-size: 11px;
+            }
+
+            #legend-controls {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                gap: 5px;
+                bottom: 5px;
+                left: 5px;
+                right: auto;
+                top: auto;
+                transform: none;
+                max-width: calc(100% - 10px);
+                z-index: 101;
+            }
+
+            #legend-controls button {
+                padding: 5px 8px;
+                font-size: 11px;
+                transform: scale(0.88);
+            }
+
+            #showTableIcon {
+                width: 38px;
+                height: 38px;
+                bottom: 5px;
+                right: 15px;
+            }
+
+            #showTableIcon svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #bottom-controls {
+                right: 63px;
+            }
+        }
+
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            /* 컨테이너의 남은 공간을 모두 사용하도록 수정 */
+            display: block;
+        }
+
+        #legend-controls {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            transform: none;
+            background: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 4px 6px;
+            display: flex;
+            flex-direction: row;
+            gap: 4px;
+            align-items: center;
+            z-index: 101;
+        }
+
+        #legend-controls button {
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            padding: 3.3px 6.6px;
+            font-size: 11px;
+            transform: scale(0.88);
+            transform-origin: center;
+            margin: 0 -1px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .detail-link {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 6px;
+            color: #d32f2f;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            top: -1px;
+            transform: translateY(2px);
+        }
+
+        .work-type-detail-link {
+            color: darkorchid !important;
+        }
+
+        .cost-savings-link {
+            color: #0D47A1 !important;
+        }
+
+        .cost-savings-link .cost-arrow-path {
+            stroke: #D50000;
+        }
+
+        .cost-savings-link .cost-arrow-path-head {
+            stroke: #D50000;
+            fill: #D50000;
+        }
+
+        .detail-icon {
+            /* Base style, actual size set inline now */
+            margin-left: 4px;
+            vertical-align: middle;
+            opacity: 0.85;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        /* Removed specific CSS width/height for icons as they are set inline in JS */
+
+        .detail-link:hover .detail-icon {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        /* Hover scale can remain */
+        .detail-link:not(.work-type-detail-link):not(.cost-savings-link):hover {
+            color: #ff1744 !important;
+        }
+
+        .work-type-detail-link:hover {
+            color: #8a2be2 !important;
+        }
+
+        .cost-savings-link:hover {
+            color: #002171 !important;
+        }
+
+        .cost-savings-link:hover .cost-arrow-path,
+        .cost-savings-link:hover .cost-arrow-path-head {
+            stroke: #B71C1C;
+        }
+
+        .cost-savings-link:hover .cost-arrow-path-head {
+            fill: #B71C1C;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header-wrapper">
+        <h1 id="main-title">월별 누적 집행비 대시보드</h1>
+        <div id="controls">
+            <div class="control-group">
+                <select id="upload-mode-selector" style="margin-right: 5px; padding: 4px; font-size: 12px;">
+                    <option value="single">단일 파일 업로드</option>
+                    <option value="multiple">다중 파일 업로드</option>
+                </select>
+                <input type="file" id="file-input" accept=".csv" style="display:none;">
+                <button id="upload-csv-btn" title="CSV 파일을 업로드하여 차트 데이터를 변경합니다.">CSV 업로드</button>
+            </div>
+            <div class="control-group">
+                <button id="download-csv" title="현재 차트 데이터를 CSV 파일로 다운로드합니다.">CSV 다운로드</button>
+                <button id="download-chart-excel" class="icon-btn" title="현재 차트를 Excel 파일로 저장합니다."><svg
+                        viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path
+                            d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M10.5,19.5L8,17L10.5,14.5L11.2,15.2L9.4,17L11.2,18.8L10.5,19.5M13.5,19.5L12.8,18.8L14.6,17L12.8,15.2L13.5,14.5L16,17L13.5,19.5M18,12H6V4H13V9H18V12Z">
+                        </path>
+                    </svg></button>
+            </div>
+            <div class="control-group">
+                <button id="toggleTableBtn" title="아래 데이터 테이블을 숨기거나 표시합니다.">테이블 숨기기</button>
+            </div>
+        </div>
+        <div id="secondary-controls-strip">
+            <div id="year-display-control">
+                <label for="yearDisplaySelector" style="margin-right: 5px; white-space: nowrap;">표시 연도:</label>
+                <select id="yearDisplaySelector"></select>
+            </div>
+        </div>
+        <div id="header-toggle-handle" title="헤더 영역 접기/펼치기">
+            <svg class="arrow-up" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <svg class="arrow-down" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        </div>
+    </div>
+    <div id="chart-container">
+        <canvas id="budgetChart"></canvas>
+        <div id="data-table">
+            <div id="table-resize-handle"></div>
+        </div>
+        <div id="legend-controls"> <button id="toggle-all" title="모든 계열 전체를 차트에 표시하거나 숨깁니다.">전체 전체</button>
+            <button id="toggle-jiphaeng" title="집행 계열 전체를 차트에 표시하거나 숨깁니다.">집행 전체</button>
+            <button id="toggle-mokpyo" title="목표 계열 전체를 차트에 표시하거나 숨깁니다.">목표 전체</button>
+            <button id="toggle-siljeok" title="실적 계열 전체를 차트에 표시하거나 숨깁니다.">실적 전체</button>
+            <button id="toggle-average" title="모든 평균 계열만 차트에 표시하거나 숨깁니다.">평균만 전체</button>
+        </div>
+    </div>
+    <div id="status-message"></div>
+    <div id="showTableIcon" title="숨겨진 데이터 테이블을 다시 표시합니다."> <svg xmlns="http://www.w3.org/2000/svg" width="24"
+            height="24" fill="currentColor" viewBox="0 0 16 16">
+            <path
+                d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z" />
+        </svg>
+    </div>
+    <div id="bottom-controls">
+        <div id="label-pos-controls">
+            <span style="font-size: 11px; color: #555;">차액위치:</span>
+            <button id="label-pos-auto" class="active" title="차액 정보 표시 위치를 자동으로 설정합니다.">자동</button>
+            <button id="label-pos-top" title="차액 정보 표시 위치를 위쪽으로 설정합니다.">위</button>
+            <button id="label-pos-bottom" title="차액 정보 표시 위치를 아래쪽으로 설정합니다.">아래</button>
+            <button id="label-pos-left" title="차액 정보 표시 위치를 왼쪽으로 설정합니다.">왼쪽</button>
+            <button id="label-pos-right" title="차액 정보 표시 위치를 오른쪽으로 설정합니다.">오른쪽</button>
+        </div>
+        <div class="control-group">
+            <button id="zoomToggleBtn" title="차트의 선택한 사각 영역을 확대하거나 축소합니다.">확대 시작</button>
+            <span id="zoomInstruction"
+                style="margin-left:5px; font-size: 12px; color: #e91e63; white-space: nowrap;"></span>
+        </div>
+        <button id="toggleXAxisOrderBtn" class="icon-btn" title="X축 월 순서를 좌우 반전/원복합니다." aria-label="월 순서 반전 토글">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path
+                    d="M1 8a.75.75 0 0 1 .75-.75h9.69l-2.22-2.22a.75.75 0 1 1 1.06-1.06l3.5 3.5c.3.3.3.79 0 1.09l-3.5 3.5a.75.75 0 1 1-1.06-1.06l2.22-2.22H1.75A.75.75 0 0 1 1 8zm14 0a.75.75 0 0 0-.75-.75H4.56l2.22-2.22a.75.75 0 1 0-1.06-1.06l-3.5 3.5a.75.75 0 0 0 0 1.06l3.5 3.5a.75.75 0 1 0 1.06-1.06L4.56 8.75h9.69A.75.75 0 0 0 15 8z" />
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        // Global CONFIG for fallback links if not found in year-specific data
+        const CONFIG = {
+            detailLink: 'https://1drv.ms/x/s!AsCQKqiE2QoYk50MExUrehO1AhaUhw?e=OxoWul',
+            workTypeDetailLink: 'https://1drv.ms/x/s!AsCQKqiE2QoYk50MExUrehO1AhaUhw?e=OxoWul',
+            costSavingsLink: 'https://1drv.ms/x/s!AsCQKqiE2QoYk50MExUrehO1AhaUhw?e=OxoWul'
+        };
+
+        const YEAR_DATA_SEPARATOR_PREFIX = '// YEAR_DATA_SEPARATOR:';
+        const YEAR_DATA_SEPARATOR_SUFFIX = '//';
+
+        let initialCsvData = `// YEAR_DATA_SEPARATOR:2024//
+상세내역 보기,#HYPERLINK#,https://example.com/details/2024
+유형별 분석,#WORKTYPELINK#,https://example.com/worktype/2024
+절감비 현황,#COSTSAVINGSLINK#,https://example.com/savings/2024
+구분,1월,2월,3월,4월,5월,6월,7월,8월,9월,10월,11월,12월
+목표A,100000,200000,300000,,,,,,,,,
+목표A 평균,100000,200000,300000,,,,,,,,,
+집행B,80000,180000,280000,,,,,,,,,
+집행B 평균,70000,180000,280000,,,,,,,,,
+실적C,90000,190000,290000,,,,,,,,,
+실적C 평균,90000,190000,290000,,,,,,,,,
+// YEAR_DATA_SEPARATOR:2023//
+상세내역 보기,#HYPERLINK#,https://example.com/details/2023
+유형별 분석,#WORKTYPELINK#,https://example.com/worktype/2023
+절감비 현황,#COSTSAVINGSLINK#,https://example.com/savings/2023
+구분,1월,2월,3월,4월,5월,6월,7월,8월,9월,10월,11월,12월
+목표A,150000,250000,,,,,,,,,,,
+집행B,120000,220000,,,,,,,,,,,
+`;
+
+        let currentMonthLineAnimationFrameId = null;
+        let jiphangBLineAnimationFrameId = null;
+        let jiphangBAnimationCount = 0;
+
+        // Variables for month selection and deviation annotation
+        let selectionPoint1 = null;
+        let selectionPoint2 = null;
+        let currentLabelPositionOption = 'auto';
+
+        function formatKoreanCurrency(value) {
+            if (value === 0) return "0원";
+
+            const EOK = 100000000;
+            const MAN = 10000;
+            const numToHan = ["", "일", "이", "삼", "사", "오", "육", "칠", "팔", "구"];
+
+            let str = "";
+            let originalValueStr = value.toLocaleString();
+
+            if (value >= EOK) {
+                const eokCount = Math.floor(value / EOK);
+                str += (numToHan[eokCount] || String(eokCount)) + "억";
+                value %= EOK;
+                if (value > 0) str += " ";
+            }
+
+            if (value >= MAN) {
+                const manTotal = Math.floor(value / MAN);
+                let manStrPart = "";
+
+                const cheonPart = Math.floor(manTotal / 1000);
+                const baekPart = Math.floor((manTotal % 1000) / 100);
+
+                if (cheonPart > 0) {
+                    manStrPart += (numToHan[cheonPart] || String(cheonPart)) + "천";
+                }
+                if (baekPart > 0) {
+                    manStrPart += (numToHan[baekPart] || String(baekPart)) + "백";
+                }
+
+                if (manStrPart === "" && manTotal > 0) {
+                    manStrPart = (numToHan[manTotal] || String(manTotal));
+                }
+
+
+                if (manStrPart !== "") {
+                    str += manStrPart + "만";
+                }
+                value %= MAN;
+            }
+
+            if (str === "") {
+                return originalValueStr + "원";
+            }
+
+            return str + "원";
+        }
+
+
+        window.addEventListener('load', function () {
+            const canvas = document.getElementById('budgetChart');
+            if (canvas) {
+                canvas.removeAttribute('width');
+                canvas.removeAttribute('height');
+            }
+
+            if (initialCsvData && !window.isInitialLoadComplete) {
+                const yearDataStrings = initialCsvData.split(YEAR_DATA_SEPARATOR_PREFIX);
+                let firstYearFound = null;
+
+                if (yearDataStrings.length > 1 || initialCsvData.includes(YEAR_DATA_SEPARATOR_PREFIX)) {
+                    yearDataStrings.forEach(part => {
+                        if (!part.trim()) return;
+                        const endOfMarker = part.indexOf(YEAR_DATA_SEPARATOR_SUFFIX);
+                        if (endOfMarker === -1) {
+                            console.warn("연도 구분자 형식이 올바르지 않아 다음 데이터 부분을 건너뜁니다:", part.substring(0, 50) + "...");
+                            return;
+                        }
+                        const yearStr = part.substring(0, endOfMarker);
+                        const year = parseInt(yearStr, 10);
+                        const csvContentForYear = part.substring(endOfMarker + YEAR_DATA_SEPARATOR_SUFFIX.length).trim();
+
+                        if (!isNaN(year) && csvContentForYear) {
+                            parseCSVAndStore(csvContentForYear, year);
+                            if (!firstYearFound) firstYearFound = year;
+                        } else {
+                            console.warn(`연도(${yearStr}) 또는 CSV 내용이 유효하지 않아 건너뜁니다.`);
+                        }
+                    });
+                } else {
+                    const defaultYear = new Date().getFullYear();
+                    parseCSVAndStore(initialCsvData, defaultYear);
+                    firstYearFound = defaultYear;
+                }
+
+                window.currentDisplayedYear = firstYearFound || new Date().getFullYear();
+                document.getElementById('main-title').textContent = `월별 누적 집행비 대시보드 (${window.currentDisplayedYear}년)`;
+
+                populateYearDisplaySelector();
+
+                if (window.allYearsData[window.currentDisplayedYear]) {
+                    updateDisplay(true);
+                } else if (Object.keys(window.allYearsData).length > 0) {
+                    const availableYears = Object.keys(window.allYearsData).map(y => parseInt(y)).sort((a, b) => b - a);
+                    if (availableYears.length > 0) {
+                        switchToYear(availableYears[0]);
+                    } else {
+                        updateDisplay(true);
+                    }
+                } else {
+                    updateDisplay(true);
+                }
+
+                setupLegendControls();
+                setupLabelPositionControls();
+                window.isInitialLoadComplete = true;
+            }
+
+            const downloadCsvBtn = document.getElementById('download-csv');
+            if (downloadCsvBtn) {
+                downloadCsvBtn.addEventListener('click', downloadCSV);
+            }
+            const downloadChartExcelBtn = document.getElementById('download-chart-excel');
+            if (downloadChartExcelBtn) {
+                downloadChartExcelBtn.addEventListener('click', downloadChartAsExcel);
+            }
+        });
+
+
+        let statusMessageTimeoutId = null;
+        function showStatusMessage(message, type = 'info', duration = 3000) {
+            const statusDiv = document.getElementById('status-message');
+            if (!statusDiv) return;
+
+            if (statusMessageTimeoutId) {
+                clearTimeout(statusMessageTimeoutId);
+            }
+
+            statusDiv.textContent = message;
+            statusDiv.className = '';
+            statusDiv.classList.add(type);
+            statusDiv.style.display = 'block';
+            statusDiv.style.animation = 'none';
+            void statusDiv.offsetWidth;
+            statusDiv.style.animation = `fadeInOut ${duration / 1000}s ease-in-out forwards`;
+
+
+            statusMessageTimeoutId = setTimeout(() => {
+                statusDiv.style.display = 'none';
+                statusMessageTimeoutId = null;
+            }, duration);
+        }
+
+
+        function convertRawDataToCSV(dataArray) {
+            if (!dataArray || dataArray.length === 0) return '';
+            const headers = Object.keys(dataArray[0]);
+            const headerLine = headers.join(',');
+            const dataLines = dataArray.map(row => {
+                return headers.map(header => {
+                    const value = row[header];
+                    if (value === null || value === undefined) return '';
+                    let cellValue = String(value);
+                    if (cellValue.includes(',') || cellValue.includes('"') || cellValue.includes('\n')) {
+                        cellValue = `"${cellValue.replace(/"/g, '""')}"`;
+                    }
+                    return cellValue;
+                }).join(',');
+            });
+            return [headerLine, ...dataLines].join('\n');
+        }
+
+        function convertYearDataToCSVString(yearData) {
+            if (!yearData || !yearData.tableRowsData || !yearData.months) return '';
+
+            const standardMonthHeaders = Array.from({ length: 12 }, (_, i) => `${i + 1}월`);
+            const headerLine = "구분," + standardMonthHeaders.join(',');
+
+            const dataLines = yearData.tableRowsData.map(row => {
+                const valsForCsv = standardMonthHeaders.map(monthHeader => {
+                    const monthIndexInYearData = yearData.months.indexOf(monthHeader);
+                    let val = '';
+                    if (monthIndexInYearData !== -1 && row.vals[monthIndexInYearData] !== null && row.vals[monthIndexInYearData] !== undefined) {
+                        val = row.vals[monthIndexInYearData];
+                    }
+                    return val;
+                });
+                return row.label + "," + valsForCsv.join(',');
+            });
+            return [headerLine, ...dataLines].join('\n');
+        }
+
+
+        function downloadCSV() {
+            const yearToDownload = window.currentDisplayedYear;
+            const yearData = window.allYearsData[yearToDownload];
+            let csvDataContent = "";
+
+            if (yearData) {
+                csvDataContent = convertYearDataToCSVString(yearData);
+            } else {
+                showStatusMessage(`${yearToDownload}년 데이터가 없어 CSV를 다운로드할 수 없습니다.`, 'warning');
+                return;
+            }
+
+            const currentYearLinks = (yearData && yearData.links) ? yearData.links : CONFIG;
+
+            const linkRows = [
+                `상세내역 보기,#HYPERLINK#,${currentYearLinks.detailLink}`,
+                `유형별 분석,#WORKTYPELINK#,${currentYearLinks.workTypeDetailLink || currentYearLinks.detailLink}`,
+                `절감비 현황,#COSTSAVINGSLINK#,${currentYearLinks.costSavingsLink || currentYearLinks.detailLink}`
+            ];
+            const fullCsvContent = [...linkRows, csvDataContent].join('\n');
+
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + fullCsvContent], { type: 'text/csv;charset=utf-8' });
+
+            const fileName = `${yearToDownload}년_(월별누적).CSV`;
+
+            if (window.showSaveFilePicker) {
+                const opts = {
+                    suggestedName: fileName,
+                    types: [{ description: 'CSV 파일', accept: { 'text/csv': ['.csv'] } }]
+                };
+                window.showSaveFilePicker(opts)
+                    .then(async (fileHandle) => {
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(blob);
+                        await writable.close();
+                        showStatusMessage('CSV 파일이 저장되었습니다.', 'success');
+                    })
+                    .catch(err => {
+                        if (err.name === 'AbortError') {
+                            console.log('File save aborted by user.');
+                        } else {
+                            console.warn('window.showSaveFilePicker API failed, attempting fallback download. Error:', err);
+                            triggerFallbackDownload(blob, fileName);
+                        }
+                    });
+            } else {
+                triggerFallbackDownload(blob, fileName);
+            }
+        }
+
+        function triggerFallbackDownload(blob, fileName) {
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = fileName;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(downloadLink.href);
+            showStatusMessage('CSV 파일 다운로드를 시작합니다.', 'info');
+        }
+
+        function downloadChartAsExcel() {
+            if (typeof XLSX === 'undefined') {
+                showStatusMessage('Excel 내보내기 라이브러리를 로드할 수 없습니다.', 'error');
+                return;
+            }
+            if (!budgetChart) {
+                showStatusMessage('차트가 렌더링되지 않아 내보낼 수 없습니다.', 'warning');
+                return;
+            }
+
+            showStatusMessage('차트를 Excel 파일로 저장하는 중...', 'info', 2500);
+
+            try {
+                const yearToDownload = window.currentDisplayedYear;
+                const ws_chart = XLSX.utils.aoa_to_sheet([[`${yearToDownload}년 월별 누적 집행비 차트`]]);
+                const chartImageBase64 = budgetChart.toBase64Image('image/png');
+                ws_chart['!images'] = [{
+                    name: 'chart.png',
+                    data: chartImageBase64.substring(chartImageBase64.indexOf(',') + 1),
+                    opts: { base64: true },
+                    position: { type: 'twoCellAnchor', attrs: { editAs: 'oneCell' }, from: { col: 0, row: 1 }, to: { col: 18, row: 35 } }
+                }];
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws_chart, '차트');
+                const fileName = `${yearToDownload}년_차트.xlsx`;
+                XLSX.writeFile(wb, fileName);
+            } catch (error) {
+                console.error('차트 Excel 파일 생성 중 오류 발생:', error);
+                showStatusMessage('차트 Excel 파일 생성에 실패했습니다.', 'error');
+            }
+        }
+
+        function downloadTableAsExcel(event) {
+            if (event) event.stopPropagation();
+
+            if (typeof XLSX === 'undefined') {
+                showStatusMessage('Excel 내보내기 라이브러리를 로드할 수 없습니다.', 'error');
+                return;
+            }
+
+            const yearToDownload = window.currentDisplayedYear;
+            const yearData = window.allYearsData[yearToDownload];
+
+            if (!yearData || !yearData.tableRowsData || yearData.tableRowsData.length === 0) {
+                showStatusMessage(`${yearToDownload}년 데이터가 없어 Excel 파일을 생성할 수 없습니다.`, 'warning');
+                return;
+            }
+
+            const dataTableDiv = document.getElementById('data-table');
+            if (!dataTableDiv || window.getComputedStyle(dataTableDiv).display === 'none') {
+                showStatusMessage('데이터 테이블이 화면에 표시되어야 내보낼 수 있습니다.', 'warning');
+                return;
+            }
+
+            showStatusMessage('데이터 테이블을 Excel 파일로 저장하는 중...', 'info', 2500);
+
+            try {
+                const months = yearData.months;
+                const rows = [...yearData.tableRowsData].sort((a, b) => {
+                    const getOrder = (label) => {
+                        if (label.startsWith('집행B')) return 1;
+                        if (label.startsWith('목표A')) return 2;
+                        if (label.startsWith('실적C')) return 3;
+                        return 4;
+                    };
+                    const orderA = getOrder(a.label); const orderB = getOrder(b.label);
+                    if (orderA !== orderB) return orderA - orderB;
+                    return a.isAvg - b.isAvg;
+                });
+                const activeMonthIndexes = getActiveMonthIndexesFromDOM();
+
+                const dataForSheet = [];
+                const headerRow = ['구분', ...months, '소계'];
+                dataForSheet.push(headerRow);
+
+                rows.forEach(r => {
+                    const rowData = [r.label];
+                    let sumVal = 0;
+                    r.vals.forEach(v => { rowData.push(v === null || v === undefined ? '' : v); });
+
+                    if (r.isAvg) {
+                        const baseLabel = r.label.replace(" 평균", "");
+                        const baseRow = window.tableRowsData.find(br => br.label === baseLabel && !br.isAvg);
+                        if (baseRow && baseRow.vals) {
+                            let sumOfActiveValues = 0;
+                            activeMonthIndexes.forEach(idx => {
+                                if (idx < baseRow.vals.length && baseRow.vals[idx] !== null && !isNaN(parseFloat(baseRow.vals[idx]))) {
+                                    sumOfActiveValues += baseRow.vals[idx];
+                                }
+                            });
+                            sumVal = activeMonthIndexes.length > 0 ? (sumOfActiveValues / activeMonthIndexes.length) : 0;
+                        }
+                    } else {
+                        const valsForSubtotal = r.vals.filter((v, idx) => v != null && activeMonthIndexes.includes(idx) && !isNaN(parseFloat(v)));
+                        sumVal = valsForSubtotal.reduce((s, v) => s + v, 0);
+                    }
+                    rowData.push(sumVal === 0 && activeMonthIndexes.length === 0 ? '' : sumVal);
+                    dataForSheet.push(rowData);
+                });
+
+                const sumRow = ['소계(평균제외)'];
+                const monthlyTotals = new Array(months.length).fill(0);
+                rows.forEach(r => {
+                    if (!r.isAvg) {
+                        r.vals.forEach((val, idx) => { if (val != null && activeMonthIndexes.includes(idx)) { monthlyTotals[idx] += val; } });
+                    }
+                });
+                monthlyTotals.forEach((total, idx) => { sumRow.push(activeMonthIndexes.includes(idx) ? total : ''); });
+                const grandTotal = monthlyTotals.reduce((acc, val) => acc + (val || 0), 0);
+                sumRow.push(grandTotal === 0 && activeMonthIndexes.length === 0 ? '' : grandTotal);
+                dataForSheet.push(sumRow);
+
+                const ws_data = XLSX.utils.aoa_to_sheet(dataForSheet);
+                ws_data['!cols'] = [{ wch: 20 }, ...months.map(() => ({ wch: 15 })), { wch: 18 }];
+                const range = XLSX.utils.decode_range(ws_data['!ref']);
+                for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                    for (let C = range.s.c + 1; C <= range.e.c; ++C) {
+                        const cell_ref = XLSX.utils.encode_cell({ c: C, r: R });
+                        if (ws_data[cell_ref] && typeof ws_data[cell_ref].v === 'number') { ws_data[cell_ref].z = '#,##0'; }
+                    }
+                }
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws_data, '데이터');
+                const fileName = `${yearToDownload}년_데이터_테이블.xlsx`;
+                XLSX.writeFile(wb, fileName);
+            } catch (error) {
+                console.error('데이터 테이블 Excel 파일 생성 중 오류 발생:', error);
+                showStatusMessage('데이터 테이블 Excel 파일 생성에 실패했습니다.', 'error');
+            }
+        }
+
+        function saveUpdatedHtml() {
+            try {
+                const now = new Date();
+                const dateStr = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}`;
+                const fileName = `월별 누적 집행비_대시보드_HTML_${dateStr}.html`;
+                let htmlContent = document.documentElement.outerHTML;
+
+                htmlContent = htmlContent.replace(
+                    /window\.isInitialLoadComplete\s*=\s*true/g,
+                    'window.isInitialLoadComplete = false'
+                );
+
+                // 현재 UI 상태(테이블 가시성, 헤더 접힘 상태)를 저장하여 로드 시 동일한 뷰를 보장합니다.
+                htmlContent = htmlContent.replace(
+                    /(let\s+isTableVisibleUserSettings\s*=\s*)false;/,
+                    `$1${isTableVisibleUserSettings};`
+                );
+
+                htmlContent = htmlContent.replace(
+                    /(let\s+isHeaderCollapsed\s*=\s*)false;/,
+                    `$1${isHeaderCollapsed};`
+                );
+
+
+                htmlContent = htmlContent.replace(
+                    /let\s+initialCsvData\s*=\s*`[\s\S]*?`;/,
+                    match => {
+                        let allYearsCsvStringFromCurrentState = "";
+                        const sortedYears = Object.keys(window.allYearsData).sort((a, b) => parseInt(b) - parseInt(a));
+
+                        sortedYears.forEach(year => {
+                            const yearData = window.allYearsData[year];
+                            if (yearData) {
+                                const yearLinks = yearData.links || CONFIG;
+                                const linkRowsForYear = [
+                                    `상세내역 보기,#HYPERLINK#,${yearLinks.detailLink}`,
+                                    `유형별 분석,#WORKTYPELINK#,${yearLinks.workTypeDetailLink || yearLinks.detailLink}`,
+                                    `절감비 현황,#COSTSAVINGSLINK#,${yearLinks.costSavingsLink || yearLinks.detailLink}`
+                                ];
+                                const csvDataOnly = convertYearDataToCSVString(yearData);
+                                const csvStringForYear = [...linkRowsForYear, csvDataOnly].join('\n');
+
+                                if (csvStringForYear) {
+                                    allYearsCsvStringFromCurrentState += `${YEAR_DATA_SEPARATOR_PREFIX}${year}${YEAR_DATA_SEPARATOR_SUFFIX}\n${csvStringForYear}\n`;
+                                }
+                            }
+                        });
+
+                        let finalCsvStringToEmbed;
+                        if (!allYearsCsvStringFromCurrentState) {
+                            finalCsvStringToEmbed = "";
+                            console.warn("window.allYearsData에 저장할 데이터가 없어, 다운로드된 HTML의 initialCsvData가 비어있게 됩니다.");
+                        } else {
+                            finalCsvStringToEmbed = allYearsCsvStringFromCurrentState;
+                        }
+
+                        const MAX_CSV_EMBED_SIZE = 1 * 1024 * 1024;
+                        if (finalCsvStringToEmbed.length > MAX_CSV_EMBED_SIZE) {
+                            console.warn(`전체 CSV 데이터 (크기: ${finalCsvStringToEmbed.length} 바이트)가 ${MAX_CSV_EMBED_SIZE} 바이트보다 커서 HTML에 직접 포함되지 않았습니다.`);
+                            finalCsvStringToEmbed = `${YEAR_DATA_SEPARATOR_PREFIX}WARNING${YEAR_DATA_SEPARATOR_SUFFIX}\n# 업로드된 CSV 데이터가 너무 커서 HTML에 직접 포함되지 않았습니다. (크기: ${finalCsvStringToEmbed.length} 바이트)`;
+                        }
+
+                        const escapedCsvContent = finalCsvStringToEmbed.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+                        return `let initialCsvData = \`${escapedCsvContent}\`;`;
+                    }
+                );
+
+                const configRegex = /const CONFIG = \{[\s\S]*?\};/;
+                const newConfigString = `const CONFIG = ${JSON.stringify(CONFIG, null, 4)};`;
+                if (configRegex.test(htmlContent)) {
+                    htmlContent = htmlContent.replace(configRegex, newConfigString);
+                } else {
+                    console.warn('CONFIG block not found for replacement in HTML content.');
+                }
+
+
+                const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+
+                if (window.showSaveFilePicker) {
+                    const opts = {
+                        suggestedName: fileName,
+                        types: [{ description: 'HTML 파일', accept: { 'text/html': ['.html'] } }]
+                    };
+                    window.showSaveFilePicker(opts)
+                        .then(async (fileHandle) => {
+                            const writable = await fileHandle.createWritable();
+                            await writable.write(blob);
+                            await writable.close();
+                            showStatusMessage('HTML 파일이 저장되었습니다.', 'success');
+                        })
+                        .catch(err => {
+                            if (err.name !== 'AbortError') {
+                                console.error('파일 저장 중 오류:', err);
+                                showStatusMessage('파일 저장에 실패했습니다.', 'error');
+                            } else {
+                                console.log('HTML save aborted by user.');
+                            }
+                            if (err.name !== 'AbortError') {
+                                console.warn('HTML save with showSaveFilePicker API failed, attempting fallback. Error:', err);
+                                triggerFallbackDownload(blob, fileName);
+                            }
+                        });
+                } else {
+                    triggerFallbackDownload(blob, fileName);
+                }
+            } catch (error) {
+                console.error('HTML 저장 중 오류:', error);
+                showStatusMessage('HTML 파일 저장에 실패했습니다.', 'error');
+            }
+        }
+
+        function parseCSVAndStore(text, targetYear) {
+            selectionPoint1 = null;
+            selectionPoint2 = null;
+
+            const lines = text.trim().split(/\r?\n/);
+            const yearSpecificLinks = {};
+
+            lines.forEach(line => {
+                const parts = line.split(',');
+                if (parts.length >= 3) {
+                    const key = parts[0].trim();
+                    const type = parts[1].trim();
+                    const url = parts[2].trim();
+
+                    if (type === '#HYPERLINK#') {
+                        if (key === '상세내역 보기') yearSpecificLinks.detailLink = url;
+                    } else if (type === '#WORKTYPELINK#') {
+                        if (key === '유형별 분석' || key === '작업유형별 보기') yearSpecificLinks.workTypeDetailLink = url;
+                    } else if (type === '#COSTSAVINGSLINK#') {
+                        if (key === '절감비 현황') yearSpecificLinks.costSavingsLink = url;
+                    }
+                }
+            });
+
+
+            let actualCsvLines = lines.filter(line =>
+                line.trim() &&
+                !line.startsWith("상세내역 보기,#HYPERLINK#") &&
+                !line.startsWith("유형별 분석,#WORKTYPELINK#") &&
+                !line.startsWith("작업유형별 보기,#WORKTYPELINK#") &&
+                !line.startsWith("절감비 현황,#COSTSAVINGSLINK#")
+            );
+
+            if (actualCsvLines.length < 2) {
+                showStatusMessage(`${targetYear}년 CSV에 실제 데이터가 부족합니다. (헤더+데이터 최소 2줄 필요)`, 'error');
+                window.allYearsData[targetYear] = null;
+                return;
+            }
+
+            let headerFromFile = actualCsvLines[0].split(',').map(h => h.trim());
+            if (headerFromFile.length > 0 && headerFromFile[0].charCodeAt(0) === 0xFEFF) {
+                headerFromFile[0] = headerFromFile[0].substring(1);
+            }
+            const currentCSVMmonths = headerFromFile.slice(1).map(header => {
+                const monthMatch = header.match(/^0?(\d{1,2})월$/);
+                if (monthMatch) {
+                    return `${parseInt(monthMatch[1], 10)}월`;
+                }
+                return header;
+            });
+
+            const datasetsForYear = [];
+            const tableRowsForYear = [];
+            let localOriginalJiphangBDataForYear = {};
+
+            for (let i = 1; i < actualCsvLines.length; i++) {
+                const cols = actualCsvLines[i].split(',');
+                const label = cols[0].trim();
+
+                const vals = cols.slice(1).map(v => {
+                    const trimmedVal = v.trim();
+                    return trimmedVal === '' ? null : Number(trimmedVal);
+                });
+
+                if (!label || label.includes('집행율')) {
+                    continue;
+                }
+
+                const dataAsObjects = vals.map((y, index) => ({ x: index, y: y }));
+
+                const base = label.replace(/ 평균$/, '');
+                const isAvg = /평균$/.test(label);
+                let color = 'black', bw = 3, ps = 'circle', pRadius = 9, borderDashStyle = [];
+
+                if (label.startsWith('집행B')) {
+                    if (label.includes('평균')) { color = 'rgba(255,0,0,0.5)'; bw = 5; ps = 'line'; pRadius = 6; borderDashStyle = [5, 5]; }
+                    else { color = 'red'; bw = 7; ps = 'circle'; pRadius = 9; borderDashStyle = []; }
+                    localOriginalJiphangBDataForYear[label] = [...dataAsObjects];
+                } else if (base.includes('목표A')) {
+                    color = 'rgba(0,0,255,0.8)'; bw = isAvg ? 3 : 5; ps = isAvg ? 'line' : 'rect'; pRadius = isAvg ? 6 : 9;
+                    if (isAvg) borderDashStyle = [5, 5];
+                } else if (base.includes('실적C')) {
+                    color = 'rgba(128,128,128,0.8)'; bw = isAvg ? 2 : 4; ps = isAvg ? 'line' : 'triangle'; pRadius = isAvg ? 6 : 9;
+                    if (isAvg) borderDashStyle = [5, 5];
+                } else if (base.includes('목표C')) {
+                    color = 'rgba(0,128,0,0.8)'; bw = isAvg ? 3 : 5; ps = isAvg ? 'line' : 'star'; pRadius = isAvg ? 6 : 9;
+                    if (isAvg) borderDashStyle = [5, 5];
+                } else if (isAvg) {
+                    color = 'rgba(100,100,100,0.7)'; ps = 'line'; pRadius = 6; borderDashStyle = [5, 5];
+                }
+
+                datasetsForYear.push({
+                    label, data: dataAsObjects, borderColor: color, borderDash: borderDashStyle,
+                    borderWidth: bw, tension: 0.3, pointStyle: ps, pointRadius: pRadius,
+                    pointBackgroundColor: '#fff', pointBorderColor: color, pointBorderWidth: 2,
+                    pointHoverRadius: 12, fill: false, hidden: isAvg ? true : false
+                });
+                tableRowsForYear.push({ label, vals, isAvg });
+            }
+
+            const validationMessages = [];
+            const seriesToValidate = ["목표A", "집행B", "실적C"];
+
+            for (const baseSeriesName of seriesToValidate) {
+                const avgRowLabel = `${baseSeriesName} 평균`;
+                const avgRow = tableRowsForYear.find(r => r.label === avgRowLabel && r.isAvg);
+                const baseRow = tableRowsForYear.find(r => r.label === baseSeriesName && !r.isAvg);
+
+                if (avgRow && baseRow) {
+                    for (let monthIdx = 0; monthIdx < avgRow.vals.length; monthIdx++) {
+                        const valAvg = avgRow.vals[monthIdx];
+                        const valBase = baseRow.vals[monthIdx];
+
+                        if (valAvg !== null && valAvg !== undefined &&
+                            valBase !== null && valBase !== undefined) {
+                            if (valAvg !== valBase) {
+                                const monthName = (currentCSVMmonths && currentCSVMmonths.length > monthIdx) ? currentCSVMmonths[monthIdx] : `${monthIdx + 1}월`;
+                                validationMessages.push(
+                                    `'${avgRow.label}' ${monthName}: CSV 값(${valAvg})과 기준 값(${valBase}) 불일치. 기준 값으로 변경됨.`
+                                );
+                                avgRow.vals[monthIdx] = valBase;
+
+                                const correspondingDataset = datasetsForYear.find(ds => ds.label === avgRow.label);
+                                if (correspondingDataset && correspondingDataset.data.length > monthIdx) {
+                                    correspondingDataset.data[monthIdx].y = valBase;
+                                }
+                            }
+                        }
+                    }
+                } else if (avgRow && !baseRow) {
+                    console.warn(`Validation skipped for '${avgRow.label}': Corresponding base row '${baseSeriesName}' not found.`);
+                }
+            }
+
+            if (validationMessages.length > 0) {
+                showStatusMessage('CSV average value does not match the actual calculated average.', 'warning', 5000);
+                console.warn("CSV Validation Discrepancies:\n" + validationMessages.join("\n"));
+            }
+
+            tableRowsForYear.sort((a, b) => a.label.localeCompare(b.label));
+
+            window.allYearsData[targetYear] = {
+                originalDatasetsData: JSON.parse(JSON.stringify(datasetsForYear)),
+                tableRowsData: JSON.parse(JSON.stringify(tableRowsForYear)),
+                months: [...currentCSVMmonths],
+                originalJiphangBData: JSON.parse(JSON.stringify(localOriginalJiphangBDataForYear)),
+                links: yearSpecificLinks
+            };
+        }
+
+
+        function populateYearDisplaySelector() {
+            const selector = document.getElementById('yearDisplaySelector');
+            if (!selector) return;
+
+            const previouslySelectedYearString = selector.value;
+            selector.innerHTML = '';
+
+            const availableYears = Object.keys(window.allYearsData)
+                .filter(year => {
+                    const yearData = window.allYearsData[year];
+                    return yearData && yearData.originalDatasetsData && yearData.originalDatasetsData.length > 0;
+                })
+                .map(year => parseInt(year, 10)).sort((a, b) => b - a);
+
+            if (availableYears.length === 0) {
+                const option = document.createElement('option');
+                option.value = ""; option.textContent = "데이터 없음"; selector.appendChild(option);
+                selector.disabled = true;
+                window.currentDisplayedYear = new Date().getFullYear();
+                chartMonths = []; originalDatasetsData = []; window.tableRowsData = []; originalJiphangBData = {};
+                if (budgetChart) { budgetChart.data.labels = []; budgetChart.data.datasets = []; budgetChart.update(); }
+                document.getElementById('data-table').innerHTML = `<p style="text-align:center; padding:20px;">표시할 데이터가 없습니다.</p><div id="table-resize-handle"></div>`;
+                return;
+            }
+
+            selector.disabled = false;
+            availableYears.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year; option.textContent = `${year}년`; selector.appendChild(option);
+            });
+
+            let yearToSet = window.currentDisplayedYear;
+            if (availableYears.includes(window.currentDisplayedYear)) {
+                selector.value = window.currentDisplayedYear;
+            } else if (previouslySelectedYearString && availableYears.includes(parseInt(previouslySelectedYearString, 10))) {
+                yearToSet = parseInt(previouslySelectedYearString, 10);
+                selector.value = yearToSet;
+            } else if (availableYears.length > 0) {
+                yearToSet = availableYears[0];
+                selector.value = yearToSet;
+            }
+            if (window.currentDisplayedYear !== parseInt(selector.value, 10) && selector.value) {
+                window.currentDisplayedYear = parseInt(selector.value, 10);
+            } else if (!selector.value && availableYears.length > 0) {
+                window.currentDisplayedYear = availableYears[0];
+                selector.value = availableYears[0];
+            }
+        }
+
+
+        function switchToYear(year, newCsvTextIfExists = null) {
+            window.currentDisplayedYear = year;
+            document.getElementById('main-title').textContent = `월별 누적 집행비 대시보드 (${year}년)`;
+
+            if (newCsvTextIfExists) {
+                parseCSVAndStore(newCsvTextIfExists, year);
+            } else if (!window.allYearsData[year]) {
+                showStatusMessage(`${year}년 데이터가 없습니다. CSV 파일을 업로드해주세요.`, 'warning');
+                if (budgetChart) { budgetChart.data.labels = []; budgetChart.data.datasets = []; budgetChart.update(); }
+                document.getElementById('data-table').innerHTML = `<p style="text-align:center; padding:20px;">${year}년 데이터가 없습니다.</p><div id="table-resize-handle"></div>`;
+                chartMonths = []; originalDatasetsData = []; window.tableRowsData = []; originalJiphangBData = {};
+                const selectAllCb = document.getElementById('select-all-months-checkbox'); if (selectAllCb) selectAllCb.disabled = true;
+                const selectCurrentRangeCb = document.getElementById('select-current-range-checkbox'); if (selectCurrentRangeCb) selectCurrentRangeCb.disabled = true;
+                return;
+            }
+
+            const yearSelector = document.getElementById('yearDisplaySelector');
+            if (yearSelector && yearSelector.value !== year.toString()) {
+                yearSelector.value = year;
+            }
+
+            const yearData = window.allYearsData[year];
+
+            if (!yearData || !yearData.originalDatasetsData) {
+                console.error(`${year}년 데이터를 로드했으나, originalDatasetsData가 유효하지 않습니다.`);
+                chartMonths = []; originalDatasetsData = []; window.tableRowsData = []; originalJiphangBData = {};
+                if (budgetChart) { budgetChart.data.labels = []; budgetChart.data.datasets = []; budgetChart.update(); }
+                document.getElementById('data-table').innerHTML = `<p style="text-align:center; padding:20px;">${year}년 데이터 로드에 실패했거나 데이터가 없습니다.</p><div id="table-resize-handle"></div>`;
+                const selectAllCb = document.getElementById('select-all-months-checkbox'); if (selectAllCb) selectAllCb.disabled = true;
+                const selectCurrentRangeCb = document.getElementById('select-current-range-checkbox'); if (selectCurrentRangeCb) selectCurrentRangeCb.disabled = true;
+                return;
+            }
+
+            chartMonths = yearData.months;
+            originalDatasetsData = yearData.originalDatasetsData;
+            window.tableRowsData = yearData.tableRowsData;
+            originalJiphangBData = yearData.originalJiphangBData || {};
+
+            const selectAllCb = document.getElementById('select-all-months-checkbox'); if (selectAllCb) selectAllCb.disabled = chartMonths.length === 0;
+            const selectCurrentRangeCb = document.getElementById('select-current-range-checkbox'); if (selectCurrentRangeCb) selectCurrentRangeCb.disabled = chartMonths.length === 0;
+
+            updateDisplay(true);
+        }
+
+
+        function setInitialCheckboxStatesAndListeners() {
+            const monthCheckboxes = document.querySelectorAll('#data-table thead th .month-filter-checkbox');
+            const currentYearMonths = chartMonths;
+
+            monthCheckboxes.forEach((checkbox) => {
+                const monthIndex = parseInt(checkbox.dataset.monthIndex, 10);
+                // [FIX] Always show all available months by default, regardless of current system date.
+                // This ensures past years' full history and current year's future goals are visible.
+                checkbox.checked = (monthIndex < currentYearMonths.length);
+                checkbox.removeEventListener('change', handleIndividualMonthChange);
+                checkbox.addEventListener('change', handleIndividualMonthChange);
+            });
+
+            setupSelectAllCheckbox();
+            setupCurrentRangeCheckbox();
+            updateSelectAllCheckboxState();
+            updateCurrentRangeCheckboxState();
+        }
+
+        function reAttachCheckboxListeners() {
+            const monthCheckboxes = document.querySelectorAll('#data-table thead th .month-filter-checkbox');
+            monthCheckboxes.forEach((checkbox) => {
+                checkbox.removeEventListener('change', handleIndividualMonthChange);
+                checkbox.addEventListener('change', handleIndividualMonthChange);
+            });
+            setupSelectAllCheckbox();
+            setupCurrentRangeCheckbox();
+            updateSelectAllCheckboxState();
+            updateCurrentRangeCheckboxState();
+
+            attachTableExpansionListeners();
+            makeTableDraggable();
+            makeTableResizable();
+        }
+
+        function setupSelectAllCheckbox() {
+            const selectAllCheckbox = document.getElementById('select-all-months-checkbox');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.removeEventListener('change', handleSelectAllMonthsChange);
+                selectAllCheckbox.addEventListener('change', handleSelectAllMonthsChange);
+            }
+        }
+
+        function setupCurrentRangeCheckbox() {
+            const currentRangeCheckbox = document.getElementById('select-current-range-checkbox');
+            if (currentRangeCheckbox) {
+                currentRangeCheckbox.removeEventListener('change', handleCurrentRangeChange);
+                currentRangeCheckbox.addEventListener('change', handleCurrentRangeChange);
+            }
+        }
+
+        function handleSelectAllMonthsChange(event) {
+            const isChecked = event.target.checked;
+            document.querySelectorAll('.month-filter-checkbox').forEach(cb => { cb.checked = isChecked; });
+            updateCurrentRangeCheckboxState();
+            updateDisplay();
+        }
+
+        function handleCurrentRangeChange(event) {
+            const isChecked = event.target.checked;
+            const currentSysMonth = new Date().getMonth();
+            const currentYearMonths = chartMonths;
+            document.querySelectorAll('.month-filter-checkbox').forEach(cb => {
+                const monthIndex = parseInt(cb.dataset.monthIndex, 10);
+                if (monthIndex < currentYearMonths.length && monthIndex <= currentSysMonth) {
+                    cb.checked = isChecked;
+                }
+            });
+            updateSelectAllCheckboxState();
+            updateDisplay();
+        }
+
+        function updateSelectAllCheckboxState() {
+            const selectAllCheckbox = document.getElementById('select-all-months-checkbox');
+            if (!selectAllCheckbox) return;
+
+            const monthCheckboxes = document.querySelectorAll('.month-filter-checkbox');
+            if (monthCheckboxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+                return;
+            }
+
+            const totalMonths = monthCheckboxes.length;
+            const checkedMonths = Array.from(monthCheckboxes).filter(cb => cb.checked).length;
+
+            if (checkedMonths === totalMonths && totalMonths > 0) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else if (checkedMonths === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+
+        function updateCurrentRangeCheckboxState() {
+            const currentRangeCheckbox = document.getElementById('select-current-range-checkbox');
+            if (!currentRangeCheckbox) return;
+
+            const monthCheckboxes = document.querySelectorAll('.month-filter-checkbox');
+            const currentYearMonths = chartMonths;
+            if (currentYearMonths.length === 0) {
+                currentRangeCheckbox.checked = false; currentRangeCheckbox.indeterminate = false; return;
+            }
+
+            const currentSysMonth = new Date().getMonth();
+            let checkedInCurrentRangeCount = 0;
+            let totalInCurrentRange = 0;
+
+            monthCheckboxes.forEach(checkbox => {
+                const monthIndex = parseInt(checkbox.dataset.monthIndex, 10);
+                if (monthIndex < currentYearMonths.length && monthIndex <= currentSysMonth) {
+                    totalInCurrentRange++;
+                    if (checkbox.checked) {
+                        checkedInCurrentRangeCount++;
+                    }
+                }
+            });
+
+            if (totalInCurrentRange === 0) {
+                currentRangeCheckbox.checked = false;
+                currentRangeCheckbox.indeterminate = false;
+            } else if (checkedInCurrentRangeCount === totalInCurrentRange) {
+                currentRangeCheckbox.checked = true;
+                currentRangeCheckbox.indeterminate = false;
+            } else if (checkedInCurrentRangeCount === 0) {
+                currentRangeCheckbox.checked = false;
+                currentRangeCheckbox.indeterminate = false;
+            } else {
+                currentRangeCheckbox.checked = false;
+                currentRangeCheckbox.indeterminate = true;
+            }
+        }
+
+        function handleIndividualMonthChange() {
+            updateSelectAllCheckboxState();
+            updateCurrentRangeCheckboxState();
+            updateDisplay();
+        }
+
+        function getActiveMonthIndexesInitially(monthsForYear) {
+            const activeIndexes = [];
+            if (monthsForYear && monthsForYear.length > 0) {
+                monthsForYear.forEach((m, idx) => {
+                    // [FIX] Select all months initially
+                    activeIndexes.push(idx);
+                });
+            }
+            return activeIndexes;
+        }
+
+        function getActiveMonthIndexesFromDOM() {
+            const activeIndexes = [];
+            document.querySelectorAll('#data-table .month-filter-checkbox:checked').forEach(cb => {
+                activeIndexes.push(parseInt(cb.dataset.monthIndex, 10));
+            });
+            return activeIndexes;
+        }
+
+
+        function updateDisplay(isYearChange = false) {
+            const yearToDisplay = window.currentDisplayedYear;
+            const yearData = window.allYearsData[yearToDisplay];
+
+            if (!yearData || !yearData.originalDatasetsData || yearData.originalDatasetsData.length === 0) {
+                if (budgetChart) { budgetChart.data.labels = []; budgetChart.data.datasets = []; budgetChart.update(); }
+                const container = document.getElementById('data-table');
+                if (container) container.innerHTML = `<p style="text-align:center; padding:20px;">${yearToDisplay}년 데이터가 없습니다.</p><div id="table-resize-handle"></div>`;
+                const selectAllCb = document.getElementById('select-all-months-checkbox'); if (selectAllCb) { selectAllCb.checked = false; selectAllCb.indeterminate = false; selectAllCb.disabled = true; }
+                const selectCurrentRangeCb = document.getElementById('select-current-range-checkbox'); if (selectCurrentRangeCb) { selectCurrentRangeCb.checked = false; selectCurrentRangeCb.indeterminate = false; selectCurrentRangeCb.disabled = true; }
+                return;
+            }
+
+            originalDatasetsData = yearData.originalDatasetsData;
+            chartMonths = yearData.months;
+            window.tableRowsData = yearData.tableRowsData;
+            originalJiphangBData = yearData.originalJiphangBData || {};
+            currentXAxisLabels = isXAxisReversed ? chartMonths.slice().reverse() : chartMonths.slice();
+
+            function toDisplayIndex(originalIndex) {
+                if (!Array.isArray(currentXAxisLabels) || currentXAxisLabels.length === 0) return originalIndex;
+                return isXAxisReversed ? (currentXAxisLabels.length - 1 - originalIndex) : originalIndex;
+            }
+
+            let activeMonthIndexes;
+            if (isYearChange) {
+                const initialActiveMonthIndexes = getActiveMonthIndexesInitially(chartMonths);
+                renderTable(chartMonths, window.tableRowsData, initialActiveMonthIndexes);
+                setInitialCheckboxStatesAndListeners();
+                activeMonthIndexes = getActiveMonthIndexesFromDOM();
+            } else {
+                activeMonthIndexes = getActiveMonthIndexesFromDOM();
+                renderTable(chartMonths, window.tableRowsData, activeMonthIndexes);
+                reAttachCheckboxListeners();
+            }
+
+            const filteredDatasets = originalDatasetsData.map(originalDs => {
+                const newDs = JSON.parse(JSON.stringify(originalDs));
+
+                if (originalDs.label.endsWith(' 평균')) {
+                    const baseSeriesName = originalDs.label.replace(' 평균', '');
+                    const baseSeriesRow = window.tableRowsData.find(row => row.label === baseSeriesName && !row.isAvg);
+
+                    let periodAverage = null;
+                    if (baseSeriesRow && baseSeriesRow.vals) {
+                        let sumOfActiveValues = 0;
+                        const countOfActiveMonths = activeMonthIndexes.length;
+
+                        activeMonthIndexes.forEach(monthIdx => {
+                            if (monthIdx < baseSeriesRow.vals.length && baseSeriesRow.vals[monthIdx] !== null && !isNaN(parseFloat(baseSeriesRow.vals[monthIdx]))) {
+                                sumOfActiveValues += baseSeriesRow.vals[monthIdx];
+                            }
+                        });
+
+                        if (countOfActiveMonths > 0) {
+                            periodAverage = sumOfActiveValues / countOfActiveMonths;
+                        }
+                    }
+
+                    newDs.data = [];
+                    activeMonthIndexes.forEach(monthIdx => {
+                        if (monthIdx < chartMonths.length) {
+                            newDs.data.push({ x: toDisplayIndex(monthIdx), y: periodAverage });
+                        }
+                    });
+
+                } else {
+                    newDs.data = newDs.data
+                        .filter(point => activeMonthIndexes.includes(point.x) && point.y !== null)
+                        .map(point => ({ x: toDisplayIndex(point.x), y: point.y }));
+                }
+                return newDs;
+            });
+
+            if (budgetChart) {
+                budgetChart.data.datasets = filteredDatasets;
+                budgetChart.options.scales.y.max = calculateMaxY(filteredDatasets);
+                if (budgetChart.options.scales && budgetChart.options.scales.x) {
+                    budgetChart.options.scales.x.max = currentXAxisLabels.length > 0 ? currentXAxisLabels.length - 1 : 0;
+                }
+                // 반전 상태 변경 시 '현재 월' 세로선의 X 위치도 함께 갱신
+                try {
+                    const ann = budgetChart.options?.plugins?.annotation?.annotations;
+                    if (ann && ann.currentMonthLineMarker && Array.isArray(currentXAxisLabels) && currentXAxisLabels.length > 0) {
+                        const currentMonthIndex = new Date().getMonth();
+                        const toDisplayIndexLocal = (idx) => isXAxisReversed ? (currentXAxisLabels.length - 1 - idx) : idx;
+                        if (currentMonthIndex >= 0 && currentMonthIndex < currentXAxisLabels.length) {
+                            ann.currentMonthLineMarker.xMin = toDisplayIndexLocal(currentMonthIndex);
+                            ann.currentMonthLineMarker.xMax = toDisplayIndexLocal(currentMonthIndex);
+                        }
+                    }
+                } catch (e) { /* no-op */ }
+                budgetChart.update();
+            } else {
+                renderChart(currentXAxisLabels, filteredDatasets);
+            }
+
+            updateLegendButtonStates();
+            showDeviationAnnotation();
+        }
+
+        function calculateMaxY(datasets) {
+            let maxY = 0;
+            datasets.forEach(dataset => {
+                if (!dataset.hidden) {
+                    dataset.data.forEach(point => {
+                        if (point.y !== null && point.y > maxY) {
+                            maxY = point.y;
+                        }
+                    });
+                }
+            });
+            if (maxY === 0) return 180000000;
+            return Math.ceil(maxY * 1.1 / 10000000) * 10000000;
+        }
+
+
+        function renderChart(labels, datasets) {
+            const ctx = document.getElementById('budgetChart').getContext('2d');
+            if (budgetChart) {
+                budgetChart.destroy();
+                if (currentMonthLineAnimationFrameId) cancelAnimationFrame(currentMonthLineAnimationFrameId);
+                currentMonthLineAnimationFrameId = null;
+                if (jiphangBLineAnimationFrameId) clearTimeout(jiphangBLineAnimationFrameId);
+                jiphangBLineAnimationFrameId = null; jiphangBAnimationCount = 0;
+            }
+
+            const currentMonthIndex = new Date().getMonth();
+            const toDisplayIndex = (idx) => {
+                if (!Array.isArray(currentXAxisLabels) || currentXAxisLabels.length === 0) return idx;
+                return isXAxisReversed ? (currentXAxisLabels.length - 1 - idx) : idx;
+            };
+            const annotations = {};
+            const yAxisMinValForOptions = 0;
+            const yAxisMaxValForOptions = calculateMaxY(datasets);
+            // --- [핵심 수정] "현재 월" 표시선의 고정 최대 높이 값 ---
+            const CURRENT_MONTH_MARKER_Y_MAX = 180000000;
+
+            if (currentMonthIndex < labels.length && window.currentDisplayedYear === new Date().getFullYear()) {
+                annotations.currentMonthLineMarker = {
+                    id: 'currentMonthLineMarker', type: 'line',
+                    xScaleID: 'x', yScaleID: 'y',
+                    xMin: toDisplayIndex(currentMonthIndex), xMax: toDisplayIndex(currentMonthIndex),
+                    yMin: yAxisMinValForOptions,
+                    yMax: yAxisMinValForOptions,
+                    borderColor: 'rgba(255, 99, 132, 0.8)', borderWidth: 5, borderDash: [6, 6],
+                    label: {
+                        content: '현재 월', enabled: true, position: 'start',
+                        yAdjust: -25, backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                        font: { size: 20, weight: 'bold' }, color: 'rgba(255, 99, 132, 1)'
+                    }
+                };
+            }
+
+            budgetChart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    hover: { animationDuration: 0 },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { usePointStyle: true, font: { size: 14 }, boxWidth: 15, padding: 20 },
+                            onClick: function (e, legendItem, legend) {
+                                Chart.defaults.plugins.legend.onClick.call(this, e, legendItem, legend);
+                                const clickedDataset = legend.chart.data.datasets.find(ds => ds.label === legendItem.text);
+                                if (clickedDataset && clickedDataset.hidden) {
+                                    if (selectionPoint1 && selectionPoint1.datasetLabel === clickedDataset.label) selectionPoint1 = null;
+                                    if (selectionPoint2 && selectionPoint2.datasetLabel === clickedDataset.label) selectionPoint2 = null;
+                                }
+                                if (budgetChart) {
+                                    budgetChart.options.scales.y.max = calculateMaxY(budgetChart.data.datasets);
+                                    budgetChart.update();
+                                }
+                                showDeviationAnnotation();
+                            }
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'nearest',
+                            position: 'nearest',
+                            caretPadding: 10, titleFont: { size: 18 }, bodyFont: { size: 18 }, padding: 12,
+                            filter: tooltipItem => tooltipItem.parsed.y !== null,
+                            callbacks: {
+                                title: function (tooltipItems) {
+                                    if (tooltipItems.length > 0) {
+                                        const xValue = tooltipItems[0].parsed.x;
+                                        if (Number.isInteger(xValue) && xValue < currentXAxisLabels.length) {
+                                            return currentXAxisLabels[xValue];
+                                        }
+                                    }
+                                    return '';
+                                }
+                            }
+                        },
+                        annotation: { annotations: annotations }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'xy',
+                        intersect: true
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: labels.length > 0 ? labels.length - 1 : 0,
+                            ticks: {
+                                callback: function (value, index, ticks) {
+                                    if (Number.isInteger(value) && value >= 0 && value < currentXAxisLabels.length) {
+                                        return currentXAxisLabels[value];
+                                    }
+                                    return null;
+                                },
+                                stepSize: 1,
+                                font: { size: 14 }
+                            },
+                            grid: { display: true }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            min: yAxisMinValForOptions,
+                            max: yAxisMaxValForOptions,
+                            ticks: {
+                                callback: function (value) {
+                                    return formatKoreanCurrency(value);
+                                },
+                                font: { size: 13 }
+                            },
+                            grid: { display: true }
+                        }
+                    },
+                    elements: { line: { tension: 0.3 } }
+                }
+            });
+
+            if (annotations.currentMonthLineMarker && budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker) {
+                let verticalAnimationCount = 0;
+                const maxVerticalAnimations = 2;
+                const animationDurationFrames = 50;
+                let currentAnimatedYMax;
+
+                // --- [핵심 수정] 애니메이션 목표 Y값을 고정값으로 설정 ---
+                const targetYMax = CURRENT_MONTH_MARKER_Y_MAX;
+                let animationStepValue;
+
+                function animateVerticalLine() {
+                    if (!budgetChart || !budgetChart.options?.plugins?.annotation?.annotations?.currentMonthLineMarker) {
+                        if (currentMonthLineAnimationFrameId) cancelAnimationFrame(currentMonthLineAnimationFrameId);
+                        currentMonthLineAnimationFrameId = null; return;
+                    }
+                    currentAnimatedYMax += animationStepValue;
+
+                    if (currentAnimatedYMax >= targetYMax) {
+                        currentAnimatedYMax = targetYMax;
+                        budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker.yMax = currentAnimatedYMax;
+                        budgetChart.update('none');
+                        verticalAnimationCount++;
+                        if (verticalAnimationCount === 1) startJiphangBAnimation();
+
+                        if (verticalAnimationCount < maxVerticalAnimations) {
+                            setTimeout(() => {
+                                if (!budgetChart || !budgetChart.options?.plugins?.annotation?.annotations?.currentMonthLineMarker) {
+                                    if (currentMonthLineAnimationFrameId) cancelAnimationFrame(currentMonthLineAnimationFrameId);
+                                    currentMonthLineAnimationFrameId = null; return;
+                                }
+                                currentAnimatedYMax = 0;
+                                // 애니메이션 스텝 값도 고정된 목표에 맞춰 재계산
+                                animationStepValue = targetYMax / animationDurationFrames;
+
+                                budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker.yMax = currentAnimatedYMax;
+                                budgetChart.update('none');
+                                currentMonthLineAnimationFrameId = requestAnimationFrame(animateVerticalLine);
+                            }, 300);
+                        } else {
+                            if (currentMonthLineAnimationFrameId) cancelAnimationFrame(currentMonthLineAnimationFrameId);
+                            currentMonthLineAnimationFrameId = null;
+                        }
+                    } else {
+                        budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker.yMax = currentAnimatedYMax;
+                        budgetChart.update('none');
+                        currentMonthLineAnimationFrameId = requestAnimationFrame(animateVerticalLine);
+                    }
+                }
+
+                setTimeout(() => {
+                    if (budgetChart && budgetChart.scales && budgetChart.scales.y) {
+                        currentAnimatedYMax = 0;
+                        animationStepValue = targetYMax / animationDurationFrames;
+
+                        budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker.yMin = 0;
+                        budgetChart.options.plugins.annotation.annotations.currentMonthLineMarker.yMax = 0;
+                        budgetChart.update('none');
+
+                        currentMonthLineAnimationFrameId = requestAnimationFrame(animateVerticalLine);
+                    }
+                }, 100);
+            } else {
+                startJiphangBAnimation();
+            }
+            showDeviationAnnotation();
+        }
+
+
+        function startJiphangBAnimation() {
+            const currentYearData = window.allYearsData[window.currentDisplayedYear];
+            if (!budgetChart || !budgetChart.data || !budgetChart.data.datasets || !currentYearData || !currentYearData.originalJiphangBData) return;
+
+            const datasetsToAnimate = budgetChart.data.datasets.filter(ds =>
+                ds.label.startsWith('집행B') && !ds.label.endsWith(' 평균') && !ds.hidden
+            );
+
+            if (datasetsToAnimate.length === 0) return;
+
+            const activeMonthIndexes = getActiveMonthIndexesFromDOM();
+
+            datasetsToAnimate.forEach(ds => {
+                const fullOriginalDataForLabel = currentYearData.originalJiphangBData[ds.label] ||
+                    (currentYearData.originalDatasetsData.find(ods => ods.label === ds.label)?.data);
+
+                if (!fullOriginalDataForLabel) {
+                    ds._animationFullData = []; ds.data = []; return;
+                }
+                const animationPathData = fullOriginalDataForLabel.filter(point => activeMonthIndexes.includes(point.x));
+                ds._animationFullData = animationPathData;
+
+                ds.data = animationPathData.length > 0 ? [animationPathData[0]] : [];
+            });
+            budgetChart.update('none');
+
+            let currentPointIndex = 0;
+            const maxPointIndex = datasetsToAnimate.reduce((max, ds) => Math.max(max, ds._animationFullData.length), 0);
+            const pointRevealDelay = 350;
+            const maxJiphangBAnimations = 2;
+            jiphangBAnimationCount = 0;
+
+            if (jiphangBLineAnimationFrameId) clearTimeout(jiphangBLineAnimationFrameId);
+
+            function animateJiphangBLines() {
+                if (!budgetChart) {
+                    if (jiphangBLineAnimationFrameId) clearTimeout(jiphangBLineAnimationFrameId);
+                    jiphangBLineAnimationFrameId = null; return;
+                }
+                currentPointIndex++;
+
+                if (currentPointIndex >= maxPointIndex) {
+                    datasetsToAnimate.forEach(ds => { if (ds._animationFullData) ds.data = [...ds._animationFullData]; });
+                    budgetChart.update('none');
+                    jiphangBAnimationCount++;
+
+                    if (jiphangBAnimationCount < maxJiphangBAnimations) {
+                        currentPointIndex = 0;
+                        datasetsToAnimate.forEach(ds => {
+                            if (ds._animationFullData && ds._animationFullData.length > 0) {
+                                ds.data = [ds._animationFullData[0]];
+                            } else {
+                                ds.data = [];
+                            }
+                        });
+                        budgetChart.update('none');
+                        jiphangBLineAnimationFrameId = setTimeout(animateJiphangBLines, 100);
+                    } else {
+                        datasetsToAnimate.forEach(ds => delete ds._animationFullData);
+                        if (jiphangBLineAnimationFrameId) clearTimeout(jiphangBLineAnimationFrameId);
+                        jiphangBLineAnimationFrameId = null;
+                    }
+                    return;
+                }
+
+                datasetsToAnimate.forEach(ds => {
+                    if (ds._animationFullData && currentPointIndex < ds._animationFullData.length) {
+                        ds.data.push(ds._animationFullData[currentPointIndex]);
+                    }
+                });
+                budgetChart.update({ duration: pointRevealDelay - 50 > 0 ? pointRevealDelay - 50 : 0, easing: 'linear' });
+                jiphangBLineAnimationFrameId = setTimeout(animateJiphangBLines, pointRevealDelay);
+            }
+            jiphangBLineAnimationFrameId = setTimeout(animateJiphangBLines, 50);
+        }
+
+        function renderTable(months, rows, activeMonthIndexes) {
+            const sortedRows = [
+                ...rows.filter(r => r.label.includes('집행B')),
+                ...rows.filter(r => r.label.includes('목표A')),
+                ...rows.filter(r => r.label.includes('실적C'))
+            ].sort((a, b) => {
+                const getOrder = (label) => {
+                    if (label.startsWith('집행B')) return 1;
+                    if (label.startsWith('목표A')) return 2;
+                    if (label.startsWith('실적C')) return 3;
+                    return 4;
+                };
+                const orderA = getOrder(a.label); const orderB = getOrder(b.label);
+                if (orderA !== orderB) return orderA - orderB;
+                return a.isAvg - b.isAvg;
+            });
+
+            const container = document.getElementById('data-table');
+            container.innerHTML = '';
+
+            const resizeHandle = document.createElement('div');
+            resizeHandle.id = 'table-resize-handle';
+            container.appendChild(resizeHandle);
+
+
+            const table = document.createElement('table');
+            const thead = document.createElement('thead'); const tbody = document.createElement('tbody');
+
+            const tr0 = document.createElement('tr');
+            const th0 = document.createElement('th');
+            th0.id = 'table-drag-handle';
+            th0.colSpan = (months ? months.length : 0) + 2;
+            th0.style.cssText = 'position:relative; vertical-align:middle; line-height:1.5; text-align:center;';
+
+            const currentYearDataForLinks = window.allYearsData[window.currentDisplayedYear];
+            const linksToUse = (currentYearDataForLinks && currentYearDataForLinks.links) ? currentYearDataForLinks.links : CONFIG;
+
+            const detailLinkHref = linksToUse.detailLink || '#';
+            const workTypeLinkHref = linksToUse.workTypeDetailLink || linksToUse.detailLink || '#';
+            const costSavingsLinkHref = linksToUse.costSavingsLink || linksToUse.detailLink || '#';
+
+            th0.innerHTML = `
+            <div style="display:inline-flex; align-items:center; justify-content:center;">
+            <div style="display:inline-flex; align-items:center; justify-content:center; gap: 10px;">
+                상세 내역
+                <a href="https://jonggunelee.github.io/wyggkr/07%20잔여%20공정관리_(기숙사%20및%20사택)_2025-06-00.html" class="detail-link" target="_blank" title="잔여 공정관리">
+                    <svg class="detail-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" role="img">
+                        <!-- Gantt chart style icon: three horizontal bars of varying lengths -->
+                        <rect x="3" y="5" width="10" height="3" rx="0.5"></rect>
+                        <rect x="3" y="10" width="15" height="3" rx="0.5"></rect>
+                        <rect x="3" y="15" width="8" height="3" rx="0.5"></rect>
+                        <!-- Timeline ticks on the right to suggest schedule axis -->
+                        <rect x="19" y="5" width="1" height="3"></rect>
+                        <rect x="19" y="10" width="1" height="3"></rect>
+                        <rect x="19" y="15" width="1" height="3"></rect>
+                    </svg>
+                </a>
+                <a href="${costSavingsLinkHref}" class="detail-link cost-savings-link" target="_blank" title="절감비 현황" style="margin-left:10px;"><svg class="detail-icon" width="33.6" height="33.6" viewBox="0 0 32 28"><text x="2.5" y="20" font-family="Arial, sans-serif" font-size="19.2" font-weight="bold" class="cost-won-symbol" fill="currentColor">₩</text><path class="cost-arrow-path" d="M14 7 L19 7 L19 12 L24 12 L24 18" stroke-width="3.5" fill="none" stroke-linecap="round" /><polygon class="cost-arrow-path-head" points="21,18 27,18 24,24" stroke-width="3.5" stroke-linejoin="round" /></svg></a>
+                <a href="${workTypeLinkHref}" class="detail-link work-type-detail-link" target="_blank" title="유형별 분석"><svg class="detail-icon" width="24" height="24" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V2zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V2zM1 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V7zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V7zM1 12a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-2zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-2zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-2z"/></svg></a>
+            </div>
+            <div id="table-header-icons" style="position: absolute; top: 8px; right: 10px; display: flex; align-items: center; gap: 8px;">
+                <button class="icon-btn-table" onclick="downloadTableAsExcel(event)" title="현재 테이블을 Excel 파일로 저장합니다.">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M10.5,19.5L8,17L10.5,14.5L11.2,15.2L9.4,17L11.2,18.8L10.5,19.5M13.5,19.5L12.8,18.8L14.6,17L12.8,15.2L13.5,14.5L16,17L13.5,19.5M18,12H6V4H13V9H18V12Z"></path></svg>
+                </button>
+                <button id="close-table-btn" class="close-table-btn" title="테이블 닫기">&times;</button>
+            </div>
+        `;
+            tr0.appendChild(th0); thead.appendChild(tr0);
+
+            const tr1 = document.createElement('tr'); const th1_ = document.createElement('th');
+            th1_.colSpan = (months ? months.length : 0) + 2;
+            th1_.innerHTML = '(단위 : <span style="font-size: 1.2em;">백만원</span>)';
+            tr1.appendChild(th1_); thead.appendChild(tr1);
+
+            const trh = document.createElement('tr');
+            let headerHTML = `<th>구분<input type="checkbox" id="select-all-months-checkbox" title="모든 월 선택/해제"><input type="checkbox" id="select-current-range-checkbox" title="1월~현재월 선택/해제" style="margin-left: 3px;"><label for="select-current-range-checkbox" class="checkbox-label" style="margin-left:0px;">1월~현재월</label></th>`;
+            if (months && months.length > 0) {
+                months.forEach((m, idx) => {
+                    const isChecked = activeMonthIndexes.includes(idx) ? 'checked' : '';
+                    headerHTML += `<th data-month-index="${idx}"> ${m}<input type="checkbox" class="month-filter-checkbox" data-month-index="${idx}" data-month-name="${m}" ${isChecked}></th>`;
+                });
+            }
+            headerHTML += '<th>소계</th>';
+            trh.innerHTML = headerHTML; thead.appendChild(trh);
+
+            const monthlySum = new Array(months ? months.length : 0).fill(0);
+
+            sortedRows.forEach(r => {
+                const tr = document.createElement('tr');
+                let groupClass = '';
+                if (r.label.includes('목표A')) groupClass = 'group-mokpyo';
+                else if (r.label.includes('실적C')) groupClass = 'group-siljeok';
+                else if (r.label.includes('집행B')) groupClass = 'group-jiphaeng';
+                if (groupClass) tr.classList.add(groupClass);
+
+                tr.innerHTML = `<td style="font-weight:bold;color:#000">${r.label}</td>`;
+
+                if (months && months.length > 0) {
+                    r.vals.forEach((v, idx) => {
+                        let txt = v == null ? '' : (v / 1e6).toFixed(2);
+                        if (txt === '0.00' && v !== 0) { /* keep txt */ }
+                        else if (v === 0 && txt === '0.00') { /* keep txt */ }
+                        else if (txt === '0.00') { txt = ''; }
+
+                        let cellInnerHTML;
+                        let cellStyle = '';
+
+                        if (r.isAvg) {
+                            cellStyle = activeMonthIndexes.includes(idx) ? 'font-weight: bold;' : 'font-weight: normal;';
+                            cellInnerHTML = `<td class="avg-number-cell" style="${cellStyle} color: transparent !important; user-select: none;">${txt}</td>`;
+                        } else {
+                            if (activeMonthIndexes.includes(idx)) {
+                                cellStyle = 'font-weight: bold; color: #212529; opacity: 1;';
+                            } else {
+                                cellStyle = 'font-weight: normal; color: #6c757d; opacity: 0.4;';
+                            }
+                            cellInnerHTML = `<td style="${cellStyle}">${txt}</td>`;
+                        }
+                        tr.innerHTML += cellInnerHTML;
+                    });
+                }
+
+                let sumVal = 0;
+                if (r.isAvg) {
+                    const baseLabel = r.label.replace(" 평균", "");
+                    const baseRow = window.tableRowsData.find(br => br.label === baseLabel && !br.isAvg);
+
+                    if (baseRow && baseRow.vals) {
+                        let sumOfActiveValues = 0;
+                        activeMonthIndexes.forEach(idx => {
+                            if (idx < baseRow.vals.length && baseRow.vals[idx] !== null && !isNaN(parseFloat(baseRow.vals[idx]))) {
+                                sumOfActiveValues += baseRow.vals[idx];
+                            }
+                        });
+
+                        if (activeMonthIndexes.length > 0) {
+                            sumVal = sumOfActiveValues / activeMonthIndexes.length;
+                        } else {
+                            sumVal = 0;
+                        }
+                    } else {
+                        console.warn(`Base data for '${r.label}' not found or invalid. Calculating '소계' based on its own active month values if any.`);
+                        const activeAvgValuesFromOwnRow = r.vals.filter((val, idx) =>
+                            val != null && activeMonthIndexes.includes(idx) && !isNaN(parseFloat(val))
+                        );
+                        let sumOfOwnActiveValues = 0;
+                        activeAvgValuesFromOwnRow.forEach(val => sumOfOwnActiveValues += val);
+
+                        if (activeMonthIndexes.length > 0) {
+                            sumVal = sumOfOwnActiveValues / activeMonthIndexes.length;
+                        } else {
+                            sumVal = 0;
+                        }
+                    }
+                } else {
+                    const valsForSubtotal = r.vals.filter((v, idx) => v != null && activeMonthIndexes.includes(idx) && !isNaN(parseFloat(v)));
+                    sumVal = valsForSubtotal.reduce((s, v) => s + v, 0);
+                }
+
+
+                let sumTxt = (sumVal / 1e6).toFixed(2);
+                if (sumTxt === '0.00' && sumVal !== 0 && !r.isAvg) { }
+                else if (sumTxt === '0.00' && sumVal === 0) {
+                    if (r.isAvg && activeMonthIndexes.length === 0 && r.vals.filter(v => v != null).length > 0) {
+                        sumTxt = '';
+                    } else if (!r.isAvg && activeMonthIndexes.length === 0) {
+                        sumTxt = '';
+                    }
+                }
+                else if (sumTxt === '0.00' && r.isAvg) {
+                    if (r.label.includes("평균")) {
+                        const baseLabelCheck = r.label.replace(" 평균", "");
+                        const baseRowCheck = window.tableRowsData.find(br => br.label === baseLabelCheck && !br.isAvg);
+                        let activeValuesCount = 0;
+                        if (baseRowCheck) {
+                            activeMonthIndexes.forEach(idx => {
+                                if (idx < baseRowCheck.vals.length && baseRowCheck.vals[idx] !== null && !isNaN(parseFloat(baseRowCheck.vals[idx]))) {
+                                    activeValuesCount++;
+                                }
+                            });
+                        } else {
+                            activeMonthIndexes.forEach(idx => {
+                                if (idx < r.vals.length && r.vals[idx] !== null && !isNaN(parseFloat(r.vals[idx]))) {
+                                    activeValuesCount++;
+                                }
+                            });
+                        }
+                        if (activeMonthIndexes.length > 0 && activeValuesCount === 0 && sumVal === 0) {
+                        } else if (activeMonthIndexes.length === 0) {
+                            sumTxt = '';
+                        }
+                    }
+                }
+
+
+                let sumCellStyle = 'font-weight:bold;';
+                if (r.isAvg) {
+                    tr.innerHTML += `<td class="avg-number-cell" style="${sumCellStyle}">${sumTxt}</td>`;
+                } else {
+                    tr.innerHTML += `<td style="${sumCellStyle}">${sumTxt}</td>`;
+                }
+
+                if (!r.isAvg) {
+                    r.vals.forEach((v, i) => { if (v != null && activeMonthIndexes.includes(i)) monthlySum[i] += v; });
+                }
+                tbody.appendChild(tr);
+            });
+
+            const trSum = document.createElement('tr');
+            let sumRowHTML = '<th style="font-weight:bold;color:#000">소계(평균제외)</th>';
+            if (months && months.length > 0) {
+                months.forEach((m, i) => {
+                    let monthTotal = 0;
+                    if (activeMonthIndexes.includes(i)) {
+                        sortedRows.forEach(r => {
+                            if (!r.isAvg && r.vals[i] != null) {
+                                monthTotal += r.vals[i];
+                            }
+                        });
+                    }
+                    let txt = (monthTotal / 1e6).toFixed(2);
+                    let cellStyle = '';
+
+                    if (activeMonthIndexes.includes(i)) {
+                        cellStyle = 'font-weight: bold; color: #212529; opacity: 1;';
+                    } else {
+                        cellStyle = 'font-weight: normal; color: #6c757d; opacity: 0.4;';
+                        txt = '';
+                    }
+
+                    if (txt === '0.00' && monthTotal !== 0) { }
+                    else if (monthTotal === 0 && activeMonthIndexes.includes(i) && txt === '0.00') { }
+                    else if (txt === '0.00' && !activeMonthIndexes.includes(i)) { txt = ''; }
+                    else if (txt === '0.00' && monthTotal === 0) { txt = activeMonthIndexes.includes(i) ? '0.00' : ''; }
+
+
+                    sumRowHTML += `<td style="${cellStyle}">${txt}</td>`;
+                });
+            }
+            const totalAll = sortedRows.reduce((acc, r) => {
+                if (!r.isAvg) {
+                    r.vals.forEach((val, idx) => { if (val != null && activeMonthIndexes.includes(idx)) acc += val; });
+                }
+                return acc;
+            }, 0);
+            let totalTxt = (totalAll / 1e6).toFixed(2);
+            if (totalTxt === '0.00' && totalAll !== 0) { }
+            else if (totalAll === 0 && activeMonthIndexes.length === 0) totalTxt = '';
+            else if (totalTxt === '0.00' && totalAll === 0) totalTxt = (activeMonthIndexes.length > 0) ? '0.00' : '';
+
+
+            sumRowHTML += `<td style="font-weight:bold">${totalTxt}</td>`;
+            trSum.innerHTML = sumRowHTML; tbody.appendChild(trSum);
+
+            table.appendChild(thead); table.appendChild(tbody); container.appendChild(table);
+
+            const closeBtn = document.getElementById('close-table-btn');
+            if (closeBtn) {
+                closeBtn.onclick = function () {
+                    isTableVisibleUserSettings = false;
+                    updateTableAndControlsVisibility();
+                };
+            }
+
+
+            setTimeout(() => {
+                const tds = table.querySelectorAll('td,th');
+                tds.forEach(cell => {
+                    cell.style.width = '';
+                    cell.style.height = '';
+                    cell.style.maxWidth = '300px';
+                    cell.style.whiteSpace = 'nowrap';
+                    cell.style.overflow = 'hidden';
+                    cell.style.textOverflow = 'ellipsis';
+                });
+            }, 0);
+
+            updateTableAndControlsVisibility();
+        }
+
+
+        function attachTableExpansionListeners() {
+            const dataTableDiv = document.getElementById('data-table');
+            if (!dataTableDiv) return;
+            const resizeHandle = document.getElementById('table-resize-handle');
+
+            dataTableDiv.onmouseenter = function () {
+                if (!isZoomed && isTableVisibleUserSettings && !isResizingTable && !isDraggingTable) {
+                    if (resizeHandle) resizeHandle.style.display = 'block';
+                }
+            };
+        }
+
+
+        function makeTableDraggable() {
+            const dataTable = document.getElementById('data-table');
+            const dragHandle = document.getElementById('table-drag-handle');
+
+            if (dragHandle) {
+                dragHandle.onmousedown = function (event) {
+                    if (event.button !== 0 || isResizingTable) return;
+                    if (event.target.closest('input[type="checkbox"], a, #table-resize-handle, .close-table-btn')) {
+                        return;
+                    }
+
+                    isDraggingTable = true;
+                    dataTable.classList.add('dragging');
+                    dataTable.dataset.dragged = 'true';
+
+                    const rect = dataTable.getBoundingClientRect();
+                    dataTable.style.transformOrigin = 'top left';
+
+                    let currentScale = 1;
+                    const transformStyle = window.getComputedStyle(dataTable).transform;
+                    if (transformStyle && transformStyle !== 'none' && transformStyle.includes('scale')) {
+                        try {
+                            const matrix = new DOMMatrix(transformStyle);
+                            currentScale = matrix.a;
+                        } catch (e) {
+                            console.warn("DOMMatrix not supported for getting scale, using fallback.", e);
+                            currentScale = dataTable.classList.contains('table-expanded') ? 1.08 : 0.7;
+                        }
+                    } else if (dataTable.classList.contains('table-expanded')) {
+                        currentScale = 1.08;
+                    } else {
+                        currentScale = 0.7;
+                    }
+                    if (currentScale === 0 || isNaN(currentScale)) currentScale = 1;
+
+                    tableDragOffsetX = (event.clientX - rect.left);
+                    tableDragOffsetY = (event.clientY - rect.top);
+
+                    dataTable.style.left = `${rect.left}px`;
+                    dataTable.style.top = `${rect.top}px`;
+                    dataTable.style.transform = `scale(${currentScale})`;
+
+                    document.addEventListener('mousemove', dragTableElement);
+                    document.addEventListener('mouseup', stopDragTableElement);
+                    event.preventDefault();
+                };
+            }
+        }
+
+        function dragTableElement(event) {
+            if (isDraggingTable) {
+                event.preventDefault();
+                let newLeft = event.clientX - tableDragOffsetX;
+                let newTop = event.clientY - tableDragOffsetY;
+
+                const vpWidth = document.documentElement.clientWidth;
+                const vpHeight = document.documentElement.clientHeight;
+                const tableRect = dataTableDiv.getBoundingClientRect();
+
+                newLeft = Math.max(0, Math.min(newLeft, vpWidth - tableRect.width));
+                newTop = Math.max(0, Math.min(newTop, vpHeight - tableRect.height));
+
+                dataTableDiv.style.left = newLeft + 'px';
+                dataTableDiv.style.top = newTop + 'px';
+            }
+        }
+
+        function stopDragTableElement() {
+            if (isDraggingTable) {
+                isDraggingTable = false;
+                dataTableDiv.classList.remove('dragging');
+
+                document.removeEventListener('mousemove', dragTableElement);
+                document.removeEventListener('mouseup', stopDragTableElement);
+            }
+        }
+
+
+        function makeTableResizable() {
+            const tableDiv = document.getElementById('data-table');
+            const resizeHandle = document.getElementById('table-resize-handle');
+            if (!tableDiv || !resizeHandle) return;
+
+            resizeHandle.onmousedown = function (e) {
+                if (e.button !== 0 || isDraggingTable) return;
+                e.preventDefault();
+                e.stopPropagation();
+                isResizingTable = true;
+                tableDiv.classList.add('resizing');
+
+                tableResizeStartX = e.clientX;
+                tableResizeStartY = e.clientY;
+
+                const computedStyle = window.getComputedStyle(tableDiv);
+                tableInitialWidth = parseFloat(computedStyle.width);
+                tableInitialHeight = parseFloat(computedStyle.height);
+
+                let currentScale = 1;
+                const transformStyle = computedStyle.transform;
+                if (transformStyle && transformStyle !== 'none' && transformStyle.includes('scale')) {
+                    try {
+                        const matrix = new DOMMatrix(transformStyle);
+                        currentScale = matrix.a;
+                    } catch (err) {
+                        console.warn("DOMMatrix not supported for getting scale in resize, using fallback.", err);
+                        currentScale = tableDiv.classList.contains('table-expanded') ? 1.08 : 0.7;
+                    }
+                } else {
+                    currentScale = tableDiv.classList.contains('table-expanded') ? 1.08 : (tableDiv.style.transform.includes('scale(0.7)') ? 0.7 : 1);
+                }
+                if (currentScale === 0 || isNaN(currentScale) || currentScale < 0.1) currentScale = 1;
+
+
+                document.onmousemove = function (event) {
+                    if (!isResizingTable) return;
+                    event.preventDefault();
+
+                    const deltaX = event.clientX - tableResizeStartX;
+                    const deltaY = event.clientY - tableResizeStartY;
+
+                    let newWidth = tableInitialWidth + (deltaX / currentScale);
+                    let newHeight = tableInitialHeight + (deltaY / currentScale);
+
+                    const minWidth = 200;
+                    const minHeight = 100;
+                    newWidth = Math.max(newWidth, minWidth);
+                    newHeight = Math.max(newHeight, minHeight);
+
+                    tableDiv.style.width = newWidth + 'px';
+                    tableDiv.style.height = newHeight + 'px';
+                };
+
+                document.onmouseup = function () {
+                    isResizingTable = false;
+                    tableDiv.classList.remove('resizing');
+                    document.onmousemove = null;
+                    document.onmouseup = null;
+                };
+            };
+        }
+
+
+
+        function setupLabelPositionControls() {
+            const positions = ['auto', 'top', 'bottom', 'left', 'right'];
+            positions.forEach(pos => {
+                const btn = document.getElementById(`label-pos-${pos}`);
+                if (btn) {
+                    btn.addEventListener('click', function () {
+                        currentLabelPositionOption = pos;
+                        document.querySelectorAll('#label-pos-controls button').forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        showDeviationAnnotation();
+                    });
+                }
+            });
+        }
+
+        function setupLegendControls() {
+            const buttonIds = ['toggle-all', 'toggle-jiphaeng', 'toggle-mokpyo', 'toggle-siljeok', 'toggle-average'];
+            buttonIds.forEach(id => {
+                const oldBtn = document.getElementById(id);
+                if (!oldBtn) return;
+
+                const newBtn = oldBtn.cloneNode(true);
+                newBtn.addEventListener('click', () => {
+                    if (!budgetChart || !budgetChart.data || !budgetChart.data.datasets) return;
+
+                    let mainLabelPattern = null, averageLabelPattern = null;
+                    let isToggleAll = false, isToggleAverageOnly = false;
+
+                    if (id === 'toggle-jiphaeng') { mainLabelPattern = '집행B'; averageLabelPattern = '집행B 평균'; }
+                    else if (id === 'toggle-mokpyo') { mainLabelPattern = '목표A'; averageLabelPattern = '목표A 평균'; }
+                    else if (id === 'toggle-siljeok') { mainLabelPattern = '실적C'; averageLabelPattern = '실적C 평균'; }
+                    else if (id === 'toggle-all') isToggleAll = true;
+                    else if (id === 'toggle-average') isToggleAverageOnly = true;
+
+                    let datasetsWereModified = false;
+
+                    if (isToggleAll) {
+                        const allDatasets = budgetChart.data.datasets;
+                        const allHidden = allDatasets.every(ds => ds.hidden);
+                        allDatasets.forEach(ds => {
+                            if (ds.hidden !== !allHidden) {
+                                ds.hidden = !allHidden; datasetsWereModified = true;
+                                if (ds.hidden) {
+                                    if (selectionPoint1 && selectionPoint1.datasetLabel === ds.label) selectionPoint1 = null;
+                                    if (selectionPoint2 && selectionPoint2.datasetLabel === ds.label) selectionPoint2 = null;
+                                }
+                            }
+                        });
+                        if (datasetsWereModified && !allHidden) {
+                            selectionPoint1 = null; selectionPoint2 = null;
+                        }
+                    } else if (isToggleAverageOnly) {
+                        const averageDatasets = budgetChart.data.datasets.filter(ds => ds.label.endsWith(' 평균'));
+                        if (averageDatasets.length > 0) {
+                            const allHidden = averageDatasets.every(ds => ds.hidden);
+                            averageDatasets.forEach(ds => {
+                                if (ds.hidden !== !allHidden) {
+                                    ds.hidden = !allHidden; datasetsWereModified = true;
+                                    if (ds.hidden) {
+                                        if (selectionPoint1 && selectionPoint1.datasetLabel === ds.label) selectionPoint1 = null;
+                                        if (selectionPoint2 && selectionPoint2.datasetLabel === ds.label) selectionPoint2 = null;
+                                    }
+                                }
+                            });
+                        }
+                    } else if (mainLabelPattern) {
+                        // 4단계 토글 로직:
+                        // 단계 0: 둘 다 숨김 -> 클릭 -> 기준선만 표시
+                        // 단계 1: 기준선만 표시 -> 클릭 -> 기준선+평균 표시
+                        // 단계 2: 기준선+평균 표시 -> 클릭 -> 평균만 표시
+                        // 단계 3: 평균만 표시 -> 클릭 -> 둘 다 숨김
+                        const mainDs = budgetChart.data.datasets.find(ds => ds.label === mainLabelPattern);
+                        const avgDs = budgetChart.data.datasets.find(ds => ds.label === averageLabelPattern);
+                        if (mainDs || avgDs) {
+                            const mainVisible = !!(mainDs && !mainDs.hidden);
+                            const avgVisible = !!(avgDs && !avgDs.hidden);
+                            // 현재 상태 결정
+                            // 0: none, 1: main only, 2: both, 3: avg only
+                            let currentState = 0;
+                            if (mainVisible && avgVisible) currentState = 2;
+                            else if (mainVisible && !avgVisible) currentState = 1;
+                            else if (!mainVisible && avgVisible) currentState = 3;
+                            else currentState = 0;
+                            // 다음 상태 계산
+                            const nextState = (currentState + 1) % 4;
+
+                            if (mainDs) {
+                                const shouldShowMain = (nextState === 1 || nextState === 2);
+                                if (mainDs.hidden === shouldShowMain) { mainDs.hidden = !shouldShowMain; datasetsWereModified = true; }
+                                if (!shouldShowMain && selectionPoint1 && selectionPoint1.datasetLabel === mainDs.label) selectionPoint1 = null;
+                                if (!shouldShowMain && selectionPoint2 && selectionPoint2.datasetLabel === mainDs.label) selectionPoint2 = null;
+                            }
+                            if (avgDs) {
+                                const shouldShowAvg = (nextState === 2 || nextState === 3);
+                                if (avgDs.hidden === shouldShowAvg) { avgDs.hidden = !shouldShowAvg; datasetsWereModified = true; }
+                                if (!shouldShowAvg && selectionPoint1 && selectionPoint1.datasetLabel === avgDs.label) selectionPoint1 = null;
+                                if (!shouldShowAvg && selectionPoint2 && selectionPoint2.datasetLabel === avgDs.label) selectionPoint2 = null;
+                            }
+                        }
+                    }
+
+                    if (datasetsWereModified) {
+                        if (budgetChart) {
+                            budgetChart.options.scales.y.max = calculateMaxY(budgetChart.data.datasets);
+                        }
+                        budgetChart.update();
+                        updateLegendButtonStates();
+                        showDeviationAnnotation();
+                    }
+                });
+                oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+            });
+        }
+
+
+        function updateLegendButtonStates() {
+            if (!budgetChart || !budgetChart.data || !budgetChart.data.datasets) return;
+
+            const updateButtonState = (mainLabelPattern, averageLabelPattern, buttonId, buttonTextPrefix) => {
+                const button = document.getElementById(buttonId); if (!button) return;
+                const mainDataset = budgetChart.data.datasets.find(ds => ds.label === mainLabelPattern);
+                const avgDataset = budgetChart.data.datasets.find(ds => ds.label === averageLabelPattern);
+
+                let isCurrentlyVisible = false;
+                if (mainDataset && !mainDataset.hidden) isCurrentlyVisible = true;
+                if (avgDataset && !avgDataset.hidden) isCurrentlyVisible = true;
+
+                if (mainDataset || avgDataset) {
+                    button.textContent = `${buttonTextPrefix} ${isCurrentlyVisible ? '숨기기' : '보이기'}`;
+                } else {
+                    button.textContent = `${buttonTextPrefix} 전체`;
+                }
+            };
+
+            const updateAverageOnlyButtonState = (buttonId, buttonTextPrefix) => {
+                const button = document.getElementById(buttonId); if (!button) return;
+                const averageDatasets = budgetChart.data.datasets.filter(ds => ds.label.endsWith(' 평균'));
+                if (averageDatasets.length > 0) {
+                    const allHidden = averageDatasets.every(ds => ds.hidden);
+                    button.textContent = `${buttonTextPrefix} ${allHidden ? '보이기' : '숨기기'}`;
+                } else {
+                    button.textContent = `${buttonTextPrefix} 전체`;
+                }
+            };
+
+            const updateAllButtonState = () => {
+                const button = document.getElementById('toggle-all'); if (!button) return;
+                const allDatasets = budgetChart.data.datasets;
+                if (allDatasets.length > 0) {
+                    const allHidden = allDatasets.every(ds => ds.hidden);
+                    button.textContent = `전체 ${allHidden ? '보이기' : '숨기기'}`;
+                } else {
+                    button.textContent = `전체 전체`;
+                }
+            };
+
+            updateButtonState('목표A', '목표A 평균', 'toggle-mokpyo', '목표');
+            updateButtonState('집행B', '집행B 평균', 'toggle-jiphaeng', '집행');
+            updateButtonState('실적C', '실적C 평균', 'toggle-siljeok', '실적');
+            updateAverageOnlyButtonState('toggle-average', '평균만');
+            updateAllButtonState();
+        }
+
+
+        function addMonthSelectionFeatureLogic(evt) {
+            if (!budgetChart || isResizingTable) return;
+
+            const points = budgetChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+            if (points.length === 0) {
+                selectionPoint1 = null;
+                selectionPoint2 = null;
+                showDeviationAnnotation();
+                return;
+            }
+
+            const point = points[0];
+            const dataset = budgetChart.data.datasets[point.datasetIndex];
+            const dataPoint = dataset.data[point.index];
+
+            if (!dataPoint || dataset.hidden) {
+                showDeviationAnnotation();
+                return;
+            }
+
+            const clickedPointInfo = {
+                monthIndex: dataPoint.x,
+                datasetLabel: dataset.label,
+                value: dataPoint.y,
+                color: dataset.borderColor || dataset.backgroundColor
+            };
+
+            if (clickedPointInfo) {
+                if (!selectionPoint1) {
+                    selectionPoint1 = clickedPointInfo;
+                    selectionPoint2 = null;
+                } else if (!selectionPoint2) {
+                    if (selectionPoint1.monthIndex === clickedPointInfo.monthIndex && selectionPoint1.datasetLabel === clickedPointInfo.datasetLabel) {
+                        selectionPoint1 = null;
+                    } else {
+                        selectionPoint2 = clickedPointInfo;
+                    }
+                } else {
+                    selectionPoint1 = clickedPointInfo;
+                    selectionPoint2 = null;
+                }
+            }
+            showDeviationAnnotation();
+        }
+
+
+        function showDeviationAnnotation() {
+            if (!budgetChart || !budgetChart.options || !budgetChart.options.plugins || !budgetChart.options.plugins.annotation) return;
+
+            const ann = budgetChart.options.plugins.annotation.annotations;
+            Object.keys(ann).forEach(key => {
+                if (key !== 'currentMonthLineMarker' && key !== 'zoomPreviewRect') {
+                    ann[key] = undefined;
+                }
+            });
+
+            if (selectionPoint1) {
+                const monthLabel1 = chartMonths[selectionPoint1.monthIndex];
+                ann.selectedPointMarker1 = {
+                    id: 'selectedPointMarker1', type: 'point',
+                    xValue: selectionPoint1.monthIndex, yValue: selectionPoint1.value,
+                    backgroundColor: selectionPoint1.color || 'rgba(25, 118, 210, 0.8)',
+                    borderColor: '#FFFFFF', borderWidth: 2.5, radius: 9,
+                    label: {
+                        enabled: true, content: `${selectionPoint1.datasetLabel.replace(" 평균", "Avg")} (${monthLabel1})`,
+                        position: 'top', yAdjust: -18, backgroundColor: 'rgba(255,255,255,0.9)',
+                        font: { size: 13, weight: '600' }, color: selectionPoint1.color || '#1976d2',
+                        padding: { top: 4, bottom: 4, left: 6, right: 6 }, borderRadius: 4,
+                        shadowOffsetX: 1, shadowOffsetY: 1, shadowBlur: 2, shadowColor: 'rgba(0,0,0,0.15)'
+                    }
+                };
+            }
+
+            if (selectionPoint2) {
+                const monthLabel2 = chartMonths[selectionPoint2.monthIndex];
+                ann.selectedPointMarker2 = {
+                    id: 'selectedPointMarker2', type: 'point',
+                    xValue: selectionPoint2.monthIndex, yValue: selectionPoint2.value,
+                    backgroundColor: selectionPoint2.color || 'rgba(233, 30, 99, 0.8)',
+                    borderColor: '#FFFFFF', borderWidth: 2.5, radius: 9,
+                    label: {
+                        enabled: true, content: `${selectionPoint2.datasetLabel.replace(" 평균", "Avg")} (${monthLabel2})`,
+                        position: 'top', yAdjust: -18, backgroundColor: 'rgba(255,255,255,0.9)',
+                        font: { size: 13, weight: '600' }, color: selectionPoint2.color || '#e91e63',
+                        padding: { top: 4, bottom: 4, left: 6, right: 6 }, borderRadius: 4,
+                        shadowOffsetX: 1, shadowOffsetY: 1, shadowBlur: 2, shadowColor: 'rgba(0,0,0,0.15)'
+                    }
+                };
+            }
+
+            if (selectionPoint1 && selectionPoint2) {
+                if (selectionPoint1.value != null && selectionPoint2.value != null) {
+                    const val1 = selectionPoint1.value; const val2 = selectionPoint2.value;
+                    const diff = val2 - val1;
+                    const yLineMin = Math.min(val1, val2); const yLineMax = Math.max(val1, val2);
+
+                    let lineXDataValue;
+                    const pixelXOffsetForLine = 7;
+                    const targetMonthIndexForLine = Math.max(selectionPoint1.monthIndex, selectionPoint2.monthIndex);
+                    const basePixelXForLine = budgetChart.scales.x.getPixelForValue(targetMonthIndexForLine);
+
+                    if (selectionPoint1.monthIndex === selectionPoint2.monthIndex) {
+                        const chartArea = budgetChart.chartArea;
+                        if (basePixelXForLine + pixelXOffsetForLine + 5 > chartArea.right) {
+                            lineXDataValue = budgetChart.scales.x.getValueForPixel(basePixelXForLine - pixelXOffsetForLine);
+                        } else {
+                            lineXDataValue = budgetChart.scales.x.getValueForPixel(basePixelXForLine + pixelXOffsetForLine);
+                        }
+                    } else {
+                        if (targetMonthIndexForLine < chartMonths.length - 1 || selectionPoint1.monthIndex < targetMonthIndexForLine) {
+                            lineXDataValue = budgetChart.scales.x.getValueForPixel(basePixelXForLine + pixelXOffsetForLine);
+                        } else {
+                            lineXDataValue = budgetChart.scales.x.getValueForPixel(basePixelXForLine - pixelXOffsetForLine);
+                        }
+                    }
+
+                    ann.deviationConnectLine = {
+                        type: 'line', xMin: selectionPoint1.monthIndex, yMin: val1,
+                        xMax: selectionPoint2.monthIndex, yMax: val2,
+                        borderColor: 'rgba(150,150,150,0.7)', borderWidth: 1.5, borderDash: [4, 4]
+                    };
+
+                    ann.deviationValueLine = {
+                        id: 'deviationValueLine', type: 'line',
+                        xMin: lineXDataValue, xMax: lineXDataValue,
+                        yMin: yLineMin, yMax: yLineMax,
+                        borderColor: 'rgba(255, 152, 0, 0.85)', borderWidth: 3.5,
+                    };
+
+                    if (selectionPoint1.monthIndex === selectionPoint2.monthIndex && Math.abs(val1 - val2) > 0) {
+                        const capLengthPixel = 6; const capColor = 'rgba(255, 152, 0, 0.85)'; const capWidth = 2.5;
+                        const linePixelX = budgetChart.scales.x.getPixelForValue(lineXDataValue);
+                        ann.deviationTopCap = {
+                            type: 'line',
+                            xMin: budgetChart.scales.x.getValueForPixel(linePixelX - capLengthPixel),
+                            xMax: budgetChart.scales.x.getValueForPixel(linePixelX + capLengthPixel),
+                            yMin: yLineMax, yMax: yLineMax, borderColor: capColor, borderWidth: capWidth
+                        };
+                        ann.deviationBottomCap = {
+                            type: 'line',
+                            xMin: budgetChart.scales.x.getValueForPixel(linePixelX - capLengthPixel),
+                            xMax: budgetChart.scales.x.getValueForPixel(linePixelX + capLengthPixel),
+                            yMin: yLineMin, yMax: yLineMin, borderColor: capColor, borderWidth: capWidth
+                        };
+                    }
+
+                    const ds1LabelShort = selectionPoint1.datasetLabel.replace(" 平均", "Avg");
+                    const ds2LabelShort = selectionPoint2.datasetLabel.replace(" 平均", "Avg");
+                    const month1Short = chartMonths[selectionPoint1.monthIndex];
+                    const month2Short = chartMonths[selectionPoint2.monthIndex];
+                    const labelText = `${ds2LabelShort}(${month2Short}) - ${ds1LabelShort}(${month1Short}) = ${(diff / 1e6).toFixed(2)}백만`;
+
+                    const fontSize = 19; const paddingValue = 10;
+                    const ctx = budgetChart.ctx; ctx.font = `700 ${fontSize}px 'Noto Sans KR', sans-serif`;
+                    const textMetrics = ctx.measureText(labelText); const estimatedLabelWidth = textMetrics.width + (paddingValue * 2);
+                    const estimatedLabelHeight = fontSize + (paddingValue * 2) + 5;
+
+                    let labelXValue = lineXDataValue, labelYValue = (yLineMin + yLineMax) / 2;
+                    let labelXAdjust = 0, labelYAdjust = 0;
+                    const labelOffset = 15;
+                    const labelHeightOffset = estimatedLabelHeight / 2 + labelOffset;
+                    const labelWidthOffset = estimatedLabelWidth / 2 + labelOffset;
+
+                    if (currentLabelPositionOption === 'top') labelYAdjust = -labelHeightOffset;
+                    else if (currentLabelPositionOption === 'bottom') labelYAdjust = labelHeightOffset;
+                    else if (currentLabelPositionOption === 'left') {
+                        labelXAdjust = -labelWidthOffset;
+                        const linePixelXForLabel = budgetChart.scales.x.getPixelForValue(lineXDataValue);
+                        if (linePixelXForLabel + labelXAdjust < budgetChart.chartArea.left + 10) {
+                            labelXAdjust = -(linePixelXForLabel - budgetChart.chartArea.left - 10) + 5;
+                        }
+                    } else if (currentLabelPositionOption === 'right') {
+                        labelXAdjust = labelWidthOffset;
+                        const linePixelXForLabel = budgetChart.scales.x.getPixelForValue(lineXDataValue);
+                        if (linePixelXForLabel + labelXAdjust + estimatedLabelWidth > budgetChart.chartArea.right - 10) {
+                            labelXAdjust = (budgetChart.chartArea.right - 10 - linePixelXForLabel - estimatedLabelWidth) - 5;
+                        }
+                    } else {
+                        const chartRightEdge = budgetChart.chartArea.right;
+                        const linePixelXForLabel = budgetChart.scales.x.getPixelForValue(lineXDataValue);
+                        if (linePixelXForLabel + estimatedLabelWidth + 22 > chartRightEdge - 15) {
+                            labelXAdjust = -estimatedLabelWidth - 22;
+                        } else {
+                            labelXAdjust = 22;
+                        }
+
+                        const yPixelLineMin = budgetChart.scales.y.getPixelForValue(yLineMin);
+                        const yPixelLineMax = budgetChart.scales.y.getPixelForValue(yLineMax);
+                        const isLineUpward = yPixelLineMax < yPixelLineMin;
+
+                        if (Math.abs(yLineMax - yLineMin) < 15) {
+                            labelYAdjust = - (estimatedLabelHeight / 2 + 12);
+                        } else if (isLineUpward) {
+                            labelYAdjust = - (estimatedLabelHeight / 2 + 10);
+                        } else {
+                            labelYAdjust = (estimatedLabelHeight / 2 + 10);
+                        }
+                    }
+
+                    ann.deviationLabel = {
+                        id: 'deviationLabelAnnotation', type: 'label',
+                        xValue: labelXValue, yValue: labelYValue,
+                        xAdjust: labelXAdjust, yAdjust: labelYAdjust,
+                        backgroundColor: 'rgba(255, 253, 231, 0.98)', borderColor: 'rgba(212, 175, 55, 0.95)',
+                        borderWidth: 1.5, color: '#282C34',
+                        font: { size: fontSize, weight: '700', family: "'Noto Sans KR', 'Apple SD Gothic Neo', Arial, sans-serif" },
+                        content: labelText,
+                        padding: { top: paddingValue, bottom: paddingValue, left: paddingValue + 4, right: paddingValue + 4 },
+                        borderRadius: 8,
+                        shadowOffsetX: 2, shadowOffsetY: 2, shadowBlur: 5, shadowColor: 'rgba(0,0,0,0.28)'
+                    };
+                } else {
+                    ann.deviationLabel = {
+                        id: 'deviationLabelAnnotation', type: 'label',
+                        xValue: (selectionPoint1.monthIndex + (selectionPoint2 ? selectionPoint2.monthIndex : selectionPoint1.monthIndex)) / 2,
+                        yValue: budgetChart.scales.y.getPixelForValue(budgetChart.scales.y.min + (budgetChart.scales.y.max - budgetChart.scales.y.min) * 0.1),
+                        backgroundColor: 'rgba(100,100,100,0.7)', color: '#fff',
+                        font: { size: 12, weight: 'normal' },
+                        content: '선택된 포인트 값 부족', padding: 6, borderRadius: 4
+                    };
+                }
+            }
+            budgetChart.update('none');
+        }
+
+    </script>
+</body>
+
+</html>
