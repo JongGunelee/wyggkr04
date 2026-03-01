@@ -135,6 +135,35 @@
     .not-allowed {
       cursor: not-allowed !important;
     }
+
+    /* 툴팁 내 텍스트 선택 시 가독성 확보 (무결성 보증 리팩토링) */
+    .floating-tooltip *::selection,
+    .floating-tooltip::selection {
+      background-color: #3b82f6 !important;
+      color: #ffffff !important;
+    }
+
+    /* 선택 모드 시 연출: 물리적 크기 확대 대신 텍스트 가독성 중심 처리 (UX 최적화) */
+    .floating-tooltip.is-selecting-text .tooltip-content-area {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      /* transform: scale(1.05);  <- 사용자 의견 반영: 전체 영역 확대 제거 */
+    }
+
+    /* 드래그되지 않은 모든 글자를 희미하게 처리하여 선택 영역 강조 */
+    .floating-tooltip.is-selecting-text .tooltip-content-area * {
+      color: rgba(255, 255, 255, 0.2) !important;
+      transition: color 0.2s ease;
+    }
+
+    /* 선택된 영역은 페이드 효과를 무시하고 가장 선명하게 유지 */
+    .floating-tooltip.is-selecting-text .tooltip-content-area *::selection {
+      color: #ffffff !important;
+      background-color: #3b82f6 !important;
+      -webkit-text-fill-color: #ffffff !important;
+      /* Safari/Chrome 가독성 보증 */
+      transition: none;
+    }
+  </style>
   </style>
 
   <!-- 임베디드 데이터 저장소 - HTML 저장 시 이 영역이 업데이트됩니다 -->
@@ -339,13 +368,13 @@
           <div className="bg-slate-800 p-2 rounded border border-slate-700">
             <div className="text-[10px] text-slate-500 mb-1">{label1}</div>
             <div className="text-sm font-bold text-amber-400">
-              <SmartCurrencyDisplay value={total} />
+              <SmartCurrencyDisplay value={total} unitMode="billion" />
             </div>
           </div>
           <div className="bg-slate-800 p-2 rounded border border-slate-700">
             <div className="text-[10px] text-slate-500 mb-1">{label2}</div>
             <div className="text-sm font-bold text-green-400">
-              <SmartCurrencyDisplay value={confirmed} />
+              <SmartCurrencyDisplay value={confirmed} unitMode="billion" />
             </div>
           </div>
         </div>
@@ -818,6 +847,7 @@
     // ------- 유틸리티 함수 (포맷터) -------
     const Formatters = {
       currency: (value) => new Intl.NumberFormat('ko-KR').format(value),
+      toBillion: (value) => (value / 100000).toFixed(3),
       fullCurrency: (value) => {
         const fullValue = value * DOMAIN_CONSTANTS.CURRENCY_UNIT;
         const formatter = new Intl.NumberFormat('ko-KR');
@@ -826,13 +856,20 @@
         }
         return `${formatter.format((fullValue / 1000000).toFixed(2))} 백만원`;
       },
-      smartCurrency: (value) => {
+      smartCurrency: (value, unitMode = 'smart') => {
         if (!value || value === 0) return { main: "0", decimal: null, unit: "" };
         let displayValue, unit;
-        if (value >= 100000) { displayValue = (value / 100000).toFixed(3); unit = "억원"; }
-        else if (value >= 10000) { displayValue = (value / 10000).toFixed(3); unit = "천만원"; }
-        else if (value >= 1000) { displayValue = (value / 1000).toFixed(3); unit = "백만원"; }
-        else return { main: new Intl.NumberFormat('ko-KR').format(value), decimal: null, unit: "" };
+
+        if (unitMode === 'billion') {
+          displayValue = (value / 100000).toFixed(3);
+          unit = "억원";
+        } else {
+          if (value >= 100000) { displayValue = (value / 100000).toFixed(3); unit = "억원"; }
+          else if (value >= 10000) { displayValue = (value / 10000).toFixed(3); unit = "천만원"; }
+          else if (value >= 1000) { displayValue = (value / 1000).toFixed(3); unit = "백만원"; }
+          else return { main: new Intl.NumberFormat('ko-KR').format(value), decimal: null, unit: "" };
+        }
+
         const [main, decimal] = displayValue.split('.');
         return { main: new Intl.NumberFormat('ko-KR').format(Number(main)), decimal, unit };
       }
@@ -840,11 +877,11 @@
 
     /** 
      * 스마트 통화 디스플레이 컴포넌트
-     * - 큰 금액은 억/천만/백만 단위로 자동 절사
+     * - 큰 금액은 억/천만/백만 단위로 자동 절사 (unitMode="billion" 시 억원 고정)
      * - 소수점 이하는 위첨자 처리 및 하단에 연한 밑줄 추가 (UX 디테일)
      */
-    const SmartCurrencyDisplay = ({ value, className = "", underlineColor = "border-slate-300/60" }) => {
-      const { main, decimal, unit } = Formatters.smartCurrency(value);
+    const SmartCurrencyDisplay = ({ value, className = "", underlineColor = "border-slate-300/60", unitMode = "smart" }) => {
+      const { main, decimal, unit } = Formatters.smartCurrency(value, unitMode);
       return (
         <span className={`inline-flex items-baseline ${className}`}>
           <span>{main}</span>
@@ -1189,7 +1226,7 @@
     // ------- 프레젠테이션 컴포넌트들 -------
 
     /** 통계 카드 컴포넌트 - React.memo로 불필요한 리렌더링 방지 */
-    const StatCard = memo(({ icon: Icon, label, value, colorClass, subLabel, confirmedCount, totalCount, onMouseEnter, onMouseLeave }) => {
+    const StatCard = memo(({ icon: Icon, label, value, colorClass, subLabel, confirmedCount, totalCount, onMouseEnter, onMouseLeave, isCurrency = true }) => {
       const isActive = value > 0;
       const themeColor = colorClass.includes('blue') ? 'blue' :
         colorClass.includes('orange') ? 'orange' :
@@ -1226,7 +1263,11 @@
             {/* Value Row Trigger */}
             <div className={`cursor-help w-fit text-xl font-black truncate transition-colors duration-300 pl-[28px] ${isActive ? (themeColor === 'blue' ? 'text-blue-600' : themeColor === 'orange' ? 'text-orange-600' : themeColor === 'purple' ? 'text-purple-600' : themeColor === 'green' ? 'text-green-600' : 'text-slate-800') : 'text-slate-400'}`}
               onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
-              <SmartCurrencyDisplay value={value} />
+              {isCurrency ? (
+                <SmartCurrencyDisplay value={value} unitMode="billion" />
+              ) : (
+                <span>{Formatters.currency(value)}</span>
+              )}
             </div>
 
             {/* Sublabel Row Trigger */}
@@ -1809,6 +1850,53 @@
       </div>
     );
 
+    /** 툴팁 내 상태 변경 인디케이터 (P0226 이식) */
+    const StatusIndicator = ({ status, onSetStatus }) => {
+      const getStatusStyle = (s) => {
+        switch (s) {
+          case 'CONFIRMED': return 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200';
+          case 'REVIEW': return 'bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-200';
+          case 'CARRYOVER': return 'bg-purple-100 text-purple-700 border-purple-300 hover:bg-purple-200';
+          case 'CANCELLED': return 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200';
+          default: return 'bg-slate-100 text-slate-500 border-slate-300';
+        }
+      };
+
+      const getStatusLabel = (s) => {
+        switch (s) {
+          case 'CONFIRMED': return '확정';
+          case 'REVIEW': return '검토중';
+          case 'CARRYOVER': return '이월';
+          case 'CANCELLED': return '취소';
+          default: return '미정';
+        }
+      };
+
+      const nextStatusMap = {
+        'CONFIRMED': 'REVIEW',
+        'REVIEW': 'CARRYOVER',
+        'CARRYOVER': 'CANCELLED',
+        'CANCELLED': 'CONFIRMED'
+      };
+
+      const handleClick = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const next = nextStatusMap[status] || 'REVIEW';
+        onSetStatus(next);
+      };
+
+      return (
+        <button
+          onClick={handleClick}
+          className={`px-1.5 py-0.5 rounded border text-[9px] font-bold tracking-tighter transition-colors ${getStatusStyle(status)} cursor-pointer`}
+          title="클릭하여 상태 변경"
+        >
+          {getStatusLabel(status)}
+        </button>
+      );
+    };
+
     /** 이동 및 크기 조정 가능한 툴팁 컴포넌트 */
     const FloatingTooltip = ({
       data,
@@ -1817,13 +1905,23 @@
       onPin,
       onMouseEnter,
       onMouseLeave,
-      style = {}
+      style = {},
+      liveItems = [],
+      onSetStatus
     }) => {
       const tooltipRef = useRef(null);
       const [pos, setPos] = useState({ x: data.x, y: data.y });
       const [dragging, setDragging] = useState(false);
       const [rel, setRel] = useState({ x: 0, y: 0 });
       const [isFlipped, setIsFlipped] = useState(false);
+      const [isSelecting, setIsSelecting] = useState(false);
+
+      // 텍스트 선택 해제 감지
+      useEffect(() => {
+        const handleGlobalMouseUp = () => setIsSelecting(false);
+        window.addEventListener('mouseup', handleGlobalMouseUp);
+        return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+      }, []);
 
       // Clamping and Boundary Logic
       const adjustPosition = useCallback((x, y) => {
@@ -1894,8 +1992,24 @@
       }, [pos.x, pos.y, adjustPosition]);
 
       const handleMouseDown = (e) => {
+        // 이미 선택 중이거나 텍스트 영역 클릭 시 드래그 방지
+        const isContentArea = e.target.closest('.tooltip-content-area');
+        const isInteractive = e.target.closest('button, input, textarea, [contenteditable="true"]');
+
+        if (isContentArea || isInteractive) {
+          setIsSelecting(true);
+          // 윈도우 레벨 마우스업에서 선택 해제 처리
+          const cleanUp = () => {
+            setIsSelecting(false);
+            window.removeEventListener('mouseup', cleanUp);
+          };
+          window.addEventListener('mouseup', cleanUp);
+          return;
+        }
+
         if (!isPinned) return;
         if (e.target.closest('.close-btn')) return;
+
         setDragging(true);
         setRel({ x: e.clientX - pos.x, y: e.clientY - pos.y });
         e.stopPropagation();
@@ -1943,7 +2057,7 @@
           }}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
-          className={`floating-tooltip fixed z-[100] bg-slate-900 border text-white rounded-xl shadow-2xl flex flex-col transition-all overflow-hidden active:scale-[0.98] select-text ${isPinned ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-blue-500/20' : 'border-slate-700 animate-in fade-in zoom-in-95 duration-200 cursor-pointer pointer-events-auto hover:border-blue-400/50'}`}
+          className={`floating-tooltip fixed z-[100] bg-slate-900 border text-white rounded-xl shadow-2xl flex flex-col transition-all overflow-hidden active:scale-[0.98] select-text selection:bg-blue-600 selection:text-white ${isSelecting ? 'is-selecting-text' : ''} ${isPinned ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-blue-500/20' : 'border-slate-700 animate-in fade-in zoom-in-95 duration-200 cursor-pointer pointer-events-auto hover:border-blue-400/50'}`}
           style={finalStyle}
         >
           {/* Safety Bridge / Magnetic Zone: Larger hit area to bridge the gap */}
@@ -1985,7 +2099,7 @@
           </div>
 
           {/* Content Area (Hoisted to Presentation Layer) */}
-          <div className="p-4 flex-1">
+          <div className="p-4 flex-1 tooltip-content-area">
             <TooltipContent meta={data.meta} />
             {data.grouped ? (
               <div className="space-y-4">
@@ -2033,12 +2147,17 @@
                         </span>
                       </div>
                       <ul className="space-y-2 custom-scrollbar">
-                        {groupItems.map((item, idx) => (
-                          <li key={idx} className="flex justify-between items-start text-[10px] gap-4 border-b border-slate-800/10 pb-1.5 last:border-0 hover:bg-white/5 px-1 -mx-1 rounded transition-colors group/item">
-                            <span className={`flex-1 text-left leading-relaxed ${groupName.includes('취소') ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{idx + 1}. {item.name}</span>
-                            <span className={`font-bold whitespace-nowrap ${colorClass.replace('line-through', '')}`}>{Formatters.currency(item.cost)}</span>
-                          </li>
-                        ))}
+                        {groupItems.map((item, idx) => {
+                          const liveItem = liveItems.find(li => li.id === item.id);
+                          const currentStatus = liveItem ? liveItem.status : item.status;
+                          return (
+                            <li key={idx} className="flex justify-between items-center text-[10px] gap-2 border-b border-slate-800/10 pb-1.5 last:border-0 hover:bg-white/5 px-1 -mx-1 rounded transition-colors group/item">
+                              {onSetStatus && <StatusIndicator status={currentStatus} onSetStatus={(newStatus) => onSetStatus(item.id, 'status', newStatus)} />}
+                              <span className={`flex-1 text-left leading-relaxed ${groupName.includes('취소') ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{idx + 1}. {item.name}</span>
+                              <span className={`font-bold whitespace-nowrap ${colorClass.replace('line-through', '')}`}>{Formatters.currency(item.cost)}</span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   );
@@ -2046,12 +2165,17 @@
               </div>
             ) : data.items?.length > 0 && (
               <ul className="space-y-2 custom-scrollbar">
-                {data.items.map((item, idx) => (
-                  <li key={idx} className="flex justify-between items-start text-[10px] gap-4 border-b border-slate-800/50 pb-1.5 last:border-0">
-                    <span className="text-slate-300 flex-1 text-left leading-relaxed">{idx + 1}. {item.name}</span>
-                    <span className="font-bold whitespace-nowrap text-amber-200">{Formatters.currency(item.cost)}</span>
-                  </li>
-                ))}
+                {data.items.map((item, idx) => {
+                  const liveItem = liveItems.find(li => li.id === item.id);
+                  const currentStatus = liveItem ? liveItem.status : item.status;
+                  return (
+                    <li key={idx} className="flex justify-between items-center text-[10px] gap-2 border-b border-slate-800/50 pb-1.5 last:border-0 hover:bg-white/5 px-1 -mx-1 rounded transition-colors">
+                      {onSetStatus && <StatusIndicator status={currentStatus} onSetStatus={(newStatus) => onSetStatus(item.id, 'status', newStatus)} />}
+                      <span className="text-slate-300 flex-1 text-left leading-relaxed">{idx + 1}. {item.name}</span>
+                      <span className="font-bold whitespace-nowrap text-amber-200">{Formatters.currency(item.cost)}</span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
             {!isPinned && (
@@ -2546,8 +2670,8 @@
           content = (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <StatCard icon={Icons.CheckCircle2} label="총 항목 수" value={insights.total} colorClass="border-t-slate-500" subLabel="건" />
-                <StatCard icon={Icons.Calendar} label="월 평균 등록" value={Math.round(insights.total / 12)} colorClass="border-t-slate-500" subLabel="건/월" />
+                <StatCard icon={Icons.CheckCircle2} label="총 항목 수" value={insights.total} isCurrency={false} colorClass="border-t-slate-500" subLabel="건" />
+                <StatCard icon={Icons.Calendar} label="월 평균 등록" value={Math.round(insights.total / 12)} isCurrency={false} colorClass="border-t-slate-500" subLabel="건/월" />
               </div>
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <h4 className="font-bold text-slate-700 mb-2 text-sm">데이터 무결성 상태</h4>
@@ -2881,6 +3005,8 @@
               onMouseEnter={() => { if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current); }}
               onMouseLeave={hideTooltip}
               style={{ backgroundColor: '#1e293b' }}
+              liveItems={items}
+              onSetStatus={handlers.handleChange}
             />
           )}
         </div>
@@ -3094,6 +3220,8 @@
                 onMouseEnter={() => { if (planData.tooltipTimerRef.current) clearTimeout(planData.tooltipTimerRef.current); }}
                 onMouseLeave={planData.hideGlobalTooltip}
                 style={planData.activeTooltip.style || {}}
+                liveItems={planData.items}
+                onSetStatus={planData.handleChange}
               />
             )}
           </div>
