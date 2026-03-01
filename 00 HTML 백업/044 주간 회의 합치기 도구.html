@@ -1,10 +1,107 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <title>주간 회의록 내용 합치기 도구</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+        /* ═══════════════════════════════════════════════════════════════════════════════
+       CUSTOM CURSOR SYSTEM (PRD COMPLIANT - ABSOLUTE ENFORCEMENT v2.0)
+       ═══════════════════════════════════════════════════════════════════════════════ */
+        :root {
+            --cursor-default: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='39' height='39' viewBox='0 0 32 32'%3E%3Cpath d='M17 2a2 2 0 0 0-2 2v11l-1.4-1.4a2.1 2.1 0 0 0-3 0 2.1 2.1 0 0 0 0 3L17 23v6h10v-6l3-8.5a2 2 0 0 0-1.1-2.6 2 2 0 0 0-2.6 1.1L25 16V4a2 2 0 0 0-4 0v8h-2V4a2 2 0 0 0-2-2z' fill='%23f4c030' stroke='%23d4a017' stroke-width='0.5'/%3E%3C/svg%3E") 13 3, auto !important;
+            --cursor-active: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='39' height='39' viewBox='0 0 32 32'%3E%3Cpath d='M10 14a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v0a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v0a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v7c0 5-3 8-7 8h-3c-4 0-7-3-7-8v-3a2 2 0 0 1 2-2z' fill='%23f4c030' stroke='%23d4a017' stroke-width='0.5'/%3E%3C/svg%3E") 13 10, auto !important;
+        }
+
+        /* 1. Base Enforcement: Absolute override on all elements */
+        html,
+        body,
+        *,
+        *::before,
+        *::after {
+            cursor: var(--cursor-default) !important;
+        }
+
+        /* 2. Exceptions: Text input areas */
+        input,
+        textarea,
+        [contenteditable="true"],
+        [contenteditable="true"] *,
+        .select-text,
+        .select-text * {
+            cursor: text !important;
+        }
+
+        button:disabled,
+        .not-allowed {
+            cursor: not-allowed !important;
+        }
+
+        /* 3. Explicit Function Cursors */
+        [style*="cursor: nwse-resize"],
+        [class*="top-left"],
+        [class*="bottom-right"] {
+            cursor: nwse-resize !important;
+        }
+
+        [style*="cursor: nesw-resize"],
+        [class*="top-right"],
+        [class*="bottom-left"] {
+            cursor: nesw-resize !important;
+        }
+
+        [style*="cursor: ns-resize"],
+        [class*="ch-top"],
+        [class*="ch-bottom"] {
+            cursor: ns-resize !important;
+        }
+
+        [style*="cursor: ew-resize"],
+        [class*="ch-left"],
+        [class*="ch-right"] {
+            cursor: ew-resize !important;
+        }
+
+        [style*="cursor: se-resize"] {
+            cursor: se-resize !important;
+        }
+
+        [style*="cursor: move"],
+        .image-annotation-text,
+        #cropBox {
+            cursor: move !important;
+        }
+
+        [style*="cursor: grabbing"],
+        [style*="cursor: grab"] {
+            cursor: grab !important;
+        }
+
+        [style*="cursor: copy"] {
+            cursor: copy !important;
+        }
+
+        [style*="cursor: crosshair"],
+        .resize-handle-img,
+        .ghost-image {
+            cursor: crosshair !important;
+        }
+
+        [style*="cursor: zoom-in"] {
+            cursor: zoom-in !important;
+        }
+
+        [style*="cursor: zoom-out"] {
+            cursor: zoom-out !important;
+        }
+
+        /* 4. Clicking state: Highest Priority Universal Override */
+        body.is-clicking,
+        body.is-clicking * {
+            cursor: var(--cursor-active) !important;
+        }
 
         body {
             font-family: 'Noto Sans KR', sans-serif;
@@ -41,7 +138,8 @@
 
         .step-wrapper {
             margin-bottom: 25px;
-            position: relative; /* 툴팁 기준점 */
+            position: relative;
+            /* 툴팁 기준점 */
         }
 
         .drop-area {
@@ -106,7 +204,8 @@
             font-weight: 700;
             margin-top: 20px;
             transition: transform 0.2s, box-shadow 0.2s;
-            position: relative; /* 툴팁 기준점 */
+            position: relative;
+            /* 툴팁 기준점 */
         }
 
         #mergeBtn:hover:not(:disabled) {
@@ -127,9 +226,18 @@
             font-weight: 500;
             min-height: 24px;
         }
-        #status.success { color: #28a745; }
-        #status.error { color: #dc3545; }
-        #status.processing { color: #007bff; }
+
+        #status.success {
+            color: #28a745;
+        }
+
+        #status.error {
+            color: #dc3545;
+        }
+
+        #status.processing {
+            color: #007bff;
+        }
 
         .tooltip {
             visibility: hidden;
@@ -149,7 +257,7 @@
             font-size: 13px;
             line-height: 1.5;
         }
-        
+
         .tooltip::after {
             content: "";
             position: absolute;
@@ -161,12 +269,14 @@
             border-color: #333 transparent transparent transparent;
         }
 
-        .step-wrapper:hover .tooltip, #mergeBtn:hover .tooltip {
+        .step-wrapper:hover .tooltip,
+        #mergeBtn:hover .tooltip {
             visibility: visible;
             opacity: 1;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>회의록 합치기 도구 ✨</h1>
@@ -176,7 +286,8 @@
         </p>
 
         <div class="step-wrapper" id="source-wrapper">
-            <div class="tooltip"><b>[내용 가져올 파일]</b><br>지난 주에 작업하고 "HTML로 저장"한 회의록 파일을 선택해주세요. 이 파일의 '금주' 컬럼 내용이 복사됩니다.</div>
+            <div class="tooltip"><b>[내용 가져올 파일]</b><br>지난 주에 작업하고 "HTML로 저장"한 회의록 파일을 선택해주세요. 이 파일의 '금주' 컬럼 내용이 복사됩니다.
+            </div>
             <div class="drop-area" id="sourceDropArea">
                 <input type="file" id="sourceFile" accept=".html">
                 <div class="drop-area-content">
@@ -188,7 +299,8 @@
         </div>
 
         <div class="step-wrapper" id="target-wrapper">
-            <div class="tooltip"><b>[내용 붙여넣을 파일]</b><br>이번 주에 새로 작업할 원본(템플릿) 회의록 파일을 선택해주세요. 이 파일의 비어있는 '전주' 컬럼이 채워집니다.</div>
+            <div class="tooltip"><b>[내용 붙여넣을 파일]</b><br>이번 주에 새로 작업할 원본(템플릿) 회의록 파일을 선택해주세요. 이 파일의 비어있는 '전주' 컬럼이 채워집니다.
+            </div>
             <div class="drop-area" id="targetDropArea">
                 <input type="file" id="targetFile" accept=".html">
                 <div class="drop-area-content">
@@ -286,39 +398,39 @@
                 const targetContent = await targetFile.text();
 
                 const parser = new DOMParser();
-                
+
                 // 1. 원본(지난 주) 문서를 파싱하여 '금주(this-week)' 컬럼 추출
                 const sourceDoc = parser.parseFromString(sourceContent, 'text/html');
                 const sourceThisWeekColumn = sourceDoc.querySelector('.column[data-column-type="this-week"]');
                 if (!sourceThisWeekColumn) throw new Error("지난 주 파일에서 '금주' 영역(.column[data-column-type=\"this-week\"])을 찾을 수 없습니다.");
-                
+
                 // 2. 대상(이번 주 양식) 문서를 파싱
                 const targetDoc = parser.parseFromString(targetContent, 'text/html');
                 const targetLastWeekColumn = targetDoc.querySelector('.column[data-column-type="last-week"]');
                 if (!targetLastWeekColumn) throw new Error("새로운 양식 파일에서 '전주' 영역(.column[data-column-type=\"last-week\"])을 찾을 수 없습니다.");
-                
+
                 // 3. '지난주' 파일에서 필요한 데이터만 추출
                 const sourceTitleElement = sourceThisWeekColumn.querySelector('.column-title');
                 const sourceContentNodes = sourceThisWeekColumn.querySelectorAll(':scope > *:not(.column-title)');
-                
+
                 // 4. 대상 '전주' 컬럼의 제목과 내용을 업데이트
                 const targetTitleSpan = targetLastWeekColumn.querySelector('.column-title span[data-editable-type="column-title-text"]');
                 if (targetTitleSpan && sourceTitleElement) {
                     const sourceTitleText = sourceTitleElement.textContent.trim().replace(/^금주/, '전주');
                     targetTitleSpan.textContent = sourceTitleText;
                 }
-                
+
                 // 대상의 기존 내용 삭제
                 targetLastWeekColumn.querySelectorAll(':scope > *:not(.column-title)').forEach(el => el.remove());
-                
+
                 // 추출한 내용을 대상에 추가
                 sourceContentNodes.forEach(node => {
                     targetLastWeekColumn.appendChild(node.cloneNode(true));
                 });
-                
+
                 // 5. 수정된 문서 객체를 다시 문자열로 변환하여 최종 HTML 생성
                 let finalHTML = '<!DOCTYPE html>\n' + targetDoc.documentElement.outerHTML;
-                
+
                 // 6. 통합된 파일에 남아있을 수 있는 모든 __SAVED_APP_STATE__ 스크립트를 제거
                 finalHTML = finalHTML.replace(/<script[^>]*>window\.__SAVED_APP_STATE__.*?<\/script>/gs, '');
 
@@ -353,6 +465,18 @@
             }
         });
         // --- END: 핵심 로직 ---
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // GLOBAL INTERACTION HANDLERS (Custom Cursor Tracker)
+        // ═══════════════════════════════════════════════════════════════════════════════
+        document.addEventListener('mousedown', () => {
+            document.body.classList.add('is-clicking');
+        });
+
+        document.addEventListener('mouseup', () => {
+            document.body.classList.remove('is-clicking');
+        });
     </script>
 </body>
+
 </html>
