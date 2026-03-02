@@ -143,16 +143,15 @@
       color: #ffffff !important;
     }
 
-    /* 선택 모드 시 연출: 물리적 크기 확대 대신 텍스트 가독성 중심 처리 (UX 최적화) */
+    /* 선택 모드 시 연출: 물리적 크기 확대 전면 제거 (더블 클릭 안정성 확보) */
     .floating-tooltip.is-selecting-text .tooltip-content-area {
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      /* transform: scale(1.05);  <- 사용자 의견 반영: 전체 영역 확대 제거 */
+      transition: none !important;
     }
 
     /* 드래그되지 않은 모든 글자를 희미하게 처리하여 선택 영역 강조 */
     .floating-tooltip.is-selecting-text .tooltip-content-area * {
-      color: rgba(255, 255, 255, 0.2) !important;
-      transition: color 0.2s ease;
+      color: rgba(255, 255, 255, 0.25) !important;
+      transition: none !important;
     }
 
     /* 선택된 영역은 페이드 효과를 무시하고 가장 선명하게 유지 */
@@ -1100,6 +1099,8 @@
         StorageRepository.saveToLocalStorage(items);
       }, [items]);
 
+      const [nameFilter, setNameFilter] = useState(null);
+
       // 통계 계산
       const stats = useMemo(() => calculateStatistics(items), [items]);
 
@@ -1114,7 +1115,7 @@
 
         tooltipTimerRef.current = setTimeout(() => {
           setActiveTooltip(prev => (prev?.isPinned ? prev : data));
-        }, 1000); // 1초간 잔류 시 표시
+        }, 300); // 300ms로 단축하여 반응성 개선
       }, [showTooltips]);
 
       const hideGlobalTooltip = useCallback(() => {
@@ -1176,12 +1177,13 @@
         isItemsExpanded, setIsItemsExpanded,
         isFooterExpanded, setIsFooterExpanded,
         setAllExpanded, setSoloExpanded,
+        nameFilter, setNameFilter,
         ...handlers
       }), [
         items, stats, editMode, showTooltips, activeTooltip, sortConfig,
-        showGlobalTooltip, hideGlobalTooltip, // Missing dependency added
+        showGlobalTooltip, hideGlobalTooltip,
         isHeaderExpanded, isStatsExpanded, isSummaryExpanded, isItemsExpanded, isFooterExpanded,
-        setAllExpanded, setSoloExpanded, handlers
+        setAllExpanded, setSoloExpanded, handlers, nameFilter
       ]);
 
       return contextValue;
@@ -1905,6 +1907,7 @@
       onPin,
       onMouseEnter,
       onMouseLeave,
+      onTaskDoubleClick, // New hook connection
       style = {},
       liveItems = [],
       onSetStatus
@@ -2051,13 +2054,9 @@
       return (
         <div
           ref={tooltipRef}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!isPinned && onPin) onPin();
-          }}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
-          className={`floating-tooltip fixed z-[100] bg-slate-900 border text-white rounded-xl shadow-2xl flex flex-col transition-all overflow-hidden active:scale-[0.98] select-text selection:bg-blue-600 selection:text-white ${isSelecting ? 'is-selecting-text' : ''} ${isPinned ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-blue-500/20' : 'border-slate-700 animate-in fade-in zoom-in-95 duration-200 cursor-pointer pointer-events-auto hover:border-blue-400/50'}`}
+          className={`floating-tooltip fixed z-[100] bg-slate-900 border text-white rounded-xl shadow-2xl flex flex-col transition-none overflow-hidden select-text selection:bg-blue-600 selection:text-white ${isSelecting ? 'is-selecting-text' : ''} ${isPinned ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-blue-500/20' : 'border-slate-700 animate-in fade-in zoom-in-95 duration-200 cursor-pointer pointer-events-auto hover:border-blue-400/50'}`}
           style={finalStyle}
         >
           {/* Safety Bridge / Magnetic Zone: Larger hit area to bridge the gap */}
@@ -2074,7 +2073,11 @@
           {/* Header */}
           <div
             onMouseDown={handleMouseDown}
-            className={`p-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center ${isPinned ? 'cursor-move select-none' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isPinned && onPin) onPin();
+            }}
+            className={`p-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center ${isPinned ? 'cursor-move select-none' : 'cursor-pointer'}`}
           >
             <div className="flex flex-col">
               <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wider">{data.title}</span>
@@ -2151,9 +2154,35 @@
                           const liveItem = liveItems.find(li => li.id === item.id);
                           const currentStatus = liveItem ? liveItem.status : item.status;
                           return (
-                            <li key={idx} className="flex justify-between items-center text-[10px] gap-2 border-b border-slate-800/10 pb-1.5 last:border-0 hover:bg-white/5 px-1 -mx-1 rounded transition-colors group/item">
+                            <li
+                              key={idx}
+                              className="flex justify-between items-center text-[10px] gap-2 border-b border-slate-800/10 pb-1.5 last:border-0 hover:bg-white/5 px-1 -mx-1 rounded transition-colors group/item"
+                            >
                               {onSetStatus && <StatusIndicator status={currentStatus} onSetStatus={(newStatus) => onSetStatus(item.id, 'status', newStatus)} />}
-                              <span className={`flex-1 text-left leading-relaxed ${groupName.includes('취소') ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{idx + 1}. {item.name}</span>
+                              <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                                <span
+                                  className={`flex-1 text-left leading-relaxed cursor-pointer truncate select-none ${groupName.includes('취소') ? 'text-slate-500 line-through' : 'text-slate-300'} hover:text-blue-400`}
+                                  onDoubleClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onTaskDoubleClick) onTaskDoubleClick(item.name);
+                                  }}
+                                  title="더블클릭하여 이 항목만 상세 보기"
+                                >
+                                  {idx + 1}. {item.name}
+                                </span>
+                                {item.categoryLink && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(item.categoryLink, '_blank');
+                                    }}
+                                    className="shrink-0 p-0.5 hover:bg-white/10 rounded-sm transition-all animate-link-blink flex items-center justify-center"
+                                    title="관련 링크 열기"
+                                  >
+                                    <Icons.Link size={10} className="text-blue-400" />
+                                  </button>
+                                )}
+                              </div>
                               <span className={`font-bold whitespace-nowrap ${colorClass.replace('line-through', '')}`}>{Formatters.currency(item.cost)}</span>
                             </li>
                           );
@@ -2169,9 +2198,35 @@
                   const liveItem = liveItems.find(li => li.id === item.id);
                   const currentStatus = liveItem ? liveItem.status : item.status;
                   return (
-                    <li key={idx} className="flex justify-between items-center text-[10px] gap-2 border-b border-slate-800/50 pb-1.5 last:border-0 hover:bg-white/5 px-1 -mx-1 rounded transition-colors">
+                    <li
+                      key={idx}
+                      className="flex justify-between items-center text-[10px] gap-2 border-b border-slate-800/50 pb-1.5 last:border-0 hover:bg-white/5 px-1 -mx-1 rounded transition-colors"
+                    >
                       {onSetStatus && <StatusIndicator status={currentStatus} onSetStatus={(newStatus) => onSetStatus(item.id, 'status', newStatus)} />}
-                      <span className="text-slate-300 flex-1 text-left leading-relaxed">{idx + 1}. {item.name}</span>
+                      <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                        <span
+                          className="text-slate-300 flex-1 text-left leading-relaxed cursor-pointer truncate select-none hover:text-blue-400"
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            if (onTaskDoubleClick) onTaskDoubleClick(item.name);
+                          }}
+                          title="더블클릭하여 이 항목만 상세 보기"
+                        >
+                          {idx + 1}. {item.name}
+                        </span>
+                        {item.categoryLink && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(item.categoryLink, '_blank');
+                            }}
+                            className="shrink-0 p-0.5 hover:bg-white/10 rounded-sm transition-all animate-link-blink flex items-center justify-center"
+                            title="관련 링크 열기"
+                          >
+                            <Icons.Link size={10} className="text-blue-400" />
+                          </button>
+                        )}
+                      </div>
                       <span className="font-bold whitespace-nowrap text-amber-200">{Formatters.currency(item.cost)}</span>
                     </li>
                   );
@@ -2428,7 +2483,8 @@
         showGlobalTooltip, hideGlobalTooltip, activeTooltip,
         isHeaderExpanded, isStatsExpanded, isSummaryExpanded, setIsSummaryExpanded,
         isItemsExpanded, setIsItemsExpanded, isFooterExpanded,
-        sortConfig, setSortConfig
+        sortConfig, setSortConfig,
+        nameFilter, setNameFilter
       } = useAppContext();
       const [insightTarget, setInsightTarget] = useState(null);
 
@@ -2473,6 +2529,11 @@
           return 0;
         });
       }, [items, sortConfig]);
+
+      const filteredItems = useMemo(() => {
+        if (!nameFilter) return sortedItems;
+        return sortedItems.filter(item => (item.name || "").includes(nameFilter));
+      }, [sortedItems, nameFilter]);
 
       // 스택 모드 확인 (2개 이상 접혔을 때 내가 접혀있으면 숨김)
       const foldedCount = [isHeaderExpanded, isStatsExpanded, isSummaryExpanded, isItemsExpanded, isFooterExpanded].filter(v => !v).length;
@@ -2592,7 +2653,7 @@
                   )}
                 </thead>
                 <tbody className={`divide-y divide-slate-100 transition-all duration-300 ${isItemsExpanded ? 'opacity-100' : 'opacity-0'}`}>
-                  {isItemsExpanded && sortedItems.map((item, index) => (
+                  {isItemsExpanded && filteredItems.map((item, index) => (
                     <PlanItemRow key={item.id} item={item} index={index} total={items.length} editMode={editMode} onToggleConfirm={handlers.toggleConfirm} onChange={handlers.handleChange} onDelete={handlers.deleteItem} />
                   ))}
                 </tbody>
@@ -2603,7 +2664,19 @@
             {!isItemsStacked && (
               <div className={`flex-none bg-white border-t border-slate-100 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] relative z-[45] ${isItemsExpanded ? 'mt-0' : 'mt-[-1px]'}`}>
                 <SlimDivider className="bg-white/80">
-                  <CompactToggle isExpanded={isItemsExpanded} onToggle={() => setIsItemsExpanded(!isItemsExpanded)} label="상세 내역" activeColor="indigo" />
+                  <div className="flex items-center gap-2">
+                    <CompactToggle isExpanded={isItemsExpanded} onToggle={() => setIsItemsExpanded(!isItemsExpanded)} label="상세 내역" activeColor="indigo" />
+                    {nameFilter && (
+                      <button
+                        onClick={() => setNameFilter(null)}
+                        className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 text-rose-600 rounded-md border border-rose-200 hover:bg-rose-100 transition-all font-bold text-[10px]"
+                        title="필터 해제"
+                      >
+                        <Icons.XCircle size={12} />
+                        <span>'{nameFilter}' 필터 해제</span>
+                      </button>
+                    )}
+                  </div>
                 </SlimDivider>
               </div>
             )}
@@ -3004,6 +3077,14 @@
               onClose={() => setTooltipData(null)}
               onMouseEnter={() => { if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current); }}
               onMouseLeave={hideTooltip}
+              onTaskDoubleClick={(name) => {
+                setNameFilter(name);
+                setIsHeaderExpanded(false);
+                setIsStatsExpanded(false);
+                setIsSummaryExpanded(false);
+                setIsItemsExpanded(true);
+                setIsFooterExpanded(false);
+              }}
               style={{ backgroundColor: '#1e293b' }}
               liveItems={items}
               onSetStatus={handlers.handleChange}
@@ -3219,7 +3300,14 @@
                 onClose={() => planData.setActiveTooltip(null)}
                 onMouseEnter={() => { if (planData.tooltipTimerRef.current) clearTimeout(planData.tooltipTimerRef.current); }}
                 onMouseLeave={planData.hideGlobalTooltip}
-                style={planData.activeTooltip.style || {}}
+                onTaskDoubleClick={(name) => {
+                  planData.setNameFilter(name);
+                  planData.setIsHeaderExpanded(false);
+                  planData.setIsStatsExpanded(false);
+                  planData.setIsSummaryExpanded(false);
+                  planData.setIsItemsExpanded(true);
+                  planData.setIsFooterExpanded(false);
+                }}
                 liveItems={planData.items}
                 onSetStatus={planData.handleChange}
               />
