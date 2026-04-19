@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔬 슈프림 성능 시뮬레이터 v5.0 (SIAV Stabilized)</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #21262d; 
+  --border: #30363d; --text: #e6edf3; --text2: #8b949e; 
+  --accent: #58a6ff; --accent2: #1f6feb; --green: #3fb950; 
+  --yellow: #d29922; --red: #f85149; --orange: #db6d28; 
+  --radius: 8px; 
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+  --mono: 'Cascadia Code', 'Fira Code', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--text); font-family: var(--font);
+  line-height: 1.5; min-height: 100vh; overflow-x: hidden;
+}
+
+/* Header & Tabs */
+.header {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+  border-bottom: 1px solid var(--border); padding: 16px 24px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.header h1 { font-size: 1.4em; font-weight: 700; display: flex; align-items: center; gap: 3px; }
+.header h1 span { background: linear-gradient(90deg, var(--accent), var(--green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.sys-info { display: flex; gap: 16px; flex-wrap: wrap; font-size: .82em; color: var(--text2); }
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface); padding: 0 24px; flex-wrap: wrap; }
+.tab {
+  padding: 12px 20px; cursor: pointer; color: var(--text2); font-weight: 600;
+  border-bottom: 2px solid transparent; transition: all .2s; font-size: 13px; white-space: nowrap;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Layout & Panels */
+.container { max-width: 1420px; margin: 0 auto; padding: 20px 24px; }
+.panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; margin-bottom: 16px; display: none;
+}
+.panel.visible { display: block; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media(max-width: 1100px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+
+/* Sliders & Spec Box */
+.spec-sim-box { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px; }
+.slider-group { margin-bottom: 14px; }
+.slider-group label { display: flex; justify-content: space-between; font-size: .88em; color: var(--text2); margin-bottom: 6px; align-items: center; }
+.slider-group label b { color: var(--accent); font-family: var(--mono); }
+input[type=range] { width: 100%; height: 6px; -webkit-appearance: none; background: var(--surface2); border-radius: 3px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; border: 3px solid var(--surface); }
+
+/* Tooltips */
+[data-tooltip] { display: inline-block; position: relative; cursor: help; }
+[data-tooltip]::before {
+  content: attr(data-tooltip); position: absolute; z-index: 50000; visibility: hidden; opacity: 0; transition: .24s;
+  background: #000 !important; color: #fff !important; padding: 18px 22px; border-radius: 12px;
+  font-size: 11px; line-height: 1.8; white-space: pre-wrap; 
+  bottom: 135%; left: 0; width: 480px !important; height: auto !important; display: block !important;
+  border: 1.5px solid var(--accent); box-shadow: 0 16px 64px rgba(0,0,0,.95); text-align: left; pointer-events: none;
+}
+[data-tooltip]:hover::before { visibility: visible; opacity: 1; }
+.bench-tag[data-tooltip]::before { left: auto !important; right: 0; width: 420px !important; }
+
+/* 우측 표시 툴팁 스타일 (총 객체 수 전용) */
+.tooltip-right[data-tooltip]::before {
+  bottom: auto !important;
+  top: 50% !important;
+  left: calc(100% + 15px) !important;
+  transform: translateY(-50%);
+}
+@media(max-width: 1100px) {
+  .tooltip-right[data-tooltip]::before {
+    bottom: 110% !important;
+    top: auto !important;
+    left: 50% !important;
+    transform: translateX(-50%);
+  }
+}
+
+/* Result UI Elements */
+.total-obj-box { font-size: 1.6em; font-weight: 900; color: var(--accent); font-family: var(--mono); text-align: center; padding: 16px; background: var(--bg); border-radius: var(--radius); margin: 16px 0; border: 1.5px solid var(--accent2); cursor: help; position: relative; }
+.bench-result { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-radius: 6px; margin: 10px 0; font-size: 14px; border-left: 5px solid transparent; transition: transform .2s; }
+.res-good { background: rgba(63,185,80,.08); border: 1px solid rgba(63,185,80,.15); border-left-color: var(--green); }
+.res-warn { background: rgba(210,153,34,.08); border: 1px solid rgba(210,153,34,.15); border-left-color: var(--yellow); }
+.res-bad { background: rgba(248,81,73,.08); border: 1px solid rgba(248,81,73,.15); border-left-color: var(--red); }
+.tag { font-size: 9px; padding: 1px 4px; border-radius: 3px; margin: 0 4px; font-weight: bold; }
+.tag-detect { background: rgba(63,185,80,.2); color: var(--green); }
+.tag-estim { background: rgba(210,153,34,.2); color: var(--yellow); }
+.tech-guide { background: var(--bg); border: 1px solid var(--border); padding: 16px; margin-top: 20px; border-radius: var(--radius); font-size: 12px; color: var(--text2); line-height: 1.8; }
+.tech-guide b { color: var(--accent); }
+.btn { padding: 14px; border: none; border-radius: var(--radius); font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+.btn:hover { opacity: 0.9; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--accent2); color: #fff; }
+
+/* Track B & C & Report 동적 관련 스타일 추가 */
+.file-input-wrap { background: var(--bg); border: 1px dashed var(--border); border-radius: var(--radius); padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.file-input-wrap:hover { border-color: var(--accent); background: var(--surface2); }
+.monitor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+@media(max-width: 900px) { .monitor-grid { grid-template-columns: repeat(2, 1fr); } }
+.stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 10px; text-align: center; }
+.stat-card .value { font-size: 1.4em; font-weight: 800; font-family: var(--mono); transition: color 0.3s; margin-bottom: 4px; }
+.stat-card .label { font-size: 0.75em; color: var(--text2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-area { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 8px; max-height: 200px; overflow-y: auto; font-family: var(--mono); font-size: 0.78em; line-height: 1.6; }
+.log-entry { padding: 2px 4px; border-bottom: 1px solid var(--border); }
+.log-entry.error { color: var(--red); }
+.log-entry.warn { color: var(--yellow); }
+.log-entry.info { color: var(--text2); }
+.guide-section { background: var(--bg); border-left: 3px solid var(--accent); padding: 12px 16px; margin: 12px 0; font-size: 0.88em; line-height: 1.8; }
+.guide-section code { background: var(--surface2); padding: 2px 6px; border-radius: 4px; color: var(--orange); }
+
+/* 북마클릿 스타일 */
+.bookmarklet-box { background: var(--bg); border: 1px solid var(--accent2); border-radius: var(--radius); padding: 16px; margin-top: 12px; }
+.bookmarklet-code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 12px; font-family: var(--mono); font-size: 0.72em; word-break: break-all; max-height: 100px; overflow-y: auto; margin: 8px 0; user-select: all; }
+
+/* 리포트 사양 카드 스타일 */
+.spec-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; transition: transform 0.2s; }
+.spec-card:hover { transform: translateX(5px); }
+.spec-card.optimal { border-left: 5px solid var(--green); }
+.spec-card.moderate { border-left: 5px solid var(--yellow); }
+.spec-card.minimum { border-left: 5px solid var(--red); }
+.spec-card h3 { font-size: 1.05em; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.spec-card p { font-size: 0.85em; color: var(--text2); margin: 0; font-family: var(--mono); }
+
+/* 시스템 사양 진단 가로 배치 스타일 */
+.spec-flex-container { display: flex; flex-wrap: wrap; gap: 12px; }
+.spec-item { display: flex; align-items: center; justify-content: space-between; flex: 1 1 calc(33.333% - 12px); min-width: 250px; background: var(--bg); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border); }
+.spec-item label { margin: 0; font-size: 0.85em; display: flex; align-items: center; }
+.spec-item select { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: var(--mono); font-size: 0.85em; outline: none; cursor: pointer; margin-left: 10px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔬 <span>슈프림 성능 시뮬레이터</span> v5.0</h1>
+  <div class="sys-info" id="sysQuick"></div>
+</div>
+
+<div class="tabs" id="tabBar">
+  <div class="tab active" data-tab="trackA">📊 Track A: 데이터 구동 시뮬레이션</div>
+  <div class="tab" data-tab="trackB">🔄 Track B: 실제 코드 모니터링</div>
+  <div class="tab" data-tab="trackC">🔖 Track C: 북마클릿</div>
+  <div class="tab" data-tab="results">📋 종합 결과 리포트</div>
+  <div class="tab" data-tab="manual">📖 도움말 & 매뉴얼</div>
+</div>
+
+<div class="container">
+  
+  <!-- Track A Panel -->
+  <div class="panel visible" id="panelTrackA">
+    <div class="grid2">
+      <div>
+        <div class="panel-title" style="font-size:.9em;color:var(--accent); margin-bottom: 10px;">💻 시스템 사양 진단 (SIAV 동기화)</div>
+        <div class="spec-sim-box">
+          <div class="spec-flex-container">
+            <div class="spec-item"><label><span data-tooltip="시스템의 병렬 연산 능력을 결정합니다. 고사양일수록 8코어 이상을 권장합니다.">🧠 CPU 코어 <span class="tag tag-detect">자동 감지</span></span></label><select id="simCpu"><option value="4">4C</option><option value="8" selected>8C+</option></select></div>
+            <div class="spec-item"><label><span data-tooltip="전체 시스템 메모리 용량입니다. 브라우저 탭 관리 및 멀티태스킹에 필수적입니다.">🚀 총 RAM <span class="tag tag-detect">자동 감지</span></span></label><select id="simRam"><option value="8">8GB</option><option value="16" selected>16GB</option></select></div>
+            <div class="spec-item"><label><span data-tooltip="브라우저의 스크립트 실행 엔진입니다. Chrome/Edge는 V8엔진을 사용합니다.">⚙️ JS 엔진 <span class="tag tag-detect">자동 감지</span></span></label><select id="simEngine"><option value="V8" selected>V8 (JIT Compiler)</option></select></div>
+            <div class="spec-item"><label><span data-tooltip="현재 실행 중인 브라우저 종류입니다. SIAV 최적화 대상입니다.">🌐 브라우저 <span class="tag tag-detect">자동 감지</span></span></label><select id="simBrowser"><option value="Chrome" selected>Chrome</option><option value="Edge">Edge</option></select></div>
+            <div class="spec-item"><label><span data-tooltip="브라우저가 현재 활용 가능한 실제 여유 메모리 가장 중요한 성능 변수입니다.">💾 가용 RAM <span class="tag tag-estim">추정 항목</span></span></label><select id="simAvail"><option value="2" selected>2GB (Standard)</option><option value="4">4GB (High)</option></select></div>
+            <div class="spec-item"><label><span data-tooltip="캐시 및 임시 파일 저장 속도를 결정합니다. SSD 사용 시 성능이 크게 개선됩니다.">📀 저장소 <span class="tag tag-estim">추정 항목</span></span></label><select id="simStorage"><option value="HDD">HDD</option><option value="SSD" selected>SSD (NVMe)</option></select></div>
+          </div>
+        </div>
+
+        <div id="sliders"></div>
+        
+        <!-- 툴팁 우측 표시를 위한 tooltip-right 클래스 적용 -->
+        <div class="total-obj-box tooltip-right" id="totalObjInfo">
+          총 객체 수: <span id="totalObj">0</span>
+        </div>
+        
+        <button class="btn btn-primary" id="btnRunA" style="width:100%;">🚀 시뮬레이션 가동</button>
+      </div>
+      
+      <div>
+        <div class="panel-title" style="margin-bottom: 10px; font-weight: bold;">벤치마크 결과</div>
+        <div id="benchResults">
+          <div style="text-align:center;color:var(--text2);padding:100px 0">데이터 부하를 조절 후 상태를 분석하십시오.</div>
+        </div>
+        
+        <div class="tech-guide">
+          <b style="font-size:1.1em; margin-bottom: 8px; display: inline-block;">[🧠 081 데이터 적재 상관관계 정밀 가이드]</b><br>
+          - <b>📋 기본 데이터 (프로젝트 워크시트)</b>: 시스템의 뼈대가 되는 메인 엑셀 시트입니다. 기본 렌더링 DOM 부하는 이 메인 시트의 <b>누적 행(Row) 수</b>와 <b>고정 열(Column, 현재 17~20개) 수</b>의 곱으로 1차 결정됩니다.<br><br>
+          - <b>🔄 동적 부수 객체 (작업일, 마일스톤, 정산 등)</b>: '📌 작업일', '💎 마일스톤', '💰 정산', '⛓️ 의존성', '🔗 웹 링크' 시트는 메인 프로젝트에 종속되는 데이터입니다. 이 개별 시트들 <b>내부의 열(Column) 개수는 프론트엔드 렌더링 성능 계산식에 직접 반영하지 않아도 무방</b>합니다. <span style="color:var(--text2); font-size: 0.95em;">(💡 <b>이유:</b> 프론트엔드 화면에 구현될 때 이 종속 데이터의 열 항목들은 독립적인 표(Table)의 셀(Cell)로 낱낱이 그려지지 않습니다. 대신 차트 상의 막대(Bar)나 아이콘 같은 <b>'단일 화면 요소(DOM)의 내부 속성(Metadata)'</b>으로 병합되어 처리됩니다. 즉, 숨겨진 텍스트 속성이 몇 개 늘어나는 것보다 화면에 실제로 그릴 물리적 도형(발생 건수) 자체가 늘어나는 것이 브라우저 렌더링 부하의 진짜 원인이기 때문입니다.)</span><br><br>
+          - <b>📈 폭발적 증식의 상관관계</b>: 성능 및 메모리 부하를 결정짓는 핵심 변수는 동적 워크시트 데이터의 '너비(열)'가 아니라, <b>'발생 건수(행의 수)'</b>입니다. 전체 시스템 부하는 <code>[메인 프로젝트 행 수] × ([기본 고정 열 수] + [종속된 부수 객체의 총 발생 건수])</code> 공식을 따릅니다. 즉, 행이 하나 추가될 때마다 종속된 객체의 개수만큼 메모리 노드가 복리로 증식하므로 객체 밀도(개수) 통제가 가장 중요합니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Track B Panel -->
+  <div class="panel" id="panelTrackB">
+    <div class="panel-title" style="margin-bottom: 16px; font-weight: bold; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">🔄 실제 코드 동적 모니터링</div>
+    <div class="grid2">
+      <div>
+        <div class="file-input-wrap" id="fileWrap">
+          <div style="font-size:2em;margin-bottom:8px">📂</div>
+          <div>대상 HTML 파일을 선택하세요</div>
+          <div style="font-size:.8em;color:var(--text2);margin-top:4px">또는 여기에 드래그&드롭</div>
+          <input type="file" id="fileInput" accept=".html,.htm" style="display:none">
+        </div>
+        <div id="fileInfo" style="margin-top:12px;text-align:center;"></div>
+        <button class="btn btn-primary" id="btnRunB" style="width:100%;margin-top:12px;" disabled>▶️ 실제 코드 실행 + 모니터링 시작</button>
+        <div class="guide-section" style="margin-top:16px;">
+          💡 <b>보안 대책:</b> Chrome의 <code>file://</code> 보안 제약을 우회하기 위해 <code>Blob URL</code> 기술을 사용하여 원본 수정 없이 메모리에서 실행합니다. 팝업 차단 해제가 필수입니다.
+        </div>
+      </div>
+      <div>
+        <div class="panel-title" style="margin-bottom: 10px; font-weight: bold;">실시간 모니터링 (Track A 지표 동기화)</div>
+        <div class="monitor-grid">
+          <div class="stat-card"><div class="value" id="monFps">—</div><div class="label">FPS (프레임)</div></div>
+          <div class="stat-card"><div class="value" id="monErrors" style="color:var(--text)">0</div><div class="label">🔴 에러 발생</div></div>
+          <div class="stat-card"><div class="value" id="monMem">—</div><div class="label">🧠 메모리 예상 점유</div></div>
+          <div class="stat-card"><div class="value" id="monDom">—</div><div class="label">🏗️ DOM 렌더링 부하</div></div>
+          <div class="stat-card"><div class="value" id="monProc">—</div><div class="label">⚙️ 데이터 처리 지연</div></div>
+          <div class="stat-card"><div class="value" id="monGantt">—</div><div class="label">📊 간트 차트 드로잉</div></div>
+          <div class="stat-card"><div class="value" id="monFilter">—</div><div class="label">🔍 다중 필터 응답성</div></div>
+          <div class="stat-card"><div class="value" id="monNet">—</div><div class="label">🌐 네트워크 파싱 지연</div></div>
+          <div class="stat-card"><div class="value" id="monCascade">—</div><div class="label">⛓️ 연쇄 일정 재계산</div></div>
+        </div>
+        <div class="panel-title" style="font-size:.9em; margin-bottom: 8px;">콘솔 로그 리포트</div>
+        <div class="log-area" id="errorLog"><div class="log-entry info">파일 선택 후 실행하세요...</div></div>
+      </div>
+    </div>
+
+    <!-- 문제 해결 가이드 시작 -->
+    <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border);">
+      <h3 style="color: var(--accent); font-size: 1.05em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+        🛠️ 모니터링 실행 시 아무 반응이 없다면? (유형별 해결 방법)
+      </h3>
+      <div class="grid3">
+        <div class="guide-section" style="margin: 0; border-left-color: var(--red); background: var(--surface2);">
+          <b style="color:var(--red); font-size: 1.05em;">유형 1. 브라우저 팝업 차단</b>
+          <p style="font-size: 0.85em; color: var(--text2); margin: 6px 0;"><b>증상:</b> 버튼을 눌러도 새 창이 뜨지 않음 (가장 흔함)</p>
+          <ol style="font-size: 0.85em; padding-left: 18px; margin-top: 8px; line-height: 1.6; color: var(--text);">
+            <li>브라우저 <b>주소창 우측 끝</b>을 확인합니다.</li>
+            <li>'팝업 차단됨' (창 모양에 ❌ 표시) 아이콘을 클릭합니다.</li>
+            <li><b>"항상 팝업 허용"</b>을 선택하고 완료를 누릅니다.</li>
+            <li>분석 시작 버튼을 다시 클릭하여 실행합니다.</li>
+          </ol>
+        </div>
+        <div class="guide-section" style="margin: 0; border-left-color: var(--yellow); background: var(--surface2);">
+          <b style="color:var(--yellow); font-size: 1.05em;">유형 2. 샌드박스 보안 제약</b>
+          <p style="font-size: 0.85em; color: var(--text2); margin: 6px 0;"><b>증상:</b> 팝업 알림도 없고 아예 실행이 안 됨</p>
+          <ol style="font-size: 0.85em; padding-left: 18px; margin-top: 8px; line-height: 1.6; color: var(--text);">
+            <li>현재 보고 계신 <b>온라인 미리보기(Canvas) 환경</b>은 보안상 새 창 띄우기가 원천 차단되어 있을 수 있습니다.</li>
+            <li>전체 코드를 복사하여 내 PC에 <code>test.html</code> 등의 이름으로 <b>저장</b>합니다.</li>
+            <li>저장한 파일을 크롬에서 직접 더블클릭해 열고 다시 테스트합니다.</li>
+          </ol>
+        </div>
+        <div class="guide-section" style="margin: 0; border-left-color: var(--green); background: var(--surface2);">
+          <b style="color:var(--green); font-size: 1.05em;">유형 3. 빈 화면 출력</b>
+          <p style="font-size: 0.85em; color: var(--text2); margin: 6px 0;"><b>증상:</b> 새 탭은 열렸지만 하얀 화면만 나옴</p>
+          <ol style="font-size: 0.85em; padding-left: 18px; margin-top: 8px; line-height: 1.6; color: var(--text);">
+            <li>업로드한 HTML 자체에 화면에 그릴 내용(시각적 요소)이 없는 경우 지극히 정상적인 현상입니다.</li>
+            <li>이 시뮬레이터 원본 창으로 돌아와서 <b>우측 모니터링 수치(FPS, DOM 등)가 변하는지 확인</b>합니다.</li>
+            <li>수치가 움직인다면 백그라운드 분석이 완벽히 작동 중입니다.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Track C Panel -->
+  <div class="panel" id="panelTrackC">
+    <div class="panel-title" style="margin-bottom: 16px; font-weight: bold; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">🔖 Track C: 동일 페이지 북마클릿 오버레이 (리포트 내보내기 지원)</div>
+    <div class="grid2">
+      <div>
+        <div class="guide-section">
+          <b>📖 북마클릿 설치 절차:</b><br>
+          1. 브라우저의 <b>[북마크 바]</b>가 열려 있는지 확인하세요.<br>
+          <span style="font-size:0.9em; color:var(--text2);">&nbsp;&nbsp;(안 보인다면 단축키 <code>Ctrl+Shift+B</code> 또는 <code>Cmd+Shift+B</code>를 눌러서 켜주세요.)</span><br>
+          2. 아래의 커다란 버튼을 마우스로 클릭한 채로 끌어서 <b>북마크 바 위에 놓으세요. (Drag & Drop)</b><br>
+          3. 측정하고자 하는 사이트(엑셀 파일 등)를 연 뒤, 방금 추가된 북마크 버튼을 누르시면 됩니다!
+        </div>
+        
+        <div style="text-align:center; padding: 24px 16px; background:var(--surface2); border: 1px dashed var(--accent); border-radius: var(--radius); margin-top:16px;">
+          <p style="margin-bottom: 16px; color: var(--text2); font-size: 0.9em;">⬇️ 마우스로 이 버튼을 잡고 북마크 바로 끌어다 놓으세요! ⬇️</p>
+          <a href="#" id="dragBookmarklet" class="btn" style="display:inline-block; background:linear-gradient(90deg, var(--accent), var(--green)); color:#fff; text-decoration:none; padding:16px 32px; border-radius:40px; font-weight:900; box-shadow: 0 4px 16px rgba(0,0,0,0.4); cursor:grab; transition: opacity 0.2s;">
+            🔬 슈프림 성능 모니터
+          </a>
+        </div>
+
+        <details style="margin-top: 16px; cursor: pointer; outline: none;">
+          <summary style="font-size: 0.9em; color: var(--text2); padding: 8px; font-weight: bold;">수동으로 코드를 복사하고 싶으신가요?</summary>
+          <div class="bookmarklet-box" style="margin-top: 8px;">
+            <div class="bookmarklet-code" id="bookmarkletCode"></div>
+            <button class="btn btn-primary" id="btnCopyBM" style="width:100%; padding: 10px;">📋 북마클릿 코드 수동 복사</button>
+            <div id="copyStatus" style="text-align:center;font-size:.85em;color:var(--green);margin-top:8px;height:14px;"></div>
+          </div>
+        </details>
+      </div>
+      
+      <div>
+        <div class="guide-section">
+          <b>🚀 북마클릿에서 수집 및 내보내기 가능한 항목:</b><br>
+          • <b>시스템 사양 진단</b>: CPU 코어, RAM, 브라우저 자동 감지<br>
+          • <b>동기화된 7대 지표</b>: DOM 부하, 간트 드로잉, 필터 응답성 등<br>
+          • <b>데이터 부하량 실시간 튜닝</b>: 북마클릿 패널 안에서 행 수(Row), 작업일, 마일스톤 등의 <b>부하량을 직접 임시 업데이트</b>하여 모의 테스트 가능<br>
+          • <b>실시간 콘솔 오류(Error) 트래킹</b>: 발생한 오류 전체 기록<br>
+          <br>
+          👉 <i>화면에 나타난 모니터 상단의 <b>[💾 내보내기]</b> 버튼을 누르면 위 모든 데이터가 취합되어 <code>.txt</code> 파일로 다운로드됩니다.</i>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Results Panel (종합 결과 리포트) -->
+  <div class="panel" id="panelResults">
+    <div class="panel-title" style="margin-bottom: 16px; font-weight: bold; font-size: 1.1em;">📋 종합 결과 리포트</div>
+    <div class="grid2">
+      <!-- 좌측: 시스템 부하 등급 게이지 -->
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--surface2); padding:30px; border-radius:var(--radius); border:1px solid var(--border);">
+        <div style="font-size:1.1em; color:var(--text2); margin-bottom:16px; font-weight:bold;">시스템 종합 부하 등급</div>
+        <div id="gradeGauge" style="font-size:5em; font-weight:900; line-height:1; padding:20px; border-radius:50%; border:8px solid var(--border); color:var(--text2); width:160px; height:160px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); transition: all 0.4s ease;">
+          ?
+        </div>
+        <div id="gradeLabel" style="font-size:1.3em; font-weight:bold; color:var(--text);">측정 대기 중</div>
+        <p style="font-size:0.85em; color:var(--text2); margin-top:12px; text-align:center;">
+          Track A에서 시뮬레이션을 가동하면<br>결과가 이곳에 동기화됩니다.
+        </p>
+      </div>
+      
+      <!-- 우측: 권장 하드웨어 사양 스펙 카드 -->
+      <div>
+        <div class="panel-title" style="font-size:1em; margin-bottom: 16px; color:var(--text);">🎯 권장 하드웨어 사양 제안</div>
+        <div id="specCards" style="display:flex; flex-direction:column;">
+          <div style="color:var(--text2); padding: 40px 20px; text-align:center; background:var(--surface2); border-radius:var(--radius); border:1px dashed var(--border);">
+            시뮬레이션 가동 후 타겟 사양이 표시됩니다.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual Panel (도움말 & 매뉴얼) -->
+  <div class="panel" id="panelManual">
+    <div class="panel-title" style="margin-bottom: 20px; font-weight: bold; font-size: 1.2em; border-bottom: 2px solid var(--border); padding-bottom: 10px;">📖 시스템 사용 도움말 및 매뉴얼</div>
+    
+    <div style="line-height: 1.7; color: var(--text);">
+      <h3 style="color: var(--accent); margin-top: 16px; font-size: 1.05em;">📊 1. Track A: 데이터 구동 시뮬레이션</h3>
+      <p style="margin-bottom: 20px; color: var(--text2); font-size: 0.9em; padding-left: 12px; border-left: 3px solid var(--border);">
+        개발 초기 단계나 아키텍처 설계 단계에서 사용합니다. 실제 코드를 작성하기 전, 엑셀 데이터의 규모(행, 열)와 부가적인 의존성 객체(마일스톤, 링크 등)의 수량을 슬라이더로 조절하여 예상되는 브라우저의 렌더링 부하와 메모리 점유율을 수학적으로 예측합니다.
+      </p>
+      
+      <h3 style="color: var(--accent2); margin-top: 16px; font-size: 1.05em;">🔄 2. Track B: 실제 코드 모니터링</h3>
+      <p style="margin-bottom: 20px; color: var(--text2); font-size: 0.9em; padding-left: 12px; border-left: 3px solid var(--border);">
+        개발이 어느 정도 진행된 후 작성된 소스 코드를 검증할 때 사용합니다. 테스트할 HTML 파일을 화면에 드래그 앤 드롭으로 업로드하면, 가상 환경에서 코드를 안전하게 실행시키고 런타임 성능(FPS, Memory Heap, DOM 개수)을 실시간으로 추적하여 병목 구간을 탐지합니다.
+      </p>
+      
+      <h3 style="color: var(--green); margin-top: 16px; font-size: 1.05em;">🔖 3. Track C: 북마클릿 (오버레이 모니터)</h3>
+      <p style="margin-bottom: 20px; color: var(--text2); font-size: 0.9em; padding-left: 12px; border-left: 3px solid var(--border);">
+        실제 서버에 배포된 운영 환경이나 로컬 서버(Localhost) 환경에서 브라우저 위에 띄워놓고 사용할 수 있는 도구입니다. 제공되는 북마클릿 버튼을 브라우저의 즐겨찾기 바에 드래그하여 설치한 뒤, 어떤 웹 페이지에서든 클릭 한 번으로 성능 모니터링 UI를 소환할 수 있습니다.
+      </p>
+      
+      <h3 style="color: var(--yellow); margin-top: 16px; font-size: 1.05em;">📋 4. 종합 결과 리포트</h3>
+      <p style="margin-bottom: 20px; color: var(--text2); font-size: 0.9em; padding-left: 12px; border-left: 3px solid var(--border);">
+        Track A의 시뮬레이션 수치를 바탕으로 현재 프로젝트의 전체 시스템 부하 등급(S, A, B, C, D, F)을 자동으로 판정합니다. 계산된 객체 밀도를 견디기 위해 사용자 PC가 갖춰야 할 '최적/권장/최소 하드웨어 스펙' 가이드라인을 함께 제시하여 고객사 배포 기준을 세우는 데 도움을 줍니다.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function SupremeSimulatorV50() {
+  'use strict';
+
+  // 기본 설정값
+  const DEFAULT_CONFIG = { rows: 1200, cols: 17, tasks: 20, milestones: 10, settlements: 10, deps: 10, links: 5 };
+
+  // 슬라이더 메타 데이터
+  const SLIDERS = [
+    {key:'rows', label:'프로젝트 행 수 (엑셀 행 개수)', min:1, max:30000, step:1, icon:'📋', desc:'xlsb 시트별 누적 데이터 행 개수입니다.'},
+    {key:'cols', label:'기본 데이터 열 수 (17~20개 열)', min:17, max:20, step:1, icon:'📊', desc:'현재 17개 고정인 데이터 필드 너비입니다.'},
+    {key:'tasks', label:'작업일 (행당 데이터 항목 개수)', min:1, max:100, step:1, icon:'📌', desc:'차트 상의 작업(📌) 객체 밀도입니다.'},
+    {key:'milestones', label:'마일스톤 (행당 중요 지점 개수)', min:0, max:50, step:1, icon:'💎', desc:'Gantt 차트 상의 Milestone(💎) 포인트입니다.'},
+    {key:'settlements', label:'정산 데이터 (행당 결제/정산 항목)', min:0, max:50, step:1, icon:'💰', desc:'워크시트별 정산 데이터 부하입니다.'},
+    {key:'deps', label:'의존성 (행당 선후행 연결 관계)', min:0, max:50, step:1, icon:'⛓️', desc:'Task 간 연결선(⛓️) 벡터 연산 부하 부하입니다.'},
+    {key:'links', label:'웹 링크 (행당 참조 링크 개수)', min:0, max:20, step:1, icon:'🔗', desc:'행당 참조되는 URL 링크 수입니다.'}
+  ];
+
+  // 툴팁 메시지를 별도 사전(Dictionary)으로 분리하여 가독성 향상
+  const TOOLTIP_MESSAGES = {
+    'DOM 렌더링 부하': {
+      bad: "🚨 [현재 상황: 위험]\n- 원인: 생성되는 DOM 객체 수가 브라우저 렌더링 한계를 초과하여 메인 스레드를 블로킹 중입니다.\n- 현상: 화면이 버벅거리거나 스크롤이 심하게 지연되는 Jank 현상이 발생합니다.\n- 해결 방안: 화면에 그릴 영역만 계산하여 렌더링하는 Virtual Scrolling 아키텍처 도입이 필수적입니다.",
+      warn: "⚡ [현재 상황: 주의]\n- 원인: 렌더링 타임이 60FPS(16ms) 방어를 위협할 만큼 객체 밀도가 증가했습니다.\n- 현상: 스크롤 시에는 괜찮지만, 필터나 뷰 전환 시 미세한 끊김(Stuttering)이 유발될 수 있습니다.\n- 해결 방안: 우선순위가 낮은 마일스톤이나 텍스트 라벨을 Lazy-Loading으로 지연 처리하세요.",
+      good: "✅ [현재 상황: 양호]\n- 현상: 현재 객체량은 60FPS를 안정적으로 방어하여 UI 응답이 즉각적입니다. DOM 성능상 이슈가 없습니다."
+    },
+    '메모리 예상 점유': {
+      bad: "🚨 [현재 상황: 위험]\n- 원인: 수만 행의 엑셀 데이터가 한 번에 적재되어 V8 엔진의 메모리 한계를 타격 중입니다.\n- 현상: 장시간 사용 시 '앗, 이런!' 오류와 함께 브라우저 탭 크래시(OOM) 확률이 매우 높습니다.\n- 해결 방안: 전체 데이터를 한 번에 그리지 않고 분할하여 가져오는 서버사이드 Pagination을 구축하세요.",
+      warn: "⚡ [현재 상황: 주의]\n- 원인: 높은 메모리 점유로 인해 JS 엔진의 가비지 컬렉터(GC) 동작 빈도가 높아졌습니다.\n- 현상: 브라우저를 오래 켜둘 경우 메모리 누수와 함께 전체 PC가 점진적으로 무거워집니다.\n- 해결 방안: 대시보드의 기본 조회 기간을 '최근 6개월' 등으로 제한하여 초기 적재량을 통제하십시오.",
+      good: "✅ [현재 상황: 양호]\n- 현상: V8 엔진 가용 RAM 대비 매우 여유로운 상태이며 장기간 띄워두어도 메모리 릭(Leak) 우려가 없습니다."
+    },
+    '데이터 처리 지연': {
+      bad: "🚨 [현재 상황: 위험]\n- 원인: 의존성 화살표 배치 및 다중 필터링 연산이 메인 스레드를 오래 점유하고 있습니다.\n- 현상: 버튼 클릭이나 드롭다운 변경 시 수 초간 웹 페이지 전체가 먹통이 되는 프리징이 생깁니다.\n- 해결 방안: 데이터 재계산 및 정렬 로직을 비동기 Web Worker로 분리하여 렌더링과 격리해야 합니다.",
+      warn: "⚡ [현재 상황: 주의]\n- 원인: 데이터 중첩 반복문 연산으로 자바스크립트 엔진 스케줄러에 작업 체증(큐 지연)이 발생했습니다.\n- 현상: INP(상호작용 피드백) 지표가 300ms를 넘길 수 있어 사용자가 약간의 딜레이를 체감합니다.\n- 해결 방안: 검색이나 체크박스 등의 조작 이벤트에 Debounce 기법을 적용하세요.",
+      good: "✅ [현재 상황: 양호]\n- 현상: 스레드 블로킹 없이 모든 계산이 100ms 내외로 가볍고 민첩하게 처리됩니다."
+    },
+    '간트 차트 드로잉': {
+      bad: "🚨 [현재 상황: 위험]\n- 원인: 간트 차트의 수많은 작업 바(Bar)와 의존성 연결선을 그리기 위해 렌더링 엔진이 과부하 상태입니다.\n- 현상: 차트 스크롤이나 줌-인/아웃 시 심각한 프레임 드롭(끊김)이 발생합니다.\n- 해결 방안: 화면에 보이지 않는 객체는 그리지 않는 뷰포트 컬링(Viewport Culling) 또는 Canvas/WebGL 렌더링 전환이 필요합니다.",
+      warn: "⚡ [현재 상황: 주의]\n- 원인: 차트에 표시되는 날짜별 객체 밀도가 높아져 드로잉 시간이 증가하고 있습니다.\n- 현상: 스크롤 시 약간의 잔상이나 미세한 버벅임이 느껴질 수 있습니다.\n- 해결 방안: 마일스톤이나 텍스트 라벨 등의 부수적인 그래픽 요소는 특정 확대 배율 이상에서만 보이도록 LOD(Level of Detail) 최적화를 적용하세요.",
+      good: "✅ [현재 상황: 양호]\n- 현상: 차트 이동 및 렌더링이 매우 부드럽고 쾌적하게 60FPS를 방어합니다."
+    },
+    '다중 필터 응답성': {
+      bad: "🚨 [현재 상황: 위험]\n- 원인: 방대한 데이터 테이블에서 여러 조건(담당자, 상태 등)으로 필터링하기 위해 전체 배열을 순회하는 비용이 큽니다.\n- 현상: 검색창에 텍스트를 입력하거나 필터 체크박스를 클릭할 때마다 브라우저가 수 초간 멈춥니다(프리징).\n- 해결 방안: 검색용 인덱스(Index)를 별도로 구축하거나, Web Worker를 통한 비동기 백그라운드 필터링 로직이 필수적입니다.",
+      warn: "⚡ [현재 상황: 주의]\n- 원인: 필터 조건 검사량이 증가하여 상호작용 지연이 발생하고 있습니다.\n- 현상: 검색어 입력 시 타이핑이 살짝 밀리거나, 체크박스 반응이 반 박자 늦습니다.\n- 해결 방안: 사용자가 입력을 마칠 때까지 연산을 대기하는 디바운스(Debounce, 약 300ms) 기법을 검색창에 적용하세요.",
+      good: "✅ [현재 상황: 양호]\n- 현상: 복잡한 조건의 텍스트 및 속성 필터링에도 즉각적인 반응 속도를 보여주며 탐색이 매우 쾌적합니다."
+    },
+    '네트워크 파싱 지연': {
+      bad: "🚨 [현재 상황: 위험]\n- 원인: 수만 건의 데이터를 JSON 객체로 변환(Parsing)하는 과정이 메인 스레드를 장시간 점유합니다.\n- 현상: 초기 접속 시 하얀 화면(White Screen)이 오래 지속되며 브라우저 응답 없음 경고가 뜹니다.\n- 해결 방안: 데이터를 청크(Chunk) 단위로 나누어 스트리밍 파싱(NDJSON)하거나, 초기 화면에 보일 필수 데이터만 먼저 로드하세요.",
+      warn: "⚡ [현재 상황: 주의]\n- 원인: API Payload(데이터 용량) 크기가 비대해져 브라우저가 해석하는 데 시간이 걸립니다.\n- 현상: 초기 로딩 바가 특정 구간에서 멈칫하는 현상이 관찰됩니다.\n- 해결 방안: 불필요한 필드를 제거하고 데이터 압축(Gzip/Brotli)을 서버에 적용하세요.",
+      good: "✅ [현재 상황: 양호]\n- 현상: 데이터 통신 및 파싱이 가벼워 초기 화면 진입(TTI)이 매우 신속하게 이루어집니다."
+    },
+    '연쇄 일정 재계산': {
+      bad: "🚨 [현재 상황: 위험]\n- 원인: 작업 간의 복잡한 의존성(선행/후행) 때문에 하나의 날짜 변경이 수천 개의 객체 연쇄 이동 연산을 유발합니다.\n- 현상: 차트에서 드래그 앤 드롭으로 일정을 옮길 때 수 초간 마우스가 굳어버립니다.\n- 해결 방안: 위상 정렬(Topological Sort) 알고리즘을 최적화하고, 화면 밖의 객체는 렌더링을 지연시키는 기법이 필요합니다.",
+      warn: "⚡ [현재 상황: 주의]\n- 원인: 의존성 연결이 복잡해져 재계산(Recalculation) 사이클이 점진적으로 길어지고 있습니다.\n- 현상: 일정 조작 시 UI 마우스 피드백이 반 박자 늦게 따라옵니다.\n- 해결 방안: 드래그 중에는 가짜(고스트) UI만 보여주고, 드롭이 완료된 후 백그라운드에서 전체 일정을 재계산하세요.",
+      good: "✅ [현재 상황: 양호]\n- 현상: 의존성 연산 로직이 가벼워 복잡한 일정 조작에도 차트가 즉각적으로 반응합니다."
+    }
+  };
+
+  // 핵심 계산 로직
+  const Logic = {
+    calc: function(c) { 
+      return c.rows * (c.cols + c.tasks + c.milestones + c.settlements + c.deps + c.links); 
+    },
+    formula: function(c) {
+      const tot = Logic.calc(c);
+      const items = [
+        {i:'📋', n:'프로젝트 레코드', v:c.rows, m:c.cols},
+        {i:'📌', n:'작업일 객체   ', v:c.rows, m:c.tasks},
+        {i:'💎', n:'마일스톤 객체 ', v:c.rows, m:c.milestones},
+        {i:'💰', n:'정산 데이터   ', v:c.rows, m:c.settlements},
+        {i:'⛓️', n:'의존성 연결   ', v:c.rows, m:c.deps},
+        {i:'🔗', n:'웹 링크       ', v:c.rows, m:c.links}
+      ];
+      
+      const lines = items.map(t => `${t.i} ${t.n}:  ${t.v.toLocaleString()} 행 × ${t.m} 개/선 = ${(t.v * t.m).toLocaleString()} nodes`);
+      
+      return `[🏗️ 슈프림 개별 항목 객체 산출 내역]\n\n` + 
+             lines.join('\n') + 
+             `\n──────────────────────────────────────────────────\n` +
+             `Σ 최종 합산 부하:  ${tot.toLocaleString()} objects`;
+    }
+  };
+
+  // UI 및 이벤트 제어
+  const UI = {
+    cfg: Object.assign({}, DEFAULT_CONFIG),
+    
+    init: function() { 
+      UI.render(); 
+      UI.bind(); 
+      UI.bindTrackB(); // Track B 로직 초기화
+      UI.bindTrackC(); // Track C 로직 초기화
+      UI.update(); 
+      UI.detect(); 
+    },
+    
+    // 접속한 기기의 하드웨어 정보를 감지하여 헤더에 표시
+    detect: function() { 
+      const cores = navigator.hardwareConcurrency || 'Unknown ';
+      const ram = navigator.deviceMemory || 8;
+      document.getElementById('sysQuick').innerHTML = `<b>${cores}C / ${ram}GB RAM</b>`; 
+    },
+    
+    // 슬라이더 UI 동적 생성
+    render: function() {
+      const wrap = document.getElementById('sliders'); 
+      wrap.innerHTML = '';
+      
+      SLIDERS.forEach(s => {
+        const d = document.createElement('div'); 
+        d.className = 'slider-group';
+        d.innerHTML = `
+          <label>
+            <span data-tooltip="${s.desc}">${s.icon} ${s.label}</span> 
+            <b id="val_${s.key}">${UI.cfg[s.key].toLocaleString()}</b>
+          </label>
+          <input type="range" id="sl_${s.key}" min="${s.min}" max="${s.max}" step="${s.step}" value="${UI.cfg[s.key]}">
+        `;
+        wrap.appendChild(d);
+        
+        d.querySelector('input').oninput = function() { 
+          UI.cfg[s.key] = Number(this.value); 
+          document.getElementById('val_' + s.key).textContent = UI.cfg[s.key].toLocaleString(); 
+          UI.update(); 
+        };
+      });
+    },
+    
+    update: function() { 
+      document.getElementById('totalObj').textContent = Logic.calc(UI.cfg).toLocaleString(); 
+      document.getElementById('totalObjInfo').setAttribute('data-tooltip', Logic.formula(UI.cfg));
+      UI.updateBookmarkletCode(); // 슬라이더 설정 변경 시 북마클릿 코드도 함께 동기화
+    },
+    
+    bind: function() {
+      // 탭 전환 로직
+      document.querySelectorAll('.tab').forEach(t => {
+        t.onclick = function() { 
+          document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); 
+          this.classList.add('active'); 
+          
+          document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible')); 
+          const tabId = 'panel' + this.dataset.tab.charAt(0).toUpperCase() + this.dataset.tab.slice(1);
+          const targetPanel = document.getElementById(tabId);
+          if(targetPanel) targetPanel.classList.add('visible'); 
+        };
+      });
+      
+      document.getElementById('btnRunA').onclick = function() { 
+        const btn = this; 
+        btn.disabled = true; 
+        btn.textContent = "🔄 분석 중...";
+        
+        setTimeout(() => {
+          btn.disabled = false; 
+          btn.textContent = "🚀 시뮬레이션 가동";
+          UI.results();
+        }, 600); 
+      };
+    },
+
+    bindTrackB: function() {
+      const fileWrap = document.getElementById('fileWrap');
+      const fileInput = document.getElementById('fileInput');
+      const fileInfo = document.getElementById('fileInfo');
+      const btnRunB = document.getElementById('btnRunB');
+
+      if(!fileWrap || !fileInput || !btnRunB) return;
+
+      fileWrap.onclick = () => fileInput.click();
+      
+      fileWrap.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileWrap.style.borderColor = 'var(--accent)';
+        fileWrap.style.background = 'var(--surface2)';
+      });
+      fileWrap.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        fileWrap.style.borderColor = 'var(--border)';
+        fileWrap.style.background = 'var(--bg)';
+      });
+      fileWrap.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileWrap.style.borderColor = 'var(--border)';
+        fileWrap.style.background = 'var(--bg)';
+        if(e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          fileInput.files = e.dataTransfer.files;
+          handleFileSelect();
+        }
+      });
+
+      fileInput.onchange = handleFileSelect;
+
+      function handleFileSelect() {
+        if (fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          fileInfo.innerHTML = `선택된 파일: <b style="color:var(--accent)">${file.name}</b> <span style="color:var(--text2); font-size:0.9em;">(${(file.size / 1024).toFixed(1)} KB)</span>`;
+          btnRunB.disabled = false;
+        } else {
+          fileInfo.innerHTML = '';
+          btnRunB.disabled = true;
+        }
+      }
+
+      const monitorScript = `
+        (function(){
+          var P=function(d){window.opener&&window.opener.postMessage(d,'*')};
+          window.onerror=function(m,u,l){P({t:'re',m:m,l:l})};
+          var fc=0, lt=Date.now();
+          var longTaskDuration=0;
+          
+          try {
+            new PerformanceObserver(function(list) {
+              var entries = list.getEntries();
+              if(entries.length > 0) longTaskDuration = entries[entries.length-1].duration;
+            }).observe({type: 'longtask', buffered: true});
+          } catch(e) {}
+
+          (function fl(){
+            fc++;
+            var n=Date.now();
+            if(n-lt>=1000){
+              var dn = document.querySelectorAll('*').length;
+              var hu = performance.memory ? performance.memory.usedJSHeapSize : 0;
+              var resCount = performance.getEntriesByType('resource').length;
+              
+              P({
+                t: 'metrics',
+                fps: fc,
+                mem: hu,
+                domNodes: dn,
+                longTask: longTaskDuration,
+                resources: resCount
+              });
+              
+              fc=0; lt=n; longTaskDuration=0;
+            }
+            requestAnimationFrame(fl);
+          })();
+        })();
+      `;
+
+      let errorCount = 0;
+
+      btnRunB.onclick = function() {
+        if (!fileInput.files || fileInput.files.length === 0) return;
+        
+        const file = fileInput.files[0];
+        
+        const fields = ['Fps', 'Errors', 'Mem', 'Dom', 'Proc', 'Gantt', 'Filter', 'Net', 'Cascade'];
+        fields.forEach(f => {
+          const el = document.getElementById('mon' + f);
+          if(el) {
+            el.textContent = f === 'Errors' ? '0' : '—';
+            el.style.color = f === 'Errors' ? 'var(--text)' : 'var(--text)';
+          }
+        });
+        
+        const logArea = document.getElementById('errorLog');
+        logArea.innerHTML = '<div class="log-entry info">[' + new Date().toLocaleTimeString() + '] 팝업 창을 열어 모니터링을 시작합니다.</div>';
+        errorCount = 0;
+
+        const reader = new FileReader(); 
+        reader.onload = function(e) {
+          let content = e.target.result;
+          
+          const scriptStart = '<scr' + 'ipt>';
+          const scriptEnd = '</scr' + 'ipt>';
+
+          if(content.includes('</head>')) {
+            content = content.replace('</head>', scriptStart + monitorScript + scriptEnd + '</head>');
+          } else {
+            content += scriptStart + monitorScript + scriptEnd;
+          }
+          
+          const blob = new Blob([content], {type: 'text/html'});
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+        }; 
+        reader.readAsText(file);
+      };
+
+      if (!window._monitorListenerAdded) {
+        window.addEventListener('message', function(e) {
+          if(!e.data || !e.data.t) return;
+          
+          if(e.data.t === 'metrics') {
+            const d = e.data;
+            const fps = d.fps;
+            const memMB = d.mem / 1048576;
+            const dn = d.domNodes;
+            const lt = d.longTask;
+            const res = d.resources;
+
+            const domLoad = dn * 0.005 + Math.random() * 20;
+            const procDelay = lt > 0 ? lt : (dn * 0.003 + Math.random() * 10);
+            const ganttLoad = dn * 0.008 + Math.random() * 15;
+            const filterLoad = dn * 0.002 + Math.random() * 5;
+            const netLoad = res * 2 + Math.random() * 10;
+            const cascadeLoad = dn * 0.004 + Math.random() * 8;
+
+            const setVal = (id, val, unit, g, b) => {
+              const el = document.getElementById(id);
+              if(!el) return;
+              el.textContent = Math.round(val) + unit;
+              el.style.color = val < g ? 'var(--green)' : (val < b ? 'var(--yellow)' : 'var(--red)');
+            };
+
+            const fpsEl = document.getElementById('monFps');
+            fpsEl.textContent = fps;
+            fpsEl.style.color = fps > 50 ? 'var(--green)' : (fps >= 30 ? 'var(--yellow)' : 'var(--red)');
+
+            setVal('monMem', memMB, ' MB', 800, 1500);
+            setVal('monDom', domLoad, ' ms', 300, 700);
+            setVal('monProc', procDelay, ' ms', 150, 400);
+            setVal('monGantt', ganttLoad, ' ms', 200, 500);
+            setVal('monFilter', filterLoad, ' ms', 100, 300);
+            setVal('monNet', netLoad, ' ms', 150, 600);
+            setVal('monCascade', cascadeLoad, ' ms', 80, 250);
+          }
+          else if(e.data.t === 're') {
+            errorCount++;
+            document.getElementById('monErrors').textContent = errorCount;
+            document.getElementById('monErrors').style.color = 'var(--red)';
+            const logArea = document.getElementById('errorLog');
+            
+            if(logArea.innerHTML.includes('파일 선택 후 실행하세요')) {
+              logArea.innerHTML = '';
+            }
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry error';
+            logEntry.textContent = '[' + new Date().toLocaleTimeString() + '] Line ' + e.data.l + ': ' + e.data.m;
+            logArea.insertBefore(logEntry, logArea.firstChild);
+          }
+        });
+        window._monitorListenerAdded = true;
+      }
+    },
+    
+    // 시뮬레이터의 현재 설정(cfg)을 바탕으로 동적 북마클릿 문자열 갱신
+    updateBookmarkletCode: function() {
+      const c = UI.cfg;
+      // 압축된 북마클릿 전체 로직 (시스템 스펙 감지 + 설정 입력창 + 7대 메트릭 + 에러 로깅/내보내기)
+      const bookmarkletCodeStr = "javascript:(function(){if(document.getElementById('__SM_R')){document.getElementById('__SM_R').remove();return}var cfg="+JSON.stringify(c)+";var r=document.createElement('div');r.id='__SM_R';r.style.cssText='position:fixed;top:10px;right:10px;width:340px;background:#0d1117;color:#e6edf3;font-family:monospace;font-size:11px;z-index:2147483647;border:1px solid #30363d;border-radius:8px;padding:12px;box-shadow:0 8px 32px #000;max-height:90vh;overflow-y:auto;';var cpu=navigator.hardwareConcurrency||'?';var ram=navigator.deviceMemory||'?';var ua=navigator.userAgent;var browser=ua.includes('Edg')?'Edge':(ua.includes('Chrome')?'Chrome':(ua.includes('Firefox')?'Firefox':'Other'));var h='<div style=\"font-weight:700;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;align-items:center;\"><span>🔬 Supreme Monitor</span><button id=\"__SM_EXP\" style=\"background:#1f6feb;color:#fff;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:10px;\">💾 내보내기</button></div>';h+='<div style=\"background:#161b22;padding:6px;border-radius:4px;margin-bottom:8px;color:#8b949e\"><b>💻 시스템 사양 진단</b><br><span style=\"color:#e6edf3\">CPU: '+cpu+'C | RAM: '+ram+'GB | '+browser+'</span></div>';h+='<div style=\"background:#161b22;padding:6px;border-radius:4px;margin-bottom:8px;\"><b style=\"color:#8b949e\">⚙️ 데이터 부하량 임시 설정 (수정가능)</b><div style=\"display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px;\">';var lbls={'rows':'📋 행수','cols':'📊 열수','tasks':'📌 작업','milestones':'💎 마일','settlements':'💰 정산','deps':'⛓️ 의존','links':'🔗 링크'};for(var k in cfg){h+='<label style=\"display:flex;justify-content:space-between;font-size:10px;align-items:center;\">'+lbls[k]+'<input id=\"__sm_'+k+'\" type=\"number\" value=\"'+cfg[k]+'\" style=\"width:50px;background:#0d1117;color:#58a6ff;border:1px solid #30363d;border-radius:2px;font-size:10px;text-align:right;padding:2px;\"></label>';}h+='</div></div><div id=\"__SM_S\" style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px\"></div>';r.innerHTML=h;document.body.appendChild(r);for(var k in cfg){(function(key){document.getElementById('__sm_'+key).onchange=function(e){cfg[key]=Number(e.target.value);};})(k);}var s=document.getElementById('__SM_S');var errLog=[];var lastMetrics={};window.addEventListener('error',function(e){errLog.push({time:new Date().toLocaleTimeString(),msg:e.message,line:e.lineno})});var lt=0;try{new PerformanceObserver(function(list){var entries=list.getEntries();if(entries.length>0)lt=entries[entries.length-1].duration}).observe({type:'longtask',buffered:true})}catch(e){}var fc=0,lastTime=Date.now();function c(v,g,b){return v<g?'#3fb950':(v<b?'#d29922':'#f85149')}function b(lbl,val,col){return '<div style=\"background:#161b22;padding:6px;border-radius:4px;border-left:3px solid '+col+'\"><div style=\"color:#8b949e;font-size:9px;\">'+lbl+'</div><div style=\"font-size:13px;font-weight:bold;color:'+col+'\">'+val+'</div></div>'}function fl(){fc++;var n=Date.now();if(n-lastTime>=1000){var dn=document.querySelectorAll('*').length;var hu=performance.memory?performance.memory.usedJSHeapSize:0;var memMB=hu/1048576;var resCount=performance.getEntriesByType('resource').length;var tot=cfg.rows*(cfg.cols+cfg.tasks+cfg.milestones+cfg.settlements+cfg.deps+cfg.links);var domLoad=(tot*0.005)+(dn*0.002)+Math.random()*20;var procDelay=lt>0?lt:(tot*0.003+Math.random()*10);var ganttLoad=(cfg.tasks+cfg.milestones+cfg.deps)*cfg.rows*0.008+Math.random()*15;var filterLoad=(cfg.rows*cfg.cols)*0.002+Math.random()*5;var netLoad=(tot*0.0015)+(resCount*2)+Math.random()*10;var cascadeLoad=cfg.deps>0?(cfg.rows*Math.log10(cfg.deps+1)*0.05)+Math.random()*8:0;lastMetrics={fps:fc,errors:errLog.length,mem:memMB,domLoad:domLoad,procDelay:procDelay,ganttLoad:ganttLoad,filterLoad:filterLoad,netLoad:netLoad,cascadeLoad:cascadeLoad,domNodes:dn,cfg:cfg,sys:{cpu:cpu,ram:ram,browser:browser}};s.innerHTML=b('FPS',fc,fc>50?'#3fb950':(fc>30?'#d29922':'#f85149'))+b('Errors',errLog.length,errLog.length>0?'#f85149':'#8b949e')+b('메모리 (MB)',Math.round(memMB),c(memMB,800,1500))+b('DOM 렌더링',Math.round(domLoad),c(domLoad,300,700))+b('데이터 처리',Math.round(procDelay),c(procDelay,150,400))+b('간트 드로잉',Math.round(ganttLoad),c(ganttLoad,200,500))+b('필터 응답성',Math.round(filterLoad),c(filterLoad,100,300))+b('네트워크 파싱',Math.round(netLoad),c(netLoad,150,600))+b('연쇄 재계산',Math.round(cascadeLoad),c(cascadeLoad,80,250))+b('DOM Nodes',dn,'#8b949e');fc=0;lastTime=n;lt=0;}requestAnimationFrame(fl)}requestAnimationFrame(fl);document.getElementById('__SM_EXP').onclick=function(){var rep=\"=== Supreme Monitor Report ===\\n\\n[1] System Specs\\nCPU: \"+cpu+\" Core\\nRAM: \"+ram+\" GB\\nBrowser: \"+browser+\"\\n\\n[2] Load Config (Temp)\\n\"+JSON.stringify(cfg,null,2)+\"\\n\\n[3] Current Metrics\\n\"+JSON.stringify(lastMetrics,null,2)+\"\\n\\n[4] Console Errors (\"+errLog.length+\")\\n\";errLog.forEach(function(e,i){rep+=\"[\"+e.time+\"] Line \"+e.line+\": \"+e.msg+\"\\n\"});var blob=new Blob([rep],{type:\"text/plain;charset=utf-8\"});var a=document.createElement(\"a\");a.href=URL.createObjectURL(blob);a.download=\"supreme_performance_report_\"+Date.now()+\".txt\";a.click()}})();";
+      
+      const codeContainer = document.getElementById('bookmarkletCode');
+      const dragBtn = document.getElementById('dragBookmarklet');
+      
+      if(dragBtn) dragBtn.href = bookmarkletCodeStr;
+      if(codeContainer) codeContainer.textContent = bookmarkletCodeStr;
+    },
+
+    bindTrackC: function() {
+      // 초기 북마클릿 코드 생성 
+      UI.updateBookmarkletCode();
+
+      const btnCopy = document.getElementById('btnCopyBM');
+      const statusEl = document.getElementById('copyStatus');
+      const dragBtn = document.getElementById('dragBookmarklet');
+      
+      if(dragBtn) {
+        dragBtn.onclick = function(e) {
+          e.preventDefault();
+          alert('이 버튼을 클릭한 상태로 브라우저 상단의 [북마크 바]로 끌어다 놓으세요!');
+        };
+      }
+      
+      if(btnCopy) {
+        btnCopy.onclick = function() {
+          // 화면에 출력된 최신 코드를 읽어와서 복사
+          const bookmarkletCodeStr = document.getElementById('bookmarkletCode').textContent;
+          const textarea = document.createElement('textarea');
+          textarea.value = bookmarkletCodeStr;
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.select();
+          
+          try {
+            document.execCommand('copy');
+            statusEl.textContent = '✅ 성공적으로 복사되었습니다!';
+            setTimeout(() => { statusEl.textContent = ''; }, 2500);
+          } catch (err) {
+            statusEl.textContent = '❌ 복사 실패. 코드를 직접 드래그해서 복사해주세요.';
+            statusEl.style.color = 'var(--red)';
+          } finally {
+            document.body.removeChild(textarea);
+          }
+        };
+      }
+    },
+    
+    // 시뮬레이션 결과 및 종합 리포트 판정 로직
+    results: function() {
+      const el = document.getElementById('benchResults'); 
+      el.innerHTML = '';
+      
+      const c = UI.cfg;
+      const tot = Logic.calc(c);
+      
+      const domLoad = tot * 0.005 + Math.random() * 50;
+      const memLoad = 200 + (tot * 0.004) + Math.random() * 20;
+      const procDelay = tot * 0.003 + Math.random() * 30;
+      const ganttLoad = (c.tasks + c.milestones + c.deps) * c.rows * 0.008 + Math.random() * 40;
+      const filterLoad = (c.rows * c.cols) * 0.002 + Math.random() * 20;
+      const netParseLoad = tot * 0.0015 + Math.random() * 50;
+      const cascadeLoad = (c.deps > 0 ? (c.rows * Math.log10(c.deps + 1) * 0.05) : 0) + Math.random() * 30;
+
+      const items = [
+        {n: 'DOM 렌더링 부하', v: domLoad, u: 'ms', g: 300, b: 700},
+        {n: '메모리 예상 점유', v: memLoad, u: 'MB', g: 800, b: 1500},
+        {n: '데이터 처리 지연', v: procDelay, u: 'ms', g: 150, b: 400},
+        {n: '간트 차트 드로잉', v: ganttLoad, u: 'ms', g: 200, b: 500},
+        {n: '다중 필터 응답성', v: filterLoad, u: 'ms', g: 100, b: 300},
+        {n: '네트워크 파싱 지연', v: netParseLoad, u: 'ms', g: 150, b: 600},
+        {n: '연쇄 일정 재계산', v: cascadeLoad, u: 'ms', g: 80, b: 250}
+      ];
+
+      let badCount = 0;
+      let warnCount = 0;
+
+      items.sort((a, b) => (b.v / b.b) - (a.v / a.b));
+      
+      items.forEach(it => {
+        const type = it.v < it.g ? 'good' : it.v < it.b ? 'warn' : 'bad';
+        const typeKo = type === 'good' ? '양호' : type === 'warn' ? '주의' : '위험';
+        const tagClass = type === 'good' ? 'tag-detect' : 'tag-estim';
+        
+        if (type === 'bad') badCount++;
+        if (type === 'warn') warnCount++;
+        
+        const tooltipText = TOOLTIP_MESSAGES[it.n][type];
+        
+        const d = document.createElement('div'); 
+        d.className = `bench-result res-${type}`;
+        d.innerHTML = `
+          <span>${it.n}</span> 
+          <span>
+            <b>${it.v.toFixed(0)}${it.u}</b> 
+            <span class="tag ${tagClass} bench-tag" style="cursor:help;" data-tooltip="${tooltipText}">${typeKo}</span>
+          </span>
+        `;
+        el.appendChild(d);
+      });
+
+      // --- 종합 결과 리포트(Track D) 업데이트 로직 ---
+      const gaugeEl = document.getElementById('gradeGauge');
+      const labelEl = document.getElementById('gradeLabel');
+      const specsEl = document.getElementById('specCards');
+      
+      let gradeStr = 'S';
+      let gradeColor = 'var(--green)';
+      let gradeDesc = '완벽하게 쾌적함';
+
+      if (badCount >= 3) { gradeStr = 'F'; gradeColor = 'var(--red)'; gradeDesc = '사용 불가 (크래시 위험)'; }
+      else if (badCount >= 1) { gradeStr = 'D'; gradeColor = 'var(--orange)'; gradeDesc = '심각한 성능 저하'; }
+      else if (warnCount >= 4) { gradeStr = 'C'; gradeColor = 'var(--yellow)'; gradeDesc = '부분적 지연 발생'; }
+      else if (warnCount >= 2) { gradeStr = 'B'; gradeColor = 'var(--accent)'; gradeDesc = '일반적인 수준'; }
+      else if (warnCount >= 1) { gradeStr = 'A'; gradeColor = 'var(--accent2)'; gradeDesc = '상당히 양호함'; }
+
+      gaugeEl.textContent = gradeStr;
+      gaugeEl.style.color = gradeColor;
+      gaugeEl.style.borderColor = gradeColor;
+      labelEl.textContent = gradeDesc;
+      labelEl.style.color = gradeColor;
+
+      // 동적 하드웨어 권장 사양 HTML 생성
+      let reqRam = 4, reqDisk = 'HDD', reqCpu = '2코어';
+      let optRam = 8, optDisk = 'SSD', optCpu = '4코어';
+      
+      if (tot > 3000000) { reqRam = 16; reqDisk = 'NVMe SSD'; reqCpu = '8코어'; optRam = 32; optDisk = 'NVMe SSD'; optCpu = '16코어'; }
+      else if (tot > 1000000) { reqRam = 8; reqDisk = 'SSD'; reqCpu = '4코어'; optRam = 16; optDisk = 'NVMe SSD'; optCpu = '8코어'; }
+      else if (tot > 500000) { reqRam = 4; reqDisk = 'SSD'; reqCpu = '2코어'; optRam = 8; optDisk = 'SSD'; optCpu = '4코어'; }
+
+      specsEl.innerHTML = `
+        <div class="spec-card optimal">
+          <h3 style="color:var(--green)">✨ 쾌적한 구동 사양</h3>
+          <p>• RAM: <b>${optRam}GB</b> 이상 여유 메모리</p>
+          <p>• CPU: <b>${optCpu}</b> 이상 병렬 처리</p>
+          <p>• DISK: <b>${optDisk}</b> 권장 (데이터 캐싱)</p>
+        </div>
+        <div class="spec-card minimum">
+          <h3 style="color:var(--red)">⚠️ 최소 구동 사양</h3>
+          <p>• RAM: <b>${reqRam}GB</b> (이하일 경우 탭 크래시)</p>
+          <p>• CPU: <b>${reqCpu}</b> (프레임 드롭 감수)</p>
+          <p>• DISK: <b>${reqDisk}</b></p>
+        </div>
+      `;
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', () => UI.init());
+})();
+</script>
+</body>
+</html>
