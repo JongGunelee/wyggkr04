@@ -935,7 +935,143 @@
             pointer-events: none;
         }
 
-        .floating-panel {
+        
+        /* --- START: 042 프리미엄 메뉴 패널 & 이미지 핸들 CSS 오버홀 --- */
+        #menuPanel.floating-panel {
+            background: #ffffff !important;
+            border-radius: 14px !important;
+            box-shadow: 0 12px 36px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+            overflow: hidden !important;
+            resize: both !important;
+            min-width: 330px !important;
+            min-height: 440px !important;
+            max-width: 90vw !important;
+            max-height: 85vh !important;
+            display: flex;
+            flex-direction: column;
+            border: none !important;
+            position: fixed;
+            z-index: 32002 !important;
+        }
+
+        #menuPanel .panel-header {
+            background: linear-gradient(135deg, #075e54 0%, #00897b 100%) !important;
+            color: #ffffff !important;
+            padding: 10px 14px !important;
+            cursor: move !important;
+            user-select: none !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            border-bottom: none !important;
+        }
+
+        #menuPanel .floating-panel-close-btn {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border: none !important;
+            border-radius: 50% !important;
+            color: #ffffff !important;
+            width: 26px !important;
+            height: 26px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        #menuPanel .floating-panel-close-btn:hover {
+            background: rgba(255, 255, 255, 0.4) !important;
+            transform: scale(1.08);
+        }
+
+        #menuPanel .panel-tabs {
+            background: #f1f5f9 !important;
+            padding: 6px !important;
+            gap: 5px !important;
+            display: flex !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            flex-shrink: 0 !important;
+        }
+
+        #menuPanel .tab-btn {
+            flex: 1 !important;
+            border: none !important;
+            padding: 8px 10px !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            font-size: 13px !important;
+            color: #64748b !important;
+            background: transparent !important;
+            transition: all 0.2s ease !important;
+            cursor: pointer !important;
+            text-align: center !important;
+            margin: 0 !important;
+        }
+
+        #menuPanel .tab-btn.active {
+            background: #ffffff !important;
+            color: #0f766e !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        /* 모바일 세로 모드 반응형: Bottom Sheet 하단 시트 팝업 전환 */
+        @media (max-width: 768px) {
+            #menuPanel.floating-panel {
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                top: auto !important;
+                width: 100vw !important;
+                max-width: 100vw !important;
+                height: 75vh !important;
+                max-height: 85vh !important;
+                border-radius: 20px 20px 0 0 !important;
+                box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.28) !important;
+                resize: none !important;
+            }
+        }
+
+        /* 이미지 리사이즈 4모서리 핸들 시각화 오버홀 */
+        .resizable-image-wrapper {
+            position: relative !important;
+            display: inline-block !important;
+            user-select: none;
+        }
+        .resizable-image-wrapper.selected,
+        .resizable-image-wrapper.active {
+            outline: 2px solid #0284c7 !important;
+            outline-offset: 1px !important;
+            z-index: 20 !important;
+        }
+        .resizable-image-wrapper .resize-handle-img {
+            position: absolute !important;
+            width: 10px !important;
+            height: 10px !important;
+            background-color: #0284c7 !important;
+            border: 2px solid #ffffff !important;
+            border-radius: 50% !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+            z-index: 100 !important;
+            display: none;
+            touch-action: none;
+        }
+        .resizable-image-wrapper.selected .resize-handle-img,
+        .resizable-image-wrapper.active .resize-handle-img {
+            display: block !important;
+        }
+        .resize-handle-img.rh-top-left { top: -5px; left: -5px; cursor: nwse-resize; }
+        .resize-handle-img.rh-top-right { top: -5px; right: -5px; cursor: nesw-resize; }
+        .resize-handle-img.rh-bottom-left { bottom: -5px; left: -5px; cursor: nesw-resize; }
+        .resize-handle-img.rh-bottom-right { bottom: -5px; right: -5px; cursor: nwse-resize; }
+        /* --- END: 042 프리미엄 메뉴 패널 & 이미지 핸들 CSS 오버홀 --- */
+
+.floating-panel {
             position: fixed;
             background-color: #f5f5f5;
             border: 1px solid #ccc;
@@ -4436,12 +4572,19 @@
     <!-- START: 개선된 탭 기반 패널 UI -->
     <!-- ================================================================= -->
     <div class="floating-panel" id="menuPanel" style="display: none;">
-        <span class="floating-panel-close-btn" id="closeMenuPanelBtn" title="메뉴 닫기">✕</span>
-        <div class="panel-tabs">
-            <button class="tab-btn active" data-tab="tab-format">서식</button>
-            <button class="tab-btn" data-tab="tab-insert">삽입</button>
-            <button class="tab-btn" data-tab="tab-doc">문서 관리</button>
-            <button class="tab-btn" data-tab="tab-settings">환경 설정</button>
+        <div class="panel-header" title="드래그하여 메뉴 위치 이동">
+            <div class="panel-title-group" style="display:flex; align-items:center; gap:8px;">
+                <span class="drag-handle-grip" style="font-size:16px; opacity:0.85; cursor:move;" aria-hidden="true">⋮⋮</span>
+                <span class="panel-title" style="font-weight:700; font-size:14px; color:#ffffff;">⚙️ 월간 회의 제어 메뉴</span>
+            </div>
+            <button class="floating-panel-close-btn" id="closeMenuPanelBtn" title="메뉴 닫기 (Esc)" aria-label="메뉴 닫기">✕</button>
+        </div>
+
+        <div class="panel-tabs" role="tablist" aria-label="메뉴 탭 목록">
+            <button class="tab-btn active" data-tab="tab-format" role="tab" aria-selected="true">✏️ 서식</button>
+            <button class="tab-btn" data-tab="tab-insert" role="tab" aria-selected="false">🖼️ 삽입</button>
+            <button class="tab-btn" data-tab="tab-doc" role="tab" aria-selected="false">💾 문서 관리</button>
+            <button class="tab-btn" data-tab="tab-settings" role="tab" aria-selected="false">⚙️ 환경 설정</button>
         </div>
         <div class="panel-content-wrapper">
             <!-- 서식 탭 -->
@@ -5460,7 +5603,95 @@
         // --- END: 이미지 편집 고도화 함수 ---
 
 // START: [개선된] 이미지 리사이즈 & 이동 기능
-        function ensureImageWrapperStructure(wrapper) {
+        
+        // --- START: 042 다중 이미지 자유 드래그 & 리사이즈 글로벌 엔진 ---
+        function selectAndActivateImageWrapper(wrapper) {
+            if (!wrapper) return;
+            document.querySelectorAll('.resizable-image-wrapper.selected, .resizable-image-wrapper.active').forEach(w => {
+                if (w !== wrapper) {
+                    w.classList.remove('selected', 'active');
+                }
+            });
+            wrapper.classList.add('selected', 'active');
+            ensureImageWrapperStructure(wrapper);
+        }
+
+        function deselectAllImageWrappers() {
+            document.querySelectorAll('.resizable-image-wrapper.selected, .resizable-image-wrapper.active').forEach(w => {
+                w.classList.remove('selected', 'active');
+            });
+        }
+
+        function startGlobalImageResize(e, handle) {
+            if (window.currentCroppingWrapper) return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            const wrapper = handle.closest('.resizable-image-wrapper');
+            if (!wrapper) return;
+
+            selectAndActivateImageWrapper(wrapper);
+
+            const startX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+            const startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+            const startWidth = wrapper.offsetWidth || 100;
+            const startHeight = wrapper.offsetHeight || 100;
+            const aspectRatio = startWidth / (startHeight || 1);
+
+            const isLeft = handle.classList.contains('rh-top-left') || handle.classList.contains('rh-bottom-left');
+
+            function onMove(evt) {
+                evt.preventDefault();
+                const curX = evt.clientX || (evt.touches && evt.touches[0] ? evt.touches[0].clientX : startX);
+                const deltaX = isLeft ? (startX - curX) : (curX - startX);
+                
+                let newWidth = Math.max(30, startWidth + deltaX);
+                let newHeight = Math.round(newWidth / aspectRatio);
+
+                wrapper.style.width = `${newWidth}px`;
+                wrapper.style.height = `${newHeight}px`;
+
+                const img = wrapper.querySelector('img');
+                if (img) {
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                }
+            }
+
+            function onEnd() {
+                document.removeEventListener('pointermove', onMove);
+                document.removeEventListener('pointerup', onEnd);
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onEnd);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onEnd);
+            }
+
+            document.addEventListener('pointermove', onMove);
+            document.addEventListener('pointerup', onEnd);
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend', onEnd);
+        }
+
+        // 글로벌 포인터 델리게이션 바인딩 (다중 이미지 무제한 지원)
+        document.addEventListener('pointerdown', (e) => {
+            const handle = e.target.closest('.resize-handle-img');
+            if (handle) {
+                startGlobalImageResize(e, handle);
+                return;
+            }
+            const wrapper = e.target.closest('.resizable-image-wrapper');
+            if (wrapper) {
+                selectAndActivateImageWrapper(wrapper);
+            } else if (!e.target.closest('.text-format-toolbar, #menuPanel, .item-controls, #miniToolbar')) {
+                deselectAllImageWrappers();
+            }
+        });
+        // --- END: 042 다중 이미지 자유 드래그 & 리사이즈 글로벌 엔진 ---
+
+function ensureImageWrapperStructure(wrapper) {
             const img = wrapper.querySelector('img');
             if (!img) return false;
 
@@ -6633,6 +6864,16 @@ function clampImagesToContainers(scope = contentArea) {
             function loadSourceDocForDuplication(htmlText, sourceLabel) {
                 const parser = new DOMParser();
                 const sourceDoc = parser.parseFromString(htmlText, 'text/html');
+                
+                // [Zero-Residue Auto-Sanitization] 불러온 과거 문서에서 툴바, 원형 아이콘 버튼, 내용 없는 빈 줄노트 상자 100% 자동 사전 소멸
+                if (sourceDoc) {
+                    sourceDoc.querySelectorAll('.text-format-toolbar, #textFormatToolbar, .mini-toolbar, #miniToolbar, .item-controls, .transfer-items-btn, .insert-area-toggle-btn, .annotation-delete-btn, .annotation-drag-handle, .resize-handle-img, .item-controls-owner, .item-creation-controls, hr, .empty-line, .placeholder-line').forEach(el => el.remove());
+                    sourceDoc.querySelectorAll('.insert-area').forEach(ia => {
+                        const txt = ia.textContent.replace(/\s+/g, '');
+                        const hasImg = ia.querySelector('img') !== null;
+                        if (!txt && !hasImg) ia.remove();
+                    });
+                }
                 lastLoadedSourceDoc = sourceDoc;
                 const sourceEditables = Array.from(sourceDoc.querySelectorAll('[data-editable-type]:not(.text-annotation-memo):not([data-editable-type="flow-span"]), .resizable-image-wrapper'));
                 const currentEditables = Array.from(contentArea.querySelectorAll('[data-editable-type]:not(.text-annotation-memo):not([data-editable-type="flow-span"]), .resizable-image-wrapper'));
@@ -8780,17 +9021,27 @@ function clampImagesToContainers(scope = contentArea) {
             }
 
             function restoreSelection() {
-                if (savedRange) {
+                if (!savedRange) return false;
+                try {
                     const selection = window.getSelection();
                     const focusedEditor = document.getElementById('focusedEditorOverlay');
                     const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
                     const targetEditor = isFocusedActive ? document.getElementById('focusedEditorSurface') : contentArea;
-                    if (targetEditor) {
-                        targetEditor.focus();
+
+                    let container = savedRange.commonAncestorContainer;
+                    if (container && container.nodeType === 3) {
+                        container = container.parentNode;
                     }
-                    selection.removeAllRanges();
-                    selection.addRange(savedRange);
+
+                    if (targetEditor && container && targetEditor.contains(container)) {
+                        selection.removeAllRanges();
+                        selection.addRange(savedRange);
+                        return true;
+                    }
+                } catch (e) {
+                    console.warn('Selection 복원 오류:', e);
                 }
+                return false;
             }
 
             function executeFormatCommand(command, value = null) {
@@ -8838,15 +9089,15 @@ function clampImagesToContainers(scope = contentArea) {
                     document.execCommand('backColor', false, styleValue);
                 }
                 document.execCommand('styleWithCSS', false, false);
-                savedRange = window.getSelection().getRangeAt(0).cloneRange();
-                
-                const focusedEditor = document.getElementById('focusedEditorOverlay');
-                const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
-                const container = isFocusedActive ? document.getElementById('focusedEditorSurface') : contentArea;
-                if (container && document.activeElement !== container && !container.contains(document.activeElement)) {
-                    container.focus();
+                // [원초적 해결] 서식 적용 후 선택 영역 하이라이트 영구 보존
+                if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                    savedRange = selection.getRangeAt(0).cloneRange();
+                    selection.removeAllRanges();
+                    selection.addRange(savedRange);
+                } else if (savedRange) {
+                    selection.removeAllRanges();
+                    selection.addRange(savedRange);
                 }
-
                 setTimeout(updateAllFormattingUIs, 0);
             }
 
