@@ -3297,6 +3297,22 @@
         .resize-handle-img.rh-bottom-right { bottom: -5px; right: -5px; cursor: nwse-resize; }
         /* --- END: 4모서리 이미지 리사이즈 핸들 스타일 오버홀 --- */
 
+
+        /* --- START: 043 판서 캔버스 모바일 터치 스크롤 간섭 차단 CSS --- */
+        #annotationCanvas, #zoomAnnotationCanvas, .resizable-image-wrapper canvas {
+            touch-action: none !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+        }
+        .image-annotation-text {
+            touch-action: none;
+        }
+        .annotation-drag-handle {
+            touch-action: none !important;
+            cursor: move;
+        }
+        /* --- END: 043 판서 캔버스 모바일 터치 스크롤 간섭 차단 CSS --- */
+
 /* --- START: 사용자 친화적 프리미엄 메뉴 패널 CSS 오버홀 --- */
         #menuPanel.floating-panel {
             background: #ffffff !important;
@@ -8811,37 +8827,52 @@ function hideTextFormatToolbar() {
                 }
             });
 
+            // --- START: 043 모바일 터치 포인터 판서 엔진 고도화 ---
+            dragHandle.style.touchAction = 'none';
+
             function onDragStart(e) {
                 if (e.target.closest('.annotation-delete-btn')) return;
-                e.preventDefault();
+                if (e.cancelable) e.preventDefault();
                 e.stopPropagation();
 
                 isDragging = true;
                 annotation.style.userSelect = 'none';
 
-                initialMouseX = e.clientX;
-                initialMouseY = e.clientY;
+                const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+                const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+                initialMouseX = clientX;
+                initialMouseY = clientY;
                 currentX = annotation.offsetLeft;
                 currentY = annotation.offsetTop;
 
                 document.addEventListener('mousemove', onDragMove);
                 document.addEventListener('mouseup', onDragEnd, { once: true });
+                document.addEventListener('touchmove', onDragMove, { passive: false });
+                document.addEventListener('touchend', onDragEnd, { once: true });
             }
 
             function onDragMove(e) {
                 if (!isDragging) return;
-                const dx = e.clientX - initialMouseX;
-                const dy = e.clientY - initialMouseY;
+                if (e.cancelable) e.preventDefault();
+
+                const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+                const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+                const dx = clientX - initialMouseX;
+                const dy = clientY - initialMouseY;
 
                 let newLeft = currentX + dx;
                 let newTop = currentY + dy;
 
                 const parentWrapper = annotation.parentElement;
-                const parentRect = parentWrapper.getBoundingClientRect();
-                const annotationRect = annotation.getBoundingClientRect();
+                if (parentWrapper) {
+                    const parentRect = parentWrapper.getBoundingClientRect();
+                    const annotationRect = annotation.getBoundingClientRect();
 
-                newLeft = Math.max(0, Math.min(newLeft, parentRect.width - annotationRect.width));
-                newTop = Math.max(0, Math.min(newTop, parentRect.height - annotationRect.height));
+                    newLeft = Math.max(0, Math.min(newLeft, parentRect.width - annotationRect.width));
+                    newTop = Math.max(0, Math.min(newTop, parentRect.height - annotationRect.height));
+                }
 
                 annotation.style.left = `${newLeft}px`;
                 annotation.style.top = `${newTop}px`;
@@ -8851,9 +8882,12 @@ function hideTextFormatToolbar() {
                 isDragging = false;
                 annotation.style.userSelect = 'text';
                 document.removeEventListener('mousemove', onDragMove);
+                document.removeEventListener('touchmove', onDragMove);
             }
 
             dragHandle.addEventListener('mousedown', onDragStart);
+            dragHandle.addEventListener('touchstart', onDragStart, { passive: false });
+            // --- END: 043 모바일 터치 포인터 판서 엔진 고도화 ---
         }
 
         function addImageAnnotation(wrapper) {

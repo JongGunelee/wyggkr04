@@ -2932,11 +2932,11 @@
     /* 행 포커스 (열 포커스 제외) */
     tr.row-focus>td,
     tr.row-focus>th {
-      background-color: rgba(228, 158, 221, 0.9) !important;
+      background-color: #dbeafe !important; color: #1e3a8a !important; font-weight: 700 !important; box-shadow: inset 0 1.5px 0 #3b82f6, inset 0 -1.5px 0 #3b82f6 !important; border-left: 4px solid #2563eb !important;
     }
 
     .table-container-sticky-header tbody th.row-focus {
-      background-color: rgba(228, 158, 221, 0.9) !important;
+      background-color: #dbeafe !important; color: #1e3a8a !important; font-weight: 700 !important; box-shadow: inset 0 1.5px 0 #3b82f6, inset 0 -1.5px 0 #3b82f6 !important; border-left: 4px solid #2563eb !important;
     }
 
     /* ▲▲▲ 개선 사항 끝 ▲▲▲ */
@@ -5086,6 +5086,17 @@
         font-size: 0.75rem !important;
       }
 
+      /* 모달 상세 테이블 최적화 */
+      .modal-body-container {
+        width: 100% !important;
+        max-width: 100vw !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      #detailModalTable, #detailModalTable th, #detailModalTable td {
+        white-space: nowrap !important;
+      }
+
       /* wt-action-bar: 버튼 영역 세로 스택 */
       .wt-action-bar {
         flex-direction: column !important;
@@ -5509,9 +5520,7 @@
     #pivotTableContainer tr>*:first-child, #fullScreenContent tr>*:first-child { box-shadow: 4px 0 8px -8px rgba(15, 23, 42, .55); }
     #pivotTableContainer tbody tr:not(.grand-summary-row):hover>*,
     #fullScreenContent tbody tr:not(.grand-summary-row):hover>* { background-color: #eff6ff !important; }
-    #pivotTableContainer tbody tr.row-focus>*, #fullScreenContent tbody tr.row-focus>* {
-      background-color: #e0f2fe !important; color: inherit !important;
-    }
+    #pivotTableContainer tbody tr.row-focus>*, #fullScreenContent tbody tr.row-focus>* { background-color: #dbeafe !important; color: #1e3a8a !important; font-weight: 700 !important; box-shadow: inset 0 1.5px 0 #3b82f6, inset 0 -1.5px 0 #3b82f6 !important; } #pivotTableContainer tbody tr.row-focus>*:first-child, #fullScreenContent tbody tr.row-focus>*:first-child { border-left: 4px solid #2563eb !important; box-shadow: inset 0 1.5px 0 #3b82f6, inset 0 -1.5px 0 #3b82f6, 4px 0 8px -8px rgba(15, 23, 42, .55) !important; }
     .group-summary { display: inline; white-space: normal; color: #64748b; font-size: .82em; font-weight: 500; line-height: 1.45; }
 
     .pivot-sort-button {
@@ -5576,6 +5585,31 @@
       #comparisonModal .chart-resize-handle, #pivotTableContainer .col-resizer, #pivotTableContainer .row-resizer,
       #fullScreenContent .col-resizer, #fullScreenContent .row-resizer { display: none !important; }
     }
+    /* [스마트 모바일 피벗 UX] 좌측 제목열 접힘 클래스 정의 */
+    #pivotTableContainer.collapsed-first-col tr>*:first-child,
+    #fullScreenContent.collapsed-first-col tr>*:first-child {
+      width: 52px !important;
+      min-width: 50px !important;
+      max-width: 55px !important;
+      padding: 4px 2px !important;
+      font-size: 10px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+
+    @media (max-width: 767px) and (orientation: portrait) {
+      /* 모바일 세로 모드에서 좌측 제목열 폭을 115px~125px로 자동 축소하여 우측 상세 수치 데이터 영역을 65% 이상 확보 */
+      #pivotTableContainer tr>*:first-child,
+      #fullScreenContent tr>*:first-child {
+        width: 120px !important;
+        min-width: 110px !important;
+        max-width: 130px !important;
+        font-size: 11px !important;
+        padding: 4px 5px !important;
+      }
+    }
+
     @media (max-width: 520px) {
       #toggleComparisonControlsBtn { padding: 6px 8px; }
       .pivot-cluster-label { display: none; }
@@ -7259,6 +7293,7 @@
               <button id="expandAllBtn" type="button" class="pivot-tool-button" title="모두 펼치기">전체</button>
             </div>
             <button id="exportComparisonExcelBtn" type="button" class="pivot-tool-button pivot-primary-action" title="Excel로 내보내기">Excel 내보내기</button>
+            <button id="togglePivotFirstColBtn" type="button" class="pivot-tool-button" title="좌측 제목열 접기/펼치기" onclick="togglePivotFirstColWidth()">◀ 좌측열 접기</button>
             <button id="expandTableBtn" type="button" class="pivot-tool-button pivot-fullscreen-action" title="전체 화면으로 보기">전체 화면</button>
           </div>
         </div>
@@ -17960,6 +17995,21 @@
             return;
           }
 
+          if (isModal && colKey === "전체 세대수") {
+            const dongHeaderName = getHeaderName("건물동");
+            const rawDong = item[dongHeaderName];
+            const dongKey = rawDong ? (typeof rawDong === "string" ? rawDong.replace("사택 ", "").trim() : String(rawDong).trim()) : "";
+            const totalU = totalUnitsPerDongStatic[dongKey];
+            if (totalU === null || totalU === undefined || totalU === "" || isNaN(totalU)) {
+              cell.textContent = "N/A";
+              cell.classList.add("text-na");
+            } else {
+              cell.textContent = String(totalU);
+            }
+            cell.style.textAlign = "center";
+            return;
+          }
+
           if (isModal && colKey === "외벽 세대수") {
             const dongHeaderName = getHeaderName("건물동");
             const rawDong = item[dongHeaderName];
@@ -24420,6 +24470,31 @@ async function processUploadedData(data, isExcel = false) {
       });
 
       populateTable("detailModalTable", detailModalCurrentData, [], true);
+    }
+
+    // [스마트 모바일 피벗 UX] 좌측 제목열 폭 접기/펼치기 토글 함수
+    function togglePivotFirstColWidth() {
+      const container = document.getElementById("pivotTableContainer");
+      const fullContainer = document.getElementById("fullScreenContent");
+      const btn = document.getElementById("togglePivotFirstColBtn");
+      if (!container) return;
+
+      const isCollapsed = container.classList.toggle("collapsed-first-col");
+      if (fullContainer) fullContainer.classList.toggle("collapsed-first-col", isCollapsed);
+
+      if (btn) {
+        if (isCollapsed) {
+          btn.textContent = "▶ 좌측열 펼치기";
+          btn.style.background = "#dbeafe";
+          btn.style.color = "#1d4ed8";
+          btn.style.borderColor = "#93c5fd";
+        } else {
+          btn.textContent = "◀ 좌측열 접기";
+          btn.style.background = "";
+          btn.style.color = "";
+          btn.style.borderColor = "";
+        }
+      }
     }
 
     function updateDetailModalSortUI() {
@@ -42982,3 +43057,8 @@ async function processUploadedData(data, isExcel = false) {
 </body>
 
 </html>
+
+
+
+
+

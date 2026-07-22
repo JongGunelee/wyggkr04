@@ -936,7 +936,23 @@
         }
 
         
-        /* --- START: 042 프리미엄 메뉴 패널 & 이미지 핸들 CSS 오버홀 --- */
+        
+        /* --- START: 판서 캔버스 모바일 터치 스크롤 간섭 차단 CSS --- */
+        #annotationCanvas, #zoomAnnotationCanvas, .resizable-image-wrapper canvas {
+            touch-action: none !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+        }
+        .image-annotation-text {
+            touch-action: none;
+        }
+        .annotation-drag-handle {
+            touch-action: none !important;
+            cursor: move;
+        }
+        /* --- END: 판서 캔버스 모바일 터치 스크롤 간섭 차단 CSS --- */
+
+/* --- START: 042 프리미엄 메뉴 패널 & 이미지 핸들 CSS 오버홀 --- */
         #menuPanel.floating-panel {
             background: #ffffff !important;
             border-radius: 14px !important;
@@ -5332,106 +5348,117 @@
         }
 
         // *** 개선 사항 2: 주석 이동 기능 함수 추가 ***
+        // --- START: 042 모바일 터치 포인터 판서 엔진 고도화 ---
         function makeAnnotationDraggable(annotation) {
-                    let currentX, currentY, initialMouseX, initialMouseY, isDragging = false;
-        
-                    // 드래그 핸들 동적 생성
-                    let dragHandle = annotation.querySelector('.annotation-drag-handle');
-                    if (!dragHandle) {
-                        dragHandle = document.createElement('div');
-                        dragHandle.className = 'annotation-drag-handle';
-                        dragHandle.setAttribute('contenteditable', 'false');
-                        dragHandle.innerHTML = '⠿';
-                        annotation.insertBefore(dragHandle, annotation.firstChild);
-                    }
-        
-                    // 삭제 버튼 동적 생성 및 이벤트 연결
-                    let deleteBtn = annotation.querySelector('.annotation-delete-btn');
-                    if (!deleteBtn) {
-                        deleteBtn = document.createElement('span');
-                        deleteBtn.className = 'annotation-delete-btn';
-                        deleteBtn.setAttribute('contenteditable', 'false');
-                        deleteBtn.innerHTML = '&times;';
-                        deleteBtn.title = '주석 삭제';
-                        annotation.appendChild(deleteBtn);
-                    }
-                    
-                    // Prevent event bubbling on mousedown to prevent drag start or parent selection changes
-                    deleteBtn.addEventListener('mousedown', function(e) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    });
-                    
-                    deleteBtn.onclick = function(e) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        annotation.remove();
-                    };
-                    
-                    // If the text becomes empty on blur, remove the annotation
-                    annotation.addEventListener('blur', function() {
-                        // Check the text content without the delete button and drag handle
-                        const tempNode = annotation.cloneNode(true);
-                        const btn = tempNode.querySelector('.annotation-delete-btn');
-                        if (btn) btn.remove();
-                        const handle = tempNode.querySelector('.annotation-drag-handle');
-                        if (handle) handle.remove();
-                        
-                        const text = tempNode.textContent.trim();
-                        // If it is empty, remove the annotation
-                        if (text === '') {
-                            annotation.remove();
-                        }
-                    });
-        
-                    function onDragStart(e) {
-                        // 드래그 핸들을 클릭한 경우에만 드래그 시작
-                        if (e.target !== dragHandle && !dragHandle.contains(e.target)) {
-                            return;
-                        }
-                        e.preventDefault();
-                        e.stopPropagation();
-        
-                        isDragging = true;
-                        annotation.style.userSelect = 'none';
-        
-                        initialMouseX = e.clientX;
-                        initialMouseY = e.clientY;
-                        currentX = annotation.offsetLeft;
-                        currentY = annotation.offsetTop;
-        
-                        document.addEventListener('mousemove', onDragMove);
-                        document.addEventListener('mouseup', onDragEnd, { once: true });
-                    }
-        
-                    function onDragMove(e) {
-                        if (!isDragging) return;
-                        const dx = e.clientX - initialMouseX;
-                        const dy = e.clientY - initialMouseY;
-        
-                        let newLeft = currentX + dx;
-                        let newTop = currentY + dy;
-        
-                        const parentWrapper = annotation.parentElement;
-                        const parentRect = parentWrapper.getBoundingClientRect();
-                        const annotationRect = annotation.getBoundingClientRect();
-        
-                        // 부모 요소(이미지 래퍼) 경계 내에서만 움직이도록 제한
-                        newLeft = Math.max(0, Math.min(newLeft, parentRect.width - annotationRect.width));
-                        newTop = Math.max(0, Math.min(newTop, parentRect.height - annotationRect.height));
-        
-                        annotation.style.left = `${newLeft}px`;
-                        annotation.style.top = `${newTop}px`;
-                    }
-        
-                    function onDragEnd() {
-                        isDragging = false;
-                        annotation.style.userSelect = 'text';
-                        document.removeEventListener('mousemove', onDragMove);
-                    }
-        
-                    annotation.addEventListener('mousedown', onDragStart);
+            let currentX, currentY, initialMouseX, initialMouseY, isDragging = false;
+
+            let dragHandle = annotation.querySelector('.annotation-drag-handle');
+            if (!dragHandle) {
+                dragHandle = document.createElement('div');
+                dragHandle.className = 'annotation-drag-handle';
+                dragHandle.setAttribute('contenteditable', 'false');
+                dragHandle.innerHTML = '⠿';
+                annotation.insertBefore(dragHandle, annotation.firstChild);
+            }
+            dragHandle.style.touchAction = 'none';
+
+            let deleteBtn = annotation.querySelector('.annotation-delete-btn');
+            if (!deleteBtn) {
+                deleteBtn = document.createElement('span');
+                deleteBtn.className = 'annotation-delete-btn';
+                deleteBtn.setAttribute('contenteditable', 'false');
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.title = '주석 삭제';
+                annotation.appendChild(deleteBtn);
+            }
+            
+            ['mousedown', 'touchstart'].forEach(evt => {
+                deleteBtn.addEventListener(evt, function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                });
+            });
+            
+            deleteBtn.onclick = function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                annotation.remove();
+            };
+            
+            annotation.addEventListener('blur', function() {
+                const tempNode = annotation.cloneNode(true);
+                const btn = tempNode.querySelector('.annotation-delete-btn');
+                if (btn) btn.remove();
+                const handle = tempNode.querySelector('.annotation-drag-handle');
+                if (handle) handle.remove();
+                
+                const text = tempNode.textContent.trim();
+                if (text === '') {
+                    annotation.remove();
                 }
+            });
+
+            function onDragStart(e) {
+                if (e.target !== dragHandle && !dragHandle.contains(e.target)) {
+                    return;
+                }
+                if (e.cancelable) e.preventDefault();
+                e.stopPropagation();
+
+                isDragging = true;
+                annotation.style.userSelect = 'none';
+
+                const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+                const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+                initialMouseX = clientX;
+                initialMouseY = clientY;
+                currentX = annotation.offsetLeft;
+                currentY = annotation.offsetTop;
+
+                document.addEventListener('mousemove', onDragMove);
+                document.addEventListener('mouseup', onDragEnd, { once: true });
+                document.addEventListener('touchmove', onDragMove, { passive: false });
+                document.addEventListener('touchend', onDragEnd, { once: true });
+            }
+
+            function onDragMove(e) {
+                if (!isDragging) return;
+                if (e.cancelable) e.preventDefault();
+
+                const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+                const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+                const dx = clientX - initialMouseX;
+                const dy = clientY - initialMouseY;
+
+                let newLeft = currentX + dx;
+                let newTop = currentY + dy;
+
+                const parentWrapper = annotation.parentElement;
+                if (parentWrapper) {
+                    const parentRect = parentWrapper.getBoundingClientRect();
+                    const annotationRect = annotation.getBoundingClientRect();
+
+                    newLeft = Math.max(0, Math.min(newLeft, parentRect.width - annotationRect.width));
+                    newTop = Math.max(0, Math.min(newTop, parentRect.height - annotationRect.height));
+                }
+
+                annotation.style.left = `${newLeft}px`;
+                annotation.style.top = `${newTop}px`;
+            }
+
+            function onDragEnd() {
+                isDragging = false;
+                annotation.style.userSelect = 'text';
+                document.removeEventListener('mousemove', onDragMove);
+                document.removeEventListener('touchmove', onDragMove);
+            }
+
+            annotation.addEventListener('mousedown', onDragStart);
+            annotation.addEventListener('touchstart', onDragStart, { passive: false });
+        }
+        // --- END: 042 모바일 터치 포인터 판서 엔진 고도화 ---
 
         function addImageAnnotation(wrapper) {
             const annotation = document.createElement('div');
