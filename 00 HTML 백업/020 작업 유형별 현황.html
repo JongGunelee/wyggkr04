@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
 
 <head>
@@ -7330,6 +7330,7 @@
             <button id="fullScreenExpandLevel3Btn" type="button" class="pivot-tool-button" title="3단계까지 펼치기">3</button>
             <button id="fullScreenExpandAllBtn" type="button" class="pivot-tool-button" title="모두 펼치기">전체</button>
           </div>
+          <button id="fullScreenTogglePivotFirstColBtn" type="button" class="pivot-tool-button" title="좌측 제목열 접기/펼치기" onclick="togglePivotFirstColWidth()">◀ 좌측열 접기</button>
           <button id="closeFullScreenModalBtn" type="button" aria-label="전체 화면 닫기"
             class="text-gray-500 hover:text-gray-800 text-3xl leading-none">
             &times;
@@ -24472,29 +24473,33 @@ async function processUploadedData(data, isExcel = false) {
       populateTable("detailModalTable", detailModalCurrentData, [], true);
     }
 
-    // [스마트 모바일 피벗 UX] 좌측 제목열 폭 접기/펼치기 토글 함수
+    // [스마트 모바일 피벗 UX] 좌측 제목열 폭 접기/펼치기 토글 함수 (일반 및 전체화면 양방향 동기화)
     function togglePivotFirstColWidth() {
       const container = document.getElementById("pivotTableContainer");
       const fullContainer = document.getElementById("fullScreenContent");
-      const btn = document.getElementById("togglePivotFirstColBtn");
-      if (!container) return;
+      const btn1 = document.getElementById("togglePivotFirstColBtn");
+      const btn2 = document.getElementById("fullScreenTogglePivotFirstColBtn");
+      if (!container && !fullContainer) return;
 
-      const isCollapsed = container.classList.toggle("collapsed-first-col");
+      const isCollapsed = container ? container.classList.toggle("collapsed-first-col") : fullContainer.classList.toggle("collapsed-first-col");
+      if (container) container.classList.toggle("collapsed-first-col", isCollapsed);
       if (fullContainer) fullContainer.classList.toggle("collapsed-first-col", isCollapsed);
 
-      if (btn) {
-        if (isCollapsed) {
-          btn.textContent = "▶ 좌측열 펼치기";
-          btn.style.background = "#dbeafe";
-          btn.style.color = "#1d4ed8";
-          btn.style.borderColor = "#93c5fd";
-        } else {
-          btn.textContent = "◀ 좌측열 접기";
-          btn.style.background = "";
-          btn.style.color = "";
-          btn.style.borderColor = "";
+      [btn1, btn2].forEach(btn => {
+        if (btn) {
+          if (isCollapsed) {
+            btn.textContent = "▶ 좌측열 펼치기";
+            btn.style.background = "#dbeafe";
+            btn.style.color = "#1d4ed8";
+            btn.style.borderColor = "#93c5fd";
+          } else {
+            btn.textContent = "◀ 좌측열 접기";
+            btn.style.background = "";
+            btn.style.color = "";
+            btn.style.borderColor = "";
+          }
         }
-      }
+      });
     }
 
     function updateDetailModalSortUI() {
@@ -32111,6 +32116,26 @@ async function processUploadedData(data, isExcel = false) {
             } catch (e) { }
             // [JIT-OPT] try { console.debug('[pivot] appended table clone into fullScreenContent (render path)', { tableClone, containerId: fullScreenContent.id }); } catch(e) {}
             fullScreenContent.appendChild(tableClone);
+        
+        // [스마트 피벗 UX] 전체 화면 진입 시 일반 모달의 접힘/펼침 상태를 100% 동기화 계승
+        const mainPivotContainer = document.getElementById("pivotTableContainer");
+        const isMainCollapsed = mainPivotContainer && mainPivotContainer.classList.contains("collapsed-first-col");
+        fullScreenContent.classList.toggle("collapsed-first-col", !!isMainCollapsed);
+
+        const fsBtn = document.getElementById("fullScreenTogglePivotFirstColBtn");
+        if (fsBtn) {
+          if (isMainCollapsed) {
+            fsBtn.textContent = "▶ 좌측열 펼치기";
+            fsBtn.style.background = "#dbeafe";
+            fsBtn.style.color = "#1d4ed8";
+            fsBtn.style.borderColor = "#93c5fd";
+          } else {
+            fsBtn.textContent = "◀ 좌측열 접기";
+            fsBtn.style.background = "";
+            fsBtn.style.color = "";
+            fsBtn.style.borderColor = "";
+          }
+        }
 
             // 클론된 노드는 이벤트 리스너를 복제하지 않으므로
             // 기존의 dataset 플래그(복제로 인해 존재할 수 있음)를 제거하고
@@ -33101,6 +33126,26 @@ async function processUploadedData(data, isExcel = false) {
         } catch (e) { }
         // [JIT-OPT] try { console.debug('[fullscreen] appended table clone from openTableFullScreen', { tableClone, containerId: fullScreenContent.id }); } catch(e) {}
         fullScreenContent.appendChild(tableClone);
+        
+        // [스마트 피벗 UX] 전체 화면 진입 시 일반 모달의 접힘/펼침 상태를 100% 동기화 계승
+        const mainPivotContainer = document.getElementById("pivotTableContainer");
+        const isMainCollapsed = mainPivotContainer && mainPivotContainer.classList.contains("collapsed-first-col");
+        fullScreenContent.classList.toggle("collapsed-first-col", !!isMainCollapsed);
+
+        const fsBtn = document.getElementById("fullScreenTogglePivotFirstColBtn");
+        if (fsBtn) {
+          if (isMainCollapsed) {
+            fsBtn.textContent = "▶ 좌측열 펼치기";
+            fsBtn.style.background = "#dbeafe";
+            fsBtn.style.color = "#1d4ed8";
+            fsBtn.style.borderColor = "#93c5fd";
+          } else {
+            fsBtn.textContent = "◀ 좌측열 접기";
+            fsBtn.style.background = "";
+            fsBtn.style.color = "";
+            fsBtn.style.borderColor = "";
+          }
+        }
         const clonedYearHeader = tableClone.tHead?.rows?.[0];
         if (clonedYearHeader) {
           fullScreenContent.style.setProperty(
@@ -43057,6 +43102,11 @@ async function processUploadedData(data, isExcel = false) {
 </body>
 
 </html>
+
+
+
+
+
 
 
 
