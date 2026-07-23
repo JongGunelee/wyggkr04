@@ -4241,6 +4241,82 @@
         /* --- END: 이미지 압축 모달 CSS --- */
     </style>
     <script id="app-state-data"></script>
+<style>
+/* --- START: 이미지 래퍼 내 텍스트 컨트롤 오염 방지 CSS 방어막 --- */
+.resizable-image-wrapper .item-controls {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+}
+/* --- END: 이미지 래퍼 내 텍스트 컨트롤 오염 방지 CSS 방어막 --- */
+</style>
+<style>
+/* --- START: 이미지 매끄러운 사후 정렬 & 선택 피드백 CSS --- */
+.resizable-image-wrapper {
+    box-sizing: border-box !important;
+    transition: width 0.2s ease, height 0.2s ease, box-shadow 0.2s ease !important;
+    position: relative !important;
+    max-width: 100% !important;
+}
+.resizable-image-wrapper img {
+    box-sizing: border-box !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+    border-radius: 4px !important;
+}
+.resizable-image-wrapper.selected,
+.resizable-image-wrapper.active,
+.resizable-image-wrapper.controls-active {
+    outline: 2px solid #0d9488 !important;
+    outline-offset: 1px !important;
+    box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.2) !important;
+}
+/* --- END: 이미지 매끄러운 사후 정렬 & 선택 피드백 CSS --- */
+</style>
+<style>
+/* --- START: 세련되고 조화로운 마이크로 이미지 구분선 CSS --- */
+.resizable-image-wrapper,
+.resizable-image-container {
+    box-sizing: border-box !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.04) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, width 0.2s ease, height 0.2s ease !important;
+    position: relative !important;
+    max-width: 100% !important;
+    background-color: #ffffff !important;
+    padding: 2px !important;
+}
+.resizable-image-wrapper:hover,
+.resizable-image-container:hover {
+    border-color: #94a3b8 !important;
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.12), 0 2px 4px -2px rgba(15, 23, 42, 0.06) !important;
+}
+.resizable-image-wrapper.selected,
+.resizable-image-wrapper.active,
+.resizable-image-wrapper.controls-active,
+.resizable-image-container.selected {
+    border: 2px solid #0d9488 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.25) !important;
+}
+.resizable-image-wrapper img,
+.resizable-image-container img {
+    box-sizing: border-box !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+    border-radius: 4px !important;
+}
+/* --- END: 세련되고 조화로운 마이크로 이미지 구분선 CSS --- */
+</style>
 </head>
 
 <body class="">
@@ -4650,15 +4726,45 @@
                     </div>
                 </div>
                 <div class="panel-section" id="image-insert-controls">
-                    <div class="panel-section-title">이미지</div>
+                    <div class="panel-section-title">🖼️ 이미지 삽입</div>
                     <label for="imageFileInput">로컬 파일 선택 (다중 선택 가능):</label>
                     <input type="file" id="imageFileInput" accept="image/*" multiple>
-                    <div class="format-controls">
+                    <div class="format-controls" style="margin-top: 8px;">
                         <label for="imageWidthInput" style="margin-right: 5px;">초기 너비(px):</label>
                         <input type="number" id="imageWidthInput" min="10" value="300" style="width: 80px;">
-                        <button id="insertImageBtn" style="flex-grow: 1;">선택 위치에 삽입</button>
+                        <button id="insertImageBtn" style="flex-grow: 1; font-weight:700;">선택 위치에 삽입</button>
                     </div>
-                </div>
+
+                    <!-- 본문 이미지 사후 가로/세로 통합 스마트 그리드 정렬 그룹 -->
+                    <div style="margin-top: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #cbd5e1;">
+                        <label style="font-size: 12px; font-weight: 700; color: #0f766e; margin-bottom: 6px; display: block;">🛠️ 본문 이미지 가로/세로 스마트 그리드 정렬</label>
+
+                        <!-- 크기 맞춤 -->
+                        <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                            <button id="postEqualizeHeightBtn" class="secondary" style="flex: 1; font-size: 11px; padding: 5px;" title="이미지 높이를 균일하게 맞춤">📏 높이 균일 맞춤</button>
+                            <button id="postEqualizeWidthBtn" class="secondary" style="flex: 1; font-size: 11px; padding: 5px;" title="이미지 너비를 균일하게 맞춤">📐 너비 균일 맞춤</button>
+                        </div>
+
+                        <!-- 가로 그리드 (상단 / 중앙 / 하단 맞춤) -->
+                        <div style="margin-bottom: 6px;">
+                            <span style="font-size: 11px; font-weight: 600; color: #475569; display: block; margin-bottom: 2px;">🧱 가로 그리드 (수평 나열):</span>
+                            <div style="display: flex; gap: 3px;">
+                                <button id="postHGridTopBtn" class="secondary" style="flex: 1; font-size: 10px; padding: 4px;" title="가로 나열 & 상단 맞춤">🔝 상단맞춤</button>
+                                <button id="postHGridMiddleBtn" class="secondary" style="flex: 1; font-size: 10px; padding: 4px;" title="가로 나열 & 세로중앙 맞춤">↕️ 중앙맞춤</button>
+                                <button id="postHGridBottomBtn" class="secondary" style="flex: 1; font-size: 10px; padding: 4px;" title="가로 나열 & 하단맞춤">🔻 하단맞춤</button>
+                            </div>
+                        </div>
+
+                        <!-- 세로 그리드 (좌측 / 중앙 / 우측 정렬) -->
+                        <div>
+                            <span style="font-size: 11px; font-weight: 600; color: #475569; display: block; margin-bottom: 2px;">📐 세로 그리드 (수직 나열):</span>
+                            <div style="display: flex; gap: 3px;">
+                                <button id="postVGridLeftBtn" class="secondary" style="flex: 1; font-size: 10px; padding: 4px;" title="세로 수직 나열 & 좌측 정렬">⬅️ 좌측정렬</button>
+                                <button id="postVGridCenterBtn" class="secondary" style="flex: 1; font-size: 10px; padding: 4px;" title="세로 수직 나열 & 중앙 정렬">↔️ 중앙정렬</button>
+                                <button id="postVGridRightBtn" class="secondary" style="flex: 1; font-size: 10px; padding: 4px;" title="세로 수직 나열 & 우측 정렬">➡️ 우측정렬</button>
+                            </div>
+                        </div>
+                    </div>
                 <div class="panel-section">
                     <div class="panel-section-title">특수문자</div>
                     <div class="char-insert-container">
@@ -5981,6 +6087,13 @@ function ensureImageWrapperStructure(wrapper) {
                             }
 
                             // 정확한 위치에 삽입
+                            // [원초적 해결] 자기 자신 내부 또는 동일 위치 재삽입 HierarchyRequestError 100% 완전 방어
+                            if (range.startContainer && (wrapper.contains(range.startContainer) || range.startContainer.closest('.resizable-image-wrapper') === wrapper)) {
+                                if (e.ctrlKey && nodeToInsert !== wrapper && wrapper.parentNode) {
+                                    wrapper.parentNode.insertBefore(nodeToInsert, wrapper.nextSibling);
+                                }
+                                return;
+                            }
                             range.insertNode(nodeToInsert);
                             range.setStartAfter(nodeToInsert);
                             range.collapse(true);
@@ -6285,7 +6398,7 @@ function processPastedImages(scope) {
                 } else {
                     ensureImageWrapperStructure(wrapper);
                     makeImageDraggable(wrapper);
-                    generateItemControls(wrapper);
+                    // generateItemControls(wrapper) 제거 (이미지 오염 방지)
                     wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
                 }
             });
@@ -6331,6 +6444,123 @@ function compressImage(file) {
                 reader.readAsDataURL(file);
             });
         }
+
+        
+        
+        
+        // --- START: 글로벌 사후 개별/일괄 가로 & 세로 스마트 그리드 정렬 엔진 ---
+        document.addEventListener('click', (e) => {
+            const eqHeightBtn = e.target.closest('#postEqualizeHeightBtn');
+            const eqWidthBtn = e.target.closest('#postEqualizeWidthBtn');
+            
+            const hTopBtn = e.target.closest('#postHGridTopBtn');
+            const hMiddleBtn = e.target.closest('#postHGridMiddleBtn');
+            const hBottomBtn = e.target.closest('#postHGridBottomBtn');
+
+            const vLeftBtn = e.target.closest('#postVGridLeftBtn');
+            const vCenterBtn = e.target.closest('#postVGridCenterBtn');
+            const vRightBtn = e.target.closest('#postVGridRightBtn');
+
+            if (!eqHeightBtn && !eqWidthBtn && !hTopBtn && !hMiddleBtn && !hBottomBtn && !vLeftBtn && !vCenterBtn && !vRightBtn) return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            // 1) 대상 이미지 탐지 (선택된 이미지 우선 -> 없으면 본문 전체)
+            let targets = Array.from(document.querySelectorAll('.resizable-image-wrapper.selected, .resizable-image-wrapper.controls-active, .resizable-image-container.selected'));
+            if (targets.length === 0) {
+                targets = Array.from(document.querySelectorAll('.resizable-image-wrapper, .resizable-image-container'));
+            }
+            if (targets.length === 0) {
+                const imgs = document.querySelectorAll('#contentArea img, #focusedEditorSurface img');
+                imgs.forEach(img => {
+                    const w = img.closest('.resizable-image-wrapper, .resizable-image-container') || img.parentElement;
+                    if (w && !targets.includes(w)) targets.push(w);
+                });
+            }
+
+            if (targets.length === 0) {
+                if (typeof showMessage === 'function') showMessage('정렬할 이미지가 본문에 없습니다.', 'warning');
+                else alert('정렬할 이미지가 본문에 없습니다.');
+                return;
+            }
+
+            // A. 높이 균일 맞춤
+            if (eqHeightBtn) {
+                const targetHeight = prompt(`${targets.length}개 이미지의 고정 높이(px)를 입력하세요:`, '200');
+                if (!targetHeight || isNaN(targetHeight) || parseInt(targetHeight, 10) <= 0) return;
+                const hVal = parseInt(targetHeight, 10);
+                targets.forEach(w => {
+                    const img = w.querySelector('img') || (w.tagName === 'IMG' ? w : null);
+                    if (img) {
+                        const ratio = (img.naturalWidth || img.width || 300) / (img.naturalHeight || img.height || 200);
+                        const calcW = Math.round(hVal * ratio);
+                        w.style.setProperty('height', `${hVal}px`, 'important');
+                        w.style.setProperty('width', `${calcW}px`, 'important');
+                        img.style.setProperty('width', '100%', 'important');
+                        img.style.setProperty('height', '100%', 'important');
+                    }
+                });
+                if (typeof showMessage === 'function') showMessage(`${targets.length}개 이미지 높이가 ${hVal}px로 균일 정렬되었습니다!`, 'success');
+            }
+
+            // B. 너비 균일 맞춤
+            if (eqWidthBtn) {
+                const targetWidth = prompt(`${targets.length}개 이미지의 고정 너비(px)를 입력하세요:`, '300');
+                if (!targetWidth || isNaN(targetWidth) || parseInt(targetWidth, 10) <= 0) return;
+                const wVal = parseInt(targetWidth, 10);
+                targets.forEach(w => {
+                    const img = w.querySelector('img') || (w.tagName === 'IMG' ? w : null);
+                    if (img) {
+                        const ratio = (img.naturalHeight || img.height || 200) / (img.naturalWidth || img.width || 300);
+                        const calcH = Math.round(wVal * ratio);
+                        w.style.setProperty('width', `${wVal}px`, 'important');
+                        w.style.setProperty('height', `${calcH}px`, 'important');
+                        img.style.setProperty('width', '100%', 'important');
+                        img.style.setProperty('height', '100%', 'important');
+                    }
+                });
+                if (typeof showMessage === 'function') showMessage(`${targets.length}개 이미지 너비가 ${wVal}px로 균일 정렬되었습니다!`, 'success');
+            }
+
+            // C. 가로 그리드 (상단 / 중앙 / 하단)
+            if (hTopBtn || hMiddleBtn || hBottomBtn) {
+                const valign = hTopBtn ? 'top' : (hMiddleBtn ? 'middle' : 'bottom');
+                const labelStr = hTopBtn ? '상단' : (hMiddleBtn ? '세로중앙' : '하단');
+                targets.forEach(w => {
+                    w.style.setProperty('display', 'inline-block', 'important');
+                    w.style.setProperty('vertical-align', valign, 'important');
+                    w.style.setProperty('margin-right', '8px', 'important');
+                    w.style.setProperty('margin-bottom', '8px', 'important');
+                    w.style.setProperty('margin-left', '0', 'important');
+                });
+                if (typeof showMessage === 'function') showMessage(`${targets.length}개 이미지가 가로 그리드 (${labelStr} 맞춤)로 배치되었습니다!`, 'success');
+            }
+
+            // D. 세로 그리드 (좌측 / 중앙 / 우측)
+            if (vLeftBtn || vCenterBtn || vRightBtn) {
+                const alignStr = vLeftBtn ? 'left' : (vCenterBtn ? 'center' : 'right');
+                const labelStr = vLeftBtn ? '좌측' : (vCenterBtn ? '중앙' : '우측');
+                targets.forEach(w => {
+                    w.style.setProperty('display', 'block', 'important');
+                    w.style.setProperty('margin-bottom', '10px', 'important');
+                    if (alignStr === 'left') {
+                        w.style.setProperty('margin-left', '0', 'important');
+                        w.style.setProperty('margin-right', 'auto', 'important');
+                    } else if (alignStr === 'center') {
+                        w.style.setProperty('margin-left', 'auto', 'important');
+                        w.style.setProperty('margin-right', 'auto', 'important');
+                    } else {
+                        w.style.setProperty('margin-left', 'auto', 'important');
+                        w.style.setProperty('margin-right', '0', 'important');
+                    }
+                });
+                if (typeof showMessage === 'function') showMessage(`${targets.length}개 이미지가 세로 그리드 (${labelStr} 정렬)로 배치되었습니다!`, 'success');
+            }
+        });
+        // --- END: 글로벌 사후 개별/일괄 가로 & 세로 스마트 그리드 정렬 엔진 ---
+
+
+
 
 async function handleClipboardPaste(e, targetContainer) {
             const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
@@ -6418,7 +6648,7 @@ async function handleClipboardPaste(e, targetContainer) {
                         setTimeout(() => {
                             ensureImageWrapperStructure(wrapper);
                             makeImageDraggable(wrapper);
-                            generateItemControls(wrapper);
+                            // generateItemControls(wrapper) 제거 (이미지 오염 방지)
                             wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
                             const active = document.querySelector('.resizable-image-wrapper.active');
                             if (active && active !== wrapper) active.classList.remove('active');
@@ -8292,6 +8522,34 @@ function clampImagesToContainers(scope = contentArea) {
             }
 
             function activateControls(elementToActivate, focusAndSelect = false) {
+            if (!elementToActivate) return;
+            // 입력창 포커스 시 해당 입력창 요소 또는 상위 안건 노드에 대해 controls-active 적용
+            if (elementToActivate.closest) {
+                const itemOwner = elementToActivate.closest('.item, .insert-area, [data-editable-type], [contenteditable="true"]');
+                if (itemOwner && !elementToActivate.matches('.resizable-image-wrapper')) {
+                    elementToActivate = itemOwner;
+                }
+            }
+            if (typeof generateItemControls === 'function') generateItemControls(elementToActivate);
+            // 순수 이미지 선택 시에만 텍스트 안건용 item-controls 생성 거부
+            if (elementToActivate && elementToActivate.matches && elementToActivate.matches('.resizable-image-wrapper')) {
+                if (currentlyActiveItemControlsElement && currentlyActiveItemControlsElement !== elementToActivate) {
+                    currentlyActiveItemControlsElement.classList.remove('controls-active');
+                    currentlyActiveItemControlsElement.classList.remove('active');
+                }
+                currentlyActiveItemControlsElement = elementToActivate;
+                elementToActivate.querySelectorAll('.item-controls').forEach(el => el.remove());
+                return;
+            }
+            if (elementToActivate && elementToActivate.matches && (elementToActivate.matches('.resizable-image-wrapper') || elementToActivate.closest('.resizable-image-wrapper'))) {
+                if (currentlyActiveItemControlsElement && currentlyActiveItemControlsElement !== elementToActivate) {
+                    currentlyActiveItemControlsElement.classList.remove('controls-active');
+                    currentlyActiveItemControlsElement.classList.remove('active');
+                }
+                currentlyActiveItemControlsElement = elementToActivate;
+                elementToActivate.querySelectorAll('.item-controls').forEach(el => el.remove());
+                return;
+            }
                 // 기존 활성화 해제 및 툴바들 제자리 복구
                 if (currentlyActiveItemControlsElement) {
                     currentlyActiveItemControlsElement.classList.remove('controls-active');
@@ -8333,6 +8591,12 @@ function clampImagesToContainers(scope = contentArea) {
             }
 
             function generateItemControls(element) {
+            if (!element) return;
+            // [원초적 해결] 이미지 래퍼(.resizable-image-wrapper)는 텍스트 안건용 item-controls 생성 100% 원천 차단!
+            if (element.matches && (element.matches('.resizable-image-wrapper') || element.closest('.resizable-image-wrapper'))) {
+                element.querySelectorAll('.item-controls').forEach(el => el.remove());
+                return;
+            }
                 if (element.closest('#duplicatePanel')) return;
                 if (element.dataset.editableType === 'flow-span' || element.closest?.('.flow')?.contains(element)) {
                     element.querySelectorAll(':scope > .item-controls').forEach(ctrl => ctrl.remove());
@@ -10995,7 +11259,7 @@ function clampImagesToContainers(scope = contentArea) {
                         } else {
                             ensureImageWrapperStructure(wrapper);
                             makeImageDraggable(wrapper);
-                            generateItemControls(wrapper);
+                            // generateItemControls(wrapper) 제거 (이미지 오염 방지)
                             wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
                         }
                     });
@@ -11083,7 +11347,7 @@ function clampImagesToContainers(scope = contentArea) {
                             setTimeout(() => {
                                 ensureImageWrapperStructure(wrapper);
                                 makeImageDraggable(wrapper);
-                                generateItemControls(wrapper);
+                                // generateItemControls(wrapper) 제거 (이미지 오염 방지)
                                 wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
                                 const active = targetContainer.querySelector('.resizable-image-wrapper.active');
                                 if (active && active !== wrapper) active.classList.remove('active');
@@ -12291,7 +12555,7 @@ function clampImagesToContainers(scope = contentArea) {
                     surface.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
                         ensureImageWrapperStructure(wrapper);
                         makeImageDraggable(wrapper);
-                        generateItemControls(wrapper);
+                        // generateItemControls(wrapper) 제거 (이미지 오염 방지)
                         wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
                     });
                     overlay.classList.add('active');
@@ -12710,7 +12974,7 @@ function clampImagesToContainers(scope = contentArea) {
                                 setTimeout(() => {
                                     ensureImageWrapperStructure(wrapper);
                                     makeImageDraggable(wrapper);
-                                    generateItemControls(wrapper);
+                                    // generateItemControls(wrapper) 제거 (이미지 오염 방지)
                                     const active = surface.querySelector('.resizable-image-wrapper.active');
                                     if (active && active !== wrapper) active.classList.remove('active');
                                     wrapper.classList.add('active');
@@ -12724,7 +12988,23 @@ function clampImagesToContainers(scope = contentArea) {
                         });
                     }
 
-                    document.addEventListener('focusin', e => {
+                    
+        // --- START: 입력창 클릭 시 🔍 확대 편집 모드 진입 버튼 근접 표출 연동 ---
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#openFocusedEditorBtn, #focusedEditorOverlay, .annotation-settings-modal')) return;
+            const targetNode = typeof getFocusedEditableTarget === 'function' 
+                ? getFocusedEditableTarget(e.target) 
+                : e.target.closest('.insert-area, .item, [data-editable-type], [contenteditable="true"]');
+            
+            if (targetNode && !targetNode.matches('.resizable-image-wrapper') && !targetNode.closest('.resizable-image-wrapper')) {
+                if (typeof showFocusedEditorButton === 'function') {
+                    showFocusedEditorButton(targetNode);
+                }
+            }
+        });
+        // --- END: 입력창 클릭 시 🔍 확대 편집 모드 진입 버튼 근접 표출 연동 ---
+
+document.addEventListener('focusin', e => {
                         const target = getFocusedEditableTarget(e.target);
                         if (target && !overlay?.classList.contains('active')) {
                             showFocusedEditorButton(target);
@@ -12876,94 +13156,59 @@ function clampImagesToContainers(scope = contentArea) {
 
         
 
-                if (insertImageBtn) {
-            insertImageBtn.addEventListener('mousedown', (e) => {
+                
+        let isInsertingImageLock = false;
+        if (insertImageBtn) {
+            insertImageBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
+                e.stopPropagation();
+                if (isInsertingImageLock) return;
+                isInsertingImageLock = true;
+                setTimeout(() => { isInsertingImageLock = false; }, 800);
 
-                // *** 개선 사항 1: 이미지 삽입 로직 수정 ***
-                let selection = window.getSelection();
-                const focusedEditor = document.getElementById('focusedEditorOverlay');
-                const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
-                const currentSurface = isFocusedActive ? document.getElementById('focusedEditorSurface') : contentArea;
-
-                if (selection.rangeCount > 0 && (currentSurface.contains(selection.anchorNode) || currentSurface.contains(selection.focusNode))) {
-                    savedRange = selection.getRangeAt(0).cloneRange();
-                } else if (document.activeElement && currentSurface.contains(document.activeElement) && document.activeElement.isContentEditable) {
-                    savedRange = selection.getRangeAt(0).cloneRange();
-                } else if (lastClickedPosition && !isFocusedActive) {
-                    // 커서가 없을 때 마지막 클릭 위치를 사용
-                    const target = lastClickedPosition.target;
-                    const insertContainer = target.closest('.insert-area, .item-group, .action-item-block, .section-block, .column') || contentArea;
-                    savedRange = document.createRange();
-                    savedRange.selectNodeContents(insertContainer);
-                    savedRange.collapse(false); // 컨테이너의 끝에 삽입
-                } else {
-                    // 최후의 수단: 문서의 마지막 편집 가능한 요소
-                    const lastEditable = isFocusedActive ? currentSurface : Array.from(currentSurface.querySelectorAll('[contenteditable="true"]')).pop();
-                    if (lastEditable) {
-                        lastEditable.focus();
-                        savedRange = document.createRange();
-                        savedRange.selectNodeContents(lastEditable);
-                        savedRange.collapse(false);
-                    } else {
-                        showMessage('이미지를 삽입할 위치를 클릭해주세요.', 'warning');
-                        return;
-                    }
+                if (imagesToInsert.length === 0 && imageFileInput && imageFileInput.files.length > 0) {
+                    showMessage('이미지 파일 처리 중입니다. 잠시만 기다려주세요...', 'info');
+                    return;
                 }
-
                 if (imagesToInsert.length === 0) {
-                    showMessage('삽입할 이미지를 파일로 선택해주세요.', 'error');
+                    showMessage('삽입할 이미지를 먼저 선택하세요.', 'warning');
                     return;
                 }
 
-                restoreSelection();
                 const requestedImageWidth = parseInt(imageWidthInput ? imageWidthInput.value : '300', 10) || 300;
-                imagesToInsert.forEach(imageSrc => {
+                let insertedCount = 0;
+                
+                // 단일 통로로 1회만 순차 삽입
+                const copyList = [...imagesToInsert];
+                imagesToInsert = []; // 즉시 소비하여 이중 삽입 원천 봉쇄
+                if (imageFileInput) imageFileInput.value = '';
+
+                copyList.forEach(imageSrc => {
                     const wrapper = document.createElement('div');
                     wrapper.className = 'resizable-image-wrapper';
                     wrapper.setAttribute('contenteditable', 'false');
                     wrapper.dataset.editableType = 'image-wrapper';
                     wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                    const containerWidth = (savedRange?.commonAncestorContainer?.parentElement?.clientWidth || currentSurface.clientWidth || window.innerWidth) - 16;
+                    
+                    const focusedEditor = document.getElementById('focusedEditorOverlay');
+                    const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
+                    const currentSurface = isFocusedActive ? document.getElementById('focusedEditorSurface') : contentArea;
+                    const containerWidth = (currentSurface.clientWidth || window.innerWidth) - 16;
+                    
                     wrapper.style.width = `${Math.min(requestedImageWidth, Math.max(80, containerWidth))}px`;
                     wrapper.innerHTML = `
-                <img src="${imageSrc}" alt="사용자 삽입 이미지">
-                <div class="resize-handle-img rh-top-left"></div>
-                <div class="resize-handle-img rh-top-right"></div>
-                <div class="resize-handle-img rh-bottom-left"></div>
-                <div class="resize-handle-img rh-bottom-right"></div>
-            `;
-
-                    if (savedRange) {
-                        // contentEditable이 아닌 곳에 직접 삽입 시도 방지
-                        let container = savedRange.endContainer;
-                        if (container.nodeType === 3) container = container.parentNode;
-                        const editableAncestor = container.closest('[contenteditable="true"]');
-
-                        if (editableAncestor) {
-                            savedRange.insertNode(wrapper);
-                            savedRange.setStartAfter(wrapper);
-                            savedRange.collapse(true);
-                        } else if (container.appendChild) { // contentEditable이 아닌 컨테이너에 append
-                            container.appendChild(wrapper);
-                        } else {
-                            container.parentNode.insertBefore(wrapper, container.nextSibling);
-                        }
-
-                        setTimeout(() => {
-                            ensureImageWrapperStructure(wrapper);
-                            makeImageDraggable(wrapper);
-                            generateItemControls(wrapper);
-                            const active = currentSurface.querySelector('.resizable-image-wrapper.active');
-                            if (active && active !== wrapper) active.classList.remove('active');
-                            wrapper.classList.add('active');
-                            activateControls(wrapper);
-                            clampImagesToContainers(currentSurface);
-                        }, 0);
-                    }
+                        <img src="${imageSrc}" alt="사용자 삽입 이미지">
+                        <div class="resize-handle-img rh-top-left"></div>
+                        <div class="resize-handle-img rh-top-right"></div>
+                        <div class="resize-handle-img rh-bottom-left"></div>
+                        <div class="resize-handle-img rh-bottom-right"></div>
+                    `;
+                    insertImageAtCaret(wrapper);
+                    if (typeof makeImageDraggable === 'function') makeImageDraggable(wrapper);
+                    insertedCount++;
                 });
-                if (imageFileInput) imageFileInput.value = '';
-                imagesToInsert = [];
+
+                showMessage(`${insertedCount}개 이미지가 성공적으로 본문에 삽입되었습니다!`, 'success');
             });
         }
 
