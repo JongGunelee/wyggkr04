@@ -112683,6 +112683,37 @@ function showPendingSettlementModal(periodType, projects) {
                     links: countSheetRows(rawSheet('link'), 'link')
                 });
             }
+            /* [GLOBAL-FIX] Global declaration for SHA record helpers to prevent Uncaught ReferenceError in collectMetrics and all modules */
+            if (typeof window.deepCloneForShaRecord !== 'function') {
+                window.deepCloneForShaRecord = function deepCloneForShaRecord(value) {
+                    try {
+                        if (typeof structuredClone === 'function') return structuredClone(value);
+                    } catch (e) { }
+                    try {
+                        return JSON.parse(JSON.stringify(value));
+                    } catch (e2) {
+                        if (!value || typeof value !== 'object') return value;
+                        return Object.assign({}, value);
+                    }
+                };
+            }
+            if (typeof deepCloneForShaRecord !== 'function') {
+                var deepCloneForShaRecord = window.deepCloneForShaRecord;
+            }
+
+            if (typeof window.projectIdentityForShaRecord !== 'function') {
+                window.projectIdentityForShaRecord = function projectIdentityForShaRecord(project) {
+                    var id = project && project.id != null ? String(project.id).trim() : '';
+                    if (id) return id;
+                    var code = typeof getMaintenanceCode === 'function' ? getMaintenanceCode(project) : (project && (project.maintenanceCode || project.code));
+                    if (code) return code;
+                    var name = project && (project.name || project.maintenanceName || project.projectName || project.Name || project['유지관리명']);
+                    return name != null ? String(name).trim() : '';
+                };
+            }
+            if (typeof projectIdentityForShaRecord !== 'function') {
+                var projectIdentityForShaRecord = window.projectIdentityForShaRecord;
+            }
             function collectMetrics() {
                 // 저장 계산은 런타임 UI 저장소와 분리된 복제본에서만 수행한다.
                 // 여기서 원본 객체를 변경하면 DataManager/observer/render가 연쇄 실행되어
