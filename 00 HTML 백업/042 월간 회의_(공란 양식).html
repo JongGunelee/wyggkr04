@@ -1015,12 +1015,16 @@
         }
 
         #menuPanel .tab-btn {
-            flex: 1 !important;
+            flex: 1 0 auto !important;
+            white-space: nowrap !important;
+            word-break: keep-all !important;
             border: none !important;
-            padding: 8px 10px !important;
+            padding: 8px 5px !important;
+            white-space: nowrap !important;
+            word-break: keep-all !important;
             border-radius: 8px !important;
             font-weight: 600 !important;
-            font-size: 13px !important;
+            font-size: 12.5px !important;
             color: #64748b !important;
             background: transparent !important;
             transition: all 0.2s ease !important;
@@ -1205,6 +1209,8 @@
 
         .tab-btn {
             padding: 8px 14px;
+            white-space: nowrap !important;
+            word-break: keep-all !important;
             cursor: var(--cursor-default) !important;
             border: 1px solid transparent;
             border-bottom: none;
@@ -4799,6 +4805,7 @@
                         <button class="status-tag status-canceled" data-status="canceled">취소</button>
                     </div>
                 </div>
+            </div>
             </div>
 
             <!-- 문서 관리 탭 -->
@@ -9641,6 +9648,10 @@ function clampImagesToContainers(scope = contentArea) {
 
             function saveHTML() {
                 if (menuPanel.style.display === "flex") togglePanel();
+                const focusedOverlay = document.getElementById('focusedEditorOverlay');
+                if (focusedOverlay && focusedOverlay.classList.contains('active')) {
+                    if (typeof window.saveAndCloseFocusedEditor === 'function') window.saveAndCloseFocusedEditor(); else if (typeof saveAndCloseFocusedEditor === 'function') saveAndCloseFocusedEditor();
+                }
                 if (currentlyActiveItemControlsElement) activateControls(null);
                 if (isCompareModeActive) toggleCompareMode(true);
                 if (typeof closeSelectionZoom === 'function') closeSelectionZoom();
@@ -12611,7 +12622,9 @@ function clampImagesToContainers(scope = contentArea) {
                     return true;
                 }
 
-                function finishFocusedEditorSession(overlay, surface) {
+                window.saveAndCloseFocusedEditor = saveAndCloseFocusedEditor;
+window.openFocusedEditor = openFocusedEditor;
+function finishFocusedEditorSession(overlay, surface) {
                     const returnFocusTarget = focusedEditorTarget && document.contains(focusedEditorTarget)
                         ? focusedEditorTarget
                         : null;
@@ -12661,6 +12674,8 @@ function clampImagesToContainers(scope = contentArea) {
                     }
                     return true;
                 }
+                window.saveAndCloseFocusedEditor = saveAndCloseFocusedEditor;
+                window.openFocusedEditor = openFocusedEditor;
 
                 function initializeFocusedEditorFeature() {
                     const openBtn = document.getElementById('openFocusedEditorBtn');
@@ -13126,7 +13141,50 @@ document.addEventListener('focusin', e => {
                     });
                 }
 
-                if (imageFileInput) {
+                function insertImageAtCaret(wrapper) {
+            const focusedEditor = document.getElementById('focusedEditorOverlay');
+            const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
+            const mainContent = document.getElementById('contentArea') || document.body;
+            const currentSurface = isFocusedActive ? document.getElementById('focusedEditorSurface') : mainContent;
+            if (!currentSurface) return;
+
+            let selection = window.getSelection();
+            let range = null;
+
+            if (selection && selection.rangeCount > 0) {
+                const selRange = selection.getRangeAt(0);
+                if (currentSurface.contains(selRange.commonAncestorContainer) || currentSurface.contains(selection.anchorNode)) {
+                    range = selRange;
+                }
+            }
+
+            if (!range) {
+                const insertArea = currentSurface.querySelector('.insert-area, .flow, .item-group') || currentSurface;
+                range = document.createRange();
+                range.selectNodeContents(insertArea);
+                range.collapse(false);
+            }
+
+            range.insertNode(wrapper);
+
+            const br = document.createElement('br');
+            if (wrapper.nextSibling) {
+                wrapper.parentNode.insertBefore(br, wrapper.nextSibling);
+            } else {
+                wrapper.parentNode.appendChild(br);
+            }
+
+            try {
+                range.setStartAfter(br);
+                range.collapse(true);
+                if (selection) {
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            } catch(err) {}
+        }
+
+        if (imageFileInput) {
             imageFileInput.addEventListener('change', async (event) => {
                 const files = event.target.files;
                 if (files.length === 0) { imagesToInsert = []; return; }
