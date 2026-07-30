@@ -5027,7 +5027,8 @@
         }
 
         /* [LEGEND-SELECT-PROXY-20260729] Keep native selects as the data contract. */
-        #shortcutContainer .codex-legend-select-host {
+        #shortcutContainer .codex-legend-select-host,
+        #projectView > .accordion-header .codex-legend-select-host {
             position: relative !important;
             display: inline-flex !important;
             align-items: stretch !important;
@@ -5037,12 +5038,14 @@
             vertical-align: middle !important;
         }
 
-        #shortcutContainer select.codex-legend-select-source {
+        #shortcutContainer select.codex-legend-select-source,
+        #projectView > .accordion-header select.codex-legend-select-source {
             visibility: hidden !important;
             pointer-events: none !important;
         }
 
-        #legendSection .codex-legend-select-trigger {
+        #legendSection .codex-legend-select-trigger,
+        #projectView > .accordion-header .codex-legend-select-trigger {
             position: absolute !important;
             inset: 0 !important;
             display: flex !important;
@@ -5066,24 +5069,29 @@
             transition: none !important;
         }
 
-        #legendSection .codex-legend-select-trigger:hover {
+        #legendSection .codex-legend-select-trigger:hover,
+        #projectView > .accordion-header .codex-legend-select-trigger:hover {
             border-color: #94a3b8 !important;
         }
 
         #legendSection .codex-legend-select-trigger:focus-visible,
-        #legendSection .codex-legend-select-trigger[aria-expanded="true"] {
+        #legendSection .codex-legend-select-trigger[aria-expanded="true"],
+        #projectView > .accordion-header .codex-legend-select-trigger:focus-visible,
+        #projectView > .accordion-header .codex-legend-select-trigger[aria-expanded="true"] {
             outline: 2px solid #8b5cf6 !important;
             outline-offset: 0 !important;
             border-color: #8b5cf6 !important;
         }
 
-        #legendSection .codex-legend-select-trigger:disabled {
+        #legendSection .codex-legend-select-trigger:disabled,
+        #projectView > .accordion-header .codex-legend-select-trigger:disabled {
             cursor: default !important;
             color: #94a3b8 !important;
             background: #f8fafc !important;
         }
 
-        #legendSection .codex-legend-select-label {
+        #legendSection .codex-legend-select-label,
+        #projectView > .accordion-header .codex-legend-select-label {
             display: block !important;
             min-width: 0 !important;
             overflow: hidden !important;
@@ -5091,7 +5099,8 @@
             white-space: nowrap !important;
         }
 
-        #legendSection .codex-legend-select-chevron {
+        #legendSection .codex-legend-select-chevron,
+        #projectView > .accordion-header .codex-legend-select-chevron {
             position: absolute !important;
             right: 8px !important;
             top: 50% !important;
@@ -5161,10 +5170,25 @@
             cursor: default !important;
         }
 
+        #projectView > .accordion-header select.header-shortcut-active + .codex-legend-select-trigger {
+            border: 2px solid #ef4444 !important;
+            border-radius: 0.5rem !important;
+            animation: legendBlink 1s linear infinite !important;
+        }
+
+        #select-view-dropdown input + span {
+            font-size: 13px !important;
+            font-weight: 400 !important;
+        }
+
         @media screen and (max-width: 767px) {
             .codex-legend-select-option {
                 min-height: 44px !important;
                 padding: 10px 12px !important;
+            }
+
+            #select-view-dropdown input + span {
+                font-size: 10px !important;
             }
         }
 
@@ -41976,6 +42000,28 @@
             });
         }
 
+        function codexLegendSelectOptionTypography20260730(select, ...targets) {
+            if (!select || typeof getComputedStyle !== 'function') return;
+            const sourceStyle = getComputedStyle(select);
+            const sourceSize = Number.parseFloat(sourceStyle.fontSize);
+            const optionSize = Number.isFinite(sourceSize) ? Math.max(10, sourceSize - 1) + 'px' : sourceStyle.fontSize;
+            const properties = [
+                ['font-family', sourceStyle.fontFamily],
+                ['font-size', optionSize],
+                ['font-weight', '400'],
+                ['font-style', sourceStyle.fontStyle],
+                ['line-height', '1.25'],
+                ['letter-spacing', sourceStyle.letterSpacing]
+            ];
+            targets.filter(Boolean).forEach((target) => {
+                properties.forEach(([name, value]) => {
+                    if (target.style.getPropertyValue(name) !== value || target.style.getPropertyPriority(name) !== 'important') {
+                        target.style.setProperty(name, value, 'important');
+                    }
+                });
+            });
+        }
+
         function codexLegendSelectSync20260729(select) {
             if (!select || !select.parentElement) return;
             const trigger = select.parentElement.querySelector('.codex-legend-select-trigger');
@@ -42117,7 +42163,7 @@
                 menu.appendChild(optionButton);
             });
 
-            codexLegendSelectTypography20260729(
+            codexLegendSelectOptionTypography20260730(
                 select,
                 menu,
                 ...Array.from(menu.querySelectorAll('.codex-legend-select-option'))
@@ -42185,11 +42231,25 @@
             codexLegendSelectSync20260729(select);
         }
 
+        function codexScheduleHeaderSelectProxies20260730() {
+            [
+                'header-customer-filter-shortcut',
+                'header-contractor-filter-shortcut',
+                'header-cost-account-filter-shortcut'
+            ].forEach((id) => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                codexLegendSelectEnhance20260729(select);
+                codexLegendSelectSync20260729(select);
+            });
+        }
+
         window.__codexLegendSelectProxy20260729 = {
             close: codexLegendSelectClose20260729,
             enhance: codexLegendSelectEnhance20260729,
             sync: codexLegendSelectSync20260729
         };
+        codexScheduleHeaderSelectProxies20260730();
 
         function updateShortcuts() {
             const shortcutContainer = document.getElementById('shortcutContainer');
@@ -43297,6 +43357,7 @@
                 const controlEl = document.getElementById(controlId);
                 const isActive = controlEl ? isControlActive(controlId, controlEl) : false;
                 headerEl.classList.toggle('header-shortcut-active', !!isActive);
+                codexLegendSelectSync20260729(headerEl);
             });
         }
 
@@ -58372,6 +58433,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     headerContractorFilter.disabled = true;
                 }
             }
+            codexScheduleHeaderSelectProxies20260730();
         }
 
         // --- Auto-upload helper functions ---
@@ -133180,7 +133242,7 @@ window.openAddNewProjectModal = function(editProject) {
     <script id="codex-work-content-search-plugin-20260613">
         (function CodexWorkContentSearchModule() {
             'use strict';
-            if (window.CodexWorkContentSearch && window.CodexWorkContentSearch.__v20260713Period) return;
+            if (window.CodexWorkContentSearch && window.CodexWorkContentSearch.__v20260730ParentScope) return;
 
             var state = {
                 draft: { query: '', mode: 'contains', start: '', end: '' },
@@ -133217,6 +133279,8 @@ window.openAddNewProjectModal = function(editProject) {
                 periodFilter: { years: [], type: 'all', values: [] },
                 overlayPeriodFilters: Object.create(null),
                 activePeriodFilterOverride: null,
+                parentProjects: null,
+                parentFilterContext: null,
                 periodUiInteracting: false,
                 debounceTimer: null
             };
@@ -133281,8 +133345,61 @@ window.openAddNewProjectModal = function(editProject) {
                 }
                 return text;
             }
-            function getAllWorkProjects() {
+            function rawWorkProjects() {
                 return Array.isArray(window.projectData) ? window.projectData : [];
+            }
+            function selectedParentFilterLabels() {
+                var definitions = [
+                    ['header-customer-filter-shortcut', '\uace0\uac1d\uc0ac'],
+                    ['header-contractor-filter-shortcut', '\uc2dc\uacf5\uc0ac'],
+                    ['header-cost-account-filter-shortcut', '\ube44\uc6a9\uacc4\uc815']
+                ];
+                return definitions.map(function(definition) {
+                    var select = document.getElementById(definition[0]);
+                    if (!select || !select.value || select.value === 'all') return '';
+                    var option = select.options && select.options[select.selectedIndex];
+                    return definition[1] + ' ' + String(option && option.textContent || select.value).trim();
+                }).filter(Boolean);
+            }
+            function captureParentProjectScope() {
+                var source = rawWorkProjects();
+                var filtered = source;
+                var error = '';
+                try {
+                    var resolver = typeof window.getFilteredAndSortedData === 'function' ? window.getFilteredAndSortedData : (typeof getFilteredAndSortedData === 'function' ? getFilteredAndSortedData : null);
+                    if (resolver) {
+                        var resolved = resolver();
+                        if (Array.isArray(resolved)) filtered = resolved;
+                    }
+                } catch (scopeError) {
+                    error = scopeError && scopeError.message ? scopeError.message : String(scopeError);
+                    filtered = source;
+                }
+                var labels = selectedParentFilterLabels();
+                var active = filtered.length !== source.length || labels.length > 0;
+                state.parentProjects = filtered.slice();
+                state.parentFilterContext = {
+                    active: active,
+                    totalCount: source.length,
+                    filteredCount: filtered.length,
+                    label: labels.length ? labels.join(' \u00b7 ') : (active ? '\uc0c1\uc704 \ud544\ud130 \uc801\uc6a9' : '\uc0c1\uc704 \ud544\ud130 \uc804\uccb4'),
+                    error: error
+                };
+                window.__collectEntriesCache = null;
+                return state.parentFilterContext;
+            }
+            function releaseParentProjectScope() {
+                state.parentProjects = null;
+                state.parentFilterContext = null;
+                window.__collectEntriesCache = null;
+            }
+            function getAllWorkProjects() {
+                return Array.isArray(state.parentProjects) ? state.parentProjects : rawWorkProjects();
+            }
+            function parentProjectScopeLabel() {
+                var context = state.parentFilterContext;
+                if (!context) return '\uc0c1\uc704 \ud544\ud130 \uc804\uccb4';
+                return context.label + ' \u00b7 ' + formatNumber(context.filteredCount) + '/' + formatNumber(context.totalCount) + '\uac1c';
             }
             function cloneWorkPeriodFilter(filter) {
                 filter = filter || {};
@@ -133495,6 +133612,7 @@ window.openAddNewProjectModal = function(editProject) {
                 var rawCode = String(firstValue(item, ['maintenanceCode', 'maintenanceNumber', 'maintenanceNo', 'maintenanceId', '유지관리번호', '유지관리 번호', '관리번호']) || '').trim();
                 var rawName = String(firstValue(item, ['projectName', 'Project Name', 'name', 'Name', '유지관리명', '명칭', '작업명', '공사명']) || '').trim();
                 var project = resolveProjectFromItem(rawId, rawCode, rawName, projectMap);
+                if (state.parentFilterContext && state.parentFilterContext.active && !project) return;
                 var pid = project ? (project._cachedId || getProjectIdValue(project)) : (rawId || rawCode || rawName);
                 var code = project ? (project._cachedCode || getProjectMaintenanceValue(project) || rawCode) : rawCode;
                 var pname = project ? (project._cachedName || getProjectNameValue(project) || rawName) : rawName;
@@ -133866,7 +133984,7 @@ window.openAddNewProjectModal = function(editProject) {
                 if (filter.type === 'month') for (var m = 1; m <= 12; m += 1) values.push([String(m), m + '\uc6d4']);
                 else if (filter.type === 'quarter') for (var q = 1; q <= 4; q += 1) values.push([String(q), q + '\ubd84\uae30']);
                 var typeOptions = [['all','\uc804\uccb4'],['month','\uc6d4'],['quarter','\ubd84\uae30']].map(function(item) { return '<option value="' + item[0] + '"' + (filter.type === item[0] ? ' selected' : '') + '>' + item[1] + '</option>'; }).join('');
-                return '<div class="work-period-toolbar" data-work-period-scope="' + escapeHtml(scope) + '" data-work-period-modal="' + escapeHtml(modalId || '') + '">' + renderWorkPeriodMulti('year', years, filter.years, filter.type) + '<select data-work-period-type aria-label="\uae30\uac04 \ub2e8\uc704">' + typeOptions + '</select>' + (values.length ? renderWorkPeriodMulti('value', values, filter.values, filter.type) : '') + '<span class="work-period-help" title="\uc5f0\ub3c4\u00b7\uc6d4\u00b7\ubd84\uae30\ub97c \ubcf5\uc218 \uccb4\ud06c\ud558\uace0 \uc801\uc6a9\uc744 \ub204\ub974\uc138\uc694. \uc804\uccb4 \ud574\uc81c\ub294 \uae30\uac04 \uc81c\ud55c \uc5c6\uc74c\uc73c\ub85c \uc989\uc2dc \uac31\uc2e0\ub429\ub2c8\ub2e4.">?</span><span class="work-period-monitor">' + escapeHtml(workPeriodLabel(filter)) + ' \u00b7 \ud504\ub85c\uc81d\ud2b8 ' + formatNumber(getProjects().length) + '\uac1c \u00b7 Work ' + formatNumber(collectEntries().length) + '\uac74</span></div>';
+                return '<div class="work-period-toolbar" data-work-period-scope="' + escapeHtml(scope) + '" data-work-period-modal="' + escapeHtml(modalId || '') + '">' + renderWorkPeriodMulti('year', years, filter.years, filter.type) + '<select data-work-period-type aria-label="\uae30\uac04 \ub2e8\uc704">' + typeOptions + '</select>' + (values.length ? renderWorkPeriodMulti('value', values, filter.values, filter.type) : '') + '<span class="work-period-help" title="\uc5f0\ub3c4\u00b7\uc6d4\u00b7\ubd84\uae30\ub97c \ubcf5\uc218 \uccb4\ud06c\ud558\uace0 \uc801\uc6a9\uc744 \ub204\ub974\uc138\uc694. \uc804\uccb4 \ud574\uc81c\ub294 \uae30\uac04 \uc81c\ud55c \uc5c6\uc74c\uc73c\ub85c \uc989\uc2dc \uac31\uc2e0\ub429\ub2c8\ub2e4.">?</span><span class="work-period-monitor">' + escapeHtml(parentProjectScopeLabel()) + ' \u00b7 ' + escapeHtml(workPeriodLabel(filter)) + ' \u00b7 \ud504\ub85c\uc81d\ud2b8 ' + formatNumber(getProjects().length) + '\uac1c \u00b7 Work ' + formatNumber(collectEntries().length) + '\uac74</span></div>';
             }
             function syncMainWorkPeriodToolbar() {
                 var host = $('workContentPeriodFilterHost');
@@ -134735,7 +134853,7 @@ window.openAddNewProjectModal = function(editProject) {
                     ['PO금액', 'poAmount']
                 ];
                 return '<div class="work-content-sequence-header' + (projectColumnWidth ? ' work-content-partial-sequence-header' : '') + '" role="row" style="' + renderSequenceGridStyle(projectColumnWidth) + '">' + columns.map(function(col) {
-                    return '<button type="button" data-work-content-sequence-sort="' + col[1] + '" title="' + escapeHtml(col[0]) + ' 정렬" style="min-width:0 !important; display:flex !important; align-items:center !important; justify-content:center !important; position:relative !important; gap:4px !important; border:0 !important; background:#f8fafc !important; color:#334155 !important; font-size:11px !important; font-weight:900 !important; cursor:pointer !important; padding:0 14px !important; text-align:center !important;">' + (col[2] ? renderWorkContentMergeToggle('sequence', col[2], col[0]) : '') + '<span style="display:block !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; text-align:center !important;">' + escapeHtml(col[0]) + '</span><b aria-hidden="true" style="position:absolute !important; right:0 !important; color:#0891b2 !important; font-size:12px !important;">' + renderSequenceSortIcon(col[1]) + '</b></button>';
+                    return '<button type="button" data-work-content-sequence-sort="' + col[1] + '" title="' + escapeHtml(col[0]) + ' 정렬" style="min-width:0 !important; display:flex !important; align-items:center !important; justify-content:center !important; position:relative !important; gap:4px !important; border:0 !important; background:#f8fafc !important; color:#334155 !important; font-size:11px !important; font-weight:900 !important; cursor:pointer !important; padding:0 14px !important; text-align:center !important;">' + (col[2] ? renderWorkContentMergeToggle('sequence', col[2], col[0]) : '') + '<span style="display:block !important; overflow:visible !important; text-overflow:clip !important; white-space:normal !important; overflow-wrap:anywhere !important; text-align:center !important;">' + escapeHtml(col[0]) + '</span><b aria-hidden="true" style="position:absolute !important; right:0 !important; color:#0891b2 !important; font-size:12px !important;">' + renderSequenceSortIcon(col[1]) + '</b></button>';
                 }).join('') + '</div>';
             }
             function renderSequenceListHtml(projects, limit) {
@@ -134818,7 +134936,7 @@ window.openAddNewProjectModal = function(editProject) {
                 return '<details class="work-content-sequence-row' + (projectColumnWidth ? ' work-content-partial-sequence-row' : '') + '" data-project-id="' + escapeHtml(item.projectId) + '" style="border-bottom:1px solid #f1f5f9 !important;">' +
                     '<summary style="list-style:none !important; cursor:pointer !important; padding:10px 12px !important; display:grid !important; align-items:center !important; ' + renderSequenceGridStyle(projectColumnWidth) + '">' +
                     '<span class="' + mergeCellClass('sequence', 'projectName', mergeMeta) + '" style="min-width:' + (projectColumnWidth ? projectColumnWidth + 'px' : '0') + ' !important;"><strong class="work-content-sequence-project-name" style="display:block !important; color:#0f172a !important; overflow:' + (projectColumnWidth ? 'visible' : 'hidden') + ' !important; text-overflow:' + (projectColumnWidth ? 'clip' : 'ellipsis') + ' !important; white-space:nowrap !important; text-align:left !important;">' + escapeHtml(item.projectName || '-') + '</strong></span>' +
-                    '<span class="work-content-expandable-cell" role="button" tabindex="0" aria-expanded="false" data-cell-label="작업기간" title="' + escapeHtml(item.totalStart + ' ~ ' + item.totalEnd) + '" style="min-width:0 !important; color:#64748b !important; font-style:normal !important; font-size:11px !important; font-weight:800 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; text-align:center !important; cursor:pointer !important; display:block !important; border-radius:6px !important;">' + escapeHtml(item.totalStart + ' ~ ' + item.totalEnd) + '</span>' +
+                    '<span class="work-content-expandable-cell" data-cell-label="작업기간" title="' + escapeHtml(item.totalStart + ' ~ ' + item.totalEnd) + '" style="min-width:0 !important; color:#64748b !important; font-style:normal !important; font-size:11px !important; font-weight:800 !important; white-space:normal !important; overflow:visible !important; text-overflow:clip !important; overflow-wrap:anywhere !important; text-align:center !important; cursor:default !important; display:block !important; border-radius:6px !important;">' + escapeHtml(item.totalStart + ' ~ ' + item.totalEnd) + '</span>' +
                     '<span class="work-content-seq-badges" aria-label="공정 단계 작업일 기준" style="overflow:hidden !important; min-width:0 !important;">' + badges + '</span>' +
                     '<span class="work-content-sequence-verdict" style="text-align:center !important; color:' + statusColor + ' !important; font-weight:900 !important; font-size:12px !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; gap:2px !important; min-width:0 !important; overflow:hidden !important; line-height:1.25 !important; white-space:normal !important; word-break:keep-all !important;"><span>' + escapeHtml(statusText) + '</span><b style="font-size:14px !important;">' + escapeHtml(renderDays(item.totalDays)) + '</b></span>' +
                     '<span style="text-align:right !important; color:#7c3aed !important; font-weight:900 !important; font-size:12px !important; display:flex !important; align-items:center !important; justify-content:flex-end !important; min-width:0 !important; overflow:hidden !important; white-space:nowrap !important; padding-right:6px !important;">' + formatNumber(item.poAmount || 0) + '원</span>' +
@@ -134908,7 +135026,7 @@ window.openAddNewProjectModal = function(editProject) {
                 return '<div class="work-content-result-header" role="row">' + columns.map(function(col) {
                     var cellClass = ['work-content-result-header-cell', 'work-content-result-header-cell-' + col[1], col[2] || ''].join(' ').trim();
                     var mergeToggle = (col[1] === 'workDate' || col[1] === 'workDetail' || col[1] === 'projectName') ? renderWorkContentMergeToggle('result', col[1], col[0]) : '';
-                    return '<button type="button" class="' + cellClass + '" data-work-content-sort="' + col[1] + '" title="' + escapeHtml(col[3] ? (col[3] + '\n\n' + col[0] + ' 정렬') : (col[0] + ' 정렬')) + '" style="min-width:0 !important; display:flex !important; align-items:center !important; justify-content:center !important; position:relative !important; gap:4px !important; border:0 !important; background:#f8fafc !important; color:#334155 !important; font-size:11px !important; font-weight:900 !important; cursor:pointer !important; padding:0 14px !important; text-align:center !important;">' + mergeToggle + '<span style="display:block !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; text-align:center !important;">' + escapeHtml(col[0]) + '</span><b aria-hidden="true" style="position:absolute !important; right:0 !important; color:#0891b2 !important; font-size:12px !important;">' + renderSortIcon(col[1]) + '</b></button>';
+                    return '<button type="button" class="' + cellClass + '" data-work-content-sort="' + col[1] + '" title="' + escapeHtml(col[3] ? (col[3] + '\n\n' + col[0] + ' 정렬') : (col[0] + ' 정렬')) + '" style="min-width:0 !important; display:flex !important; align-items:center !important; justify-content:center !important; position:relative !important; gap:4px !important; border:0 !important; background:#f8fafc !important; color:#334155 !important; font-size:11px !important; font-weight:900 !important; cursor:pointer !important; padding:0 14px !important; text-align:center !important;">' + mergeToggle + '<span style="display:block !important; overflow:visible !important; text-overflow:clip !important; white-space:normal !important; overflow-wrap:anywhere !important; text-align:center !important;">' + escapeHtml(col[0]) + '</span><b aria-hidden="true" style="position:absolute !important; right:0 !important; color:#0891b2 !important; font-size:12px !important;">' + renderSortIcon(col[1]) + '</b></button>';
                 }).join('') + '</div>';
             }
             function renderResultRow(entry, mergeMeta) {
@@ -137589,6 +137707,7 @@ window.openAddNewProjectModal = function(editProject) {
             function openModal() {
                 var modal = $('workContentSearchModal');
                 if (!modal) return;
+                captureParentProjectScope();
                 state.viewMode = 'household';
                 state.lastHousehold = null;
                 state.householdMainQuery = '';
@@ -137644,7 +137763,7 @@ window.openAddNewProjectModal = function(editProject) {
                 state.lastPartialSequence = null;
                 state.lastHousehold = null;
                 state.householdCountDrillContext = null;
-                window.__collectEntriesCache = null;
+                releaseParentProjectScope();
             }
             function applyToGantt() {
                 var analysis = isSequenceViewMode() ? analyzeSequence() : (state.viewMode === 'household' ? analyzeHousehold() : analyze());
@@ -137914,7 +138033,7 @@ window.openAddNewProjectModal = function(editProject) {
                         '#workContentSearchModal .work-content-seq-badge-issue strong, .work-content-popup-modal .work-content-seq-badge-issue strong, .work-content-seq-badge-issue strong { color:#b91c1c !important; }',
                         '#workContentSearchModal .work-content-seq-main, .work-content-popup-modal .work-content-seq-main, .work-content-seq-main { min-width:0 !important; display:flex !important; flex-direction:column !important; gap:1px !important; }',
                         '#workContentSearchModal .work-content-seq-badge strong, .work-content-popup-modal .work-content-seq-badge strong, .work-content-seq-badge strong { color:#1d4ed8 !important; font-size:11px !important; line-height:1.1 !important; }',
-                        '#workContentSearchModal .work-content-seq-badge em, .work-content-popup-modal .work-content-seq-badge em, .work-content-seq-badge em { color:#475569 !important; font-style:normal !important; font-size:10px !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; }',
+                        '#workContentSearchModal .work-content-seq-badge em, .work-content-popup-modal .work-content-seq-badge em, .work-content-seq-badge em { color:#475569 !important; font-style:normal !important; font-size:10px !important; white-space:normal !important; overflow:visible !important; text-overflow:clip !important; overflow-wrap:anywhere !important; }',
                         '#workContentSearchModal .work-content-seq-meta, .work-content-popup-modal .work-content-seq-meta, .work-content-seq-meta { display:flex !important; flex-direction:column !important; align-items:flex-end !important; gap:1px !important; white-space:nowrap !important; min-width:34px !important; }',
                         '#workContentSearchModal .work-content-seq-badge b, .work-content-popup-modal .work-content-seq-badge b, .work-content-seq-badge b { color:#0f172a !important; font-size:11px !important; }',
                         '#workContentSearchModal .work-content-seq-badge i, .work-content-popup-modal .work-content-seq-badge i, .work-content-seq-badge i { color:#64748b !important; font-style:normal !important; font-size:10px !important; font-weight:800 !important; }',
@@ -137931,10 +138050,10 @@ window.openAddNewProjectModal = function(editProject) {
                         '#workContentSearchModal .work-content-household-unit > summary, .work-content-popup-modal .work-content-household-unit > summary { display:grid !important; grid-template-columns:minmax(90px,.7fr) minmax(120px,1fr) minmax(190px,1.5fr) minmax(120px,auto) !important; gap:8px !important; align-items:center !important; padding:9px 12px !important; color:#334155 !important; cursor:pointer !important; }',
                         '#workContentSearchModal .work-content-household-building summary b, .work-content-popup-modal .work-content-household-building summary b { text-align:right !important; white-space:nowrap !important; }',
                         '#workContentSearchModal .work-content-household-table-wrap, .work-content-popup-modal .work-content-household-table-wrap { width:100% !important; max-width:100% !important; overflow-x:auto !important; overscroll-behavior-x:contain !important; -webkit-overflow-scrolling:touch !important; }',
-                        '#workContentSearchModal .work-content-household-table, .work-content-popup-modal .work-content-household-table { width:100% !important; min-width:980px !important; border-collapse:collapse !important; table-layout:fixed !important; background:#fff !important; }',
-                        '#workContentSearchModal .work-content-household-table th, #workContentSearchModal .work-content-household-table td, .work-content-popup-modal .work-content-household-table th, .work-content-popup-modal .work-content-household-table td { border-top:1px solid #e2e8f0 !important; padding:8px 10px !important; text-align:center !important; vertical-align:middle !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; font-size:11px !important; }',
+                        '#workContentSearchModal .work-content-household-table, .work-content-popup-modal .work-content-household-table { width:max-content !important; min-width:100% !important; border-collapse:collapse !important; table-layout:auto !important; background:#fff !important; }',
+                        '#workContentSearchModal .work-content-household-table th, #workContentSearchModal .work-content-household-table td, .work-content-popup-modal .work-content-household-table th, .work-content-popup-modal .work-content-household-table td { border-top:1px solid #e2e8f0 !important; padding:8px 10px !important; text-align:center !important; vertical-align:middle !important; white-space:nowrap !important; overflow:visible !important; text-overflow:clip !important; font-size:11px !important; }',
                         '#workContentSearchModal .work-content-household-table th, .work-content-popup-modal .work-content-household-table th { position:sticky !important; top:0 !important; z-index:2 !important; background:#f8fafc !important; color:#334155 !important; font-weight:900 !important; }',
-                        '#workContentSearchModal .work-content-household-table th:nth-child(2), #workContentSearchModal .work-content-household-table td:nth-child(2), #workContentSearchModal .work-content-household-table th:nth-child(3), #workContentSearchModal .work-content-household-table td:nth-child(3), .work-content-popup-modal .work-content-household-table th:nth-child(2), .work-content-popup-modal .work-content-household-table td:nth-child(2), .work-content-popup-modal .work-content-household-table th:nth-child(3), .work-content-popup-modal .work-content-household-table td:nth-child(3) { width:210px !important; text-align:left !important; }',
+                        '#workContentSearchModal .work-content-household-table th:nth-child(2), #workContentSearchModal .work-content-household-table td:nth-child(2), #workContentSearchModal .work-content-household-table th:nth-child(3), #workContentSearchModal .work-content-household-table td:nth-child(3), .work-content-popup-modal .work-content-household-table th:nth-child(2), .work-content-popup-modal .work-content-household-table td:nth-child(2), .work-content-popup-modal .work-content-household-table th:nth-child(3), .work-content-popup-modal .work-content-household-table td:nth-child(3) { min-width:210px !important; max-width:460px !important; white-space:normal !important; overflow-wrap:anywhere !important; text-align:left !important; }',
                         '#workContentResultFullscreenModal.is-household-fullscreen { padding:0 !important; align-items:stretch !important; justify-content:stretch !important; }',
                         '#workContentResultFullscreenModal.is-household-fullscreen .work-content-popup-panel { width:100vw !important; height:100dvh !important; max-width:none !important; max-height:none !important; border:0 !important; border-radius:0 !important; }',
                         '#workContentResultFullscreenModal.is-household-fullscreen .work-content-popup-body { padding:10px !important; }',
@@ -137947,7 +138066,7 @@ window.openAddNewProjectModal = function(editProject) {
                         '.work-content-household-guidance { border:1px solid #fbbf24 !important; border-radius:7px !important; background:#fffbeb !important; color:#78350f !important; padding:10px 12px !important; margin:0 0 10px !important; font-size:12px !important; line-height:1.55 !important; }',
                         '.work-content-household-guidance p { margin:4px 0 0 !important; }',
                         '.work-content-household-evidence-wrap { flex:1 1 auto !important; min-height:0 !important; max-width:100% !important; overflow:auto !important; border:1px solid #e2e8f0 !important; border-radius:7px !important; }',
-                        '.work-content-household-evidence { width:100% !important; min-width:980px !important; border-collapse:collapse !important; table-layout:fixed !important; }',
+                        '.work-content-household-evidence { width:max-content !important; min-width:100% !important; border-collapse:collapse !important; table-layout:auto !important; }',
                         '.work-content-household-evidence th, .work-content-household-evidence td { padding:8px 9px !important; border-bottom:1px solid #e2e8f0 !important; text-align:center !important; vertical-align:middle !important; white-space:normal !important; word-break:keep-all !important; font-size:11px !important; }',
                         '.work-content-household-evidence th { position:sticky !important; top:0 !important; z-index:2 !important; background:#f8fafc !important; color:#334155 !important; font-weight:900 !important; }',
                         '.work-content-household-evidence th button { width:100% !important; min-height:30px !important; display:flex !important; align-items:center !important; justify-content:center !important; gap:5px !important; border:0 !important; background:transparent !important; color:#334155 !important; font:inherit !important; font-weight:900 !important; cursor:pointer !important; padding:3px !important; }',
@@ -138044,7 +138163,7 @@ window.openAddNewProjectModal = function(editProject) {
                         '.work-content-schedule-period-issue-actions button { border:1px solid #fb923c !important; border-radius:7px !important; background:#fff !important; color:#9a3412 !important; font-size:12px !important; font-weight:900 !important; padding:7px 9px !important; cursor:pointer !important; white-space:nowrap !important; }',
                         '.work-content-schedule-period-issue-actions button:hover { background:#ffedd5 !important; }',
                         '.work-content-schedule-table-wrap { border:1px solid #e5e7eb !important; border-radius:8px !important; overflow:auto !important; background:#fff !important; }',
-                        '.work-content-schedule-table { width:100% !important; min-width:860px !important; border-collapse:collapse !important; table-layout:fixed !important; font-size:12px !important; }',
+                        '.work-content-schedule-table { width:max-content !important; min-width:100% !important; border-collapse:collapse !important; table-layout:auto !important; font-size:12px !important; }',
                         '.work-content-schedule-table th, .work-content-schedule-table td { padding:8px 9px !important; border-bottom:1px solid #f1f5f9 !important; text-align:left !important; vertical-align:middle !important; white-space:nowrap !important; }',
                         '.work-content-schedule-table th:nth-child(1), .work-content-schedule-table td:nth-child(1) { width:54px !important; }',
                         '.work-content-schedule-table th:nth-child(2), .work-content-schedule-table td:nth-child(2) { width:90px !important; }',
@@ -138057,7 +138176,7 @@ window.openAddNewProjectModal = function(editProject) {
                         '.work-content-schedule-table tr.is-base td { background:#f0fdfa !important; }',
                         '.work-content-schedule-table tr.is-cancelled td { background:#fff1f2 !important; color:#9f1239 !important; text-decoration:line-through !important; }',
                         '.work-content-schedule-process { display:inline-flex !important; align-items:center !important; justify-content:center !important; min-width:42px !important; border-radius:999px !important; padding:3px 8px !important; background:#dbeafe !important; color:#1d4ed8 !important; font-weight:900 !important; }',
-                        '.work-content-schedule-detail { max-width:240px !important; overflow:hidden !important; text-overflow:ellipsis !important; }',
+                        '.work-content-schedule-detail { min-width:240px !important; max-width:480px !important; overflow:visible !important; text-overflow:clip !important; white-space:normal !important; overflow-wrap:anywhere !important; }',
                         '.work-content-schedule-delta { color:#64748b !important; font-weight:900 !important; }',
                         '.work-content-schedule-delta.is-changed { color:#dc2626 !important; }',
                         '.work-content-schedule-cancel { display:inline-flex !important; align-items:center !important; gap:5px !important; font-size:12px !important; font-weight:900 !important; color:#be123c !important; cursor:pointer !important; }',
@@ -138080,7 +138199,9 @@ window.openAddNewProjectModal = function(editProject) {
                         '.work-content-popup-modal .work-content-result-row:hover { background:#f8fafc !important; }',
                         '#workContentSearchModal .work-content-result-row.is-focused { background:#f0f9ff !important; box-shadow:inset 3px 0 0 #0891b2 !important; }',
                         '.work-content-popup-modal .work-content-result-row.is-focused { background:#f0f9ff !important; box-shadow:inset 3px 0 0 #0891b2 !important; }',
-                        '#workContentSearchModal .work-content-expandable-cell, .work-content-popup-modal .work-content-expandable-cell { display:block !important; width:100% !important; box-sizing:border-box !important; min-width:0 !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; cursor:pointer !important; border-radius:6px !important; padding:2px 4px !important; margin:-2px -4px !important; text-align:center !important; }',
+                        '#workContentSearchModal .work-content-expandable-cell, .work-content-popup-modal .work-content-expandable-cell { display:block !important; width:100% !important; box-sizing:border-box !important; min-width:0 !important; overflow:visible !important; text-overflow:clip !important; white-space:normal !important; overflow-wrap:anywhere !important; cursor:default !important; border-radius:6px !important; padding:2px 4px !important; margin:-2px -4px !important; text-align:center !important; }',
+                        '#workContentSearchModal table, .work-content-popup-modal table { table-layout:auto !important; }',
+                        '#workContentSearchModal table th, #workContentSearchModal table td, .work-content-popup-modal table th, .work-content-popup-modal table td { text-overflow:clip !important; }',
                         '#workContentSearchModal .work-content-expandable-cell:focus, .work-content-popup-modal .work-content-expandable-cell:focus { outline:2px solid #0891b2 !important; outline-offset:1px !important; background:#ecfeff !important; }',
                         '#workContentSearchModal .work-content-expandable-cell.is-expanded, .work-content-popup-modal .work-content-expandable-cell.is-expanded { white-space:normal !important; overflow:visible !important; text-overflow:clip !important; word-break:break-word !important; background:#fff7ed !important; color:#0f172a !important; position:relative !important; z-index:1 !important; }',
                         '.work-content-cell-tooltip { position:fixed !important; z-index:2001005 !important; max-width:min(440px,calc(100vw - 24px)) !important; max-height:min(45vh,320px) !important; overflow:auto !important; padding:8px 10px !important; border:1px solid #334155 !important; border-radius:6px !important; background:#0f172a !important; color:#f8fafc !important; box-shadow:0 10px 28px rgba(15,23,42,.28) !important; font-size:12px !important; line-height:1.45 !important; white-space:normal !important; word-break:break-word !important; pointer-events:none !important; }',
@@ -138878,6 +138999,7 @@ window.openAddNewProjectModal = function(editProject) {
                 __v20260613: true,
                 __v20260613Sequence: true,
                 __v20260713Period: true,
+                __v20260730ParentScope: true,
                 open: openModal,
                 close: closeModal,
                 analyze: analyze,
@@ -138913,7 +139035,7 @@ window.openAddNewProjectModal = function(editProject) {
                         window.__collectEntriesCache = null;
                     }
                 },
-                getState: function() { return { draft: state.draft, viewMode: state.viewMode, applied: state.applied, lastAnalysis: state.lastAnalysis, lastSequence: state.lastSequence, lastPartialSequence: state.lastPartialSequence, lastHousehold: state.lastHousehold, periodFilter: cloneWorkPeriodFilter(state.periodFilter), overlayPeriodFilters: Object.keys(state.overlayPeriodFilters) }; },
+                getState: function() { return { draft: state.draft, viewMode: state.viewMode, applied: state.applied, lastAnalysis: state.lastAnalysis, lastSequence: state.lastSequence, lastPartialSequence: state.lastPartialSequence, lastHousehold: state.lastHousehold, periodFilter: cloneWorkPeriodFilter(state.periodFilter), overlayPeriodFilters: Object.keys(state.overlayPeriodFilters), parentFilterContext: state.parentFilterContext ? Object.assign({}, state.parentFilterContext) : null }; },
                 applyGanttFilter: function(list) {
                     if (!state.applied || !Array.isArray(list)) return list;
                     var allowed = Object.create(null);
@@ -140982,6 +141104,7 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-source-audit > div { min-width:0; display:grid; gap:2px; }
         .cost-analysis-source-audit > div strong { font-size:11px; }
         .cost-analysis-source-audit > div span { overflow-wrap:anywhere; font-size:9px; font-weight:700; color:#64748b; }
+        .cost-analysis-source-audit .cost-analysis-scope-monitor { color:#0f766e; font-size:9px; font-weight:900; line-height:1.35; }
         .cost-analysis-source-audit ul { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:5px; margin:0; padding:0; list-style:none; }
         .cost-analysis-source-audit li { display:grid; gap:1px; min-width:112px; padding:5px 7px; border:1px solid #cbd5e1; border-radius:5px; background:#fff; }
         .cost-analysis-source-audit li strong,.cost-analysis-source-audit li span,.cost-analysis-source-audit li small { font-size:9px; line-height:1.3; }
@@ -140995,6 +141118,10 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-rate-trend,.cost-analysis-rate-editor { min-width:0; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden; background:#fff; }
         .cost-analysis-rate-trend > summary,.cost-analysis-rate-editor > summary { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:34px; padding:7px 9px; background:#f8fafc; color:#334155; font-size:10px; font-weight:900; cursor:pointer; }
         .cost-analysis-rate-trend > summary small,.cost-analysis-rate-editor > summary small { color:#64748b; font-size:9px; font-weight:800; text-align:right; }
+        .cost-analysis-summary-actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; min-width:0; margin-left:auto; }
+        .cost-analysis-summary-actions small { min-width:0; }
+        .cost-analysis-inline-fullscreen { flex:0 0 28px; width:28px; height:28px; display:inline-grid; place-items:center; border:1px solid #cbd5e1; border-radius:5px; padding:0; background:#fff; color:#0e7490; font-size:15px; font-weight:900; line-height:1; cursor:pointer; }
+        .cost-analysis-inline-fullscreen:hover,.cost-analysis-inline-fullscreen:focus-visible { border-color:#0891b2; background:#ecfeff; outline:2px solid rgba(8,145,178,.18); outline-offset:1px; }
         .cost-analysis-rate-trend[open] > summary,.cost-analysis-rate-editor[open] > summary { border-bottom:1px solid #e2e8f0; color:#0f766e; }
         .cost-analysis-rate-editor-head { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 9px; background:#fff; }
         .cost-analysis-rate-editor-head span { min-width:0; overflow-wrap:anywhere; color:#64748b; font-size:9px; font-weight:800; }
@@ -141018,6 +141145,18 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-rate-change-up { color:#b91c1c; font-weight:900; }
         .cost-analysis-rate-change-down { color:#047857; font-weight:900; }
         .cost-analysis-rate-change-flat { color:#475569; font-weight:800; }
+        .cost-analysis-rate-trend-table tfoot th,.cost-analysis-rate-trend-table tfoot td { border-top:2px solid #64748b; background:#f8fafc; font-weight:900; }
+        .cost-analysis-rate-trend-table tfoot tr + tr th,.cost-analysis-rate-trend-table tfoot tr + tr td { border-top:1px solid #cbd5e1; }
+        .cost-analysis-rate-trend-table tfoot th { position:sticky; left:0; z-index:3; min-width:78px; color:#0f172a; text-align:center; }
+        .cost-analysis-rate-trend-table th:last-child,.cost-analysis-rate-trend-table td:last-child { min-width:150px; }
+        .cost-analysis-rate-sparkline { display:grid; grid-template-columns:minmax(92px,116px) auto; align-items:center; justify-content:center; gap:5px; min-width:138px; }
+        .cost-analysis-rate-sparkline svg { display:block; width:116px; height:44px; overflow:visible; }
+        .cost-analysis-rate-sparkline polyline { fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; }
+        .cost-analysis-rate-sparkline circle,.cost-analysis-rate-sparkline polygon { fill:currentColor; stroke:none; }
+        .cost-analysis-rate-sparkline strong { font-size:9px; font-weight:900; white-space:nowrap; }
+        .cost-analysis-rate-trend-up { color:#dc2626; }
+        .cost-analysis-rate-trend-down { color:#047857; }
+        .cost-analysis-rate-trend-flat { color:#64748b; }
         .cost-analysis-head-actions,.cost-analysis-toolbar,.cost-analysis-source,.cost-analysis-column-menu { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
         .cost-analysis-btn { min-height:34px; border:1px solid #cbd5e1; border-radius:6px; padding:6px 10px; background:#fff; color:#334155; font-size:12px; font-weight:900; cursor:pointer; white-space:nowrap; }
         .cost-analysis-btn:hover,.cost-analysis-btn:focus-visible { border-color:#0891b2; color:#0e7490; background:#ecfeff; outline:2px solid rgba(8,145,178,.2); outline-offset:1px; }
@@ -141075,6 +141214,7 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-top-sections.cost-analysis-settings-expanded { grid-template-columns:minmax(0,1fr); }
         .cost-analysis-top-sections .cost-analysis-section { min-width:0; margin-top:0; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden; }
         .cost-analysis-top-sections .cost-analysis-section > summary { padding:9px 10px; background:#f8fafc; }
+        .cost-analysis-top-sections .cost-analysis-section[data-cost-section="settings"] > summary { display:flex; align-items:center; justify-content:space-between; gap:8px; }
         .cost-analysis-detail-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:10px 0 6px; }
         .cost-analysis-detail-head h4 { margin:0; color:#334155; font-size:12px; font-weight:900; }
         .cost-analysis-detail-actions { display:flex; align-items:center; gap:6px; }
@@ -141088,6 +141228,9 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-category-card strong { margin-top:3px; font-size:12px; color:#0f172a; }
         .cost-analysis-column-actions { display:grid; grid-template-columns:1fr 1fr; gap:5px; padding-bottom:6px; border-bottom:1px solid #e2e8f0; margin-bottom:4px; }
         .cost-analysis-column-actions button { border:1px solid #cbd5e1; border-radius:5px; padding:5px; background:#f8fafc; color:#334155; font-size:10px; font-weight:900; cursor:pointer; }
+        .cost-analysis-column-commit { position:sticky; bottom:-8px; display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:6px -8px -8px; padding:8px; border-top:1px solid #cbd5e1; background:#fff; }
+        .cost-analysis-column-commit button { min-height:30px; border:1px solid #cbd5e1; border-radius:5px; background:#fff; color:#334155; font-size:10px; font-weight:900; cursor:pointer; }
+        .cost-analysis-column-commit button.primary { border-color:#0f766e; background:#0f766e; color:#fff; }
         .cost-analysis-row-number { width:48px; min-width:48px; max-width:48px; font-variant-numeric:tabular-nums; }
         #costAnalysisEvidenceModal { position:fixed; inset:0; z-index:100390; display:flex; align-items:center; justify-content:center; padding:22px; background:rgba(15,23,42,.58); }
         #costAnalysisEvidenceModal.hidden { display:none !important; }
@@ -141105,6 +141248,12 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-table-fullscreen-body { flex:1 1 auto; min-width:0; min-height:0; overflow:hidden; padding:8px; }
         .cost-analysis-table-fullscreen-body > [data-cost-table] { display:block; width:100%; height:100%; min-height:0; }
         .cost-analysis-table-fullscreen-body .cost-analysis-detail-wrap { max-height:none; height:100%; }
+        .cost-analysis-table-fullscreen-body > [data-cost-settings] { display:block; width:100%; height:100%; min-width:0; min-height:0; overflow:auto; }
+        .cost-analysis-table-fullscreen-body > [data-cost-settings] .cost-analysis-settings-stack { min-height:100%; align-content:start; }
+        .cost-analysis-table-fullscreen-body > [data-cost-settings][data-cost-fullscreen-kind="year"] .cost-analysis-rate-trend,
+        .cost-analysis-table-fullscreen-body > [data-cost-settings][data-cost-fullscreen-kind="year"] .cost-analysis-rate-editor:not([data-cost-fullscreen-active="true"]) { display:none; }
+        .cost-analysis-table-fullscreen-body > [data-cost-settings][data-cost-fullscreen-kind="year"] .cost-analysis-rate-editor[data-cost-fullscreen-active="true"] { display:flex; flex-direction:column; min-height:100%; }
+        .cost-analysis-table-fullscreen-body > [data-cost-settings][data-cost-fullscreen-kind="year"] .cost-analysis-rate-editor[data-cost-fullscreen-active="true"] .cost-analysis-table-wrap { flex:1 1 auto; max-height:none; }
         .cost-analysis-section { margin-top:10px; border-top:1px solid #e2e8f0; }
         .cost-analysis-section > summary { padding:9px 2px; color:#334155; font-size:12px; font-weight:900; cursor:pointer; }
         .cost-analysis-table-wrap { position:relative; max-width:100%; overflow:auto; border:1px solid #e2e8f0; border-radius:6px; background:#fff; }
@@ -141128,7 +141277,7 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-badge.bad { background:#fee2e2; color:#991b1b; }
         .cost-analysis-badge.warn { background:#fef3c7; color:#92400e; }
         .cost-analysis-column-menu { position:relative; }
-        .cost-analysis-column-pop { position:absolute; top:38px; right:0; z-index:10; width:210px; padding:8px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; box-shadow:0 10px 28px rgba(15,23,42,.18); }
+        .cost-analysis-column-pop { position:absolute; top:38px; right:0; z-index:10; width:220px; max-height:min(70vh,560px); overflow:auto; padding:8px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; box-shadow:0 10px 28px rgba(15,23,42,.18); }
         .cost-analysis-column-pop.hidden { display:none; }
         .cost-analysis-column-pop label { display:flex; align-items:center; gap:7px; padding:5px; color:#334155; font-size:11px; font-weight:800; }
         .cost-analysis-empty { padding:28px; color:#64748b; font-size:12px; font-weight:800; text-align:center; }
@@ -141151,7 +141300,13 @@ window.openAddNewProjectModal = function(editProject) {
             .cost-analysis-settings-stack { gap:6px; padding:6px; }
             .cost-analysis-rate-trend > summary,.cost-analysis-rate-editor > summary { align-items:flex-start; min-height:38px; padding:7px; }
             .cost-analysis-rate-trend > summary small,.cost-analysis-rate-editor > summary small { max-width:52%; white-space:normal; }
+            .cost-analysis-summary-actions { max-width:68%; align-items:flex-start; }
+            .cost-analysis-summary-actions small { max-width:none !important; }
+            .cost-analysis-inline-fullscreen { flex-basis:32px; width:32px; height:32px; }
             .cost-analysis-rate-trend .cost-analysis-table-wrap { max-height:min(48dvh,460px); }
+            .cost-analysis-rate-sparkline { grid-template-columns:100px; gap:0; min-width:104px; }
+            .cost-analysis-rate-sparkline svg { width:100px; }
+            .cost-analysis-rate-sparkline strong { text-align:center; }
             .cost-analysis-rate-editor-head { align-items:flex-start; flex-wrap:wrap; padding:6px 7px; }
             .cost-analysis-rate-editor-head button { min-height:34px; }
             .cost-analysis-period-filter { width:100%; flex-wrap:nowrap; overflow-x:auto; }
@@ -141187,21 +141342,22 @@ window.openAddNewProjectModal = function(editProject) {
     <script id="codex-cost-estimation-analysis-20260711">
     (function installCostEstimationAnalysis20260711() {
         'use strict';
-        if (window.CostEstimationAnalysis && window.CostEstimationAnalysis.version === '2026.07.29.1') return;
+        if (window.CostEstimationAnalysis && window.CostEstimationAnalysis.version === '2026.07.30.2') return;
 
         var STORAGE_KEY = 'codex_cost_estimation_vault_v1';
         var MODE_KEY = 'codex_cost_estimation_source_mode_v1';
-        var VERIFIED_REMOTE_CACHE_KEY = 'codex_cost_estimation_verified_remote_v2';
+        var VERIFIED_REMOTE_CACHE_KEY = 'codex_cost_estimation_verified_remote_v3_basic_cost';
         var RATE_YEAR_PREF_KEY = 'codex_cost_estimation_rate_year_preference_v1';
+        var REMOTE_RATE_DIR = 'RawData/\uacf5\uc815\uad00\ub9ac/Basic Cost';
         var ANALYSIS_PAGE_SIZE = 300;
         var EVIDENCE_PAGE_SIZE = 300;
         var OTHER_PAGE_SIZE = 300;
         var state = {
             rows: [], sourceMode: 'auto', source: 'idle', remotePath: '', remoteSha: '',
             rowsByYear: Object.create(null), sourceByYear: Object.create(null), errorByYear: Object.create(null), verifiedMetaByYear: Object.create(null), remoteCatalog: [], activeRateYear: '', rateYearOverride: '', openRateYears: Object.create(null), rateTrendOpen: true, sourceWarnings: [], sourceNotices: [], startupStarted: false, startupPromise: null, verifiedCacheLoaded: false,
-            sortKey: 'building', sortDir: 'asc', hiddenColumns: Object.create(null),
+            sortKey: 'building', sortDir: 'asc', hiddenColumns: Object.create(null), columnDraft: null, fullscreenContext: null,
             evidenceSortKey: '', evidenceSortDir: 'asc', rateTrendSortKey: 'building', rateTrendSortDir: 'asc', analysisPage: 0, evidencePage: 0, otherPage: 0, filterYear: '', filterYears: [], filterType: 'all', filterValue: '', filterValues: [], periodBasis: 'settlement', periodFilterInitialized: false,
-            analysis: null, householdCache: null, householdCacheSignature: '', evidence: null, loadPromise: null, saveTimersByYear: Object.create(null), renderRaf: 0, lifecycleToken: 0, periodUiInteracting: false, periodRenderPending: false, busy: false, lastError: '', initialized: false
+            analysis: null, householdCache: null, householdCacheSignature: '', parentFilterContext: null, parentRateBuildings: Object.create(null), parentScopeSignature: 'all', evidence: null, loadPromise: null, saveTimersByYear: Object.create(null), renderRaf: 0, lifecycleToken: 0, periodUiInteracting: false, periodRenderPending: false, busy: false, lastError: '', initialized: false
         };
         var columnDefs = [
             ['building', '\uac74\ubb3c\ub3d9'], ['household', '\uc138\ub300\ud638\uc218'], ['maintenanceCode', '\uc720\uc9c0\uad00\ub9ac\ubc88\ud638'], ['projectName', '\uc720\uc9c0\uad00\ub9ac\uba85(\ud504\ub85c\uc81d\ud2b8\uba85)'], ['rateYear', '\ub2e8\uac00 \uc5f0\ub3c4'], ['rateSource', '\ub2e8\uac00 \ucd9c\ucc98'], ['baseCost', '\uae30\ubcf8 \uacac\uc801 \ucf54\uc2a4\ud2b8'],
@@ -141404,7 +141560,7 @@ window.openAddNewProjectModal = function(editProject) {
             return rateYearPrefix(year || state.activeRateYear || getTargetRateYear());
         }
         function getRemotePath(year) {
-            return 'RawData/\uacf5\uc815\uad00\ub9ac/' + rateYearPrefix(year) + '_\uae30\ubcf8\uacac\uc801 \ub2e8\uac00.xlsb';
+            return REMOTE_RATE_DIR + '/' + rateYearPrefix(year) + '_\uae30\ubcf8\uacac\uc801 \ub2e8\uac00.xlsb';
         }
         function availableRateYears() {
             var found = Object.create(null);
@@ -141438,7 +141594,7 @@ window.openAddNewProjectModal = function(editProject) {
                 var itemPath = String(item && (item.path || item.name) || '');
                 var name = String(item && item.name || itemPath.split('/').pop() || '');
                 var match = name.match(/^(\d{2,4})\ub144_\uae30\ubcf8\uacac\uc801 \ub2e8\uac00\.xlsb$/i);
-                if (!match || (itemPath.indexOf('/') >= 0 && itemPath.indexOf('RawData/\uacf5\uc815\uad00\ub9ac/') !== 0)) return null;
+                if (!match || (itemPath.indexOf('/') >= 0 && itemPath.indexOf(REMOTE_RATE_DIR + '/') !== 0)) return null;
                 var year = normalizeRateYear(match[1]);
                 var path = item.path || getRemotePath(year);
                 return { year: year, name: name, path: path, downloadUrl: item.download_url || 'https://raw.githubusercontent.com/jonggunelee/wyggkr04/main/' + encodePath(path), sha: item.sha || '', size: Number(item.size || 0), status: 'pending', error: '' };
@@ -141450,7 +141606,7 @@ window.openAddNewProjectModal = function(editProject) {
             return response.json();
         }
         async function discoverRemoteCatalog() {
-            var contentsUrl = 'https://api.github.com/repos/jonggunelee/wyggkr04/contents/RawData/%EA%B3%B5%EC%A0%95%EA%B4%80%EB%A6%AC?ref=main';
+            var contentsUrl = 'https://api.github.com/repos/jonggunelee/wyggkr04/contents/' + encodePath(REMOTE_RATE_DIR) + '?ref=main';
             try {
                 return catalogEntriesFromPayload(await fetchGithubJson(contentsUrl));
             } catch (contentsError) {
@@ -141570,7 +141726,7 @@ window.openAddNewProjectModal = function(editProject) {
                     if (!rows.length) return;
                     books[year] = { rows: rows, meta: Object.assign({}, state.verifiedMetaByYear[year] || {}, { year: year }) };
                 });
-                localStorage.setItem(VERIFIED_REMOTE_CACHE_KEY, JSON.stringify({ version: 2, savedAt: new Date().toISOString(), books: books }));
+                localStorage.setItem(VERIFIED_REMOTE_CACHE_KEY, JSON.stringify({ version: 3, remoteDir: REMOTE_RATE_DIR, savedAt: new Date().toISOString(), books: books }));
             } catch (e) { }
         }
         function hydrateVerifiedRemoteCache(forceTarget) {
@@ -141578,7 +141734,7 @@ window.openAddNewProjectModal = function(editProject) {
             state.verifiedCacheLoaded = true;
             try {
                 var parsed = JSON.parse(localStorage.getItem(VERIFIED_REMOTE_CACHE_KEY) || 'null');
-                var books = parsed && parsed.version === 2 && parsed.books || {};
+                var books = parsed && parsed.version === 3 && parsed.remoteDir === REMOTE_RATE_DIR && parsed.books || {};
                 Object.keys(books).forEach(function(year) {
                     var rows = validateRows(books[year] && books[year].rows || []);
                     if (!rows.length) return;
@@ -141592,8 +141748,8 @@ window.openAddNewProjectModal = function(editProject) {
             } catch (e) { }
         }
         function activateAutomaticTarget() {
-            hydrateVerifiedRemoteCache(true);
             var targetYear = getTargetRateYear();
+            if (!state.verifiedCacheLoaded || !state.rowsByYear[targetYear] || !state.rowsByYear[targetYear].length) hydrateVerifiedRemoteCache(true);
             var source = state.sourceByYear[targetYear] || '';
             if ((source === 'github' || source === 'github-cache' || source === 'github-saved') && state.rowsByYear[targetYear] && state.rowsByYear[targetYear].length) {
                 activateRateYear(targetYear);
@@ -141755,10 +141911,140 @@ window.openAddNewProjectModal = function(editProject) {
                 return await state.loadPromise;
             } finally { state.loadPromise = null; }
         }
+        function costScopeProjectId(project) {
+            project = project || {};
+            return String(project.id || project.projectId || project.ID || project.maintenanceCode || project['\uc720\uc9c0\uad00\ub9ac\ubc88\ud638'] || project.name || project.projectName || project['\uc720\uc9c0\uad00\ub9ac\uba85'] || '').trim();
+        }
+        function costScopeBuildingFromText(value, allowBare) {
+            var text = String(value == null ? '' : value);
+            try { text = text.normalize('NFKC'); } catch (e) { }
+            text = text.replace(/[‐‑‒–—―−]/g, '-').trim();
+            if (!text) return '';
+            if (/(\uc784\ucc28|\uc678\ubd80\s*\uc804\uc138|\uc804\uc138)/i.test(text)) return '\uc784\ucc28';
+            var match = text.match(/(?:\uc0ac\ud0dd|\uae30\uc219\uc0ac)?\s*([A-Za-z]{1,3}|\d{1,3})\s*\ub3d9/i) ||
+                text.match(/(?:\uc0ac\ud0dd|\uae30\uc219\uc0ac)\s*([A-Za-z]{1,3}|\d{1,3})\s*[-/]\s*\d{2,4}/i);
+            if (match) return normalizeBuilding(match[1]);
+            if (allowBare && /^([A-Za-z]{1,3}|\d{1,3})\s*(?:\ub3d9)?$/i.test(text)) return normalizeBuilding(text);
+            return '';
+        }
+        function costScopeProjectBuilding(project) {
+            project = project || {};
+            var custom = project.customFields && typeof project.customFields === 'object' ? project.customFields : {};
+            var direct = [
+                project.building, project.Building, project.buildingName, project['\uac74\ubb3c\ub3d9'],
+                custom['\uac74\ubb3c\ub3d9'], custom.building, custom.Building
+            ];
+            for (var i = 0; i < direct.length; i += 1) {
+                var directKey = costScopeBuildingFromText(direct[i], true);
+                if (directKey) return directKey;
+            }
+            return costScopeBuildingFromText(project.name || project.projectName || project.taskName || project.title || project['\uc720\uc9c0\uad00\ub9ac\uba85'] || '', false);
+        }
+        function costScopeSignature(projects, buildings) {
+            var hash = 2166136261;
+            function add(value) {
+                var text = String(value == null ? '' : value);
+                for (var i = 0; i < text.length; i += 1) {
+                    hash ^= text.charCodeAt(i);
+                    hash = Math.imul(hash, 16777619);
+                }
+                hash ^= 31;
+                hash = Math.imul(hash, 16777619);
+            }
+            (projects || []).map(costScopeProjectId).sort().forEach(add);
+            Object.keys(buildings || {}).sort().forEach(add);
+            return (projects || []).length + '|' + (hash >>> 0).toString(16);
+        }
+        function captureCostParentScope() {
+            var source = Array.isArray(window.projectData) ? window.projectData : [];
+            var filtered = source;
+            var error = '';
+            var workState = null;
+            try {
+                workState = window.CodexWorkContentSearch && typeof window.CodexWorkContentSearch.getState === 'function' ? window.CodexWorkContentSearch.getState() : null;
+                var resolver = typeof window.getFilteredAndSortedData === 'function' ? window.getFilteredAndSortedData : null;
+                if (resolver) {
+                    var resolved = resolver();
+                    if (Array.isArray(resolved)) filtered = resolved;
+                }
+            } catch (scopeError) {
+                error = scopeError && scopeError.message ? scopeError.message : String(scopeError);
+                filtered = source;
+            }
+            var workContext = workState && workState.parentFilterContext;
+            if (workContext && workContext.active && filtered.length === source.length && workState.lastHousehold) {
+                var fallback = [];
+                var fallbackSeen = Object.create(null);
+                (workState.lastHousehold.projects || []).concat(workState.lastHousehold.unparsedProjects || []).forEach(function(item) {
+                    var project = item && item.project;
+                    var key = costScopeProjectId(project);
+                    if (!project || !key || fallbackSeen[key]) return;
+                    fallbackSeen[key] = true;
+                    fallback.push(project);
+                });
+                if (fallback.length === Number(workContext.filteredCount || 0)) filtered = fallback;
+            }
+            var active = filtered.length !== source.length || !!(workContext && workContext.active);
+            var buildings = Object.create(null);
+            filtered.forEach(function(project) {
+                var key = costScopeProjectBuilding(project);
+                if (key) buildings[key] = true;
+            });
+            state.parentRateBuildings = buildings;
+            state.parentScopeSignature = active ? costScopeSignature(filtered, buildings) : 'all';
+            state.parentFilterContext = {
+                active: active,
+                totalCount: source.length,
+                filteredCount: filtered.length,
+                buildingCount: Object.keys(buildings).length,
+                label: workContext && workContext.label || (active ? '\uc0c1\uc704 \ud544\ud130 \uc801\uc6a9' : '\uc0c1\uc704 \ud544\ud130 \uc804\uccb4'),
+                error: error || workContext && workContext.error || ''
+            };
+            state.householdCache = null;
+            state.householdCacheSignature = '';
+            return state.parentFilterContext;
+        }
+        function releaseCostParentScope() {
+            state.parentFilterContext = null;
+            state.parentRateBuildings = Object.create(null);
+            state.parentScopeSignature = 'all';
+            state.householdCache = null;
+            state.householdCacheSignature = '';
+        }
+        function costParentScopeLabel() {
+            var context = state.parentFilterContext;
+            if (!context || !context.active) return '\uc0c1\uc704 \ud544\ud130 \uc804\uccb4';
+            return context.label + ' \u00b7 \ud504\ub85c\uc81d\ud2b8 ' + Number(context.filteredCount || 0).toLocaleString('ko-KR') + '/' + Number(context.totalCount || 0).toLocaleString('ko-KR') + '\uac1c \u00b7 \ub2e8\uac00 \ub3d9 ' + Number(context.buildingCount || 0).toLocaleString('ko-KR') + '\uac1c';
+        }
+        function scopedRateRecords(year) {
+            var rows = state.rowsByYear[year] || [];
+            return rows.map(function(row, index) { return { row: row, index: index }; }).filter(function(entry) {
+                return !state.parentFilterContext || !state.parentFilterContext.active || !!state.parentRateBuildings[normalizeBuilding(entry.row.building)];
+            });
+        }
+        function buildRateTrendDataset() {
+            var years = availableRateYears().filter(function(year) { return state.rowsByYear[year] && state.rowsByYear[year].length; }).sort(function(a, b) { return Number(a) - Number(b); });
+            var books = Object.create(null);
+            var buildingMap = Object.create(null);
+            years.forEach(function(year) {
+                books[year] = Object.create(null);
+                scopedRateRecords(year).forEach(function(entry) {
+                    var key = normalizeBuilding(entry.row.building);
+                    if (!key) return;
+                    books[year][key] = entry.row;
+                    buildingMap[key] = true;
+                });
+            });
+            return {
+                years: years,
+                books: books,
+                buildingKeys: Object.keys(buildingMap).sort(function(a, b) { return String(a).localeCompare(String(b), 'ko-KR', { numeric:true }); })
+            };
+        }
         function getHouseholdAnalysis() {
             var api = window.CodexWorkContentSearch;
             if (!api) return null;
-            var signature = projectDataSignature();
+            var signature = projectDataSignature() + '|' + state.parentScopeSignature;
             if (state.householdCache && state.householdCacheSignature === signature) return state.householdCache;
             var result = null;
             // A household-modal cache can still describe the previous upload while projectData already
@@ -142092,6 +142378,11 @@ window.openAddNewProjectModal = function(editProject) {
             return list;
         }
         function columnStyle(key) { return state.hiddenColumns[key] ? ' style="display:none"' : ''; }
+        function cloneColumnVisibility(source) {
+            var copy = Object.create(null);
+            columnDefs.forEach(function(def) { copy[def[0]] = !!(source && source[def[0]]); });
+            return copy;
+        }
         function syncColumnVisibility(modal) {
             if (!modal) return;
             columnDefs.forEach(function(def) {
@@ -142102,9 +142393,10 @@ window.openAddNewProjectModal = function(editProject) {
             });
         }
         function renderColumnMenu() {
+            var draft = state.columnDraft || cloneColumnVisibility(state.hiddenColumns);
             return '<div class="cost-analysis-column-actions"><button type="button" data-cost-columns-all="show">\uc804\uccb4 \uc120\ud0dd</button><button type="button" data-cost-columns-all="hide">\uc804\uccb4 \ud574\uc81c</button></div>' + columnDefs.map(function(def) {
-                return '<label><input type="checkbox" data-cost-column="' + def[0] + '"' + (state.hiddenColumns[def[0]] ? '' : ' checked') + '> ' + def[1] + '</label>';
-            }).join('');
+                return '<label><input type="checkbox" data-cost-column="' + def[0] + '"' + (draft[def[0]] ? '' : ' checked') + '> ' + def[1] + '</label>';
+            }).join('') + '<div class="cost-analysis-column-commit"><button type="button" data-cost-columns-cancel>\ucde8\uc18c</button><button type="button" class="primary" data-cost-columns-apply>\uc801\uc6a9</button></div>';
         }
         function renderMultiChoice(kind, label, options, selected) {
             var checked = selectedValues(selected, '');
@@ -142128,12 +142420,14 @@ window.openAddNewProjectModal = function(editProject) {
             var entries = years.map(function(year) {
                 var source = state.sourceByYear[year] || 'missing';
                 var count = (state.rowsByYear[year] || []).length;
+                var displayCount = scopedRateRecords(year).length;
                 var error = state.errorByYear[year] || '';
-                return '<li data-cost-rate-year="' + escapeHtml(year) + '" data-cost-rate-source="' + escapeHtml(source) + '"><strong>' + escapeHtml(rateYearPrefix(year)) + '</strong><span>' + escapeHtml(rateSourceLabel(source)) + ' \u00b7 ' + count.toLocaleString('ko-KR') + '\uac1c \uac74\ubb3c\ub3d9</span>' + (error ? '<small>' + escapeHtml(error) + '</small>' : '') + '</li>';
+                var countLabel = count.toLocaleString('ko-KR') + '\uac1c \uc6d0\ubcf8' + (state.parentFilterContext && state.parentFilterContext.active ? ' \u00b7 \ud45c\uc2dc ' + displayCount.toLocaleString('ko-KR') + '\uac1c' : '');
+                return '<li data-cost-rate-year="' + escapeHtml(year) + '" data-cost-rate-source="' + escapeHtml(source) + '"><strong>' + escapeHtml(rateYearPrefix(year)) + '</strong><span>' + escapeHtml(rateSourceLabel(source)) + ' \u00b7 ' + escapeHtml(countLabel) + '</span>' + (error ? '<small>' + escapeHtml(error) + '</small>' : '') + '</li>';
             }).join('');
             var warning = state.sourceWarnings.length ? '<div class="cost-analysis-source-warning" role="alert"><strong>GitHub \ub2e8\uac00 \ud655\uc778 \ud544\uc694</strong><span>' + escapeHtml(state.sourceWarnings.join(' / ')) + '</span><small>\uae30\uc874 \ud45c\uc2dc \uac12\uc740 \ub9c8\uc9c0\ub9c9\uc73c\ub85c \uac80\uc99d\ub41c GitHub \uc6d0\ubcf8\uc785\ub2c8\ub2e4. \ucd5c\ucd08 \uc5f0\uacb0 \uc2e4\ud328 \uc2dc\uc5d0\ub294 \uc218\ub3d9 \ud30c\uc77c \ubd88\ub7ec\uc624\uae30\ub97c \uc0ac\uc6a9\ud558\uc138\uc694.</small></div>' : '';
             var notice = state.sourceNotices.length ? '<div class="cost-analysis-source-notice"><span>' + escapeHtml(state.sourceNotices.join(' / ')) + '</span></div>' : '';
-            return warning + notice + '<div class="cost-analysis-source-audit"><div><strong>\uc790\ub3d9 \ub2e8\uac00 \uc6d0\ucc9c</strong><span>' + escapeHtml(state.remotePath || getRemotePath()) + '</span></div><ul>' + (entries || '<li><span>\ud655\uc778\ub41c GitHub \uc5f0\ub3c4\ubcc4 \ub2e8\uac00\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.</span></li>') + '</ul></div>';
+            return warning + notice + '<div class="cost-analysis-source-audit"><div><strong>\uc790\ub3d9 \ub2e8\uac00 \uc6d0\ucc9c</strong><span>' + escapeHtml(state.remotePath || getRemotePath()) + '</span><small class="cost-analysis-scope-monitor">' + escapeHtml(costParentScopeLabel()) + '</small></div><ul>' + (entries || '<li><span>\ud655\uc778\ub41c GitHub \uc5f0\ub3c4\ubcc4 \ub2e8\uac00\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.</span></li>') + '</ul></div>';
         }
         function renderRateYearControl() {
             var currentYear = currentCalendarRateYear();
@@ -142203,25 +142497,102 @@ window.openAddNewProjectModal = function(editProject) {
                 return av === bv ? a.index - b.index : (av - bv) * direction;
             }).map(function(item) { return item.building; });
         }
+        function averageRateValues(values) {
+            var finite = (values || []).filter(Number.isFinite);
+            if (!finite.length) return NaN;
+            return finite.reduce(function(sum, value) { return sum + value; }, 0) / finite.length;
+        }
+        function medianRateValues(values) {
+            var finite = (values || []).filter(Number.isFinite).sort(function(a, b) { return a - b; });
+            if (!finite.length) return NaN;
+            var middle = Math.floor(finite.length / 2);
+            return finite.length % 2 ? finite[middle] : (finite[middle - 1] + finite[middle]) / 2;
+        }
+        function buildRateTrendStatistics(years, books, buildingKeys) {
+            var statistics = Object.create(null);
+            years.forEach(function(year, index) {
+                if (!index) return;
+                var deltas = [];
+                var percentages = [];
+                buildingKeys.forEach(function(building) {
+                    var current = books[year] && books[year][building];
+                    var previous = books[years[index - 1]] && books[years[index - 1]][building];
+                    if (!current || !previous) return;
+                    var currentCost = Number(current.cost || 0);
+                    var previousCost = Number(previous.cost || 0);
+                    if (!Number.isFinite(currentCost) || !Number.isFinite(previousCost)) return;
+                    var delta = currentCost - previousCost;
+                    deltas.push(delta);
+                    if (previousCost !== 0) percentages.push(delta / previousCost * 100);
+                    else if (currentCost === 0) percentages.push(0);
+                });
+                statistics[year] = {
+                    count: deltas.length,
+                    deltaAverage: averageRateValues(deltas),
+                    deltaMedian: medianRateValues(deltas),
+                    percentAverage: averageRateValues(percentages),
+                    percentMedian: medianRateValues(percentages)
+                };
+            });
+            return statistics;
+        }
+        function rateTrendDirection(building, years, books) {
+            var points = years.map(function(year, index) {
+                var row = books[year] && books[year][building];
+                var value = row ? Number(row.cost || 0) : NaN;
+                return { year: year, index: index, value: value };
+            }).filter(function(point) { return Number.isFinite(point.value); });
+            var last = points[points.length - 1];
+            var previous = points[points.length - 2];
+            var delta = last && previous ? last.value - previous.value : 0;
+            return { points: points, delta: delta, key: delta > 0 ? 'up' : (delta < 0 ? 'down' : 'flat'), label: delta > 0 ? '\uc0c1\uc2b9' : (delta < 0 ? '\ud558\ub77d' : '\ubcf4\ud569') };
+        }
+        function renderRateTrendSparkline(building, years, books) {
+            var trend = rateTrendDirection(building, years, books);
+            if (!trend.points.length) return '<span class="cost-analysis-na">-</span>';
+            var width = 116;
+            var height = 44;
+            var min = Math.min.apply(null, trend.points.map(function(point) { return point.value; }));
+            var max = Math.max.apply(null, trend.points.map(function(point) { return point.value; }));
+            var range = max - min || 1;
+            var plotted = trend.points.map(function(point) {
+                var x = years.length > 1 ? 8 + point.index * (width - 16) / (years.length - 1) : width / 2;
+                var y = height - 8 - (point.value - min) / range * (height - 16);
+                return { year: point.year, value: point.value, x: x, y: y };
+            });
+            var last = plotted[plotted.length - 1];
+            var previous = plotted[plotted.length - 2] || { x: last.x - 1, y: last.y };
+            var angle = Math.atan2(last.y - previous.y, last.x - previous.x) * 180 / Math.PI;
+            var tone = trend.key === 'up' ? '#dc2626' : (trend.key === 'down' ? '#047857' : '#64748b');
+            var polyline = plotted.map(function(point) { return point.x.toFixed(1) + ',' + point.y.toFixed(1); }).join(' ');
+            var circles = plotted.map(function(point) { return '<circle cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="2.2"></circle>'; }).join('');
+            var arrow = plotted.length > 1 ? '<polygon points="' + last.x.toFixed(1) + ',' + last.y.toFixed(1) + ' ' + (last.x - 9).toFixed(1) + ',' + (last.y - 4).toFixed(1) + ' ' + (last.x - 9).toFixed(1) + ',' + (last.y + 4).toFixed(1) + '" transform="rotate(' + angle.toFixed(1) + ' ' + last.x.toFixed(1) + ' ' + last.y.toFixed(1) + ')"></polygon>' : '';
+            var aria = buildingLabel(building) + ' \ub2e8\uac00 \ucd94\uc138: ' + plotted.map(function(point) { return point.year + '\ub144 ' + Math.round(point.value).toLocaleString('ko-KR') + '\uc6d0'; }).join(', ') + ' \u00b7 ' + trend.label;
+            return '<div class="cost-analysis-rate-sparkline cost-analysis-rate-trend-' + trend.key + '" data-cost-rate-sparkline aria-label="' + escapeHtml(aria) + '"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-hidden="true" style="color:' + tone + '"><polyline points="' + polyline + '"></polyline>' + circles + arrow + '</svg><strong>' + escapeHtml(trend.label) + '</strong></div>';
+        }
+        function renderRateTrendSummaryRow(label, metric, years, statistics) {
+            var cells = years.map(function(year, index) {
+                if (!index) return '<td class="cost-analysis-rate-year-start">-</td>';
+                var item = statistics[year] || {};
+                var delta = metric === 'average' ? item.deltaAverage : item.deltaMedian;
+                var percent = metric === 'average' ? item.percentAverage : item.percentMedian;
+                return '<td class="cost-analysis-rate-year-start">' + Number(item.count || 0).toLocaleString('ko-KR') + '\uac1c \ube44\uad50</td><td class="' + rateChangeTone(delta) + '">' + formatRateChangeWon(delta) + '</td><td class="' + rateChangeTone(percent) + '">' + formatRateChangePercent(percent) + '</td>';
+            }).join('');
+            return '<tr><th scope="row">' + escapeHtml(label) + '</th>' + cells + '<td>-</td></tr>';
+        }
         function renderRateTrendAnalysis() {
-            var years = availableRateYears().filter(function(year) { return state.rowsByYear[year] && state.rowsByYear[year].length; }).sort(function(a, b) { return Number(a) - Number(b); });
+            var dataset = buildRateTrendDataset();
+            var years = dataset.years;
             var open = state.rateTrendOpen ? ' open' : '';
             if (years.length < 2) {
                 return '<details class="cost-analysis-rate-trend" data-cost-rate-trend' + open + '><summary><span>\uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00 \uc99d\uac10 \ubd84\uc11d</span><small>' + (years.length ? escapeHtml(rateYearPrefix(years[0])) + ' 1\uac1c \uc5f0\ub3c4' : '\uac80\uc99d\ub41c \uc5f0\ub3c4 \uc5c6\uc74c') + '</small></summary><div class="cost-analysis-empty">\ube44\uad50 \uac00\ub2a5\ud55c GitHub \uc5f0\ub3c4\ubcc4 \ub2e8\uac00\uac00 2\uac1c \uc774\uc0c1\uc774\uba74 \ub3d9\ubcc4 \uc99d\uac10\uc561\uacfc \uc99d\uac10\ub960\uc774 \uc790\ub3d9 \ud45c\uc2dc\ub429\ub2c8\ub2e4.</div></details>';
             }
-            var books = Object.create(null);
-            var buildings = Object.create(null);
-            years.forEach(function(year) {
-                books[year] = Object.create(null);
-                (state.rowsByYear[year] || []).forEach(function(row) {
-                    var key = normalizeBuilding(row.building);
-                    if (!key) return;
-                    books[year][key] = row;
-                    buildings[key] = true;
-                });
-            });
-            var buildingKeys = sortRateTrendBuildings(Object.keys(buildings).sort(function(a, b) { return String(a).localeCompare(String(b), 'ko-KR', { numeric:true }); }), years, books);
-            var firstHeader = '<th rowspan="2"' + rateTrendSortAttributes('building') + '>' + renderRateTrendSortButton('building', '\uac74\ubb3c\ub3d9', '') + '</th>' + years.map(function(year, index) { return '<th class="cost-analysis-rate-year-start" colspan="' + (index ? '3' : '1') + '">' + escapeHtml(rateYearPrefix(year)) + '</th>'; }).join('');
+            var books = dataset.books;
+            var buildingKeys = sortRateTrendBuildings(dataset.buildingKeys, years, books);
+            if (!buildingKeys.length) {
+                return '<details class="cost-analysis-rate-trend" data-cost-rate-trend' + open + '><summary><span>\uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00 \uc99d\uac10 \ubd84\uc11d</span><small>0\uac1c \ub3d9 \u00b7 ' + escapeHtml(costParentScopeLabel()) + '</small></summary><div class="cost-analysis-empty">\ud604\uc7ac \uc0c1\uc704 \ud544\ud130\uc5d0 \ub9e4\uce6d\ub418\ub294 \uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.</div></details>';
+            }
+            var firstHeader = '<th rowspan="2"' + rateTrendSortAttributes('building') + '>' + renderRateTrendSortButton('building', '\uac74\ubb3c\ub3d9', '') + '</th>' + years.map(function(year, index) { return '<th class="cost-analysis-rate-year-start" colspan="' + (index ? '3' : '1') + '">' + escapeHtml(rateYearPrefix(year)) + '</th>'; }).join('') + '<th rowspan="2">\ub2e8\uac00 \ucd94\uc138</th>';
             var secondHeader = years.map(function(year, index) {
                 var costKey = year + ':cost';
                 var costHeader = '<th class="cost-analysis-rate-year-start"' + rateTrendSortAttributes(costKey) + '>' + renderRateTrendSortButton(costKey, '\ub2e8\uac00', '') + '</th>';
@@ -142246,24 +142617,31 @@ window.openAddNewProjectModal = function(editProject) {
                         cells += '<td class="' + rateChangeTone(delta) + '">' + formatRateChangeWon(delta) + '</td><td class="' + rateChangeTone(percent) + '">' + (comparable && previousCost === 0 && currentCost !== 0 ? '\uc2e0\uaddc' : formatRateChangePercent(percent)) + '</td>';
                     }
                 });
-                return '<tr tabindex="0" data-cost-rate-trend-row><td>' + escapeHtml(buildingLabel(building)) + '</td>' + cells + '</tr>';
+                return '<tr tabindex="0" data-cost-rate-trend-row><td>' + escapeHtml(buildingLabel(building)) + '</td>' + cells + '<td>' + renderRateTrendSparkline(building, years, books) + '</td></tr>';
             }).join('');
-            var tableWidth = Math.max(760, 96 + 104 * (1 + (years.length - 1) * 3));
-            return '<details class="cost-analysis-rate-trend" data-cost-rate-trend' + open + '><summary><span>\uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00 \uc99d\uac10 \ubd84\uc11d</span><small>' + escapeHtml(rateYearPrefix(years[0])) + ' \u2192 ' + escapeHtml(rateYearPrefix(years[years.length - 1])) + ' \u00b7 ' + buildingKeys.length.toLocaleString('ko-KR') + '\uac1c \ub3d9</small></summary><div class="cost-analysis-table-wrap"><table class="cost-analysis-table cost-analysis-rate-trend-table" style="min-width:' + tableWidth + 'px"><thead><tr>' + firstHeader + '</tr><tr>' + secondHeader + '</tr></thead><tbody>' + body + '</tbody></table></div></details>';
+            var statistics = buildRateTrendStatistics(years, books, buildingKeys);
+            var footer = renderRateTrendSummaryRow('\ud3c9\uade0', 'average', years, statistics) + renderRateTrendSummaryRow('\uc911\uac04\uac12', 'median', years, statistics);
+            var tableWidth = Math.max(920, 250 + 104 * (1 + (years.length - 1) * 3));
+            var scopeSuffix = state.parentFilterContext && state.parentFilterContext.active ? ' \u00b7 \uc0c1\uc704 \ud544\ud130' : '';
+            return '<details class="cost-analysis-rate-trend" data-cost-rate-trend' + open + '><summary><span>\uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00 \uc99d\uac10 \ubd84\uc11d</span><small>' + escapeHtml(rateYearPrefix(years[0])) + ' \u2192 ' + escapeHtml(rateYearPrefix(years[years.length - 1])) + ' \u00b7 ' + buildingKeys.length.toLocaleString('ko-KR') + '\uac1c \ub3d9' + escapeHtml(scopeSuffix) + '</small></summary><div class="cost-analysis-table-wrap"><table class="cost-analysis-table cost-analysis-rate-trend-table" style="min-width:' + tableWidth + 'px"><thead><tr>' + firstHeader + '</tr><tr>' + secondHeader + '</tr></thead><tbody>' + body + '</tbody><tfoot>' + footer + '</tfoot></table></div></details>';
         }
         function renderRateYearEditor(year) {
-            var rows = state.rowsByYear[year] || [];
-            var source = state.sourceByYear[year] || (rows.length ? state.source : 'missing');
+            var sourceRows = state.rowsByYear[year] || [];
+            var records = scopedRateRecords(year);
+            var source = state.sourceByYear[year] || (sourceRows.length ? state.source : 'missing');
             var hasOpenState = Object.prototype.hasOwnProperty.call(state.openRateYears, year);
-            var open = hasOpenState ? !!state.openRateYears[year] : year === state.activeRateYear;
-            var badges = [rateSourceLabel(source), rows.length.toLocaleString('ko-KR') + '\uac1c \uac74\ubb3c\ub3d9'];
+            var isFullscreenYear = !!(state.fullscreenContext && state.fullscreenContext.kind === 'year' && state.fullscreenContext.year === year);
+            var open = isFullscreenYear || (hasOpenState ? !!state.openRateYears[year] : year === state.activeRateYear);
+            var countLabel = records.length.toLocaleString('ko-KR') + '/' + sourceRows.length.toLocaleString('ko-KR') + '\uac1c \uac74\ubb3c\ub3d9';
+            var badges = [rateSourceLabel(source), state.parentFilterContext && state.parentFilterContext.active ? countLabel : sourceRows.length.toLocaleString('ko-KR') + '\uac1c \uac74\ubb3c\ub3d9'];
             if (year === currentCalendarRateYear()) badges.push('\uae08\ub144\ub3c4');
             if (year === state.activeRateYear) badges.push('\uae30\ubcf8 \ud3b8\uc9d1');
-            var table = rows.length ? '<div class="cost-analysis-table-wrap"><table class="cost-analysis-table" style="min-width:620px"><thead><tr><th>\uac74\ubb3c\ub3d9</th><th>\ucf54\uc2a4\ud2b8(\uc6d0)</th><th>Fee(%)</th><th>\ubd84\uc11d \uc81c\uc678</th></tr></thead><tbody>' + rows.map(function(row, index) {
-                return '<tr data-setting-year="' + escapeHtml(year) + '" data-setting-index="' + index + '"><td><strong>' + escapeHtml(buildingLabel(row.building)) + '</strong></td><td><input type="text" inputmode="numeric" pattern="[0-9,]*" autocomplete="off" data-setting-field="cost" value="' + escapeHtml(formatAccountingInput(row.cost)) + '"></td><td><input type="number" min="0" max="100" step="0.1" data-setting-field="fee" value="' + Number(row.fee || 0) + '"></td><td><input type="checkbox" data-setting-field="excluded"' + (row.excluded ? ' checked' : '') + '></td></tr>';
-            }).join('') + '</tbody></table></div>' : '<div class="cost-analysis-empty">' + escapeHtml(rateYearPrefix(year)) + ' GitHub \ub2e8\uac00\uac00 \uc5c6\uac70\ub098 \uac80\uc99d\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4.</div>';
-            var actions = rows.length ? '<button type="button" data-cost-rate-save-year="' + escapeHtml(year) + '">' + escapeHtml(rateYearPrefix(year)) + ' GitHub \uc800\uc7a5</button>' : '';
-            return '<details class="cost-analysis-rate-editor" data-cost-rate-editor="' + escapeHtml(year) + '"' + (open ? ' open' : '') + '><summary><span>' + escapeHtml(rateYearPrefix(year)) + ' \ud3b8\uc9d1 \ub2e8\uac00</span><small>' + escapeHtml(badges.join(' \u00b7 ')) + '</small></summary><div class="cost-analysis-rate-editor-head"><span>' + escapeHtml(state.verifiedMetaByYear[year] && state.verifiedMetaByYear[year].path || getRemotePath(year)) + '</span>' + actions + '</div>' + table + '</details>';
+            var table = records.length ? '<div class="cost-analysis-table-wrap"><table class="cost-analysis-table" style="min-width:620px"><thead><tr><th>\uac74\ubb3c\ub3d9</th><th>\ucf54\uc2a4\ud2b8(\uc6d0)</th><th>Fee(%)</th><th>\ubd84\uc11d \uc81c\uc678</th></tr></thead><tbody>' + records.map(function(entry) {
+                var row = entry.row;
+                return '<tr data-setting-year="' + escapeHtml(year) + '" data-setting-index="' + entry.index + '"><td><strong>' + escapeHtml(buildingLabel(row.building)) + '</strong></td><td><input type="text" inputmode="numeric" pattern="[0-9,]*" autocomplete="off" data-setting-field="cost" value="' + escapeHtml(formatAccountingInput(row.cost)) + '"></td><td><input type="number" min="0" max="100" step="0.1" data-setting-field="fee" value="' + Number(row.fee || 0) + '"></td><td><input type="checkbox" data-setting-field="excluded"' + (row.excluded ? ' checked' : '') + '></td></tr>';
+            }).join('') + '</tbody></table></div>' : '<div class="cost-analysis-empty">' + (sourceRows.length && state.parentFilterContext && state.parentFilterContext.active ? escapeHtml(costParentScopeLabel()) + '\uc5d0 \ub9e4\uce6d\ub418\ub294 \ub3d9 \ub2e8\uac00\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.' : escapeHtml(rateYearPrefix(year)) + ' GitHub \ub2e8\uac00\uac00 \uc5c6\uac70\ub098 \uac80\uc99d\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4.') + '</div>';
+            var actions = sourceRows.length ? '<button type="button" data-cost-rate-save-year="' + escapeHtml(year) + '">' + escapeHtml(rateYearPrefix(year)) + ' GitHub \uc800\uc7a5</button>' : '';
+            return '<details class="cost-analysis-rate-editor" data-cost-rate-editor="' + escapeHtml(year) + '"' + (isFullscreenYear ? ' data-cost-fullscreen-active="true"' : '') + (open ? ' open' : '') + '><summary><span>' + escapeHtml(rateYearPrefix(year)) + ' \ud3b8\uc9d1 \ub2e8\uac00</span><span class="cost-analysis-summary-actions"><small>' + escapeHtml(badges.join(' \u00b7 ')) + '</small><button type="button" class="cost-analysis-inline-fullscreen" data-cost-rate-fullscreen-open="' + escapeHtml(year) + '" aria-label="' + escapeHtml(rateYearPrefix(year)) + ' \ud3b8\uc9d1 \ub2e8\uac00 \uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button></span></summary><div class="cost-analysis-rate-editor-head"><span>' + escapeHtml(state.verifiedMetaByYear[year] && state.verifiedMetaByYear[year].path || getRemotePath(year)) + '</span>' + actions + '</div>' + table + '</details>';
         }
         function renderSettings() {
             var years = availableRateYears();
@@ -142509,26 +142887,77 @@ window.openAddNewProjectModal = function(editProject) {
             if (active && closeButton) closeButton.focus({ preventScroll: true });
             else if (restoreFocus && openButton && !modal.classList.contains('hidden')) openButton.focus({ preventScroll: true });
         }
-        function openTableFullscreen() {
+        function openTableFullscreen(kind, year, trigger) {
             var modal = ensureModal();
             var overlay = modal.querySelector('#costAnalysisTableFullscreen');
             var body = overlay && overlay.querySelector('[data-cost-table-fullscreen-body]');
-            var tableHost = modal.querySelector('[data-cost-table]');
-            if (!overlay || !body || !tableHost) return;
-            body.appendChild(tableHost);
+            var title = overlay && overlay.querySelector('#costAnalysisTableFullscreenTitle');
+            kind = kind === 'settings' || kind === 'year' ? kind : 'table';
+            year = normalizeRateYear(year);
+            if (!overlay || !body) return;
+            if (state.fullscreenContext) closeTableFullscreen(false);
+            var target = null;
+            var titleText = '\uc218\uc7a5\uc791\uc5c5 \uc138\ub300 \uc0c1\uc138 - \uc804\uccb4 \ud654\uba74';
+            if (kind === 'table') {
+                target = modal.querySelector('[data-cost-table]');
+            } else {
+                var settingsDetails = modal.querySelector('[data-cost-section="settings"]');
+                var settingsHost = modal.querySelector('[data-cost-settings]');
+                if (settingsDetails) settingsDetails.open = true;
+                if (settingsHost && !settingsHost.firstElementChild) settingsHost.innerHTML = renderSettings();
+                if (kind === 'year' && year) {
+                    state.openRateYears[year] = true;
+                    titleText = rateYearPrefix(year) + ' \ud3b8\uc9d1 \ub2e8\uac00 - \uc804\uccb4 \ud654\uba74';
+                } else {
+                    titleText = '\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815 - \uc804\uccb4 \ud654\uba74';
+                }
+                target = settingsHost;
+                if (target) {
+                    target.setAttribute('data-cost-fullscreen-kind', kind);
+                    if (year) target.setAttribute('data-cost-fullscreen-year', year);
+                }
+            }
+            if (!target || !target.parentNode) return;
+            state.fullscreenContext = {
+                kind: kind,
+                year: year,
+                node: target,
+                parent: target.parentNode,
+                nextSibling: target.nextSibling,
+                trigger: trigger || null
+            };
+            if (kind === 'year') target.innerHTML = renderSettings();
+            body.appendChild(target);
+            if (title) title.textContent = titleText;
             overlay.classList.remove('hidden');
             overlay.setAttribute('aria-hidden', 'false');
+            var closeButton = overlay.querySelector('[data-cost-table-fullscreen-close]');
+            if (closeButton) closeButton.focus({ preventScroll:true });
         }
-        function closeTableFullscreen() {
+        function closeTableFullscreen(restoreFocus) {
             var modal = document.getElementById('costSavingAnalysisModal');
             if (!modal) return;
             var overlay = modal.querySelector('#costAnalysisTableFullscreen');
-            var anchor = modal.querySelector('[data-cost-table-anchor]');
-            var tableHost = modal.querySelector('[data-cost-table]');
-            if (anchor && tableHost) anchor.insertAdjacentElement('afterend', tableHost);
+            var context = state.fullscreenContext;
+            state.fullscreenContext = null;
+            if (context && context.node) {
+                context.node.removeAttribute('data-cost-fullscreen-kind');
+                context.node.removeAttribute('data-cost-fullscreen-year');
+                if (context.parent && context.parent.isConnected) {
+                    var reference = context.nextSibling && context.nextSibling.parentNode === context.parent ? context.nextSibling : null;
+                    context.parent.insertBefore(context.node, reference);
+                } else if (context.kind === 'table') {
+                    var anchor = modal.querySelector('[data-cost-table-anchor]');
+                    if (anchor) anchor.insertAdjacentElement('afterend', context.node);
+                }
+            } else {
+                var fallbackAnchor = modal.querySelector('[data-cost-table-anchor]');
+                var fallbackTable = modal.querySelector('[data-cost-table]');
+                if (fallbackAnchor && fallbackTable && fallbackTable.closest('[data-cost-table-fullscreen-body]')) fallbackAnchor.insertAdjacentElement('afterend', fallbackTable);
+            }
             if (overlay) { overlay.classList.add('hidden'); overlay.setAttribute('aria-hidden', 'true'); }
             if (!modal.classList.contains('hidden')) {
-                var focusTarget = modal.classList.contains('cost-analysis-fullscreen') ? modal.querySelector('[data-cost-fullscreen-close]') : modal.querySelector('[data-cost-table-fullscreen-open]');
+                var focusTarget = restoreFocus !== false && context && context.trigger && context.trigger.isConnected ? context.trigger : (modal.classList.contains('cost-analysis-fullscreen') ? modal.querySelector('[data-cost-fullscreen-close]') : modal.querySelector('[data-cost-table-fullscreen-open]'));
                 if (focusTarget) focusTarget.focus({ preventScroll: true });
             }
         }
@@ -142587,7 +143016,9 @@ window.openAddNewProjectModal = function(editProject) {
                 rolloverHost.innerHTML = state.periodBasis === 'settlement' && rolloverRows.length ? '<div class="cost-analysis-rollover"><strong>\uc774\uc6d4 \uc815\uc0b0 ' + rolloverRows.length.toLocaleString('ko-KR') + '\uac74</strong><span>\uc804\ub144\ub3c4 \ud504\ub85c\uc81d\ud2b8\ub97c \ud604 \uc120\ud0dd \uc5f0\ub3c4\uc5d0 \ube44\uc6a9 \uc815\uc0b0\ud55c \uac74\uc785\ub2c8\ub2e4.</span><button type="button" data-cost-evidence="rollover">\ubcc4\ub3c4 \ud655\uc778</button></div>' : '';
             }
             modal.querySelectorAll('[data-source-mode]').forEach(function(button) { button.classList.toggle('is-active', button.dataset.sourceMode === state.sourceMode); });
-            setStatus(rateSourceLabel(state.source) + ' \u00b7 ' + rateYearPrefix(state.activeRateYear) + ' \u00b7 ' + state.rows.length + '\uac1c \uac74\ubb3c\ub3d9 \u00b7 PO \ubd84\ub9ac ' + (analysis.poIntegrityOk ? 'OK' : 'CHECK') + ' \u00b7 \uacc4\uc0b0 ' + (analysis.calculationAudit.ok ? 'OK' : 'CHECK') + ' \u00b7 ID ' + analysis.calculationAudit.fingerprint + ' \u00b7 ' + state.remotePath, state.sourceWarnings.length > 0 || !analysis.poIntegrityOk || !analysis.calculationAudit.ok);
+            var visibleRateCount = scopedRateRecords(state.activeRateYear).length;
+            var rateCountLabel = state.parentFilterContext && state.parentFilterContext.active ? visibleRateCount + '/' + state.rows.length : state.rows.length;
+            setStatus(rateSourceLabel(state.source) + ' \u00b7 ' + rateYearPrefix(state.activeRateYear) + ' \u00b7 ' + rateCountLabel + '\uac1c \uac74\ubb3c\ub3d9 \u00b7 ' + costParentScopeLabel() + ' \u00b7 PO \ubd84\ub9ac ' + (analysis.poIntegrityOk ? 'OK' : 'CHECK') + ' \u00b7 \uacc4\uc0b0 ' + (analysis.calculationAudit.ok ? 'OK' : 'CHECK') + ' \u00b7 ID ' + analysis.calculationAudit.fingerprint + ' \u00b7 ' + state.remotePath, state.sourceWarnings.length > 0 || !analysis.poIntegrityOk || !analysis.calculationAudit.ok);
         }
         function scheduleRender() {
             if (state.renderRaf) cancelAnimationFrame(state.renderRaf);
@@ -142609,7 +143040,7 @@ window.openAddNewProjectModal = function(editProject) {
             modal.setAttribute('aria-labelledby', 'costAnalysisTitle');
             modal.innerHTML = '<div class="cost-analysis-panel"><header class="cost-analysis-head"><button type="button" class="cost-analysis-btn icon cost-analysis-left-close mr-3" data-cost-close aria-label="닫기" title="닫기">&times;</button><div><h3 id="costAnalysisTitle" class="cost-analysis-title">\uc138\ub300\ub0b4 \uc218\uc7a5\uc791\uc5c5 \ube44\uc6a9 \uc808\uac10 \uc2ec\uce35 \ubd84\uc11d</h3><div class="cost-analysis-status" aria-live="polite"></div></div><div class="cost-analysis-head-actions"><button type="button" class="cost-analysis-btn icon" data-cost-fullscreen-open aria-label="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" aria-expanded="false">\u26f6</button><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors px-2 leading-none cursor-pointer focus:outline-none" data-cost-close aria-label="닫기" title="닫기">&times;</button></div></header>' +
                 '<div class="cost-analysis-toolbar"><div class="cost-analysis-source" role="group" aria-label="\ub2e8\uac00 \ucd9c\ucc98"><button type="button" data-source-mode="auto">\uc790\ub3d9</button><button type="button" data-source-mode="manual">\uc218\ub3d9</button></div><div data-cost-rate-year-control></div><button type="button" class="cost-analysis-btn" data-cost-remote-load>\uc6d0\uaca9 \ubd88\ub7ec\uc624\uae30</button><button type="button" class="cost-analysis-btn primary" data-cost-remote-save>\uc6d0\uaca9 \uc800\uc7a5</button><button type="button" class="cost-analysis-btn" data-cost-local-open>\ud30c\uc77c \ubd88\ub7ec\uc624\uae30</button><button type="button" class="cost-analysis-btn" data-cost-download>\ub2e8\uac00 XLSB</button><button type="button" class="cost-analysis-btn primary" data-cost-export-all title="Excel \uc804\uccb4 \ub2e4\uc6b4\ub85c\ub4dc">\u21e9 Excel \uc804\uccb4</button><div class="cost-analysis-period-filter" data-cost-period-filter></div><input type="file" data-cost-file accept=".xlsb,.xlsx" hidden><span class="cost-analysis-toolbar-spacer"></span><div class="cost-analysis-column-menu"><button type="button" class="cost-analysis-btn" data-cost-columns>\uc5f4 \ud45c\uc2dc</button><div class="cost-analysis-column-pop hidden" data-cost-column-pop></div></div></div>' +
-                '<main class="cost-analysis-body"><div data-cost-source-audit></div><div data-cost-rollover></div><div class="cost-analysis-top-sections"><details class="cost-analysis-section" data-cost-section="settings"><summary>\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815</summary><div data-cost-settings></div></details><details class="cost-analysis-section" data-cost-section="other"><summary>\uae30\ud0c0 \uc791\uc5c5 \ubd84\ub958 (\uc218\uc7a5\uc791\uc5c5 \uc81c\uc678)</summary><div data-cost-exceptions></div></details></div><section class="cost-analysis-kpis" data-cost-kpis></section><div class="cost-analysis-detail-head"><h4>\uc218\uc7a5\uc791\uc5c5 \uc138\ub300 \uc0c1\uc138</h4><div class="cost-analysis-detail-actions"><button type="button" class="cost-analysis-btn cost-analysis-compare-entry" data-cost-compare-open title="선택한 연도를 같은 조건으로 비교">선택↔비교</button><button type="button" class="cost-analysis-btn icon" data-cost-table-fullscreen-open aria-label="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button><button type="button" class="cost-analysis-btn" data-cost-evidence="all">\uc804\uccb4 \uc99d\ube59</button></div></div><span data-cost-table-anchor hidden></span><section data-cost-table></section></main></div>' +
+                '<main class="cost-analysis-body"><div data-cost-source-audit></div><div data-cost-rollover></div><div class="cost-analysis-top-sections"><details class="cost-analysis-section" data-cost-section="settings"><summary><span>\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815</span><button type="button" class="cost-analysis-inline-fullscreen" data-cost-settings-fullscreen-open aria-label="\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815 \uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button></summary><div data-cost-settings></div></details><details class="cost-analysis-section" data-cost-section="other"><summary>\uae30\ud0c0 \uc791\uc5c5 \ubd84\ub958 (\uc218\uc7a5\uc791\uc5c5 \uc81c\uc678)</summary><div data-cost-exceptions></div></details></div><section class="cost-analysis-kpis" data-cost-kpis></section><div class="cost-analysis-detail-head"><h4>\uc218\uc7a5\uc791\uc5c5 \uc138\ub300 \uc0c1\uc138</h4><div class="cost-analysis-detail-actions"><button type="button" class="cost-analysis-btn cost-analysis-compare-entry" data-cost-compare-open title="선택한 연도를 같은 조건으로 비교">선택↔비교</button><button type="button" class="cost-analysis-btn icon" data-cost-table-fullscreen-open aria-label="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button><button type="button" class="cost-analysis-btn" data-cost-evidence="all">\uc804\uccb4 \uc99d\ube59</button></div></div><span data-cost-table-anchor hidden></span><section data-cost-table></section></main></div>' +
                 '<div id="costAnalysisTableFullscreen" class="hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="costAnalysisTableFullscreenTitle"><div class="cost-analysis-table-fullscreen-panel"><header class="cost-analysis-head"><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors mr-3 leading-none cursor-pointer focus:outline-none" data-cost-table-fullscreen-close aria-label="닫기" title="닫기">&times;</button><h3 id="costAnalysisTableFullscreenTitle" class="cost-analysis-title">\uc218\uc7a5\uc791\uc5c5 \uc138\ub300 \uc0c1\uc138 - \uc804\uccb4 \ud654\uba74</h3><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors px-2 leading-none cursor-pointer focus:outline-none" data-cost-table-fullscreen-close aria-label="닫기" title="닫기">&times;</button></header><main class="cost-analysis-table-fullscreen-body" data-cost-table-fullscreen-body></main></div></div>' +
                 '<div id="costAnalysisEvidenceModal" class="hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="costAnalysisEvidenceTitle"><div class="cost-analysis-evidence-panel"><header class="cost-analysis-head"><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors mr-3 leading-none cursor-pointer focus:outline-none" data-cost-evidence-close aria-label="닫기" title="닫기">&times;</button><div><h3 id="costAnalysisEvidenceTitle" class="cost-analysis-title" data-cost-evidence-title>\uc0c1\uc138 \uc99d\ube59</h3></div><div class="cost-analysis-head-actions"><button type="button" class="cost-analysis-btn primary" data-cost-evidence-export title="Excel \ub2e4\uc6b4\ub85c\ub4dc">\u21e9 Excel</button><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors px-2 leading-none cursor-pointer focus:outline-none" data-cost-evidence-close aria-label="닫기" title="닫기">&times;</button></div></header><div class="cost-analysis-evidence-formula" data-cost-evidence-formula></div><div class="cost-analysis-evidence-summary" data-cost-evidence-summary></div><main class="cost-analysis-evidence-body" data-cost-evidence-body></main></div></div>';
             bindModal(modal);
@@ -142649,7 +143080,14 @@ window.openAddNewProjectModal = function(editProject) {
         function appendAnalysisSheet(workbook, name, rows, widths) {
             var sheet = window.XLSX.utils.aoa_to_sheet(rows);
             sheet['!cols'] = (widths || []).map(function(width) { return { wch: width }; });
-            window.XLSX.utils.book_append_sheet(workbook, sheet, String(name || 'Sheet').slice(0, 31));
+            var base = String(name || 'Sheet').replace(/[\\\/?*\[\]:]+/g, ' ').trim().slice(0, 31) || 'Sheet';
+            var resolved = base;
+            var sequence = 2;
+            while (workbook.SheetNames.indexOf(resolved) >= 0) {
+                var suffix = '_' + sequence++;
+                resolved = base.slice(0, Math.max(1, 31 - suffix.length)) + suffix;
+            }
+            window.XLSX.utils.book_append_sheet(workbook, sheet, resolved);
         }
         function triggerWorkbookDownload(workbook, fileName) {
             var bytes = new Uint8Array(window.XLSX.write(workbook, { bookType: 'xlsx', type: 'array', compression: true }));
@@ -142680,33 +143118,127 @@ window.openAddNewProjectModal = function(editProject) {
                 return [index + 1, row.category, row.processName, row.building ? buildingLabel(row.building) + ' ' + (row.household && row.household !== 'N/A' ? row.household + '\ud638' : '') : '', row.maintenanceCode, row.projectName, Number(row.poAmount || 0), Number(row.progress || 0), row.workStart, row.workEnd, row.settlement, row.sourceType === 'parsed' ? '\uc138\ub300 \uacf5\uc815 \ud30c\uc2f1' : '\uba85\uce6d \ubbf8\ud30c\uc2f1'];
             }));
         }
+        function rateSettingsExportAoA(year) {
+            return [['No.', '\uc5f0\ub3c4', '\uac74\ubb3c\ub3d9', '\ucf54\uc2a4\ud2b8(\uc6d0)', 'Fee(%)', '\ubd84\uc11d \uc81c\uc678', '\ub2e8\uac00 \ucd9c\ucc98', '\uc6d0\ucc9c \uacbd\ub85c', '\uc0c1\uc704 \ud544\ud130']].concat(scopedRateRecords(year).map(function(entry, index) {
+                var row = entry.row;
+                var meta = state.verifiedMetaByYear[year] || {};
+                return [index + 1, Number(year), buildingLabel(row.building), Number(row.cost || 0), Number(row.fee || 0), row.excluded ? '\uc608' : '\uc544\ub2c8\uc624', rateSourceLabel(state.sourceByYear[year] || 'missing'), meta.path || getRemotePath(year), costParentScopeLabel()];
+            }));
+        }
+        function rateTrendExportAoA() {
+            var dataset = buildRateTrendDataset();
+            var years = dataset.years;
+            var books = dataset.books;
+            var headers = ['\uac74\ubb3c\ub3d9'];
+            years.forEach(function(year, index) {
+                headers.push(year + '\ub144 \ucf54\uc2a4\ud2b8(\uc6d0)');
+                if (index) headers.push(year + '\ub144 \uc99d\uac10(\uc6d0)', year + '\ub144 \uc99d\uac10\ub960(%)');
+            });
+            headers.push('\ucd5c\uc885 \ub2e8\uac00 \ucd94\uc138');
+            var buildings = dataset.buildingKeys;
+            var rows = buildings.map(function(building) {
+                var row = [buildingLabel(building)];
+                years.forEach(function(year, index) {
+                    var current = books[year][building];
+                    var currentCost = current ? Number(current.cost || 0) : null;
+                    row.push(currentCost == null ? '' : currentCost);
+                    if (index) {
+                        var previous = books[years[index - 1]][building];
+                        var previousCost = previous ? Number(previous.cost || 0) : null;
+                        var comparable = currentCost != null && previousCost != null;
+                        var delta = comparable ? currentCost - previousCost : null;
+                        var percent = comparable && previousCost !== 0 ? delta / previousCost * 100 : null;
+                        row.push(delta == null ? '' : delta, percent == null ? '' : percent);
+                    }
+                });
+                row.push(rateTrendDirection(building, years, books).label);
+                return row;
+            });
+            var statistics = buildRateTrendStatistics(years, books, buildings);
+            ['average', 'median'].forEach(function(metric) {
+                var summary = [metric === 'average' ? '\ud3c9\uade0' : '\uc911\uac04\uac12'];
+                years.forEach(function(year, index) {
+                    if (!index) { summary.push(''); return; }
+                    var item = statistics[year] || {};
+                    summary.push(Number(item.count || 0));
+                    summary.push(metric === 'average' ? item.deltaAverage : item.deltaMedian);
+                    summary.push(metric === 'average' ? item.percentAverage : item.percentMedian);
+                });
+                summary.push('');
+                rows.push(summary);
+            });
+            return [headers].concat(rows);
+        }
+        function sourceAuditExportAoA() {
+            return [['\uc5f0\ub3c4', '\uc0c1\ud0dc', '\uc6d0\ubcf8 \uac74\ubb3c\ub3d9 \uc218', '\ud604\uc7ac \ud544\ud130 \ud45c\uc2dc \uc218', '\uc0c1\uc704 \ud544\ud130', '\uc6d0\ucc9c \uacbd\ub85c', 'GitHub SHA', '\uac80\uc99d \uc624\ub958']].concat(availableRateYears().map(function(year) {
+                var meta = state.verifiedMetaByYear[year] || {};
+                return [Number(year), rateSourceLabel(state.sourceByYear[year] || 'missing'), (state.rowsByYear[year] || []).length, scopedRateRecords(year).length, costParentScopeLabel(), meta.path || getRemotePath(year), meta.sha || '', state.errorByYear[year] || ''];
+            }));
+        }
+        function analysisWorkbookDefinitions(analysis, visibleDefs) {
+            var financial = analysis.financialSummary || buildCostFinancialSummary(analysis.rows, analysis.otherProjects);
+            var detailWidths = [7, 12, 12, 18, 42, 12, 18, 18, 10, 18, 18, 18, 14, 34];
+            var definitions = [
+                { name:'\ubd84\uc11d \uc694\uc57d', widths:[28, 24], rows:[
+                    ['\ud56d\ubaa9', '\uac12'],
+                    ['\uc0dd\uc131\uc77c\uc2dc', new Date().toLocaleString('ko-KR')],
+                    ['\ubd84\uc11d \uae30\uac04', analysis.periodLabel],
+                    ['\ubd84\uc11d \uae30\uc900', state.periodBasis === 'project' ? '\ud504\ub85c\uc81d\ud2b8 \uae30\uac04 \uae30\uc900' : '\ube44\uc6a9 \uc815\uc0b0 \uae30\uc900'],
+                    ['\uacc4\uc0b0 \uc815\ud569', analysis.calculationAudit.ok ? 'OK' : 'CHECK'],
+                    ['\uacc4\uc0b0 ID', analysis.calculationAudit.fingerprint],
+                    ['\uc18c\uc2a4 \ubc94\uc704', analysis.sourceScopedCount],
+                    ['\uc0b0\ucd9c \ubc94\uc704', analysis.accountedScopedCount],
+                    ['\uc218\uc7a5\uc791\uc5c5 PO', analysis.interiorPo],
+                    ['\ud30c\uc2f1 \uae30\ud0c0 \uc791\uc5c5 PO', analysis.parsedOtherPo],
+                    ['\uba85\uce6d \ubbf8\ud30c\uc2f1 \ud3ec\ud568 \uae30\ud0c0 PO', analysis.otherPo],
+                    ['\ud30c\uc2f1 PO \ubcf4\uc874 \uac80\uc99d', analysis.poIntegrityOk ? 'OK' : 'CHECK'],
+                    ['\uc21c \uc808\uac10/\uc99d\uc561', analysis.totalDelta],
+                    ['\ubd84\uc11d \ub300\uc0c1 \uc138\ub300', financial.target.count],
+                    ['\ubd84\uc11d \ub300\uc0c1 \uc2e4\uc81c PO', financial.target.actualPo],
+                    ['\ubb3c\ub7c9 \uc808\uac10 \uc138\ub300', financial.saving.count],
+                    ['\ubb3c\ub7c9 \uc808\uac10\uc561', financial.saving.delta],
+                    ['\uae30\uc900 \uc900\uc218 \uc138\ub300', financial.compliant.count],
+                    ['\uae30\uc900 \uc900\uc218 \uc2e4\uc81c PO', financial.compliant.actualPo],
+                    ['\uae30\uc900 \ucd08\uacfc \uc138\ub300', financial.overrun.count],
+                    ['\uae30\uc900 \ucd08\uacfc \uc99d\uc561', financial.overrun.delta],
+                    ['\ubd84\uc11d \uc81c\uc678', analysis.excludedCount],
+                    ['\ub2e8\uac00 \ubbf8\ub9e4\uce6d', analysis.unmatchedCount],
+                    ['\uc774\uc6d4 \uc815\uc0b0', (analysis.crossYearSettlements || []).length]
+                ] },
+                { name:'\ub370\uc774\ud130 \uc6d0\ucc9c \uac10\uc0ac', widths:[10, 18, 18, 18, 44, 48, 44, 42], rows:sourceAuditExportAoA() },
+                { name:'\ud604\uc7ac \ud45c\uc2dc \uc218\uc7a5 \uc0c1\uc138', widths:[7].concat(visibleDefs.map(function() { return 18; })), rows:detailExportAoA(sortedRows(analysis.rows), visibleDefs) },
+                { name:'\uc804\uccb4 \uc5f0\uacc4 \uc218\uc7a5 \uc0c1\uc138', widths:detailWidths, rows:detailExportAoA(sortedRows(analysis.rows), columnDefs) },
+                { name:'\ubb3c\ub7c9 \uc808\uac10 \uc138\ub300', widths:detailWidths, rows:detailExportAoA(sortedRows(analysis.rows.filter(function(row) { return row.status === 'saving'; })), columnDefs) },
+                { name:'\uae30\uc900 \uc900\uc218 \uc138\ub300', widths:detailWidths, rows:detailExportAoA(sortedRows(analysis.rows.filter(function(row) { return row.status === 'compliant'; })), columnDefs) },
+                { name:'\uae30\uc900 \ucd08\uacfc \uc138\ub300', widths:detailWidths, rows:detailExportAoA(sortedRows(analysis.rows.filter(function(row) { return row.status === 'overrun'; })), columnDefs) },
+                { name:'\ubd84\uc11d \uc81c\uc678 \uc138\ub300', widths:detailWidths, rows:detailExportAoA(sortedRows(analysis.rows.filter(function(row) { return row.status === 'excluded'; })), columnDefs) },
+                { name:'\ub2e8\uac00 \ubbf8\ub9e4\uce6d', widths:detailWidths, rows:detailExportAoA(sortedRows(analysis.rows.filter(function(row) { return row.status === 'unmatched'; })), columnDefs) },
+                { name:'\uc774\uc6d4 \uc815\uc0b0', widths:detailWidths, rows:detailExportAoA(sortedRows(analysis.crossYearSettlements || []), columnDefs) },
+                { name:'\uae30\ud0c0 \uc791\uc5c5 \ubd84\ub958', widths:[7, 18, 32, 16, 18, 44, 18, 12, 14, 14, 16, 18], rows:otherExportAoA(analysis.otherProjects) },
+                { name:'\ubd84\ub958\ubcc4 PO \ud569\uacc4', widths:[7, 22, 12, 20], rows:[['No.', '\ubd84\ub958', '\uac74\uc218', 'PO\uae08\uc561 \ud569\uacc4']].concat((analysis.categories || []).map(function(group, index) { return [index + 1, group.label, group.count, group.poAmount]; })) },
+                { name:'\uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00 \uc99d\uac10', widths:[14].concat(availableRateYears().reduce(function(widths, year, index) { widths.push(18); if (index) widths.push(18, 16); return widths; }, [])).concat([18]), rows:rateTrendExportAoA() }
+            ];
+            (analysis.categories || []).forEach(function(group) {
+                definitions.push({ name:'\uae30\ud0c0_' + group.label, widths:[7, 18, 32, 16, 18, 44, 18, 12, 14, 14, 16, 18], rows:otherExportAoA(group.rows) });
+            });
+            availableRateYears().forEach(function(year) {
+                definitions.push({ name:year + '\ub144 \ud3b8\uc9d1 \ub2e8\uac00', widths:[7, 10, 14, 18, 12, 14, 20, 48, 44], rows:rateSettingsExportAoA(year) });
+            });
+            var manifestRows = [['No.', '\uc2dc\ud2b8', '\ub370\uc774\ud130 \ud589', '\ubc94\uc704']].concat(definitions.map(function(definition, index) {
+                return [index + 1, definition.name, Math.max(0, definition.rows.length - 1), index < 4 ? '\ubd80\ubaa8 \ubaa8\ub2ec' : '\ud30c\uc0dd/\uc911\ucca9 \ubaa8\ub2ec'];
+            }));
+            definitions.unshift({ name:'\ub0b4\ubcf4\ub0b4\uae30 \uad6c\uc131', widths:[7, 28, 14, 18], rows:manifestRows });
+            return definitions;
+        }
         async function downloadAnalysisWorkbook() {
             try {
                 await waitForXlsxRuntime();
                 var analysis = state.analysis || buildAnalysis();
                 var workbook = window.XLSX.utils.book_new();
                 var visibleDefs = columnDefs.filter(function(def) { return !state.hiddenColumns[def[0]]; });
-                appendAnalysisSheet(workbook, '\ubd84\uc11d \uc694\uc57d', [
-                    ['\ud56d\ubaa9', '\uac12'],
-                    ['\uc0dd\uc131\uc77c\uc2dc', new Date().toLocaleString('ko-KR')],
-                    ['\ubd84\uc11d \uae30\uac04', analysis.periodLabel],
-                    ['\uacc4\uc0b0 \uc815\ud569', analysis.calculationAudit.ok ? 'OK' : 'CHECK'],
-                    ['\uacc4\uc0b0 ID', analysis.calculationAudit.fingerprint],
-                    ['\uc218\uc7a5\uc791\uc5c5 PO', analysis.interiorPo],
-                    ['\ud30c\uc2f1 \uae30\ud0c0 \uc791\uc5c5 PO', analysis.parsedOtherPo],
-                    ['\uba85\uce6d \ubbf8\ud30c\uc2f1 \ud3ec\ud568 \uae30\ud0c0 PO', analysis.otherPo],
-                    ['\ud30c\uc2f1 PO \ubcf4\uc874 \uac80\uc99d', analysis.poIntegrityOk ? 'OK' : 'CHECK'],
-                    ['\ucd1d \uc808\uac10/\uc99d\uc561', analysis.totalDelta],
-                    ['\ubb3c\ub7c9 \uc808\uac10 \uc138\ub300', analysis.savingCount],
-                    ['\uae30\uc900 \uc900\uc218 \uc138\ub300', analysis.compliantCount],
-                    ['\uae30\uc900 \ucd08\uacfc \uc138\ub300', analysis.overrunCount],
-                    ['\ub2e8\uac00 \ubbf8\ub9e4\uce6d', analysis.unmatchedCount]
-                ], [28, 24]);
-                appendAnalysisSheet(workbook, '\ud604\uc7ac \ud45c\uc2dc \uc218\uc7a5 \uc0c1\uc138', detailExportAoA(sortedRows(analysis.rows), visibleDefs), [7].concat(visibleDefs.map(function() { return 18; })));
-                appendAnalysisSheet(workbook, '\uc804\uccb4 \uc5f0\uacc4 \uc218\uc7a5 \uc0c1\uc138', detailExportAoA(sortedRows(analysis.rows), columnDefs), [7, 12, 12, 18, 42, 12, 18, 18, 10, 18, 18, 18, 14, 34]);
-                appendAnalysisSheet(workbook, '\uae30\ud0c0 \uc791\uc5c5 \ubd84\ub958', otherExportAoA(analysis.otherProjects), [7, 18, 32, 16, 18, 44, 18, 12, 14, 14, 16, 18]);
-                appendAnalysisSheet(workbook, '\ubd84\ub958\ubcc4 PO \ud569\uacc4', [['No.', '\ubd84\ub958', '\uac74\uc218', 'PO\uae08\uc561 \ud569\uacc4']].concat((analysis.categories || []).map(function(group, index) { return [index + 1, group.label, group.count, group.poAmount]; })), [7, 22, 12, 20]);
-                appendAnalysisSheet(workbook, '\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815', [['No.', '\uac74\ubb3c\ub3d9', '\ucf54\uc2a4\ud2b8(\uc6d0)', 'Fee(%)', '\ubd84\uc11d \uc81c\uc678']].concat(state.rows.map(function(row, index) { return [index + 1, buildingLabel(row.building), Number(row.cost || 0), Number(row.fee || 0), row.excluded ? '\uc608' : '\uc544\ub2c8\uc624']; })), [7, 14, 18, 12, 16]);
+                analysisWorkbookDefinitions(analysis, visibleDefs).forEach(function(definition) {
+                    appendAnalysisSheet(workbook, definition.name, definition.rows, definition.widths);
+                });
                 triggerWorkbookDownload(workbook, getYearPrefix() + '_\ube44\uc6a9_\ubb3c\ub7c9_\uc808\uac10_\uc2ec\uce35_\ubd84\uc11d.xlsx');
             } catch (error) {
                 setStatus(error && error.message || error, true);
@@ -142730,7 +143262,7 @@ window.openAddNewProjectModal = function(editProject) {
             var now = new Date();
             var stamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '_' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
             var file = String(path).split('/').pop().replace(/\.xlsb$/i, '');
-            return 'RawData/\uacf5\uc815\uad00\ub9ac/Backup/' + file + '_backup_' + stamp + '.xlsb';
+            return REMOTE_RATE_DIR + '/Backup/' + file + '_backup_' + stamp + '.xlsb';
         }
         async function remoteSave(userInitiated, requestedYear) {
             var year = normalizeRateYear(requestedYear) || state.activeRateYear || getTargetRateYear();
@@ -142837,8 +143369,13 @@ window.openAddNewProjectModal = function(editProject) {
                 if (target.closest('[data-cost-evidence-export]')) { downloadEvidenceWorkbook(); return; }
                 if (target.closest('[data-cost-fullscreen-open]')) { setCostModalFullscreen(true, false); return; }
                 if (target.closest('[data-cost-fullscreen-close]')) { setCostModalFullscreen(false, true); return; }
-                if (target.closest('[data-cost-table-fullscreen-open]')) { openTableFullscreen(); return; }
-                if (target.closest('[data-cost-table-fullscreen-close]')) { closeTableFullscreen(); return; }
+                var settingsFullscreenButton = target.closest('[data-cost-settings-fullscreen-open]');
+                if (settingsFullscreenButton) { event.preventDefault(); event.stopPropagation(); openTableFullscreen('settings', '', settingsFullscreenButton); return; }
+                var rateFullscreenButton = target.closest('[data-cost-rate-fullscreen-open]');
+                if (rateFullscreenButton) { event.preventDefault(); event.stopPropagation(); openTableFullscreen('year', rateFullscreenButton.dataset.costRateFullscreenOpen, rateFullscreenButton); return; }
+                var tableFullscreenButton = target.closest('[data-cost-table-fullscreen-open]');
+                if (tableFullscreenButton) { openTableFullscreen('table', '', tableFullscreenButton); return; }
+                if (target.closest('[data-cost-table-fullscreen-close]')) { closeTableFullscreen(true); return; }
                 var pageButton = target.closest('[data-cost-page-kind]');
                 if (pageButton && !pageButton.disabled) {
                     var pageKind = pageButton.dataset.costPageKind;
@@ -142881,12 +143418,38 @@ window.openAddNewProjectModal = function(editProject) {
                 if (target.closest('[data-cost-local-open]')) { modal.querySelector('[data-cost-file]').click(); return; }
                 if (target.closest('[data-cost-download]')) { downloadWorkbook(); return; }
                 if (target.closest('[data-cost-export-all]')) { downloadAnalysisWorkbook(); return; }
-                if (target.closest('[data-cost-columns]')) { modal.querySelector('[data-cost-column-pop]').classList.toggle('hidden'); return; }
+                if (target.closest('[data-cost-columns]')) {
+                    var columnPop = modal.querySelector('[data-cost-column-pop]');
+                    if (!columnPop) return;
+                    if (columnPop.classList.contains('hidden')) {
+                        state.columnDraft = cloneColumnVisibility(state.hiddenColumns);
+                        columnPop.innerHTML = renderColumnMenu();
+                        columnPop.classList.remove('hidden');
+                    } else {
+                        state.columnDraft = null;
+                        columnPop.classList.add('hidden');
+                    }
+                    return;
+                }
+                if (target.closest('[data-cost-columns-cancel]')) {
+                    state.columnDraft = null;
+                    modal.querySelector('[data-cost-column-pop]').classList.add('hidden');
+                    return;
+                }
+                if (target.closest('[data-cost-columns-apply]')) {
+                    state.hiddenColumns = cloneColumnVisibility(state.columnDraft || state.hiddenColumns);
+                    state.columnDraft = null;
+                    syncColumnVisibility(modal);
+                    modal.querySelector('[data-cost-column-pop]').classList.add('hidden');
+                    return;
+                }
                 var columnAction = target.closest('[data-cost-columns-all]');
                 if (columnAction) {
                     var shouldHide = columnAction.dataset.costColumnsAll === 'hide';
-                    columnDefs.forEach(function(def) { state.hiddenColumns[def[0]] = shouldHide; });
-                    syncColumnVisibility(modal);
+                    if (!state.columnDraft) state.columnDraft = cloneColumnVisibility(state.hiddenColumns);
+                    columnDefs.forEach(function(def) { state.columnDraft[def[0]] = shouldHide; });
+                    var draftPop = modal.querySelector('[data-cost-column-pop]');
+                    if (draftPop) draftPop.querySelectorAll('[data-cost-column]').forEach(function(input) { input.checked = !shouldHide; });
                     return;
                 }
                 var multiSelectAll = target.closest('[data-cost-multi-select-all]');
@@ -142945,7 +143508,11 @@ window.openAddNewProjectModal = function(editProject) {
             modal.addEventListener('change', function(event) {
                 var target = event.target;
                 if (target.matches('[data-cost-file]')) { importFile(target.files && target.files[0]); target.value = ''; return; }
-                if (target.matches('[data-cost-column]')) { state.hiddenColumns[target.dataset.costColumn] = !target.checked; syncColumnVisibility(modal); return; }
+                if (target.matches('[data-cost-column]')) {
+                    if (!state.columnDraft) state.columnDraft = cloneColumnVisibility(state.hiddenColumns);
+                    state.columnDraft[target.dataset.costColumn] = !target.checked;
+                    return;
+                }
                 if (target.matches('[data-cost-multi-option]')) { return; }
                 if (target.matches('[data-cost-rate-year-preference]')) {
                     state.rateYearOverride = target.value === 'auto' ? '' : normalizeRateYear(target.value);
@@ -143053,6 +143620,13 @@ window.openAddNewProjectModal = function(editProject) {
         }
         function startAutomaticRateLoad(force) {
             if (!force && state.startupPromise) return state.startupPromise;
+            var targetYear = getTargetRateYear();
+            var targetSource = state.sourceByYear[targetYear] || '';
+            if (!force && state.startupStarted && (targetSource === 'github' || targetSource === 'github-saved') && state.rowsByYear[targetYear] && state.rowsByYear[targetYear].length) {
+                activateRateYear(targetYear);
+                renderOpenCostModal();
+                return Promise.resolve(state.rows);
+            }
             state.startupStarted = true;
             state.sourceMode = 'auto';
             state.startupPromise = loadDefault({ forceRemote: true, startup: !force }).then(function(rows) {
@@ -143074,6 +143648,7 @@ window.openAddNewProjectModal = function(editProject) {
             var token = state.lifecycleToken;
             await waitForProjectDataReady(8000);
             if (token !== state.lifecycleToken || modal.classList.contains('hidden')) return;
+            captureCostParentScope();
             if (!state.rows.length) await loadDefault();
             if (token !== state.lifecycleToken || modal.classList.contains('hidden')) return;
             state.analysis = null;
@@ -143088,6 +143663,7 @@ window.openAddNewProjectModal = function(editProject) {
             state.sourceMode = 'auto';
             persist();
             activateAutomaticTarget();
+            captureCostParentScope();
             modal.classList.remove('hidden');
             modal.setAttribute('aria-hidden', 'false');
             state.analysis = null;
@@ -143103,6 +143679,7 @@ window.openAddNewProjectModal = function(editProject) {
             if (!modal) return;
             state.lifecycleToken += 1;
             state.periodUiInteracting = false; state.periodRenderPending = false;
+            state.columnDraft = null;
             setCostModalFullscreen(false, false);
             modal.classList.add('hidden'); modal.setAttribute('aria-hidden', 'true');
             closeTableFullscreen();
@@ -143116,6 +143693,7 @@ window.openAddNewProjectModal = function(editProject) {
             });
             state.analysis = null;
             state.analysisPage = 0; state.evidencePage = 0; state.otherPage = 0;
+            releaseCostParentScope();
         }
         function ensureFullscreenEntryButton() {
             var modal = document.getElementById('workContentResultFullscreenModal');
@@ -143197,10 +143775,10 @@ window.openAddNewProjectModal = function(editProject) {
             window.addEventListener('resize', scheduleEntryButtonSync, { passive: true });
         }
         window.CostEstimationAnalysis = {
-            version: '2026.07.29.1', open: open, close: close, loadDefault: loadDefault,
+            version: '2026.07.30.2', open: open, close: close, loadDefault: loadDefault,
             analyze: buildAnalysis, getComparisonSource: function() { return buildAnalysis({ ignorePeriodFilter: true, commit: false }); }, remoteSave: remoteSave, getRemotePath: getRemotePath,
             openEvidence: openEvidence, downloadAnalysisWorkbook: downloadAnalysisWorkbook, downloadEvidenceWorkbook: downloadEvidenceWorkbook,
-            getState: function() { return { sourceMode: state.sourceMode, source: state.source, rows: state.rows.slice(), rowsByYear: Object.keys(state.rowsByYear).reduce(function(out, year) { out[year] = (state.rowsByYear[year] || []).slice(); return out; }, {}), sourceByYear: Object.assign({}, state.sourceByYear), errorByYear: Object.assign({}, state.errorByYear), remoteCatalog: state.remoteCatalog.map(function(entry) { return Object.assign({}, entry); }), activeRateYear: state.activeRateYear, rateYearPreference: state.rateYearOverride || 'auto', targetRateYear: getTargetRateYear(), availableRateYears: availableRateYears(), sourceWarnings: state.sourceWarnings.slice(), sourceNotices: state.sourceNotices.slice(), verifiedMetaByYear: Object.assign({}, state.verifiedMetaByYear), startupStarted: state.startupStarted, startupPending: !!state.startupPromise, remotePath: state.remotePath, remoteSha: state.remoteSha, analysis: state.analysis, evidence: state.evidence, filterYear: state.filterYear, filterYears: state.filterYears.slice(), filterType: state.filterType, filterValue: state.filterValue, filterValues: state.filterValues.slice(), periodBasis: state.periodBasis, analysisPage: state.analysisPage, evidencePage: state.evidencePage, otherPage: state.otherPage, lastError: state.lastError }; }
+            getState: function() { return { sourceMode: state.sourceMode, source: state.source, rows: state.rows.slice(), rowsByYear: Object.keys(state.rowsByYear).reduce(function(out, year) { out[year] = (state.rowsByYear[year] || []).slice(); return out; }, {}), sourceByYear: Object.assign({}, state.sourceByYear), errorByYear: Object.assign({}, state.errorByYear), remoteCatalog: state.remoteCatalog.map(function(entry) { return Object.assign({}, entry); }), activeRateYear: state.activeRateYear, rateYearPreference: state.rateYearOverride || 'auto', targetRateYear: getTargetRateYear(), availableRateYears: availableRateYears(), sourceWarnings: state.sourceWarnings.slice(), sourceNotices: state.sourceNotices.slice(), verifiedMetaByYear: Object.assign({}, state.verifiedMetaByYear), startupStarted: state.startupStarted, startupPending: !!state.startupPromise, remotePath: state.remotePath, remoteSha: state.remoteSha, analysis: state.analysis, evidence: state.evidence, parentFilterContext: state.parentFilterContext ? Object.assign({}, state.parentFilterContext) : null, scopedRateBuildings: Object.keys(state.parentRateBuildings).sort(function(a, b) { return String(a).localeCompare(String(b), 'ko-KR', { numeric:true }); }), filterYear: state.filterYear, filterYears: state.filterYears.slice(), filterType: state.filterType, filterValue: state.filterValue, filterValues: state.filterValues.slice(), periodBasis: state.periodBasis, analysisPage: state.analysisPage, evidencePage: state.evidencePage, otherPage: state.otherPage, lastError: state.lastError }; }
         };
         window.CostEstimationAnalysis.syncEntryButton = syncEntryButton;
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true }); else init();
