@@ -5170,6 +5170,13 @@
             cursor: default !important;
         }
 
+        .codex-legend-select-popover.codex-schedule-header-select-popover .codex-legend-select-option {
+            white-space: nowrap !important;
+            overflow-wrap: normal !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
         #projectView > .accordion-header select.header-shortcut-active + .codex-legend-select-trigger {
             border: 2px solid #ef4444 !important;
             border-radius: 0.5rem !important;
@@ -26184,6 +26191,34 @@
                 margin-left: 0 !important;
             }
 
+            /* [SCHEDULE-MOBILE-FILTER-WIDTH-20260730] Keep the three source selects and
+               their existing events; only compact the mobile header presentation. */
+            #projectView .accordion-header div.schedule-header-filter-row.flex.gap-2.ml-4 {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+                align-items: center !important;
+                gap: 4px !important;
+                width: auto !important;
+                max-width: 100% !important;
+                margin-left: 0 !important;
+                overflow: visible !important;
+                white-space: nowrap !important;
+            }
+
+            #projectView .accordion-header .schedule-header-filter-row .codex-legend-select-host {
+                flex: 0 0 auto !important;
+                min-width: 0 !important;
+            }
+
+            #projectView .accordion-header .schedule-header-filter-row .codex-legend-select-trigger {
+                padding-right: 19px !important;
+                padding-left: 5px !important;
+            }
+
+            #projectView .accordion-header .schedule-header-filter-row .codex-legend-select-chevron {
+                right: 6px !important;
+            }
+
             /* 헤더 제목 크기 */
             #projectView .accordion-header h2.accordion-title-btn {
                 font-size: 1rem !important;
@@ -26681,7 +26716,7 @@
                         </h2>
                         <!-- 개선 사항: 고객사와 시공사 바로가기 추가 -->
                         <!-- [UI-FIX-v3] flex-wrap 제거 및 수평 스크롤 적용 -->
-                        <div class="flex items-center gap-2 ml-4 flex-nowrap"
+                        <div class="schedule-header-filter-row flex items-center gap-2 ml-4 flex-nowrap"
                             style="pointer-events: auto; flex-wrap: nowrap !important; overflow-x: auto; white-space: nowrap;">
                             <select id="header-customer-filter-shortcut"
                                 class="px-3 py-1 text-sm border border-gray-300 rounded hover:border-violet-500 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white"
@@ -42072,16 +42107,50 @@
             codexLegendSelectClose20260729(false);
         }
 
-        function codexLegendSelectPosition20260729(trigger, menu) {
+        function codexScheduleHeaderSelectId20260730(select) {
+            return !!select && [
+                'header-customer-filter-shortcut',
+                'header-contractor-filter-shortcut',
+                'header-cost-account-filter-shortcut'
+            ].includes(select.id);
+        }
+
+        function codexLegendSelectMeasuredMenuWidth20260730(select, menu) {
+            if (!codexScheduleHeaderSelectId20260730(select) || !menu) return 0;
+            const option = menu.querySelector('.codex-legend-select-option');
+            const style = option && typeof getComputedStyle === 'function' ? getComputedStyle(option) : null;
+            const font = style ? [
+                style.fontStyle,
+                style.fontVariant,
+                style.fontWeight,
+                style.fontSize,
+                style.fontFamily
+            ].join(' ') : '11px system-ui, -apple-system, sans-serif';
+            const horizontalSpace = style
+                ? (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0) + 6
+                : 30;
+            const longest = Array.from(select.options).reduce((width, item) => {
+                return Math.max(width, measureTextWidth((item.textContent || item.value || '').trim(), font));
+            }, 0);
+            return Math.ceil(longest + horizontalSpace);
+        }
+
+        function codexLegendSelectPosition20260729(trigger, menu, select) {
             const rect = trigger.getBoundingClientRect();
             const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 320;
             const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 480;
             const maxWidth = Math.max(120, viewportWidth - 16);
-            const minimumWidth = Math.min(maxWidth, Math.max(120, Math.ceil(rect.width)));
+            const isScheduleHeader = codexScheduleHeaderSelectId20260730(select);
+            const minimumWidth = Math.min(maxWidth, Math.max(isScheduleHeader ? 1 : 120, Math.ceil(rect.width)));
             menu.style.minWidth = minimumWidth + 'px';
             menu.style.maxWidth = maxWidth + 'px';
             menu.style.width = 'max-content';
-            const width = Math.min(maxWidth, Math.max(minimumWidth, Math.ceil(menu.scrollWidth)));
+            const measuredWidth = codexLegendSelectMeasuredMenuWidth20260730(select, menu);
+            const width = Math.min(maxWidth, Math.max(
+                minimumWidth,
+                measuredWidth,
+                Math.ceil(menu.scrollWidth)
+            ));
             menu.style.width = width + 'px';
             const height = menu.offsetHeight;
             const left = Math.max(8, Math.min(rect.left, viewportWidth - width - 8));
@@ -42130,6 +42199,10 @@
             menu.id = (select.id || 'legend-select') + '-proxy-menu';
             menu.setAttribute('role', 'listbox');
             menu.setAttribute('aria-label', trigger.title || 'Filter options');
+            if (codexScheduleHeaderSelectId20260730(select)) {
+                menu.classList.add('codex-schedule-header-select-popover');
+                menu.dataset.sourceSelectId = select.id;
+            }
             menu.style.visibility = 'hidden';
             menu.addEventListener('keydown', codexLegendSelectMenuKey20260729);
 
@@ -42173,7 +42246,7 @@
             codexLegendSelectState20260729 = { select, trigger, menu };
             trigger.setAttribute('aria-expanded', 'true');
             trigger.setAttribute('aria-controls', menu.id);
-            codexLegendSelectPosition20260729(trigger, menu);
+            codexLegendSelectPosition20260729(trigger, menu, select);
             menu.style.visibility = 'visible';
             document.addEventListener('pointerdown', codexLegendSelectOutsidePointer20260729, true);
             document.addEventListener('keydown', codexLegendSelectDocumentKey20260729, true);
@@ -42241,6 +42314,9 @@
                 if (!select) return;
                 codexLegendSelectEnhance20260729(select);
                 codexLegendSelectSync20260729(select);
+                if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+                    applyFilterDynamicWidth(select);
+                }
             });
         }
 
@@ -42777,9 +42853,25 @@
                 computed.fontSize,
                 computed.fontFamily
             ].join(' ') : '0.875rem system-ui, -apple-system, sans-serif';
-            const padding = 46; // text + native arrow + border/padding breathing room
-            const minWidth = selectElement.id && selectElement.id.indexOf('customer') > -1 ? 76 : 68;
-            const viewportMax = Math.max(120, Math.min(260, (window.innerWidth || document.documentElement.clientWidth || 320) - 24));
+            const isMobileScheduleHeader = codexScheduleHeaderSelectId20260730(selectElement)
+                && window.matchMedia
+                && window.matchMedia('(max-width: 767px)').matches;
+            const padding = isMobileScheduleHeader ? 26 : 46;
+            const scheduleMinimums = {
+                'header-customer-filter-shortcut': 56,
+                'header-contractor-filter-shortcut': 56,
+                'header-cost-account-filter-shortcut': 66
+            };
+            const minWidth = isMobileScheduleHeader
+                ? scheduleMinimums[selectElement.id]
+                : (selectElement.id && selectElement.id.indexOf('customer') > -1 ? 76 : 68);
+            const viewportMax = Math.max(
+                isMobileScheduleHeader ? minWidth : 120,
+                Math.min(
+                    isMobileScheduleHeader ? 210 : 260,
+                    (window.innerWidth || document.documentElement.clientWidth || 320) - 24
+                )
+            );
             const calculatedWidth = Math.ceil(measureTextWidth(selectedText, font)) + padding;
             const finalWidth = Math.max(minWidth, Math.min(calculatedWidth, viewportMax));
             const widthValue = finalWidth + 'px';
