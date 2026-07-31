@@ -99225,6 +99225,11 @@ function showPendingSettlementModal(periodType, projects) {
             .st-tt-pct { font-weight: 800; color: #3b82f6; min-width: 35px; text-align: right; }
             .st-tt-bar-bg { height: 6px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
             .st-tt-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease-out; }
+            .st-tt-formula { margin: 10px 0; padding: 9px 10px; border: 1px solid #bae6fd; border-radius: 6px; background: #f0f9ff; color: #0c4a6e; font-size: 11px; line-height: 1.55; }
+            .st-tt-formula strong { display: block; margin-bottom: 3px; color: #075985; }
+            .st-tt-evidence-list .st-tt-hdr { align-items: flex-start; gap: 6px; }
+            .st-tt-evidence-list .st-tt-name { max-width: 22%; flex: 0 0 22%; }
+            .st-tt-evidence-list .st-tt-val { flex: 1 1 auto; text-align: right; line-height: 1.35; white-space: normal; word-break:keep-all; }
         `;
         document.head.appendChild(style);
 
@@ -99252,6 +99257,7 @@ function showPendingSettlementModal(periodType, projects) {
         }
         const fmt = (v) => new Intl.NumberFormat('ko-KR').format(Math.round(v)) + ' \uc6d0';
         const fmtS = (v) => new Intl.NumberFormat('ko-KR').format(Math.round(v));
+        const escTT = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
         function closeTT() {
             if (window.__activeTT) {
@@ -99300,10 +99306,13 @@ function showPendingSettlementModal(periodType, projects) {
             if (window.__activeTT) closeTT();
             // \ud83d\ude80 Optimization: Initialize lookup ONCE for the entire tooltip calculation
             const lookup = (typeof createSettlementLookup === 'function') ? createSettlementLookup([]) : null;
+            const evidencePayload = dataOrGrouped && dataOrGrouped.__stlEvidence === true ? dataOrGrouped : null;
             
             const tt = document.createElement('div'); tt.className = 'stl-group-tooltip';
             let totalAmt = 0, totalCount = 0; const stats = {};
-            if (Array.isArray(dataOrGrouped)) {
+            if (evidencePayload) {
+                totalCount = Number(evidencePayload.totalCount || (evidencePayload.items || []).length || 0);
+            } else if (Array.isArray(dataOrGrouped)) {
                 dataOrGrouped.forEach(p => {
                     const c = lookup ? lookup.resolveProject(p) : p;
                     const amt = parseFloat(c?.poAmount ?? c?.cost ?? p?.poAmount ?? p?.cost ?? 0) || (typeof getPo === 'function' ? getPo(c||p) : 0);
@@ -99328,15 +99337,50 @@ function showPendingSettlementModal(periodType, projects) {
                 });
             }
             if (totalCount === 0) return;
-            const sorted = Object.entries(stats).sort((a,b) => b[1].amt - a[1].amt).slice(0, 8);
+            const sorted = evidencePayload ? [] : Object.entries(stats).sort((a,b) => b[1].amt - a[1].amt).slice(0, 8);
             let itemsHTML = '';
-            sorted.forEach(([name, data], idx) => {
-                const pct = totalAmt > 0 ? Math.round((data.amt / totalAmt) * 100) : 0;
-                const colors = ['#6366f1','#3b82f6','#ec4899','#f43f5e','#f59e0b','#10b981','#8b5cf6','#06b6d4'];
-                itemsHTML += `<div class="st-tt-row"><div class="st-tt-hdr"><span class="st-tt-name">${idx+1}. ${name}</span><span class="st-tt-val">(${fmtS(data.amt)}\uc6d0, ${data.cnt}\uac74)</span><span class="st-tt-pct">${pct}%</span></div><div class="st-tt-bar-bg"><div class="st-tt-bar-fill" style="width: 0%; background: ${colors[idx % colors.length]}"></div></div></div>`;
-            });
-            tt.innerHTML = `<div class="st-tt-close-bar"><button class="st-tt-close-btn" onclick="this.closest('.stl-group-tooltip').remove()">\u2715</button><div class="st-tt-drag-handle" style="flex-grow:1; cursor:grab; height:34px; margin:0 10px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:12px; font-weight:bold; border:1px dashed #cbd5e1; border-radius:8px; user-select:none;">\u21cf 드래그 이동 \u21c1</div><button class="st-tt-close-btn" onclick="this.closest('.stl-group-tooltip').remove()">\u2715</button></div><div class="st-tt-scroll-area" style="flex-grow:1; overflow-y:auto; overflow-x:hidden; padding-right:4px;"><div class="st-tt-title">\ud83d\udcca ${title} \ubd84\uc11d</div><div class="st-tt-stat"><span>\ucd1d \uac74\uc218</span><span>${totalCount}\uac74</span></div><div class="st-tt-stat"><span>\uc815\uc0b0 \ud569\uacc4</span><span>${fmt(totalAmt)}</span></div><div style="height:1px; background:#f1f5f9; margin:10px 0;"></div>${itemsHTML}</div><div class="st-tt-resize-handle" style="position:absolute; bottom:0; right:0; width:24px; height:24px; cursor:nwse-resize; display:flex; align-items:flex-end; justify-content:flex-end; padding:4px; color:#cbd5e1; font-size:18px; line-height:0.8; user-select:none;">\u21f2</div>`;
+            if (evidencePayload) {
+                itemsHTML = (evidencePayload.items || []).map((item, idx) => `<div class="st-tt-row"><div class="st-tt-hdr"><span class="st-tt-name">${idx + 1}. ${escTT(item.name)}</span><span class="st-tt-val">${escTT(item.value)}</span><span class="st-tt-pct" style="color:${escTT(item.color || '#3b82f6')}">${escTT(item.badge || '')}</span></div><div class="st-tt-bar-bg"><div class="st-tt-bar-fill" data-st-tt-final-width="${Math.max(0, Math.min(100, Number(item.barPercent || 0)))}" style="width:0%; background:${escTT(item.color || '#3b82f6')}"></div></div></div>`).join('');
+                const statsHTML = (evidencePayload.stats || []).map(item => `<div class="st-tt-stat"><span>${escTT(item.label)}</span><span>${escTT(item.value)}</span></div>`).join('');
+                const formulaHTML = `<div class="st-tt-formula"><strong>\uc0b0\uc2dd</strong>${(evidencePayload.formulas || []).map(line => `<div>${escTT(line)}</div>`).join('')}</div>`;
+                const trendSeries = Array.isArray(evidencePayload.trendSeries) ? evidencePayload.trendSeries : [];
+                let trendHTML = '';
+                if (trendSeries.length) {
+                    const values = trendSeries.map(point => Number(point.value)).filter(Number.isFinite);
+                    const minValue = Math.min(...values), maxValue = Math.max(...values), valueRange = maxValue - minValue || 1;
+                    const plotted = trendSeries.map((point, index) => {
+                        const x = trendSeries.length > 1 ? 22 + index * 276 / (trendSeries.length - 1) : 160;
+                        const y = 94 - (Number(point.value) - minValue) / valueRange * 70;
+                        return { ...point, x, y };
+                    });
+                    const linePoints = plotted.map(point => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
+                    const pointNodes = plotted.map((point, index) => `<g><circle class="st-tt-trend-point" data-st-tt-trend-index="${index}" tabindex="0" role="button" aria-label="${escTT(point.detail)}" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="5"></circle><text class="st-tt-trend-axis-label" x="${point.x.toFixed(1)}" y="116">${escTT(point.year)}</text></g>`).join('');
+                    trendHTML = `<div class="st-tt-trend-chart"><svg viewBox="0 0 320 128" role="img" aria-label="${escTT(evidencePayload.trendAriaLabel || title)}"><polyline class="st-tt-trend-line" points="${linePoints}"></polyline>${pointNodes}</svg><div class="st-tt-trend-detail" data-st-tt-trend-detail aria-live="polite">${escTT(plotted[plotted.length - 1].detail)}</div></div>`;
+                }
+                const evidenceUnitLabel = trendSeries.length ? '\uac1c \uc5f0\ub3c4' : '\uac1c \ub3d9';
+                tt.innerHTML = `<div class="st-tt-close-bar"><button class="st-tt-close-btn" onclick="this.closest('.stl-group-tooltip').remove()">\u2715</button><div class="st-tt-drag-handle" style="flex-grow:1; cursor:grab; height:34px; margin:0 10px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:12px; font-weight:bold; border:1px dashed #cbd5e1; border-radius:8px; user-select:none;">\u21cf 드래그 이동 \u21c1</div><button class="st-tt-close-btn" onclick="this.closest('.stl-group-tooltip').remove()">\u2715</button></div><div class="st-tt-scroll-area" style="flex-grow:1; overflow-y:auto; overflow-x:hidden; padding-right:4px;"><div class="st-tt-title">\ud83d\udcca ${escTT(title)}</div>${statsHTML}${formulaHTML}${trendHTML}<div style="font-weight:800;color:#334155;border-bottom:1px solid #e2e8f0;padding-bottom:5px;">\uc0c1\uc138 \uc99d\ube59 \ubaa9\ub85d \u00b7 ${totalCount}${evidenceUnitLabel}</div><div class="st-tt-evidence-list">${itemsHTML}</div></div><div class="st-tt-resize-handle" style="position:absolute; bottom:0; right:0; width:24px; height:24px; cursor:nwse-resize; display:flex; align-items:flex-end; justify-content:flex-end; padding:4px; color:#cbd5e1; font-size:18px; line-height:0.8; user-select:none;">\u21f2</div>`;
+                tt.style.maxHeight = '82vh';
+            } else {
+                sorted.forEach(([name, data], idx) => {
+                    const pct = totalAmt > 0 ? Math.round((data.amt / totalAmt) * 100) : 0;
+                    const colors = ['#6366f1','#3b82f6','#ec4899','#f43f5e','#f59e0b','#10b981','#8b5cf6','#06b6d4'];
+                    itemsHTML += `<div class="st-tt-row"><div class="st-tt-hdr"><span class="st-tt-name">${idx+1}. ${name}</span><span class="st-tt-val">(${fmtS(data.amt)}\uc6d0, ${data.cnt}\uac74)</span><span class="st-tt-pct">${pct}%</span></div><div class="st-tt-bar-bg"><div class="st-tt-bar-fill" style="width: 0%; background: ${colors[idx % colors.length]}"></div></div></div>`;
+                });
+                tt.innerHTML = `<div class="st-tt-close-bar"><button class="st-tt-close-btn" onclick="this.closest('.stl-group-tooltip').remove()">\u2715</button><div class="st-tt-drag-handle" style="flex-grow:1; cursor:grab; height:34px; margin:0 10px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:12px; font-weight:bold; border:1px dashed #cbd5e1; border-radius:8px; user-select:none;">\u21cf 드래그 이동 \u21c1</div><button class="st-tt-close-btn" onclick="this.closest('.stl-group-tooltip').remove()">\u2715</button></div><div class="st-tt-scroll-area" style="flex-grow:1; overflow-y:auto; overflow-x:hidden; padding-right:4px;"><div class="st-tt-title">\ud83d\udcca ${title} \ubd84\uc11d</div><div class="st-tt-stat"><span>\ucd1d \uac74\uc218</span><span>${totalCount}\uac74</span></div><div class="st-tt-stat"><span>\uc815\uc0b0 \ud569\uacc4</span><span>${fmt(totalAmt)}</span></div><div style="height:1px; background:#f1f5f9; margin:10px 0;"></div>${itemsHTML}</div><div class="st-tt-resize-handle" style="position:absolute; bottom:0; right:0; width:24px; height:24px; cursor:nwse-resize; display:flex; align-items:flex-end; justify-content:flex-end; padding:4px; color:#cbd5e1; font-size:18px; line-height:0.8; user-select:none;">\u21f2</div>`;
+            }
             document.body.appendChild(tt); window.__activeTT = tt;
+            const trendDetail = tt.querySelector('[data-st-tt-trend-detail]');
+            if (trendDetail && evidencePayload && Array.isArray(evidencePayload.trendSeries)) {
+                const showTrendPoint = (event) => {
+                    const point = event.target && event.target.closest ? event.target.closest('[data-st-tt-trend-index]') : null;
+                    if (!point) return;
+                    const item = evidencePayload.trendSeries[Number(point.dataset.stTtTrendIndex)];
+                    if (item) trendDetail.textContent = item.detail || '';
+                };
+                tt.addEventListener('pointerover', showTrendPoint);
+                tt.addEventListener('focusin', showTrendPoint);
+                tt.addEventListener('click', showTrendPoint);
+            }
             // Apply flexible styling for resize
             tt.style.display = 'flex';
             tt.style.flexDirection = 'column';
@@ -99422,7 +99466,8 @@ function showPendingSettlementModal(periodType, projects) {
                 // \ud83d\ude80 Direct State Change and Bar Animation
                 tt.classList.add('visible');
                 tt.querySelectorAll('.st-tt-bar-fill').forEach((bar, idx) => {
-                    const finalWidth = sorted[idx] ? (totalAmt > 0 ? (sorted[idx][1].amt / totalAmt * 100) : 0) : 0;
+                    const explicitWidth = Number(bar.dataset.stTtFinalWidth);
+                    const finalWidth = Number.isFinite(explicitWidth) ? explicitWidth : (sorted[idx] ? (totalAmt > 0 ? (sorted[idx][1].amt / totalAmt * 100) : 0) : 0);
                     // Multi-frame stagger removed for perceived "instant" rendering
                     requestAnimationFrame(() => { bar.style.width = finalWidth + '%'; });
                 });
@@ -135594,6 +135639,42 @@ window.openAddNewProjectModal = function(editProject) {
             function ensureHouseholdColumnPanel(table, headers) {
                 var wrap = table && table.parentElement;
                 if (!wrap || !headers.length) return;
+                var popupBody = wrap.closest('.work-content-popup-body');
+                if (popupBody) {
+                    var sharedHeaders = [];
+                    var seenKeys = Object.create(null);
+                    popupBody.querySelectorAll('table.work-content-household-table, table.work-content-household-evidence').forEach(function(scopeTable) {
+                        scopeTable.querySelectorAll('thead tr:first-child th[data-household-col-key]').forEach(function(header) {
+                            var headerKey = header.getAttribute('data-household-col-key') || '';
+                            if (!headerKey || seenKeys[headerKey]) return;
+                            seenKeys[headerKey] = true;
+                            sharedHeaders.push(header);
+                        });
+                    });
+                    var sharedToolbar = popupBody.querySelector('[data-household-shared-col-toolbar="1"]');
+                    popupBody.querySelectorAll('.work-content-household-col-toolbar').forEach(function(item) {
+                        if (item !== sharedToolbar) item.remove();
+                    });
+                    if (!sharedToolbar) {
+                        sharedToolbar = document.createElement('div');
+                        sharedToolbar.className = 'work-content-household-col-toolbar';
+                        sharedToolbar.setAttribute('data-household-shared-col-toolbar', '1');
+                        sharedToolbar.innerHTML = '<button type="button" data-household-col-panel-toggle="1">열 보이기/숨기기</button><div class="work-content-household-col-panel hidden"></div>';
+                        var summaryAnchor = popupBody.querySelector('.work-content-popup-summary');
+                        if (summaryAnchor && summaryAnchor.parentNode) summaryAnchor.parentNode.insertBefore(sharedToolbar, summaryAnchor.nextSibling);
+                        else popupBody.insertBefore(sharedToolbar, popupBody.firstChild);
+                    }
+                    var sharedPanel = sharedToolbar.querySelector('.work-content-household-col-panel');
+                    if (!sharedPanel) return;
+                    var sharedWasOpen = !sharedPanel.classList.contains('hidden');
+                    sharedPanel.innerHTML = sharedHeaders.map(function(header) {
+                        var key = header.getAttribute('data-household-col-key') || '';
+                        var label = header.getAttribute('data-household-col-label') || key;
+                        return '<label><input type="checkbox" data-household-col-checkbox="' + escapeHtml(key) + '"' + (state.householdHiddenColumns[key] ? '' : ' checked') + '> ' + escapeHtml(label) + '</label>';
+                    }).join('') + '<div class="work-content-household-col-actions"><button type="button" data-household-col-show-all="1">모든 열 보이기</button><button type="button" data-household-col-width-reset="1">자동 열폭 복원</button></div>';
+                    sharedPanel.classList.toggle('hidden', !sharedWasOpen);
+                    return;
+                }
                 var toolbar = wrap.previousElementSibling && wrap.previousElementSibling.classList.contains('work-content-household-col-toolbar') ? wrap.previousElementSibling : null;
                 if (!toolbar) {
                     toolbar = document.createElement('div');
@@ -141241,12 +141322,22 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-rate-summary-row[data-cost-rate-summary="average"] > * { top:86px; }
         .cost-analysis-rate-summary-row[data-cost-rate-summary="median"] > * { top:124px; border-top:1px solid #cbd5e1; }
         .cost-analysis-rate-summary-row > th { left:0; z-index:9; color:#0f172a; text-align:center; }
+        .cost-analysis-rate-summary-row [data-cost-rate-summary-evidence] { cursor:pointer; }
+        .cost-analysis-rate-summary-row [data-cost-rate-summary-evidence]:hover,.cost-analysis-rate-summary-row [data-cost-rate-summary-evidence]:focus-visible { background:#e0f2fe; box-shadow:inset 0 0 0 2px #38bdf8; outline:0; }
         .cost-analysis-rate-trend-table th:last-child,.cost-analysis-rate-trend-table td:last-child { width:126px; min-width:126px; }
-        .cost-analysis-rate-sparkline { display:grid; grid-template-columns:minmax(68px,84px) auto; align-items:center; justify-content:center; gap:3px; min-width:0; }
+        .cost-analysis-rate-sparkline { display:grid; grid-template-columns:minmax(68px,84px) auto; align-items:center; justify-content:center; gap:3px; min-width:0; width:100%; border:0; padding:0; background:transparent; color:inherit; font:inherit; cursor:pointer; }
+        .cost-analysis-rate-sparkline:hover,.cost-analysis-rate-sparkline:focus-visible { border-radius:4px; outline:2px solid #38bdf8; outline-offset:2px; background:#e0f2fe; }
         .cost-analysis-rate-sparkline svg { display:block; width:84px; height:36px; overflow:visible; }
         .cost-analysis-rate-sparkline polyline { fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; }
         .cost-analysis-rate-sparkline circle,.cost-analysis-rate-sparkline polygon { fill:currentColor; stroke:none; }
         .cost-analysis-rate-sparkline strong { font-size:9px; font-weight:900; white-space:nowrap; }
+        .st-tt-trend-chart { margin:8px 0 10px; padding:10px; border:1px solid #dbeafe; border-radius:8px; background:#f8fbff; }
+        .st-tt-trend-chart svg { display:block; width:100%; height:128px; overflow:visible; }
+        .st-tt-trend-line { fill:none; stroke:#2563eb; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+        .st-tt-trend-point { fill:#fff; stroke:#2563eb; stroke-width:3; cursor:pointer; outline:none; }
+        .st-tt-trend-point:hover,.st-tt-trend-point:focus { fill:#f59e0b; stroke:#b45309; stroke-width:4; }
+        .st-tt-trend-axis-label { fill:#475569; font-size:9px; font-weight:800; text-anchor:middle; pointer-events:none; }
+        .st-tt-trend-detail { min-height:48px; margin-top:8px; padding:8px 10px; border-radius:6px; background:#fff; color:#334155; font-size:11px; line-height:1.45; border-left:4px solid #2563eb; }
         .cost-analysis-rate-trend-up { color:#dc2626; }
         .cost-analysis-rate-trend-down { color:#047857; }
         .cost-analysis-rate-trend-flat { color:#64748b; }
@@ -141306,8 +141397,17 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-top-sections { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.35fr); gap:10px; margin-bottom:10px; }
         .cost-analysis-top-sections.cost-analysis-settings-expanded { grid-template-columns:minmax(0,1fr); }
         .cost-analysis-top-sections .cost-analysis-section { min-width:0; margin-top:0; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden; }
-        .cost-analysis-top-sections .cost-analysis-section > summary { padding:9px 10px; background:#f8fafc; }
-        .cost-analysis-top-sections .cost-analysis-section[data-cost-section="settings"] > summary { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+        .cost-analysis-top-sections .cost-analysis-section > summary { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 10px; background:#f8fafc; list-style:none; }
+        .cost-analysis-top-sections .cost-analysis-section > summary::-webkit-details-marker { display:none; }
+        .cost-analysis-top-sections .cost-analysis-section > summary > span:first-child { min-width:0; }
+        .cost-analysis-top-sections.is-entry-focus .cost-analysis-section > summary { animation:cost-analysis-entry-focus 1.45s ease-out both; }
+        @keyframes cost-analysis-entry-focus {
+            0%,32% { background:#dff7f5; box-shadow:inset 0 0 0 2px #0f9f95; color:#075985; }
+            100% { background:#f8fafc; box-shadow:inset 0 0 0 0 transparent; color:#334155; }
+        }
+        @media (prefers-reduced-motion:reduce) {
+            .cost-analysis-top-sections.is-entry-focus .cost-analysis-section > summary { animation-duration:.01ms; }
+        }
         .cost-analysis-detail-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:10px 0 6px; }
         .cost-analysis-detail-head h4 { margin:0; color:#334155; font-size:12px; font-weight:900; }
         .cost-analysis-detail-actions { display:flex; align-items:center; gap:6px; }
@@ -142645,6 +142745,73 @@ window.openAddNewProjectModal = function(editProject) {
             });
             return statistics;
         }
+        function buildRateTrendEvidence(year, metric) {
+            var dataset = buildRateTrendDataset();
+            var years = dataset.years;
+            var yearIndex = years.indexOf(year);
+            if (yearIndex < 1) return null;
+            var previousYear = years[yearIndex - 1];
+            var books = dataset.books;
+            var rows = dataset.buildingKeys.map(function(building) {
+                var current = books[year] && books[year][building];
+                var previous = books[previousYear] && books[previousYear][building];
+                if (!current || !previous) return null;
+                var currentCost = Number(current.cost || 0);
+                var previousCost = Number(previous.cost || 0);
+                if (!Number.isFinite(currentCost) || !Number.isFinite(previousCost)) return null;
+                var delta = currentCost - previousCost;
+                var percent = previousCost !== 0 ? delta / previousCost * 100 : (currentCost === 0 ? 0 : NaN);
+                return { building:building, currentCost:currentCost, previousCost:previousCost, delta:delta, percent:percent };
+            }).filter(Boolean);
+            if (!rows.length) return null;
+            var deltas = rows.map(function(row) { return row.delta; });
+            var percentages = rows.map(function(row) { return row.percent; }).filter(Number.isFinite);
+            var deltaValue = metric === 'median' ? medianRateValues(deltas) : averageRateValues(deltas);
+            var percentValue = metric === 'median' ? medianRateValues(percentages) : averageRateValues(percentages);
+            var maxMagnitude = Math.max.apply(null, rows.map(function(row) { return Math.abs(row.delta); }).concat([1]));
+            var label = metric === 'median' ? '\uc911\uac04\uac12' : '\ud3c9\uade0';
+            var sortedRows = rows.slice().sort(function(a, b) {
+                if (metric === 'median') return a.delta === b.delta ? buildingLabel(a.building).localeCompare(buildingLabel(b.building), 'ko') : a.delta - b.delta;
+                return Math.abs(b.delta) === Math.abs(a.delta) ? buildingLabel(a.building).localeCompare(buildingLabel(b.building), 'ko') : Math.abs(b.delta) - Math.abs(a.delta);
+            });
+            return {
+                __stlEvidence:true,
+                totalCount:rows.length,
+                stats:[
+                    { label:'\ube44\uad50 \uad6c\uac04', value:rateYearPrefix(previousYear) + ' \u2192 ' + rateYearPrefix(year) },
+                    { label:'\uc99d\uac10\uc561 ' + label, value:formatRateChangeWon(deltaValue) },
+                    { label:'\uc99d\uac10\ub960 ' + label, value:formatRateChangePercent(percentValue) },
+                    { label:'\uc720\ud6a8 \ud45c\ubcf8', value:'\uc99d\uac10\uc561 ' + rows.length.toLocaleString('ko-KR') + '\uac1c \u00b7 \uc99d\uac10\ub960 ' + percentages.length.toLocaleString('ko-KR') + '\uac1c' },
+                    { label:'\uacc4\uc0b0 \uc815\ud569', value:Number.isFinite(deltaValue) && Number.isFinite(percentValue) ? 'OK' : 'CHECK' }
+                ],
+                formulas:metric === 'median' ? [
+                    '\ub3d9\ubcc4 \uc99d\uac10\uc561 = \ub2f9\ud574 \ub2e8\uac00 - \uc9c1\uc804 \ub2e8\uac00',
+                    '\ub3d9\ubcc4 \uc99d\uac10\ub960 = \uc99d\uac10\uc561 \u00f7 \uc9c1\uc804 \ub2e8\uac00 \u00d7 100',
+                    '\uc911\uac04\uac12 = \uc624\ub984\ucc28\uc21c \uc911\uc559\uac12 (\uc9dd\uc218 \ud45c\ubcf8\uc740 \uc911\uc559 2\uac1c\uc758 \ud3c9\uade0)'
+                ] : [
+                    '\ub3d9\ubcc4 \uc99d\uac10\uc561 = \ub2f9\ud574 \ub2e8\uac00 - \uc9c1\uc804 \ub2e8\uac00',
+                    '\ub3d9\ubcc4 \uc99d\uac10\ub960 = \uc99d\uac10\uc561 \u00f7 \uc9c1\uc804 \ub2e8\uac00 \u00d7 100',
+                    '\ud3c9\uade0 = \uc720\ud6a8\ud55c \ub3d9\ubcc4 \uac12\uc758 \ud569\uacc4 \u00f7 \uc720\ud6a8 \ud45c\ubcf8 \uc218'
+                ],
+                items:sortedRows.map(function(row) {
+                    var tone = row.delta > 0 ? '#dc2626' : (row.delta < 0 ? '#047857' : '#64748b');
+                    var percentText = Number.isFinite(row.percent) ? formatRateChangePercent(row.percent) : '\uc9c1\uc804 0\uc6d0';
+                    return {
+                        name:buildingLabel(row.building),
+                        value:formatAccountingInput(row.previousCost) + '\uc6d0 \u2192 ' + formatAccountingInput(row.currentCost) + '\uc6d0 \u00b7 ' + formatRateChangeWon(row.delta),
+                        badge:percentText,
+                        color:tone,
+                        barPercent:Math.abs(row.delta) / maxMagnitude * 100
+                    };
+                })
+            };
+        }
+        function openRateTrendEvidence(year, metric, event) {
+            var evidence = buildRateTrendEvidence(year, metric);
+            if (!evidence || typeof window.showStlGroupTooltip !== 'function') return;
+            var title = rateYearPrefix(year) + ' ' + (metric === 'median' ? '\uc911\uac04\uac12' : '\ud3c9\uade0') + ' \uc0b0\uc2dd \ubc0f \uc0b0\ucd9c\uadfc\uac70';
+            window.showStlGroupTooltip(event, title, evidence);
+        }
         function rateTrendDirection(building, years, books) {
             var points = years.map(function(year, index) {
                 var row = books[year] && books[year][building];
@@ -142677,7 +142844,59 @@ window.openAddNewProjectModal = function(editProject) {
             var circles = plotted.map(function(point) { return '<circle cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="2.2"></circle>'; }).join('');
             var arrow = plotted.length > 1 ? '<polygon points="' + last.x.toFixed(1) + ',' + last.y.toFixed(1) + ' ' + (last.x - 9).toFixed(1) + ',' + (last.y - 4).toFixed(1) + ' ' + (last.x - 9).toFixed(1) + ',' + (last.y + 4).toFixed(1) + '" transform="rotate(' + angle.toFixed(1) + ' ' + last.x.toFixed(1) + ' ' + last.y.toFixed(1) + ')"></polygon>' : '';
             var aria = buildingLabel(building) + ' \ub2e8\uac00 \ucd94\uc138: ' + plotted.map(function(point) { return point.year + '\ub144 ' + Math.round(point.value).toLocaleString('ko-KR') + '\uc6d0'; }).join(', ') + ' \u00b7 ' + trend.label;
-            return '<div class="cost-analysis-rate-sparkline cost-analysis-rate-trend-' + trend.key + '" data-cost-rate-sparkline aria-label="' + escapeHtml(aria) + '"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-hidden="true" style="color:' + tone + '"><polyline points="' + polyline + '"></polyline>' + circles + arrow + '</svg><strong>' + escapeHtml(trend.label) + '</strong></div>';
+            return '<button type="button" class="cost-analysis-rate-sparkline cost-analysis-rate-trend-' + trend.key + '" data-cost-rate-sparkline data-cost-rate-trend-evidence="' + escapeHtml(building) + '" aria-label="' + escapeHtml(aria + ' \uc0c1\uc138 \ubd84\uc11d \uc5f4\uae30') + '"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-hidden="true" style="color:' + tone + '"><polyline points="' + polyline + '"></polyline>' + circles + arrow + '</svg><strong>' + escapeHtml(trend.label) + '</strong></button>';
+        }
+        function buildRateTrendLineEvidence(building) {
+            var dataset = buildRateTrendDataset();
+            var trend = rateTrendDirection(building, dataset.years, dataset.books);
+            if (!trend.points.length) return null;
+            var maxCost = Math.max.apply(null, trend.points.map(function(point) { return Math.abs(point.value); })) || 1;
+            var series = trend.points.map(function(point, index) {
+                var previous = index ? trend.points[index - 1] : null;
+                var delta = previous ? point.value - previous.value : NaN;
+                var percent = previous && previous.value !== 0 ? delta / previous.value * 100 : NaN;
+                var direction = !previous ? '\uae30\uc900' : (delta > 0 ? '\uc0c1\uc2b9' : (delta < 0 ? '\ud558\ub77d' : '\ubcf4\ud569'));
+                var detail = point.year + '\ub144 \ub2e8\uac00 ' + formatAccountingInput(point.value) + '\uc6d0';
+                if (previous) detail += ' \u00b7 ' + previous.year + '\ub144 \ub300\ube44 ' + formatRateChangeWon(delta) + ' (' + formatRateChangePercent(percent) + ') \u00b7 ' + direction;
+                else detail += ' \u00b7 \ucd5c\ucd08 \ube44\uad50 \uae30\uc900\uc5f0\ub3c4';
+                return { year:point.year + '\ub144', value:point.value, detail:detail, delta:delta, percent:percent, direction:direction };
+            });
+            var first = series[0], last = series[series.length - 1];
+            var totalDelta = last.value - first.value;
+            var totalPercent = first.value !== 0 ? totalDelta / first.value * 100 : NaN;
+            return {
+                __stlEvidence:true,
+                totalCount:series.length,
+                stats:[
+                    { label:'\uac74\ubb3c\ub3d9', value:buildingLabel(building) },
+                    { label:'\ube44\uad50 \uae30\uac04', value:first.year + ' \u2192 ' + last.year },
+                    { label:'\ucd1d \uc99d\uac10', value:formatRateChangeWon(totalDelta) + ' \u00b7 ' + formatRateChangePercent(totalPercent) },
+                    { label:'\ucd94\uc138 \ud310\uc815', value:trend.label }
+                ],
+                formulas:[
+                    '\uc5f0\ub3c4\ubcc4 \ub2e8\uac00 = GitHub ##\ub144_\uae30\ubcf8\uacac\uc801 \ub2e8\uac00.xlsb\uc758 \uac74\ubb3c\ub3d9 \ucf54\uc2a4\ud2b8(\uc6d0)',
+                    '\uc9c1\uc804 \ub300\ube44 \uc99d\uac10\uc561 = \ub2f9\ud574 \ub2e8\uac00 - \uc9c1\uc804 \ub2e8\uac00',
+                    '\uc9c1\uc804 \ub300\ube44 \uc99d\uac10\ub960 = \uc99d\uac10\uc561 \u00f7 \uc9c1\uc804 \ub2e8\uac00 \u00d7 100',
+                    '\ucd94\uc138 \ud310\uc815 = \ucd5c\uc885 \uc5f0\ub3c4 \ub2e8\uac00 - \uc9c1\uc804 \uc5f0\ub3c4 \ub2e8\uac00\uc758 \ubd80\ud638'
+                ],
+                trendAriaLabel:buildingLabel(building) + ' \uc5f0\ub3c4\ubcc4 \ub2e8\uac00 \ucd94\uc138',
+                trendSeries:series,
+                items:series.map(function(point) {
+                    var tone = !Number.isFinite(point.delta) ? '#64748b' : (point.delta > 0 ? '#dc2626' : (point.delta < 0 ? '#047857' : '#64748b'));
+                    return {
+                        name:point.year,
+                        value:formatAccountingInput(point.value) + '\uc6d0' + (Number.isFinite(point.delta) ? ' \u00b7 ' + formatRateChangeWon(point.delta) : ' \u00b7 \ube44\uad50 \uae30\uc900'),
+                        badge:Number.isFinite(point.percent) ? formatRateChangePercent(point.percent) : point.direction,
+                        color:tone,
+                        barPercent:Math.abs(point.value) / maxCost * 100
+                    };
+                })
+            };
+        }
+        function openRateTrendLineEvidence(building, event) {
+            var evidence = buildRateTrendLineEvidence(building);
+            if (!evidence || typeof window.showStlGroupTooltip !== 'function') return;
+            window.showStlGroupTooltip(event, buildingLabel(building) + ' \uc5f0\ub3c4\ubcc4 \ub2e8\uac00 \ucd94\uc138 \uc0c1\uc138', evidence);
         }
         function renderRateTrendSummaryRow(label, metric, years, statistics) {
             var cells = years.map(function(year, index) {
@@ -142685,7 +142904,8 @@ window.openAddNewProjectModal = function(editProject) {
                 var item = statistics[year] || {};
                 var delta = metric === 'average' ? item.deltaAverage : item.deltaMedian;
                 var percent = metric === 'average' ? item.percentAverage : item.percentMedian;
-                return '<td class="cost-analysis-rate-year-start">' + Number(item.count || 0).toLocaleString('ko-KR') + '\uac1c \ube44\uad50</td><td class="' + rateChangeTone(delta) + '">' + formatRateChangeWon(delta) + '</td><td class="' + rateChangeTone(percent) + '">' + formatRateChangePercent(percent) + '</td>';
+                var attrs = ' data-cost-rate-summary-evidence="' + escapeHtml(metric) + '" data-cost-rate-summary-year="' + escapeHtml(year) + '" tabindex="0" role="button" aria-label="' + escapeHtml(rateYearPrefix(year) + ' ' + label + ' \uc0b0\uc2dd \ubc0f \uc0b0\ucd9c\uadfc\uac70') + '"';
+                return '<td class="cost-analysis-rate-year-start"' + attrs + '>' + Number(item.count || 0).toLocaleString('ko-KR') + '\uac1c \ube44\uad50</td><td class="' + rateChangeTone(delta) + '"' + attrs + '>' + formatRateChangeWon(delta) + '</td><td class="' + rateChangeTone(percent) + '"' + attrs + '>' + formatRateChangePercent(percent) + '</td>';
             }).join('');
             return '<tr class="cost-analysis-rate-summary-row" data-cost-rate-summary="' + escapeHtml(metric) + '"><th scope="row">' + escapeHtml(label) + '</th>' + cells + '<td>-</td></tr>';
         }
@@ -143218,7 +143438,7 @@ window.openAddNewProjectModal = function(editProject) {
             modal.setAttribute('aria-labelledby', 'costAnalysisTitle');
             modal.innerHTML = '<div class="cost-analysis-panel"><header class="cost-analysis-head"><button type="button" class="cost-analysis-btn icon cost-analysis-left-close mr-3" data-cost-close aria-label="닫기" title="닫기">&times;</button><div><h3 id="costAnalysisTitle" class="cost-analysis-title">\uc138\ub300\ub0b4 \uc218\uc7a5\uc791\uc5c5 \ube44\uc6a9 \uc808\uac10 \uc2ec\uce35 \ubd84\uc11d</h3><div class="cost-analysis-status" aria-live="polite"></div></div><div class="cost-analysis-head-actions"><button type="button" class="cost-analysis-btn icon" data-cost-fullscreen-open aria-label="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" aria-expanded="false">\u26f6</button><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors px-2 leading-none cursor-pointer focus:outline-none" data-cost-close aria-label="닫기" title="닫기">&times;</button></div></header>' +
                 '<div class="cost-analysis-toolbar"><div class="cost-analysis-source" role="group" aria-label="\ub2e8\uac00 \ucd9c\ucc98"><button type="button" data-source-mode="auto">\uc790\ub3d9</button><button type="button" data-source-mode="manual">\uc218\ub3d9</button></div><div data-cost-rate-year-control></div><button type="button" class="cost-analysis-btn" data-cost-remote-load>\uc6d0\uaca9 \ubd88\ub7ec\uc624\uae30</button><button type="button" class="cost-analysis-btn primary" data-cost-remote-save>\uc6d0\uaca9 \uc800\uc7a5</button><button type="button" class="cost-analysis-btn" data-cost-local-open>\ud30c\uc77c \ubd88\ub7ec\uc624\uae30</button><button type="button" class="cost-analysis-btn" data-cost-download>\ub2e8\uac00 XLSB</button><button type="button" class="cost-analysis-btn primary" data-cost-export-all title="Excel \uc804\uccb4 \ub2e4\uc6b4\ub85c\ub4dc">\u21e9 Excel \uc804\uccb4</button><div class="cost-analysis-period-filter" data-cost-period-filter></div><input type="file" data-cost-file accept=".xlsb,.xlsx" hidden><span class="cost-analysis-toolbar-spacer"></span><div class="cost-analysis-column-menu"><button type="button" class="cost-analysis-btn" data-cost-columns>\uc5f4 \ud45c\uc2dc</button><div class="cost-analysis-column-pop hidden" data-cost-column-pop></div></div></div>' +
-                '<main class="cost-analysis-body"><div data-cost-source-audit></div><div data-cost-rollover></div><div class="cost-analysis-top-sections"><details class="cost-analysis-section" data-cost-section="settings"><summary><span>\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815</span><button type="button" class="cost-analysis-inline-fullscreen" data-cost-settings-fullscreen-open aria-label="\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815 \uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button></summary><div data-cost-settings></div></details><details class="cost-analysis-section" data-cost-section="other"><summary>\uae30\ud0c0 \uc791\uc5c5 \ubd84\ub958 (\uc218\uc7a5\uc791\uc5c5 \uc81c\uc678)</summary><div data-cost-exceptions></div></details></div><section class="cost-analysis-kpis" data-cost-kpis></section><div class="cost-analysis-detail-head"><h4>\uc218\uc7a5\uc791\uc5c5 \uc138\ub300 \uc0c1\uc138</h4><div class="cost-analysis-detail-actions"><button type="button" class="cost-analysis-btn cost-analysis-compare-entry" data-cost-compare-open title="선택한 연도를 같은 조건으로 비교">선택↔비교</button><button type="button" class="cost-analysis-btn icon" data-cost-table-fullscreen-open aria-label="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button><button type="button" class="cost-analysis-btn" data-cost-evidence="all">\uc804\uccb4 \uc99d\ube59</button></div></div><span data-cost-table-anchor hidden></span><section data-cost-table></section></main></div>' +
+                '<main class="cost-analysis-body"><div data-cost-source-audit></div><div data-cost-rollover></div><div class="cost-analysis-top-sections"><details class="cost-analysis-section" data-cost-section="settings"><summary><span>\u25b6\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815</span><button type="button" class="cost-analysis-inline-fullscreen" data-cost-settings-fullscreen-open aria-label="\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815 \uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button></summary><div data-cost-settings></div></details><details class="cost-analysis-section" data-cost-section="other"><summary><span>\u25b6\uae30\ud0c0 \uc791\uc5c5 \ubd84\ub958 (\uc218\uc7a5\uc791\uc5c5 \uc81c\uc678)</span></summary><div data-cost-exceptions></div></details></div><section class="cost-analysis-kpis" data-cost-kpis></section><div class="cost-analysis-detail-head"><h4>\uc218\uc7a5\uc791\uc5c5 \uc138\ub300 \uc0c1\uc138</h4><div class="cost-analysis-detail-actions"><button type="button" class="cost-analysis-btn cost-analysis-compare-entry" data-cost-compare-open title="선택한 연도를 같은 조건으로 비교">선택↔비교</button><button type="button" class="cost-analysis-btn icon" data-cost-table-fullscreen-open aria-label="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button><button type="button" class="cost-analysis-btn" data-cost-evidence="all">\uc804\uccb4 \uc99d\ube59</button></div></div><span data-cost-table-anchor hidden></span><section data-cost-table></section></main></div>' +
                 '<div id="costAnalysisTableFullscreen" class="hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="costAnalysisTableFullscreenTitle"><div class="cost-analysis-table-fullscreen-panel"><header class="cost-analysis-head"><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors mr-3 leading-none cursor-pointer focus:outline-none" data-cost-table-fullscreen-close aria-label="닫기" title="닫기">&times;</button><h3 id="costAnalysisTableFullscreenTitle" class="cost-analysis-title">\uc218\uc7a5\uc791\uc5c5 \uc138\ub300 \uc0c1\uc138 - \uc804\uccb4 \ud654\uba74</h3><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors px-2 leading-none cursor-pointer focus:outline-none" data-cost-table-fullscreen-close aria-label="닫기" title="닫기">&times;</button></header><main class="cost-analysis-table-fullscreen-body" data-cost-table-fullscreen-body></main></div></div>' +
                 '<div id="costAnalysisEvidenceModal" class="hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="costAnalysisEvidenceTitle"><div class="cost-analysis-evidence-panel"><header class="cost-analysis-head"><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors mr-3 leading-none cursor-pointer focus:outline-none" data-cost-evidence-close aria-label="닫기" title="닫기">&times;</button><div><h3 id="costAnalysisEvidenceTitle" class="cost-analysis-title" data-cost-evidence-title>\uc0c1\uc138 \uc99d\ube59</h3></div><div class="cost-analysis-head-actions"><button type="button" class="cost-analysis-btn primary" data-cost-evidence-export title="Excel \ub2e4\uc6b4\ub85c\ub4dc">\u21e9 Excel</button><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors px-2 leading-none cursor-pointer focus:outline-none" data-cost-evidence-close aria-label="닫기" title="닫기">&times;</button></div></header><div class="cost-analysis-evidence-formula" data-cost-evidence-formula></div><div class="cost-analysis-evidence-summary" data-cost-evidence-summary></div><main class="cost-analysis-evidence-body" data-cost-evidence-body></main></div></div>';
             bindModal(modal);
@@ -143675,6 +143895,16 @@ window.openAddNewProjectModal = function(editProject) {
                     renderRateTrendOnly(modal);
                     return;
                 }
+                var rateTrendEvidence = target.closest('[data-cost-rate-summary-evidence]');
+                if (rateTrendEvidence) {
+                    openRateTrendEvidence(rateTrendEvidence.dataset.costRateSummaryYear, rateTrendEvidence.dataset.costRateSummaryEvidence, event);
+                    return;
+                }
+                var rateTrendLineEvidence = target.closest('[data-cost-rate-trend-evidence]');
+                if (rateTrendLineEvidence) {
+                    openRateTrendLineEvidence(rateTrendLineEvidence.dataset.costRateTrendEvidence, event);
+                    return;
+                }
                 var evidenceButton = target.closest('[data-cost-evidence]');
                 if (evidenceButton) { openEvidence(evidenceButton.dataset.costEvidence || 'all', evidenceButton.dataset.costEvidenceKey || ''); return; }
                 var sort = target.closest('[data-cost-sort]');
@@ -143739,7 +143969,7 @@ window.openAddNewProjectModal = function(editProject) {
                     else if (modal.classList.contains('cost-analysis-fullscreen')) setCostModalFullscreen(false, true);
                     else close();
                 }
-                if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-cost-row],[data-cost-evidence-row]')) { event.preventDefault(); event.target.click(); }
+                if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-cost-row],[data-cost-evidence-row],[data-cost-rate-summary-evidence],[data-cost-rate-trend-evidence]')) { event.preventDefault(); event.target.click(); }
             });
         }
         function projectDataSignature() {
@@ -143846,6 +144076,13 @@ window.openAddNewProjectModal = function(editProject) {
             captureCostParentScope();
             modal.classList.remove('hidden');
             modal.setAttribute('aria-hidden', 'false');
+            var entryFocus = modal.querySelector('.cost-analysis-top-sections');
+            if (entryFocus) {
+                entryFocus.classList.remove('is-entry-focus');
+                requestAnimationFrame(function() {
+                    if (token === state.lifecycleToken && !modal.classList.contains('hidden')) entryFocus.classList.add('is-entry-focus');
+                });
+            }
             state.analysis = null;
             render();
             var initialSignature = projectDataSignature();
