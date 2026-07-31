@@ -141397,17 +141397,13 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-top-sections { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.35fr); gap:10px; margin-bottom:10px; }
         .cost-analysis-top-sections.cost-analysis-settings-expanded { grid-template-columns:minmax(0,1fr); }
         .cost-analysis-top-sections .cost-analysis-section { min-width:0; margin-top:0; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden; }
-        .cost-analysis-top-sections .cost-analysis-section > summary { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 10px; background:#f8fafc; list-style:none; }
+        .cost-analysis-top-sections .cost-analysis-section[data-cost-section="settings"] { border-color:#0891b2; }
+        .cost-analysis-top-sections .cost-analysis-section[data-cost-section="other"] { border-color:#d97706; }
+        .cost-analysis-top-sections .cost-analysis-section > summary { box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:46px; padding:9px 10px; background:#f8fafc; list-style:none; }
         .cost-analysis-top-sections .cost-analysis-section > summary::-webkit-details-marker { display:none; }
         .cost-analysis-top-sections .cost-analysis-section > summary > span:first-child { min-width:0; }
-        .cost-analysis-top-sections.is-entry-focus .cost-analysis-section > summary { animation:cost-analysis-entry-focus 1.45s ease-out both; }
-        @keyframes cost-analysis-entry-focus {
-            0%,32% { background:#dff7f5; box-shadow:inset 0 0 0 2px #0f9f95; color:#075985; }
-            100% { background:#f8fafc; box-shadow:inset 0 0 0 0 transparent; color:#334155; }
-        }
-        @media (prefers-reduced-motion:reduce) {
-            .cost-analysis-top-sections.is-entry-focus .cost-analysis-section > summary { animation-duration:.01ms; }
-        }
+        .cost-analysis-top-sections .cost-analysis-section[data-cost-section="settings"] > summary { color:#075985; box-shadow:inset 4px 0 0 #0891b2; }
+        .cost-analysis-top-sections .cost-analysis-section[data-cost-section="other"] > summary { color:#92400e; box-shadow:inset 4px 0 0 #d97706; }
         .cost-analysis-detail-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:10px 0 6px; }
         .cost-analysis-detail-head h4 { margin:0; color:#334155; font-size:12px; font-weight:900; }
         .cost-analysis-detail-actions { display:flex; align-items:center; gap:6px; }
@@ -141528,6 +141524,7 @@ window.openAddNewProjectModal = function(editProject) {
             .cost-analysis-kpi:last-child { grid-column:1 / -1; }
             .cost-analysis-table { min-width:980px; }
             .cost-analysis-top-sections { grid-template-columns:1fr; }
+            .cost-analysis-top-sections .cost-analysis-section > summary { min-height:50px; }
             .cost-analysis-category-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
             .cost-analysis-other-wrap { max-height:min(55dvh,520px); }
             .cost-analysis-detail-wrap { max-height:45dvh; }
@@ -142898,9 +142895,9 @@ window.openAddNewProjectModal = function(editProject) {
             if (!evidence || typeof window.showStlGroupTooltip !== 'function') return;
             window.showStlGroupTooltip(event, buildingLabel(building) + ' \uc5f0\ub3c4\ubcc4 \ub2e8\uac00 \ucd94\uc138 \uc0c1\uc138', evidence);
         }
-        function renderRateTrendSummaryRow(label, metric, years, statistics) {
-            var cells = years.map(function(year, index) {
-                if (!index) return '<td class="cost-analysis-rate-year-start">-</td>';
+        function renderRateTrendSummaryRow(label, metric, displayYears, chronologicalYears, statistics) {
+            var cells = displayYears.map(function(year) {
+                if (chronologicalYears.indexOf(year) < 1) return '<td class="cost-analysis-rate-year-start">-</td>';
                 var item = statistics[year] || {};
                 var delta = metric === 'average' ? item.deltaAverage : item.deltaMedian;
                 var percent = metric === 'average' ? item.percentAverage : item.percentMedian;
@@ -142915,6 +142912,7 @@ window.openAddNewProjectModal = function(editProject) {
         function renderRateTrendAnalysis() {
             var dataset = buildRateTrendDataset();
             var years = dataset.years;
+            var displayYears = years.slice().reverse();
             var open = state.rateTrendOpen ? ' open' : '';
             if (years.length < 2) {
                 return '<details class="cost-analysis-rate-trend" data-cost-rate-trend' + open + '>' + renderRateTrendHeading(years.length ? escapeHtml(rateYearPrefix(years[0])) + ' 1\uac1c \uc5f0\ub3c4' : '\uac80\uc99d\ub41c \uc5f0\ub3c4 \uc5c6\uc74c') + '<div class="cost-analysis-empty">\ube44\uad50 \uac00\ub2a5\ud55c GitHub \uc5f0\ub3c4\ubcc4 \ub2e8\uac00\uac00 2\uac1c \uc774\uc0c1\uc774\uba74 \ub3d9\ubcc4 \uc99d\uac10\uc561\uacfc \uc99d\uac10\ub960\uc774 \uc790\ub3d9 \ud45c\uc2dc\ub429\ub2c8\ub2e4.</div></details>';
@@ -142924,24 +142922,26 @@ window.openAddNewProjectModal = function(editProject) {
             if (!buildingKeys.length) {
                 return '<details class="cost-analysis-rate-trend" data-cost-rate-trend' + open + '>' + renderRateTrendHeading('0\uac1c \ub3d9 \u00b7 ' + escapeHtml(costParentScopeLabel())) + '<div class="cost-analysis-empty">\ud604\uc7ac \uc0c1\uc704 \ud544\ud130\uc5d0 \ub9e4\uce6d\ub418\ub294 \uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.</div></details>';
             }
-            var firstHeader = '<th rowspan="2"' + rateTrendSortAttributes('building') + '>' + renderRateTrendSortButton('building', '\uac74\ubb3c\ub3d9', '') + '</th>' + years.map(function(year, index) { return '<th class="cost-analysis-rate-year-start" colspan="' + (index ? '3' : '1') + '">' + escapeHtml(rateYearPrefix(year)) + '</th>'; }).join('') + '<th rowspan="2">\ub2e8\uac00 \ucd94\uc138</th>';
-            var secondHeader = years.map(function(year, index) {
+            var firstHeader = '<th rowspan="2"' + rateTrendSortAttributes('building') + '>' + renderRateTrendSortButton('building', '\uac74\ubb3c\ub3d9', '') + '</th>' + displayYears.map(function(year) { return '<th class="cost-analysis-rate-year-start" colspan="' + (years.indexOf(year) > 0 ? '3' : '1') + '">' + escapeHtml(rateYearPrefix(year)) + '</th>'; }).join('') + '<th rowspan="2">\ub2e8\uac00 \ucd94\uc138</th>';
+            var secondHeader = displayYears.map(function(year) {
+                var chronologicalIndex = years.indexOf(year);
                 var costKey = year + ':cost';
                 var costHeader = '<th class="cost-analysis-rate-year-start"' + rateTrendSortAttributes(costKey) + '>' + renderRateTrendSortButton(costKey, '\ub2e8\uac00', '') + '</th>';
-                if (!index) return costHeader;
+                if (chronologicalIndex < 1) return costHeader;
                 var deltaKey = year + ':delta';
                 var percentKey = year + ':percent';
-                return costHeader + '<th' + rateTrendSortAttributes(deltaKey) + '>' + renderRateTrendSortButton(deltaKey, '\uc99d\uac10', '\ub2f9\ud574 - \uc9c1\uc804') + '</th><th' + rateTrendSortAttributes(percentKey) + '>' + renderRateTrendSortButton(percentKey, '\uc99d\uac10\ub960', '\uc99d\uac10 \u00f7 \uc9c1\uc804 \u00d7 100') + '</th>';
+                return costHeader + '<th' + rateTrendSortAttributes(deltaKey) + '>' + renderRateTrendSortButton(deltaKey, '\uc99d\uac10', '\ub2f9\ud574 \ub2e8\uac00 - \uc9c1\uc804 \ub2e8\uac00') + '</th><th' + rateTrendSortAttributes(percentKey) + '>' + renderRateTrendSortButton(percentKey, '\uc99d\uac10\ub960', '\ub2f9\ud574 \uc99d\uac10 \u00f7 \uc9c1\uc804 \ub2e8\uac00 \u00d7 100') + '</th>';
             }).join('');
             var body = buildingKeys.map(function(building) {
                 var cells = '';
-                years.forEach(function(year, index) {
+                displayYears.forEach(function(year) {
+                    var chronologicalIndex = years.indexOf(year);
                     var current = books[year][building];
                     var currentCost = current ? Number(current.cost || 0) : NaN;
                     var currentTitle = current && current.excluded ? ' title="\ubd84\uc11d \uc81c\uc678 \ub2e8\uac00"' : '';
                     cells += '<td class="cost-analysis-rate-year-start"' + currentTitle + '>' + (Number.isFinite(currentCost) ? formatAccountingInput(currentCost) + '\uc6d0' : '-') + '</td>';
-                    if (index) {
-                        var previous = books[years[index - 1]][building];
+                    if (chronologicalIndex > 0) {
+                        var previous = books[years[chronologicalIndex - 1]][building];
                         var previousCost = previous ? Number(previous.cost || 0) : NaN;
                         var comparable = Number.isFinite(currentCost) && Number.isFinite(previousCost);
                         var delta = comparable ? currentCost - previousCost : NaN;
@@ -142952,10 +142952,10 @@ window.openAddNewProjectModal = function(editProject) {
                 return '<tr tabindex="0" data-cost-rate-trend-row><td>' + escapeHtml(buildingLabel(building)) + '</td>' + cells + '<td>' + renderRateTrendSparkline(building, years, books) + '</td></tr>';
             }).join('');
             var statistics = buildRateTrendStatistics(years, books, buildingKeys);
-            var footer = renderRateTrendSummaryRow('\ud3c9\uade0', 'average', years, statistics) + renderRateTrendSummaryRow('\uc911\uac04\uac12', 'median', years, statistics);
+            var footer = renderRateTrendSummaryRow('\ud3c9\uade0', 'average', displayYears, years, statistics) + renderRateTrendSummaryRow('\uc911\uac04\uac12', 'median', displayYears, years, statistics);
             var tableWidth = Math.max(720, 190 + 72 * (1 + (years.length - 1) * 3));
             var scopeSuffix = state.parentFilterContext && state.parentFilterContext.active ? ' \u00b7 \uc0c1\uc704 \ud544\ud130' : '';
-            var meta = escapeHtml(rateYearPrefix(years[0])) + ' \u2192 ' + escapeHtml(rateYearPrefix(years[years.length - 1])) + ' \u00b7 ' + buildingKeys.length.toLocaleString('ko-KR') + '\uac1c \ub3d9' + escapeHtml(scopeSuffix);
+            var meta = escapeHtml(rateYearPrefix(displayYears[0])) + ' \u2192 ' + escapeHtml(rateYearPrefix(displayYears[displayYears.length - 1])) + ' \u00b7 ' + buildingKeys.length.toLocaleString('ko-KR') + '\uac1c \ub3d9' + escapeHtml(scopeSuffix);
             return '<details class="cost-analysis-rate-trend" data-cost-rate-trend' + open + '>' + renderRateTrendHeading(meta) + '<div class="cost-analysis-table-wrap"><table class="cost-analysis-table cost-analysis-rate-trend-table" style="min-width:' + tableWidth + 'px"><thead><tr>' + firstHeader + '</tr><tr>' + secondHeader + '</tr></thead><tbody class="cost-analysis-rate-summary-body">' + footer + '</tbody><tbody data-cost-rate-trend-body>' + body + '</tbody></table></div></details>';
         }
         function renderRateYearEditor(year) {
@@ -144076,13 +144076,6 @@ window.openAddNewProjectModal = function(editProject) {
             captureCostParentScope();
             modal.classList.remove('hidden');
             modal.setAttribute('aria-hidden', 'false');
-            var entryFocus = modal.querySelector('.cost-analysis-top-sections');
-            if (entryFocus) {
-                entryFocus.classList.remove('is-entry-focus');
-                requestAnimationFrame(function() {
-                    if (token === state.lifecycleToken && !modal.classList.contains('hidden')) entryFocus.classList.add('is-entry-focus');
-                });
-            }
             state.analysis = null;
             render();
             var initialSignature = projectDataSignature();
