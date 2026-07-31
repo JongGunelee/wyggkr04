@@ -10951,7 +10951,9 @@
       }
 
       const COMPARE_BASIS_IMAGE_URL =
-        "https://jonggunelee.github.io/wyggkr04/RawData/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90(%EC%98%81%EC%84%A0%20%EC%A0%84%ED%99%98%20%EA%B8%B0%EC%A4%80).png";
+        "https://jonggunelee.github.io/wyggkr04/RawData/%EB%B9%84%EC%9A%A9%EC%A0%88%EA%B0%90/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90(%EC%98%81%EC%84%A0%20%EC%A0%84%ED%99%98%20%EA%B8%B0%EC%A4%80).png";
+      const COMPARE_BASIS_IMAGE_FALLBACK_URL =
+        "https://raw.githubusercontent.com/JongGunelee/wyggkr04/main/RawData/%EB%B9%84%EC%9A%A9%EC%A0%88%EA%B0%90/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90(%EC%98%81%EC%84%A0%20%EC%A0%84%ED%99%98%20%EA%B8%B0%EC%A4%80).png";
 
       function openCompareBasisModal() {
         const oldOverlay = document.querySelector(".compare-basis-overlay");
@@ -11008,6 +11010,13 @@
           pinch: null,
         };
         const image = modal.querySelector(".compare-basis-image");
+        if (image) {
+          image.onerror = function () {
+            if (this.src !== COMPARE_BASIS_IMAGE_FALLBACK_URL) {
+              this.src = COMPARE_BASIS_IMAGE_FALLBACK_URL;
+            }
+          };
+        }
         const content = modal.querySelector(".compare-basis-content");
 
         function applyBasisZoom(nextZoom, clientX, clientY) {
@@ -13898,8 +13907,12 @@
           hyperlinkFileInput.click();
         });
 
-      const WEB_XLSX_SOURCE_URL =
-        "https://jonggunelee.github.io/wyggkr04/RawData/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90.xlsx";
+      const WEB_XLSX_SOURCE_URLS = [
+        "https://jonggunelee.github.io/wyggkr04/RawData/%EB%B9%84%EC%9A%A9%EC%A0%88%EA%B0%90/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90.xlsx",
+        "https://raw.githubusercontent.com/JongGunelee/wyggkr04/main/RawData/%EB%B9%84%EC%9A%A9%EC%A0%88%EA%B0%90/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90.xlsx",
+        "https://cdn.jsdelivr.net/gh/JongGunelee/wyggkr04@main/RawData/%EB%B9%84%EC%9A%A9%EC%A0%88%EA%B0%90/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90.xlsx"
+      ];
+      const WEB_XLSX_SOURCE_URL = WEB_XLSX_SOURCE_URLS[0];
       const XLSX_SOURCE_MODE_KEY = "monthly-cost-saving-xlsx-source-mode";
 
       function getWorkbookSourceMode() {
@@ -14157,8 +14170,20 @@
         setWorkbookLoadStatus("GitHub XLSX를 불러오는 중입니다.", true);
         try {
           await ensureXlsxForWorkbookImport();
-          const response = await fetch(WEB_XLSX_SOURCE_URL, { cache: "no-store" });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          let response = null;
+          let lastError = null;
+          for (const targetUrl of WEB_XLSX_SOURCE_URLS) {
+            try {
+              const res = await fetch(targetUrl, { cache: "no-store" });
+              if (res.ok) {
+                response = res;
+                break;
+              }
+            } catch (err) {
+              lastError = err;
+            }
+          }
+          if (!response || !response.ok) throw lastError || new Error("GitHub XLSX HTTP 요청 실패");
           const buffer = await response.arrayBuffer();
           const result = await loadDashboardWorkbookFromArrayBuffer(buffer, "github-xlsx");
           setWorkbookLoadStatus(
