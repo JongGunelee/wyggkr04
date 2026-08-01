@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>월별 비용 절감 대시보드</title>
     <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <style>
       :root {
         --page-gutter: clamp(12px, 1.15vw, 22px);
@@ -1081,15 +1082,33 @@
       }
 
       .sticky-total-row {
-        background: #fff5f5;
+        background: #f1f5f9;
+        border-top: 2px solid #334155;
+        border-bottom: 2px solid #334155;
       }
 
       .sticky-total-row td {
-        background: #fff5f5;
+        background: #f1f5f9;
         background-clip: padding-box;
         font-weight: bold;
-        color: #e74c3c;
+        color: #d32f2f;
         font-size: 15.912px;
+      }
+
+      tr.subtotal td {
+        background: #edf3fa !important;
+        font-weight: 700;
+        border-top: 1px solid #cbd5e1 !important;
+        border-bottom: 1px solid #cbd5e1 !important;
+      }
+
+      tr.subtotal td:nth-child(4) {
+        white-space: nowrap !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        font-size: 11px !important;
+        letter-spacing: -0.3px !important;
+        font-weight: 700 !important;
       }
 
       #table-container.detail-table-mode thead th {
@@ -1225,20 +1244,32 @@
         cursor: pointer;
       }
 
-      #table-container.detail-table-mode tbody tr.detail-row-focused td {
-        background: #e8f2ff !important;
-        box-shadow: inset 0 1px 0 #7fb3ff, inset 0 -1px 0 #7fb3ff;
+      #table-container.detail-table-mode tbody tr:hover td,
+      .compare-table tbody tr:hover td,
+      .compare-drilldown table tbody tr:hover td {
+        background: #f8fafc !important;
       }
 
-      #table-container.detail-table-mode tbody tr.detail-row-focused td:first-child {
+      #table-container.detail-table-mode tbody tr.detail-row-focused td,
+      .compare-table tbody tr.detail-row-focused td,
+      .compare-drilldown table tbody tr.detail-row-focused td {
+        background: #eff6ff !important;
+        box-shadow: inset 0 1px 0 #93c5fd, inset 0 -1px 0 #93c5fd;
+      }
+
+      #table-container.detail-table-mode tbody tr.detail-row-focused td:first-child,
+      .compare-table tbody tr.detail-row-focused td:first-child,
+      .compare-drilldown table tbody tr.detail-row-focused td:first-child {
         box-shadow:
-          inset 3px 0 0 #1a73e8,
-          inset 0 1px 0 #7fb3ff,
-          inset 0 -1px 0 #7fb3ff;
+          inset 4px 0 0 #2563eb,
+          inset 0 1px 0 #93c5fd,
+          inset 0 -1px 0 #93c5fd;
       }
 
-      #table-container.detail-table-mode tbody tr.detail-row-focused td:nth-child(7) {
-        color: #0f4c81 !important;
+      #table-container.detail-table-mode tbody tr.detail-row-focused td:nth-child(7),
+      .compare-table tbody tr.detail-row-focused td:nth-child(7),
+      .compare-drilldown table tbody tr.detail-row-focused td:nth-child(7) {
+        color: #1d4ed8 !important;
         font-weight: 800;
       }
 
@@ -7815,7 +7846,7 @@
           const countTspan = nodeElement.select("text .count-tspan");
 
           if (amountTspan.node()) {
-            amountTspan.text(d3.format(",")(currentTotalSavings));
+            amountTspan.text(Math.round(currentTotalSavings).toLocaleString("ko-KR"));
           }
           if (countTspan.node()) {
             countTspan.text(`${currentItemCount}건`);
@@ -8037,7 +8068,7 @@
             if (currentLine) lines.push(currentLine.trim());
 
             const lineHeight = fontSize * 1.2;
-            const amountText = d3.format(",")(d.data.total);
+            const amountText = Math.round(d.data.total).toLocaleString("ko-KR");
             const amountFontSize = Math.min(fontSize, d.r / 4);
             const countText = `${d.data.itemCount}건`;
             const countFontSize = Math.min(amountFontSize, d.r / 5);
@@ -8145,11 +8176,11 @@
               const detail = d["절감항목"] || "";
               const note = d["비고"] || "";
               const actual =
-                parseFloat((d["A.집행비"] || "0").replace(/,/g, "")) || 0;
+                Math.round(parseFloat((d["A.집행비"] || "0").replace(/,/g, "")) || 0);
               const estimated =
-                parseFloat((d["B.공사비 적용시"] || "0").replace(/,/g, "")) || 0;
+                Math.round(parseFloat((d["B.공사비 적용시"] || "0").replace(/,/g, "")) || 0);
               const saving =
-                parseFloat((d["절감비(A-B)"] || "0").replace(/,/g, "")) || 0;
+                Math.round(parseFloat((d["절감비(A-B)"] || "0").replace(/,/g, "")) || 0);
 
               const formattedDetail = formatNumberWithCommas(detail);
               let formattedNote = formatNumberWithCommas(note);
@@ -8268,6 +8299,9 @@
                 drawChart();
                 // Centralized refresh to ensure months/years/types pipeline is applied to chart and UI
                 updateAllViews(false);
+                if (typeof renderCompareModal === "function" && document.getElementById("compare-overlay")?.classList.contains("show")) {
+                  renderCompareModal();
+                }
 
                 const tableContainer =
                   document.getElementById("table-container");
@@ -8362,7 +8396,7 @@
 
         let currentPeriodForColoring = null;
         let colorToggle = false;
-        const monthGroupBgColors = ["#FFFFFF", "#fffde7"]; // Updated alternating color // 업데이트된 교대 색상
+        const monthGroupBgColors = ["#FFFFFF", "#f8fafc"];
 
         typeGroups.forEach((rows, type) => {
           rows.forEach((row) => {
@@ -8387,8 +8421,9 @@
               td.style.backgroundColor = currentBgColor;
               let val = row[key];
               if (["actual", "estimated", "saving"].includes(key)) {
-                td.textContent = val === 0 ? "-" : d3.format(",")(val);
-                if (val < 0) td.style.color = "red";
+                const roundedVal = Math.round(Number(val) || 0);
+                td.textContent = roundedVal === 0 ? "-" : roundedVal.toLocaleString('ko-KR');
+                if (roundedVal < 0) td.style.color = "red";
                 if (key === "saving") {
                   td.style.whiteSpace = "nowrap";
                   td.style.wordBreak = "keep-all";
@@ -8660,19 +8695,31 @@
           const trSub = document.createElement("tr");
           trSub.className = "subtotal";
           const typeColor = getTypeColor(type);
+          const subtotalTitle = `${type} 소계`;
+          const roundedSubtotal = Math.round(subtotal);
           [
             "",
             "",
             "",
-            `${type} 소계`,
+            subtotalTitle,
             "",
             "",
-            subtotal === 0 ? "-" : d3.format(",")(subtotal),
+            roundedSubtotal === 0 ? "-" : roundedSubtotal.toLocaleString('ko-KR'),
             "",
           ].forEach((text, i) => {
             const td = document.createElement("td");
             td.textContent = text;
             if (i === 3 || i === 6) td.style.color = typeColor;
+            if (i === 3) {
+              td.title = text;
+              if (text.length > 13) {
+                td.style.fontSize = "10.5px";
+                td.style.letterSpacing = "-0.4px";
+              }
+              td.style.whiteSpace = "nowrap";
+              td.style.overflow = "visible";
+              td.style.textOverflow = "clip";
+            }
             if (i === 6) {
               td.style.whiteSpace = "nowrap";
               td.style.wordBreak = "keep-all";
@@ -8807,7 +8854,7 @@
           const diff = lastSum - prevSum;
           monthChangeStr = `
           <span class="summary-value ${diff >= 0 ? "positive" : "negative"}">${formatNumber(diff)}</span><br>
-          <small>(${formatMonth(prevMonth)} → ${formatMonth(lastMonth)})</small>
+          <small style="display:inline-block; white-space:nowrap; font-size:11px; letter-spacing:-0.3px; color:#64748b;">(${formatMonth(prevMonth)} → ${formatMonth(lastMonth)})</small>
         `;
         }
 
@@ -8877,7 +8924,7 @@
                 ) => `<li style="font-size:12.8px; color:#888; margin-bottom: 5px;">
               <span class="summary-value ${item.saving >= 0 ? "positive" : "negative"}">${formatNumber(item.saving)}</span><br>
               <span style="color:${getTypeColor(item.type)}; cursor:pointer; text-decoration:underline;" class="type-label" data-type="${item.type}" data-detail-month="${item.month}" data-detail-year="${item.year}">${item.detail}</span>
-              <small>(${formatMonth(item.month)}, ${item.year}년)</small>
+              <small style="display:inline-block; white-space:nowrap; font-size:10.5px; letter-spacing:-0.3px; color:#64748b; vertical-align:baseline; margin-left:3px;">(${formatMonth(item.month)}, ${formatYearShort(item.year)})</small>
             </li>`,
               )
               .join("")}
@@ -9103,15 +9150,16 @@
       // --- 개선 사항 끝 ---
 
       function formatNumber(num) {
-        if (num === 0) return "0";
-        if (isNaN(num)) return "0";
-        const absNum = Math.abs(num);
+        if (!num && num !== 0) return "0원";
+        const val = Number(num) || 0;
+        if (val === 0) return "0원";
+        const absNum = Math.abs(val);
         const suffixes = ["원", "천원", "백만원", "십억원", "조원"];
         const suffixNum = absNum > 0 ? Math.floor(Math.log10(absNum) / 3) : 0;
         const actualSuffixNum = Math.min(suffixNum, suffixes.length - 1);
         const shortNum = absNum / Math.pow(1000, actualSuffixNum);
         const roundedNum = Math.round(shortNum * 100) / 100;
-        return `${num < 0 ? "-" : ""}${roundedNum}<small>${suffixes[actualSuffixNum]}</small>`;
+        return `${val < 0 ? "-" : ""}${roundedNum.toLocaleString('ko-KR')}<small>${suffixes[actualSuffixNum]}</small>`;
       }
 
       let compareSelection = null;
@@ -9129,7 +9177,7 @@
 
       function getCompareNumber(value) {
         const num = Number(value);
-        return Number.isFinite(num) ? num : 0;
+        return Number.isFinite(num) ? Math.round(num) : 0;
       }
 
       function getCompareMonthLabel(month) {
@@ -9737,16 +9785,34 @@
 
       function formatCompareVal(val) {
         if (!val && val !== 0) return "-";
-        return `<span class="${val >= 0 ? "compare-positive" : "compare-negative"}">${formatNumber(val)}</span>`;
+        const num = Math.round(getCompareNumber(val));
+        if (num === 0) return "-";
+        return `<span class="${num >= 0 ? "compare-positive" : "compare-negative"}">${formatNumber(num)}</span>`;
       }
 
       function formatComparePlain(value) {
-        const num = getCompareNumber(value);
-        const abs = Math.abs(num);
-        if (abs >= 100000000) return `${(num / 100000000).toFixed(abs >= 1000000000 ? 1 : 2)}억`;
-        if (abs >= 1000000) return `${(num / 1000000).toFixed(abs >= 10000000 ? 1 : 2)}백만`;
-        if (abs >= 1000) return `${(num / 1000).toFixed(abs >= 10000 ? 1 : 2)}천`;
-        return `${Math.round(num * 100) / 100}`;
+        if (!value && value !== 0) return "0";
+        const val = getCompareNumber(value);
+        if (val === 0) return "0";
+        const abs = Math.abs(val);
+        const sign = val < 0 ? "-" : "";
+        if (abs >= 1000000000) {
+          const scaled = Math.round((abs / 1000000000) * 100) / 100;
+          return `${sign}${scaled.toLocaleString('ko-KR')}십억`;
+        }
+        if (abs >= 100000000) {
+          const scaled = Math.round((abs / 100000000) * 100) / 100;
+          return `${sign}${scaled.toLocaleString('ko-KR')}억`;
+        }
+        if (abs >= 1000000) {
+          const scaled = Math.round((abs / 1000000) * 100) / 100;
+          return `${sign}${scaled.toLocaleString('ko-KR')}백만`;
+        }
+        if (abs >= 1000) {
+          const scaled = Math.round((abs / 1000) * 100) / 100;
+          return `${sign}${scaled.toLocaleString('ko-KR')}천`;
+        }
+        return `${sign}${Math.round(abs).toLocaleString('ko-KR')}`;
       }
 
       function formatComparePercent(value) {
@@ -9810,6 +9876,580 @@
       function getCompareDeltaClass(delta) {
         if (!delta) return "";
         return delta < 0 ? "compare-delta-good" : "compare-delta-bad";
+      }
+
+      function ensureExcelJS() {
+        return new Promise((resolve, reject) => {
+          if (window.ExcelJS) {
+            resolve(window.ExcelJS);
+            return;
+          }
+          const script = document.createElement("script");
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js";
+          script.onload = () => resolve(window.ExcelJS);
+          script.onerror = () => {
+            const fallbackScript = document.createElement("script");
+            fallbackScript.src = "https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js";
+            fallbackScript.onload = () => resolve(window.ExcelJS);
+            fallbackScript.onerror = (err) => reject(err);
+            document.head.appendChild(fallbackScript);
+          };
+          document.head.appendChild(script);
+        });
+      }
+
+      function generateSvgForHtmlPanel(chartKey, summaryData, summaryTitle) {
+        if (!summaryData || summaryData.length === 0) return null;
+        const width = 740;
+        const itemHeight = 32;
+        const headerHeight = 55;
+        const items = summaryData.slice(0, 15);
+        const height = headerHeight + items.length * itemHeight + 25;
+
+        let maxVal = 1;
+        items.forEach((d) => {
+          const val = Math.abs(Number(d.전년차이 ?? d.차이 ?? d.영향도 ?? d.금액 ?? d[Object.keys(d)[2]] ?? 0));
+          if (val > maxVal) maxVal = val;
+        });
+
+        const rowsSvg = items.map((d, i) => {
+          const y = headerHeight + i * itemHeight;
+          const labelKey = Object.keys(d)[0];
+          const label = String(d[labelKey] || "").replace(/<[^>]*>?/gm, "").slice(0, 24);
+          const val = Number(d.전년차이 ?? d.차이 ?? d.영향도 ?? d.금액 ?? d[Object.keys(d)[2]] ?? 0);
+          const valStr = isNaN(val) ? String(d[Object.keys(d)[2]] || "") : val.toLocaleString("ko-KR");
+          const barW = isNaN(val) ? 50 : Math.max(8, (Math.abs(val) / maxVal) * 320);
+          const color = val < 0 ? "#27ae60" : val > 0 ? "#eb5757" : "#2f80ed";
+
+          return `
+            <g transform="translate(0, ${y})">
+              <rect x="12" y="2" width="716" height="28" fill="${i % 2 === 0 ? '#f8fafc' : '#ffffff'}" rx="4" />
+              <text x="24" y="20" font-family="'Malgun Gothic', '맑은 고딕', sans-serif" font-size="12" font-weight="bold" fill="#334155">${escapeCompareHtml(label)}</text>
+              <rect x="250" y="7" width="${barW}" height="18" rx="3" fill="${color}" opacity="0.9" />
+              <text x="${262 + barW}" y="20" font-family="'Malgun Gothic', '맑은 고딕', sans-serif" font-size="11" font-weight="bold" fill="#0f172a">${valStr}</text>
+            </g>
+          `;
+        }).join("");
+
+        return `
+          <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+            <rect width="100%" height="100%" fill="#ffffff" rx="6" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="0" y="0" width="100%" height="42" fill="#3b82f6" rx="6" />
+            <text x="20" y="27" font-family="'Malgun Gothic', '맑은 고딕', sans-serif" font-size="14" font-weight="bold" fill="#ffffff">[비교 분석] ${escapeCompareHtml(summaryTitle)}</text>
+            ${rowsSvg}
+          </svg>
+        `;
+      }
+
+      function getSvgChartDataUrl(chartKey, summaryData, summaryTitle) {
+        return new Promise((resolve) => {
+          try {
+            let svgSelector = null;
+            if (chartKey === "total-bridge") svgSelector = "#compare-total-bridge-chart";
+            else if (chartKey === "monthly-total") svgSelector = "#compare-monthly-chart";
+            else if (chartKey === "monthly-construction") svgSelector = "#compare-monthly-chart-construction";
+            else if (chartKey === "monthly-maintenance") svgSelector = "#compare-monthly-chart-maintenance";
+            else if (chartKey === "type-total") svgSelector = "#compare-type-chart";
+            else if (chartKey === "type-construction") svgSelector = "#compare-type-chart-construction";
+            else if (chartKey === "type-maintenance") svgSelector = "#compare-type-chart-maintenance";
+            else if (chartKey === "share-total") svgSelector = "#compare-type-share-chart";
+            else if (chartKey === "share-construction") svgSelector = "#compare-type-share-chart-construction";
+            else if (chartKey === "share-maintenance") svgSelector = "#compare-type-share-chart-maintenance";
+
+            let targetElem = svgSelector ? document.querySelector(svgSelector) : null;
+            if (targetElem && targetElem.offsetParent === null) {
+              targetElem = null; // hidden element, generate fresh SVG
+            }
+
+            let svgString = null;
+            let width = 720;
+            let height = 300;
+
+            if (targetElem && targetElem.tagName && targetElem.tagName.toLowerCase() === "svg") {
+              const clone = targetElem.cloneNode(true);
+              clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+              clone.style.backgroundColor = "#ffffff";
+              
+              const origNodes = targetElem.querySelectorAll("*");
+              const cloneNodes = clone.querySelectorAll("*");
+              origNodes.forEach((orig, i) => {
+                if (cloneNodes[i]) {
+                  const cs = window.getComputedStyle(orig);
+                  if (cs.fill) cloneNodes[i].setAttribute("fill", cs.fill);
+                  if (cs.stroke) cloneNodes[i].setAttribute("stroke", cs.stroke);
+                  if (cs.fontSize) cloneNodes[i].style.fontSize = cs.fontSize;
+                  if (cs.fontWeight) cloneNodes[i].style.fontWeight = cs.fontWeight;
+                  if (cs.fontFamily) cloneNodes[i].style.fontFamily = cs.fontFamily;
+                }
+              });
+              svgString = new XMLSerializer().serializeToString(clone);
+              width = Math.max(720, (targetElem.clientWidth || 720) * 2);
+              height = Math.max(300, (targetElem.clientHeight || 300) * 2);
+            }
+
+            if (!svgString || svgString.length < 50) {
+              svgString = generateSvgForHtmlPanel(chartKey, summaryData, summaryTitle);
+              width = 740 * 2;
+              height = (60 + Math.min(summaryData.length, 15) * 32 + 25) * 2;
+            }
+
+            if (!svgString) {
+              resolve(null);
+              return;
+            }
+
+            const encodedSvg = encodeURIComponent(svgString)
+              .replace(/'/g, "%27")
+              .replace(/\(/g, "%28")
+              .replace(/\)/g, "%29");
+            const dataUri = "data:image/svg+xml;charset=utf-8," + encodedSvg;
+
+            const image = new Image();
+            image.onload = () => {
+              try {
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(image, 0, 0, width, height);
+                const pngDataUrl = canvas.toDataURL("image/png");
+                resolve(pngDataUrl);
+              } catch (err) {
+                console.warn("Canvas export failed, using fallback SVG", err);
+                const fallbackSvg = generateSvgForHtmlPanel(chartKey, summaryData, summaryTitle);
+                const fallbackEncoded = encodeURIComponent(fallbackSvg);
+                const fallbackUri = "data:image/svg+xml;charset=utf-8," + fallbackEncoded;
+                const img2 = new Image();
+                img2.onload = () => {
+                  const c2 = document.createElement("canvas");
+                  c2.width = 1480;
+                  c2.height = 1000;
+                  const ctx2 = c2.getContext("2d");
+                  ctx2.fillStyle = "#ffffff";
+                  ctx2.fillRect(0, 0, 1480, 1000);
+                  ctx2.drawImage(img2, 0, 0);
+                  resolve(c2.toDataURL("image/png"));
+                };
+                img2.onerror = () => resolve(null);
+                img2.src = fallbackUri;
+              }
+            };
+            image.onerror = () => {
+              const fallbackSvg = generateSvgForHtmlPanel(chartKey, summaryData, summaryTitle);
+              if (!fallbackSvg) {
+                resolve(null);
+                return;
+              }
+              const fallbackEncoded = encodeURIComponent(fallbackSvg);
+              const fallbackUri = "data:image/svg+xml;charset=utf-8," + fallbackEncoded;
+              const img2 = new Image();
+              img2.onload = () => {
+                const c2 = document.createElement("canvas");
+                c2.width = 1480;
+                c2.height = 1000;
+                const ctx2 = c2.getContext("2d");
+                ctx2.fillStyle = "#ffffff";
+                ctx2.fillRect(0, 0, 1480, 1000);
+                ctx2.drawImage(img2, 0, 0);
+                resolve(c2.toDataURL("image/png"));
+              };
+              img2.onerror = () => resolve(null);
+              img2.src = fallbackUri;
+            };
+            image.src = dataUri;
+          } catch (e) {
+            resolve(null);
+          }
+        });
+      }
+
+      window.injectScopedExcelExportButtons = function (container) {
+        if (!container) return;
+        const panels = container.querySelectorAll(".compare-panel, .compare-diff-segment");
+        panels.forEach((panel) => {
+          const head = panel.querySelector(".compare-panel-head, .compare-diff-segment-head");
+          if (!head || head.querySelector("[data-compare-chart-export]")) return;
+
+          let chartKey = "total-bridge";
+          const h3Text = (head.querySelector("h3, .compare-diff-segment-title")?.textContent || "").trim();
+          const svgId = panel.querySelector("svg")?.id || "";
+
+          if (svgId === "compare-total-bridge-chart" || h3Text.includes("총괄 브릿지")) {
+            chartKey = "total-bridge";
+          } else if (h3Text.includes("성격별 차이")) {
+            chartKey = "character-summary";
+          } else if (h3Text.includes("공사성 상위 차이")) {
+            chartKey = "top-diff-construction";
+          } else if (h3Text.includes("영선 전환 상위 차이") || h3Text === "건축" || h3Text === "기계" || h3Text === "전기" || h3Text.includes("탐지/기타")) {
+            chartKey = "top-diff-maintenance";
+          } else if (svgId === "compare-monthly-chart" || h3Text.includes("월별 절감 흐름 · 전체")) {
+            chartKey = "monthly-total";
+          } else if (svgId === "compare-monthly-chart-construction" || h3Text.includes("월별 절감 흐름 · 공사성")) {
+            chartKey = "monthly-construction";
+          } else if (svgId === "compare-monthly-chart-maintenance" || h3Text.includes("월별 절감 흐름 · 영선 전환")) {
+            chartKey = "monthly-maintenance";
+          } else if (h3Text.includes("월별 차이 히트맵")) {
+            chartKey = "monthly-heatmap";
+          } else if (h3Text.includes("변동 큰 월")) {
+            chartKey = "monthly-variation";
+          } else if (svgId === "compare-type-chart" || h3Text.includes("작업 유형별 거리 · 전체")) {
+            chartKey = "type-total";
+          } else if (svgId === "compare-type-chart-construction" || h3Text.includes("작업 유형별 거리 · 공사성")) {
+            chartKey = "type-construction";
+          } else if (svgId === "compare-type-chart-maintenance" || h3Text.includes("작업 유형별 거리 · 영선 전환")) {
+            chartKey = "type-maintenance";
+          } else if (h3Text.includes("영향도 순위 · 전체")) {
+            chartKey = "impact-total";
+          } else if (h3Text.includes("영향도 순위 · 공사성")) {
+            chartKey = "impact-construction";
+          } else if (h3Text.includes("영향도 순위 · 영선 전환")) {
+            chartKey = "impact-maintenance";
+          } else if (svgId === "compare-type-share-chart" || h3Text.includes("기준 연도 구성 · 전체")) {
+            chartKey = "share-total";
+          } else if (svgId === "compare-type-share-chart-construction" || h3Text.includes("기준 연도 구성 · 공사성")) {
+            chartKey = "share-construction";
+          } else if (svgId === "compare-type-share-chart-maintenance" || h3Text.includes("기준 연도 구성 · 영선 전환")) {
+            chartKey = "share-maintenance";
+          }
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "compare-mini-btn btn-xls-export";
+          btn.style.cssText = "margin-left:auto; font-size:11px; padding:2px 8px; background:#27ae60; color:#ffffff; border:none; border-radius:4px; cursor:pointer; font-weight:bold; display:inline-flex; align-items:center; gap:3px;";
+          btn.setAttribute("data-compare-chart-export", chartKey);
+          btn.innerHTML = "📊 xls";
+          btn.title = `${h3Text || "차트"} 엑셀 다운로드 (차트 시각화 이미지 + 원천 증빙 데이터 2개 시트)`;
+
+          btn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            exportCompareChartWorkbook(chartKey, h3Text);
+          });
+
+          head.appendChild(btn);
+        });
+      };
+
+      async function exportCompareChartWorkbook(chartKey, customTitle) {
+        if (!compareCurrentViewModel) return;
+        const vm = compareCurrentViewModel;
+        try {
+          let summaryTitle = customTitle || "비교 차트 분석 요약";
+          let summaryData = [];
+          let sourceRows = vm.rows || [];
+
+          if (chartKey === "total-bridge") {
+            summaryTitle = "총괄 브릿지 차트 요약";
+            summaryData = [
+              { "구분": `${vm.compareYear || "비교"}년 절감액`, "금액": vm.compare.saving, "건수": vm.compare.count, "평균": Math.round(vm.compare.avg) },
+              { "구분": `${vm.baseYear}년 절감액`, "금액": vm.base.saving, "건수": vm.base.count, "평균": Math.round(vm.base.avg) },
+              { "구분": "총 절감 차이", "금액": vm.totalDelta, "건수": vm.base.count - vm.compare.count, "평균": Math.round(vm.base.avg - vm.compare.avg) },
+            ];
+          } else if (chartKey === "character-summary") {
+            summaryTitle = "성격별 차이 요약";
+            summaryData = vm.categoryRows.map((row) => ({
+              "구분": row.label,
+              "설명": row.caption,
+              [`${vm.baseYear}년 절감액`]: row.base,
+              [`${vm.compareYear || "비교"}년 절감액`]: row.compare,
+              "전년차이": row.delta,
+              [`${vm.baseYear}년 건수`]: row.baseCount,
+              [`${vm.compareYear || "비교"}년 건수`]: row.compareCount,
+              "건수차이": row.countDelta,
+              [`${vm.baseYear}년 구성비`]: `${(row.baseShare * 100).toFixed(1)}%`,
+            }));
+          } else if (chartKey && chartKey.startsWith("top-diff-")) {
+            const category = chartKey.replace("top-diff-", "");
+            summaryTitle = `${category === "construction" ? "공사성" : "영선 전환"} 상위 차이 항목 요약`;
+            const filteredDetails = vm.detailRows.filter((r) => r.category === category);
+            sourceRows = vm.rows.filter((r) => getCompareCharacterKeyFromType(r.type) === category);
+            summaryData = filteredDetails.slice(0, 15).map((row) => ({
+              "절감항목": row.detail,
+              "작업유형": row.type,
+              [`${vm.baseYear}년 절감액`]: row.base.saving,
+              [`${vm.baseYear}년 건수`]: row.base.count,
+              [`${vm.compareYear || "비교"}년 절감액`]: row.compare.saving,
+              [`${vm.compareYear || "비교"}년 건수`]: row.compare.count,
+              "전년차이": row.delta,
+            }));
+          } else if (chartKey && chartKey.startsWith("monthly-") && chartKey !== "monthly-heatmap" && chartKey !== "monthly-variation") {
+            const scope = chartKey.replace("monthly-", "");
+            const label = getCompareTypeScopeLabel(scope);
+            summaryTitle = `월별 절감 흐름 · ${label} 요약`;
+            const monthlyRows = getCompareMonthVariationScopeRows(vm, scope);
+            if (scope === "construction") sourceRows = vm.rows.filter((r) => !isCompareMaintenanceType(r.type));
+            if (scope === "maintenance") sourceRows = vm.rows.filter((r) => isCompareMaintenanceType(r.type));
+            summaryData = monthlyRows.map((r) => ({
+              "월": `${r.monthNumber}월`,
+              [`${vm.baseYear}년 절감액`]: r.base,
+              [`${vm.compareYear || "비교"}년 절감액`]: r.compare,
+              "전년차이": r.delta,
+            }));
+          } else if (chartKey === "monthly-heatmap") {
+            summaryTitle = "월별 차이 히트맵 매트릭스";
+            summaryData = vm.monthlyRows.map((r) => ({
+              "월": `${r.monthNumber}월`,
+              [`전체 ${vm.baseYear}년`]: r.base,
+              [`전체 ${vm.compareYear || "비교"}년`]: r.compare,
+              "전체차이": r.delta,
+            }));
+          } else if (chartKey === "monthly-variation") {
+            summaryTitle = "변동 큰 월 Top 4 요약";
+            const variationRows = getCompareMonthVariationRows(vm.monthlyRows);
+            summaryData = variationRows.map((r) => ({
+              "월": `${r.monthNumber}월`,
+              [`${vm.baseYear}년 절감액`]: r.base,
+              [`${vm.compareYear || "비교"}년 절감액`]: r.compare,
+              "전년차이": r.delta,
+            }));
+          } else if (chartKey && chartKey.startsWith("type-") && !chartKey.startsWith("type-share")) {
+            const scope = chartKey.replace("type-", "");
+            const label = getCompareTypeScopeLabel(scope);
+            summaryTitle = `작업 유형별 거리 · ${label} 요약`;
+            const typeScopeRows = getCompareTypeScopeRows(vm, scope);
+            if (scope === "construction") sourceRows = vm.rows.filter((r) => !isCompareMaintenanceType(r.type));
+            if (scope === "maintenance") sourceRows = vm.rows.filter((r) => isCompareMaintenanceType(r.type));
+            summaryData = typeScopeRows.map((r) => ({
+              "작업유형": r.type,
+              "분류": r.category === "maintenance" ? "영선 전환" : "공사성",
+              [`${vm.baseYear}년 절감액`]: r.base.saving,
+              [`${vm.baseYear}년 건수`]: r.base.count,
+              [`${vm.compareYear || "비교"}년 절감액`]: r.compare.saving,
+              [`${vm.compareYear || "비교"}년 건수`]: r.compare.count,
+              "전년차이": r.delta,
+            }));
+          } else if (chartKey && chartKey.startsWith("impact-")) {
+            const scope = chartKey.replace("impact-", "");
+            const label = getCompareTypeScopeLabel(scope);
+            summaryTitle = `영향도 순위 · ${label} 요약`;
+            const typeScopeRows = getCompareTypeScopeRows(vm, scope);
+            if (scope === "construction") sourceRows = vm.rows.filter((r) => !isCompareMaintenanceType(r.type));
+            if (scope === "maintenance") sourceRows = vm.rows.filter((r) => isCompareMaintenanceType(r.type));
+            summaryData = typeScopeRows.slice(0, 10).map((r) => ({
+              "작업유형": r.type,
+              "분류": r.category === "maintenance" ? "영선 전환" : "공사성",
+              [`${vm.baseYear}년 절감액`]: r.base.saving,
+              [`${vm.compareYear || "비교"}년 절감액`]: r.compare.saving,
+              "영향도": r.delta,
+            }));
+          } else if (chartKey && chartKey.startsWith("share-")) {
+            const scope = chartKey.replace("share-", "");
+            const label = getCompareTypeScopeLabel(scope);
+            summaryTitle = `기준 연도 구성 · ${label} 요약`;
+            const typeScopeRows = getCompareTypeScopeRows(vm, scope);
+            if (scope === "construction") sourceRows = vm.rows.filter((r) => !isCompareMaintenanceType(r.type));
+            if (scope === "maintenance") sourceRows = vm.rows.filter((r) => isCompareMaintenanceType(r.type));
+            summaryData = typeScopeRows.map((r) => ({
+              "작업유형": r.type,
+              [`${vm.baseYear}년 절감액`]: r.base.saving,
+              "구성비": `${((r.baseShareInScope || 0) * 100).toFixed(1)}%`,
+            }));
+          } else {
+            summaryTitle = "비교 상세 분석 요약";
+            summaryData = vm.typeRows.map((r) => ({
+              "작업유형": r.type,
+              [`${vm.baseYear}년`]: r.base.saving,
+              [`${vm.compareYear || "비교"}년`]: r.compare.saving,
+              "차이": r.delta,
+            }));
+          }
+
+          const chartImgUrl = await getSvgChartDataUrl(chartKey, summaryData, summaryTitle);
+
+          const rawEvidenceData = sourceRows.map((r) => ({
+            연도: formatYearShort(r.year),
+            월: r.month,
+            작업유형: r.type,
+            절감항목: String(r.detail || "").replace(/<[^>]*>?/gm, ""),
+            "A.집행비": Math.round(r.actual || 0),
+            "B.공사비 적용시": Math.round(r.estimated || 0),
+            "절감비(A-B)": Math.round(r.saving || 0),
+            비고: String(r.note || "").replace(/<[^>]*>?/gm, ""),
+          }));
+
+          const today = new Date();
+          const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
+          const cleanTitle = summaryTitle.replace(/[\\/:*?"<>|]/g, "_");
+          const filename = `${cleanTitle}_${dateStr}.xlsx`;
+
+          let exceljsSuccess = false;
+          try {
+            const ExcelJS = await ensureExcelJS();
+            const workbook = new ExcelJS.Workbook();
+            workbook.creator = "비용절감 관리시스템";
+
+            // 1. 차트 워크시트 생성
+            const sheet1 = workbook.addWorksheet("차트");
+            
+            sheet1.mergeCells("A1:G1");
+            const titleCell = sheet1.getCell("A1");
+            titleCell.value = `${summaryTitle} - 시각화 차트 및 분석 요약`;
+            titleCell.font = { name: "Malgun Gothic", size: 15, bold: true, color: { argb: "FF1E293B" } };
+            titleCell.alignment = { vertical: "middle", horizontal: "left" };
+            sheet1.getRow(1).height = 32;
+
+            let startRow = 3;
+
+            if (chartImgUrl) {
+              const base64Clean = String(chartImgUrl).replace(/^data:image\/[a-z]+;base64,/, "");
+              const imageId = workbook.addImage({
+                base64: base64Clean,
+                extension: "png",
+              });
+              sheet1.addImage(imageId, {
+                tl: { col: 0, row: 2 },
+                ext: { width: 720, height: 320 },
+              });
+              startRow = 20; // 차트 이미지 아래에 요약 데이터 배치
+            }
+
+            const summaryHeaders = summaryData.length > 0 ? Object.keys(summaryData[0]) : [];
+            if (summaryHeaders.length > 0) {
+              const headerRow = sheet1.getRow(startRow);
+              headerRow.values = summaryHeaders;
+              headerRow.font = { name: "Malgun Gothic", size: 11, bold: true, color: { argb: "FF1E293B" } };
+              headerRow.eachCell((cell) => {
+                cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDF3FA" } };
+                cell.border = {
+                  top: { style: "thin", color: { argb: "FFCBD5E1" } },
+                  bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+                  left: { style: "thin", color: { argb: "FFCBD5E1" } },
+                  right: { style: "thin", color: { argb: "FFCBD5E1" } },
+                };
+              });
+
+              summaryData.forEach((item, idx) => {
+                const rowNum = startRow + 1 + idx;
+                const rowValues = summaryHeaders.map((h) => item[h]);
+                const row = sheet1.getRow(rowNum);
+                row.values = rowValues;
+                row.eachCell((cell) => {
+                  cell.font = { name: "Malgun Gothic", size: 10 };
+                  cell.border = {
+                    top: { style: "thin", color: { argb: "FFE2E8F0" } },
+                    bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+                    left: { style: "thin", color: { argb: "FFE2E8F0" } },
+                    right: { style: "thin", color: { argb: "FFE2E8F0" } },
+                  };
+                  if (typeof cell.value === "number") {
+                    cell.numFmt = "#,##0";
+                  }
+                });
+              });
+            }
+            sheet1.columns.forEach((col) => { col.width = 18; });
+
+            // 2. 원천 증빙 데이터 워크시트 생성
+            const sheet2 = workbook.addWorksheet("원천 증빙 데이터");
+            const rawHeaders = rawEvidenceData.length > 0 ? Object.keys(rawEvidenceData[0]) : [];
+            if (rawHeaders.length > 0) {
+              const rawHeaderRow = sheet2.getRow(1);
+              rawHeaderRow.values = rawHeaders;
+              rawHeaderRow.font = { name: "Malgun Gothic", size: 11, bold: true, color: { argb: "FF1E293B" } };
+              rawHeaderRow.eachCell((cell) => {
+                cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+                cell.border = {
+                  top: { style: "thin", color: { argb: "FFCBD5E1" } },
+                  bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+                  left: { style: "thin", color: { argb: "FFCBD5E1" } },
+                  right: { style: "thin", color: { argb: "FFCBD5E1" } },
+                };
+              });
+
+              rawEvidenceData.forEach((item, idx) => {
+                const rowNum = 2 + idx;
+                const rowValues = rawHeaders.map((h) => item[h]);
+                const row = sheet2.getRow(rowNum);
+                row.values = rowValues;
+                row.eachCell((cell) => {
+                  cell.font = { name: "Malgun Gothic", size: 10 };
+                  cell.border = {
+                    top: { style: "thin", color: { argb: "FFE2E8F0" } },
+                    bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+                    left: { style: "thin", color: { argb: "FFE2E8F0" } },
+                    right: { style: "thin", color: { argb: "FFE2E8F0" } },
+                  };
+                  if (typeof cell.value === "number") {
+                    cell.numFmt = "#,##0";
+                  }
+                });
+              });
+            }
+            sheet2.columns.forEach((col) => { col.width = 16; });
+
+            // 3. 바이너리 .xlsx 저장 (Blob & <a> 태그 기반으로 file:// 및 모든 브라우저 100% 구동 보장)
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+              document.body.removeChild(link);
+              URL.revokeObjectURL(link.href);
+            }, 1000);
+            exceljsSuccess = true;
+          } catch (excelJsError) {
+            console.warn("ExcelJS unavailable, falling back to SheetJS:", excelJsError);
+          }
+
+          if (!exceljsSuccess) {
+            await ensureXlsxForWorkbookImport();
+            const wb = XLSX.utils.book_new();
+            const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+            const wsRaw = XLSX.utils.json_to_sheet(rawEvidenceData);
+            XLSX.utils.book_append_sheet(wb, wsSummary, "차트 요약");
+            XLSX.utils.book_append_sheet(wb, wsRaw, "원천 증빙 데이터");
+            XLSX.writeFile(wb, filename);
+          }
+        } catch (err) {
+          console.error("차트 엑셀 내보내기 실패:", err);
+          alert("차트 엑셀 다운로드 중 오류가 발생했습니다: " + err.message);
+        }
+      }
+
+      function exportCompareDrilldownWorkbook(mode) {
+        if (mode === "types") {
+          exportCompareChartWorkbook("type-total", "작업유형 상세 보고서");
+        } else {
+          exportCompareChartWorkbook("top-diff-construction", "절감항목 상세 보고서");
+        }
+      }
+
+      function bindCompareChartExcelExports(root) {
+        const scope = root && root.querySelectorAll ? root : document;
+        scope.querySelectorAll("[data-compare-chart-export]").forEach((button) => {
+          if (button.dataset.boundExport === "1") return;
+          button.dataset.boundExport = "1";
+          button.addEventListener("click", function (event) {
+            event.stopPropagation();
+            const key = this.getAttribute("data-compare-chart-export");
+            exportCompareChartWorkbook(key);
+          });
+        });
+      }
+
+      if (typeof window !== "undefined" && !window.__compareExcelExportDelegated) {
+        window.__compareExcelExportDelegated = true;
+        document.addEventListener("click", function (event) {
+          const chartBtn = event.target.closest("[data-compare-chart-export]");
+          if (chartBtn) {
+            event.stopPropagation();
+            const key = chartBtn.getAttribute("data-compare-chart-export");
+            exportCompareChartWorkbook(key);
+            return;
+          }
+          const drillBtn = event.target.closest("[data-compare-drilldown-export]");
+          if (drillBtn) {
+            event.stopPropagation();
+            const mode = drillBtn.getAttribute("data-compare-drilldown-export");
+            exportCompareDrilldownWorkbook(mode);
+            return;
+          }
+        }, true);
       }
 
       function getCompareTypeColor(type, index) {
@@ -13908,6 +14548,9 @@
         });
 
       const WEB_XLSX_SOURCE_URLS = [
+        "https://jonggunelee.github.io/wyggkr04/RawData/%EB%B9%84%EC%9A%A9%EC%A0%88%EA%B0%90/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90.xlsb",
+        "https://raw.githubusercontent.com/JongGunelee/wyggkr04/main/RawData/%EB%B9%84%EC%9A%A9%EC%A0%88%EA%B0%90/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90.xlsb",
+        "https://cdn.jsdelivr.net/gh/JongGunelee/wyggkr04@main/RawData/%EB%B9%84%EC%9A%A9%EC%A0%88%EA%B0%90/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90.xlsb",
         "https://jonggunelee.github.io/wyggkr04/RawData/%EB%B9%84%EC%9A%A9%EC%A0%88%EA%B0%90/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90.xlsx",
         "https://raw.githubusercontent.com/JongGunelee/wyggkr04/main/RawData/%EB%B9%84%EC%9A%A9%EC%A0%88%EA%B0%90/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90.xlsx",
         "https://cdn.jsdelivr.net/gh/JongGunelee/wyggkr04@main/RawData/%EB%B9%84%EC%9A%A9%EC%A0%88%EA%B0%90/030%20%EC%9B%94%EB%B3%84%20%EB%B9%84%EC%9A%A9%20%EC%A0%88%EA%B0%90.xlsx"
@@ -14070,9 +14713,9 @@
               월: period.month,
               작업유형: workbookCellToText(getCell(row, "작업유형")),
               절감항목: workbookCellToText(getCell(row, "절감항목")),
-              "A.집행비": workbookCellToText(getCell(row, "A.집행비")),
-              "B.공사비 적용시": workbookCellToText(getCell(row, "B.공사비 적용시")),
-              "절감비(A-B)": workbookCellToText(getCell(row, "절감비(A-B)")),
+              "A.집행비": Math.round(Number(String(workbookCellToText(getCell(row, "A.집행비"))).replace(/,/g, "")) || 0),
+              "B.공사비 적용시": Math.round(Number(String(workbookCellToText(getCell(row, "B.공사비 적용시"))).replace(/,/g, "")) || 0),
+              "절감비(A-B)": Math.round(Number(String(workbookCellToText(getCell(row, "절감비(A-B)"))).replace(/,/g, "")) || 0),
               비고: workbookCellToText(getCell(row, "비고")),
             };
           })
@@ -14214,7 +14857,7 @@
           uploadButton.addEventListener("click", () => {
             const input = document.createElement("input");
             input.type = "file";
-            input.accept = ".xlsx,.xls";
+            input.accept = ".xlsx,.xls,.xlsb";
             input.onchange = async (event) => {
               const file = event.target.files && event.target.files[0];
               if (!file) return;
