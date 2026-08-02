@@ -4586,6 +4586,7 @@
           padding: 0 var(--page-gutter) 18px;
           margin-top: 0;
           max-width: 100%;
+          background: #f0f2f5;
         }
 
         #chart {
@@ -4617,13 +4618,48 @@
           overflow: visible !important;
           padding: 0;
           margin: 0;
-          background: transparent;
+          background: #f0f2f5;
           box-shadow: none;
           border-radius: 0;
         }
 
         #table-container.detail-table-mode {
           border-top: 0;
+          position: relative;
+          isolation: isolate;
+          background: #f0f2f5;
+          --mobile-scroll-curtain: #f0f2f5;
+        }
+
+        #table-container.detail-table-mode::before {
+          content: "";
+          position: sticky;
+          top: calc(var(--mobile-total-top, 310px) - 12px);
+          display: block;
+          height: 12px;
+          margin-bottom: -12px;
+          background: var(--mobile-scroll-curtain);
+          z-index: 54;
+          pointer-events: none;
+        }
+
+        #table-container.detail-table-mode::after {
+          content: "";
+          position: fixed;
+          left: 0;
+          right: 0;
+          top: 0;
+          height: 100dvh;
+          background:
+            linear-gradient(
+              180deg,
+              #f0f2f5 0,
+              #f0f2f5 var(--mobile-total-top, 310px),
+              transparent var(--mobile-total-top, 310px),
+              transparent 100%
+            );
+          z-index: 52;
+          pointer-events: none;
         }
 
         .analysis-summary {
@@ -4681,6 +4717,13 @@
           border-collapse: separate;
           border-spacing: 0;
           margin-bottom: 12px;
+          position: relative;
+          z-index: 1;
+          background: #f0f2f5;
+        }
+
+        #table-container.detail-table-mode tbody {
+          background: #f0f2f5;
         }
 
         #table-container.detail-table-mode thead {
@@ -4694,6 +4737,8 @@
           overflow: hidden;
           background: #ffffff;
           box-shadow: 0 2px 7px rgba(32, 42, 68, 0.08);
+          position: relative;
+          z-index: 1;
         }
 
         #table-container.detail-table-mode tbody tr.subtotal {
@@ -4735,9 +4780,11 @@
         #table-container.detail-table-mode .sticky-total-row {
           position: sticky;
           top: var(--mobile-total-top, 310px);
-          z-index: 55;
+          z-index: 56;
           border-color: #ffcdd2;
-          box-shadow: 0 6px 14px rgba(198, 40, 40, 0.16);
+          box-shadow:
+            0 -12px 0 #f0f2f5,
+            0 6px 14px rgba(198, 40, 40, 0.16);
         }
 
         #table-container.detail-table-mode .sticky-total-row td {

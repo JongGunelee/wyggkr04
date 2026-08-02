@@ -9711,10 +9711,6 @@ function hideTextFormatToolbar() {
                 }
             } else if (currentStroke && currentStroke.points.length > 0) {
                 currentStroke.points.push(pos);
-                activeCtx.moveTo(currentStroke.points[0].x, currentStroke.points[0].y);
-                for (let i = 1; i < currentStroke.points.length; i++) {
-                    activeCtx.lineTo(currentStroke.points[i].x, currentStroke.points[i].y);
-                }
                 newStroke = { ...currentStroke };
             }
 
@@ -9723,7 +9719,9 @@ function hideTextFormatToolbar() {
                 newStroke.lineWidth = drawingSettings.tool === 'highlighter' ? drawingSettings.highlighterLineWidth : drawingSettings.penLineWidth;
                 newStroke.opacity = drawingSettings.tool === 'highlighter' ? (1.0 - parseFloat(drawingSettings.highlighterOpacity)) : 1.0;
                 getActiveStrokes().push(newStroke);
-                activeCtx.stroke();
+                if (['orthoLine', 'circle', 'ellipse'].includes(drawingSettings.tool) || isShiftKeyDown) {
+                    activeCtx.stroke();
+                }
             }
 
             isDrawingAnnotation = false;
@@ -9808,7 +9806,7 @@ function hideTextFormatToolbar() {
         }
 
         function toggleAnnotationSettingsPanel() {
-            if (!isDrawingFeatureActive) {
+            if (!isDrawingFeatureActive && !isAnnotationPanelOpen) {
                 showMessage("주석 그리기를 먼저 켜주세요 (👁️ 아이콘).", "warning"); return;
             }
             isAnnotationPanelOpen = !isAnnotationPanelOpen;
@@ -10212,10 +10210,21 @@ function hideTextFormatToolbar() {
                 }
             });
 
+            const handleCanvasContextMenu = (e) => {
+                if (isDrawingFeatureActive) {
+                    e.preventDefault();
+                    if (drawingSettings.tool === 'eraser') {
+                        const pos = getAnnotationMousePos(e);
+                        eraseStrokeAtPoint(pos);
+                    }
+                }
+            };
+
             annotationCanvas.addEventListener('mousedown', startAnnotationDrawing);
             annotationCanvas.addEventListener('mousemove', drawAnnotation);
             annotationCanvas.addEventListener('mouseup', stopAnnotationDrawing);
             annotationCanvas.addEventListener('mouseout', (e) => { if (isDrawingAnnotation) stopAnnotationDrawing(e); });
+            annotationCanvas.addEventListener('contextmenu', handleCanvasContextMenu);
             annotationCanvas.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { e.preventDefault(); startAnnotationDrawing(e.touches[0]); } }, { passive: false });
             annotationCanvas.addEventListener('touchmove', (e) => { if (e.touches.length === 1) { e.preventDefault(); drawAnnotation(e.touches[0]); } }, { passive: false });
             annotationCanvas.addEventListener('touchend', (e) => { if (e.changedTouches.length === 1) { e.preventDefault(); stopAnnotationDrawing(e.changedTouches[0]); } });
@@ -10231,6 +10240,7 @@ function hideTextFormatToolbar() {
                 zoomAnnotationCanvas.addEventListener('mousemove', drawAnnotation);
                 zoomAnnotationCanvas.addEventListener('mouseup', stopAnnotationDrawing);
                 zoomAnnotationCanvas.addEventListener('mouseout', (e) => { if (isDrawingAnnotation) stopAnnotationDrawing(e); });
+                zoomAnnotationCanvas.addEventListener('contextmenu', handleCanvasContextMenu);
                 zoomAnnotationCanvas.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { e.preventDefault(); startAnnotationDrawing(e.touches[0]); } }, { passive: false });
                 zoomAnnotationCanvas.addEventListener('touchmove', (e) => { if (e.touches.length === 1) { e.preventDefault(); drawAnnotation(e.touches[0]); } }, { passive: false });
                 zoomAnnotationCanvas.addEventListener('touchend', (e) => { if (e.changedTouches.length === 1) { e.preventDefault(); stopAnnotationDrawing(e.changedTouches[0]); } });
@@ -12541,13 +12551,14 @@ function ensureImageWrapperStructure(wrapper) {
             if (isDrawingFeatureActive) {
                 toggleDrawingFeature();
             }
+            isAnnotationPanelOpen = false;
             const annoPanel = document.getElementById('annotationSettingsPanel');
             if (annoPanel) {
                 annoPanel.style.display = 'none';
-                if (typeof isAnnotationPanelOpen !== 'undefined') isAnnotationPanelOpen = false;
             }
             const annoToggleBtn = document.getElementById('annotationSettingsToggleBtn');
             if (annoToggleBtn) annoToggleBtn.classList.remove('active');
+            if (menuAnnoSettingsPanelToggle) menuAnnoSettingsPanelToggle.classList.remove('active');
 
             if (overlay) {
                 overlay.style.display = 'none';
