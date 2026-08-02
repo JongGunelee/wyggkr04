@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>월별 비용 절감 대시보드</title>
     <script src="https://d3js.org/d3.v6.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
       :root {
         --page-gutter: clamp(12px, 1.15vw, 22px);
@@ -427,6 +428,7 @@
         font-size: clamp(12px, 0.74vw, 14.3px);
         overflow-y: auto;
         overflow-x: hidden;
+        overscroll-behavior-y: contain;
         scrollbar-gutter: stable;
         position: relative;
         box-sizing: border-box;
@@ -1115,6 +1117,20 @@
         position: sticky;
         top: 0;
         z-index: 8;
+      }
+
+      #table-container.detail-table-mode {
+        --detail-table-frame-gap: clamp(10px, 0.9vw, 16.5px);
+        overscroll-behavior-y: contain;
+        padding-top: 0;
+        border-top: var(--detail-table-frame-gap) solid #ffffff;
+        isolation: isolate;
+      }
+
+      /* 상단 여백을 실제 border clip 영역으로 만들어 상세 행이 헤더 밖에 그려지지 않게 한다. */
+      #table-container.detail-table-mode::before {
+        content: none;
+        display: none;
       }
 
       #table-container.detail-table-mode .sticky-total-row td {
@@ -3357,7 +3373,7 @@
 
       .compare-drilldown-xls {
         position: relative;
-        min-width: 36px;
+        min-width: 62px;
         height: 28px;
         border: 1px solid #c6d7ee;
         border-radius: 7px;
@@ -4093,7 +4109,7 @@
         height: auto !important;
       }
 
-      #table-container:has(.zoomed-cell) {
+      #table-container:not(.detail-table-mode):has(.zoomed-cell) {
         overflow: visible !important;
       }
 
@@ -4606,6 +4622,10 @@
           border-radius: 0;
         }
 
+        #table-container.detail-table-mode {
+          border-top: 0;
+        }
+
         .analysis-summary {
           height: auto;
           overflow: visible;
@@ -5101,7 +5121,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 34px;
+        min-width: 62px;
         height: 24px;
         padding: 0 7px;
         border: 1px solid #c8d3e1;
@@ -5599,16 +5619,19 @@
       (function addExcelExportNextToMenu() {
         const hyperBtn = document.getElementById("download-link-btn");
         if (!hyperBtn || !hyperBtn.parentNode) return;
-        const btn = document.createElement("button");
-        btn.id = "xls-export-btn";
-        btn.textContent = "xls↑";
-        btn.className = "control-btn";
-        btn.setAttribute("data-tooltip", "엑셀 추출");
-        // style to match menu sizing
-        btn.style.minWidth = "58px";
-        btn.style.padding = "6px 8px";
-        btn.style.marginLeft = "6px";
-        hyperBtn.parentNode.insertBefore(btn, hyperBtn.nextSibling);
+        let btn = document.getElementById("xls-export-btn");
+        if (!btn) {
+          btn = document.createElement("button");
+          btn.id = "xls-export-btn";
+          btn.textContent = "📊 xls↑";
+          btn.className = "control-btn";
+          btn.setAttribute("data-tooltip", "현재 화면과 연동되는 네이티브 엑셀 차트 추출");
+          // style to match menu sizing
+          btn.style.minWidth = "76px";
+          btn.style.padding = "6px 8px";
+          btn.style.marginLeft = "6px";
+          hyperBtn.parentNode.insertBefore(btn, hyperBtn.nextSibling);
+        }
 
         // load SheetJS if not already
         if (typeof XLSX === "undefined") {
@@ -5664,6 +5687,25 @@
         const script = document.createElement("script");
         script.src = "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js";
         script.dataset.exceljsExportLoader = "1";
+        script.onload = callback;
+        script.onerror = fallback;
+        document.head.appendChild(script);
+      }
+
+      function ensureJsZipForChartExport(callback, fallback) {
+        if (typeof JSZip !== "undefined") {
+          callback();
+          return;
+        }
+        const existing = document.querySelector("script[data-jszip-export-loader]");
+        if (existing) {
+          existing.addEventListener("load", callback, { once: true });
+          existing.addEventListener("error", fallback, { once: true });
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+        script.dataset.jszipExportLoader = "1";
         script.onload = callback;
         script.onerror = fallback;
         document.head.appendChild(script);
@@ -5832,6 +5874,20 @@
         };
       }
 
+      function buildCompareTypeShareExportRows(rows, title = "기준 연도 구성") {
+        return (rows || [])
+          .filter((row) => Math.abs(getCompareNumber(row?.base?.saving)) > 0)
+          .slice(0, 6)
+          .map((row) => ({
+            차트: title,
+            작업유형: row.type,
+            기준연도절감: row.base?.saving ?? "",
+            기준연도건수: row.base?.count ?? "",
+            차이: row.delta,
+            색상: row.color || "",
+          }));
+      }
+
       function appendCompareSheets(wb, vm, prefix = "비교") {
         if (!vm) return;
         appendRowsSheet(wb, `${prefix} 월별 전체`, (vm.monthlyRows || []).map((row) => ({
@@ -5920,13 +5976,7 @@
             : id.includes("maintenance")
               ? vm.typeMaintenanceRows
               : vm.typeRows;
-          return (rows || []).map((row) => ({
-            차트: title,
-            작업유형: row.type,
-            기준연도절감: row.base?.saving ?? "",
-            기준연도건수: row.base?.count ?? "",
-            차이: row.delta,
-          }));
+          return buildCompareTypeShareExportRows(rows, title);
         }
         return buildTypeExportRows(getDashboardFilteredRowsForExport()).map((row) => ({
           차트: title,
@@ -5937,10 +5987,26 @@
       function getChartExportPayload(target) {
         const charts = getVisibleChartNodes(target).map((svg, index) => ({
           svg,
+          id: svg.id || `chart-${index + 1}`,
           title: getChartTitle(svg),
           rows: getLinkedRowsForChart(svg, compareCurrentViewModel),
           index: index + 1,
         }));
+        if (
+          !charts.length &&
+          (target?.classList?.contains("compare-panel") || target?.classList?.contains("compare-diff-segment"))
+        ) {
+          const title =
+            target.querySelector("h3, .compare-diff-segment-title")?.textContent?.trim() || "비교 차트";
+          charts.push({
+            svg: null,
+            id: `panel-${title}`,
+            title,
+            rows: getPanelExportRows(target, compareCurrentViewModel),
+            index: 1,
+            sourcePanel: target,
+          });
+        }
         return {
           charts,
           linkedRows: charts.flatMap((chart) => chart.rows || []),
@@ -5986,6 +6052,56 @@
             reject(error);
           }
         });
+      }
+
+      function ensureHtml2CanvasForExport() {
+        if (typeof html2canvas === "function") return Promise.resolve(html2canvas);
+        return new Promise((resolve, reject) => {
+          const existing = document.querySelector("script[data-html2canvas-export-loader]");
+          if (existing) {
+            existing.addEventListener("load", () => resolve(window.html2canvas), { once: true });
+            existing.addEventListener("error", reject, { once: true });
+            return;
+          }
+          const script = document.createElement("script");
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+          script.dataset.html2canvasExportLoader = "1";
+          script.onload = () => resolve(window.html2canvas);
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      async function domElementToPngDataUrl(element) {
+        if (!element) throw new Error("화면 기준본 요소가 없습니다.");
+        const renderer = await ensureHtml2CanvasForExport();
+        const hiddenButtons = Array.from(
+          element.querySelectorAll("[data-compare-chart-export], .excel-export-btn"),
+        ).map((button) => ({ button, visibility: button.style.visibility }));
+        hiddenButtons.forEach(({ button }) => {
+          button.style.visibility = "hidden";
+        });
+        try {
+          const canvas = await renderer(element, {
+            backgroundColor: "#ffffff",
+            scale: 2,
+            useCORS: true,
+            allowTaint: false,
+            logging: false,
+            imageTimeout: 5000,
+            scrollX: 0,
+            scrollY: 0,
+          });
+          return {
+            dataUrl: canvas.toDataURL("image/png"),
+            width: Math.max(1, Math.round(canvas.width / 2)),
+            height: Math.max(1, Math.round(canvas.height / 2)),
+          };
+        } finally {
+          hiddenButtons.forEach(({ button, visibility }) => {
+            button.style.visibility = visibility;
+          });
+        }
       }
 
       function addExcelJsRowsSheet(workbook, name, rows) {
@@ -6215,12 +6331,1621 @@
         }, () => alert("엑셀 생성 라이브러리를 불러오지 못했습니다. 네트워크 연결을 확인해 주세요."));
       }
 
+      function getNativeChartNumber(value) {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+      }
+
+      function getNativeChartLabel(row, index) {
+        const scope = row?.범위 ? String(row.범위) + " " : "";
+        return (
+          row?.구분 ||
+          row?.작업유형 ||
+          row?.절감항목 ||
+          row?.항목 ||
+          (row?.월 ? scope + String(row.월) : "") ||
+          row?.label ||
+          "항목 " + (index + 1)
+        );
+      }
+
+      function buildNativeCenterLabelFormula(cellReference) {
+        const ref = String(cellReference || "D5");
+        const absolute = "ABS(" + ref + ")";
+        const sign = 'IF(' + ref + '<0,"-","")';
+        return (
+          'IF(' + ref + '=0,"0",' + sign + '&IF(' + absolute + '>=1000000000,' +
+          'TEXT(ROUND(' + absolute + '/1000000000,2),"#,##0.##")&"십억",IF(' +
+          absolute + '>=100000000,TEXT(ROUND(' + absolute + '/100000000,2),"#,##0.##")&"억",IF(' +
+          absolute + '>=1000000,TEXT(ROUND(' + absolute + '/1000000,2),"#,##0.##")&"백만",IF(' +
+          absolute + '>=1000,TEXT(ROUND(' + absolute + '/1000,2),"#,##0.##")&"천",' +
+          'TEXT(ROUND(' + absolute + ',0),"#,##0"))))))'
+        );
+      }
+
+      function buildNativeChartModel(chart, vm) {
+        const title = chart?.title || "비교 차트";
+        const id = chart?.id || "";
+        const rows = Array.isArray(chart?.rows) ? chart.rows : [];
+        const baseName = (vm?.baseYear || "기준") + "년";
+        const compareName = (vm?.compareYear || "비교") + "년";
+        const palette = ["2F80ED", "F2994A", "27AE60", "EB5757", "9B51E0", "56CCF2", "6FCF97", "BB6BD9"];
+
+        if (id === "compare-total-bridge-chart" || title.includes("총괄 브릿지")) {
+          const categories = rows.map((row, index) => String(row.구분 || getNativeChartLabel(row, index)));
+          const values = rows.map((row) => getNativeChartNumber(row.값));
+          const chartValues = values.map((value) => value / 1000000);
+          const chartLabels = values.map((value) => formatComparePlain(value));
+          const maxAbs = Math.max(1, ...values.map((value) => Math.abs(value)));
+          const bridgeMajorUnit = maxAbs >= 50000000 ? 50000000 : maxAbs >= 10000000 ? 10000000 : 1000000;
+          const bridgeAxisLimit = Math.max(bridgeMajorUnit * 2, Math.ceil(maxAbs / bridgeMajorUnit) * bridgeMajorUnit);
+          return {
+            title,
+            type: "column",
+            categories,
+            columns: [
+              { name: "구분", values: categories, editable: false },
+              { name: "절감액", values, editable: true },
+              {
+                name: "차트값(백만)",
+                values: chartValues,
+                formula: (rowNumber) => "B" + rowNumber + "/1000000",
+              },
+              {
+                name: "표시 라벨",
+                values: chartLabels,
+                formula: (rowNumber) => buildNativeCenterLabelFormula("B" + rowNumber),
+              },
+            ],
+            series: [
+              {
+                name: "절감액",
+                col: 3,
+                chartType: "bar",
+                color: "2F80ED",
+                pointColors: ["F2994A", "2F80ED", values[2] < 0 ? "27AE60" : "EB5757"],
+                dataLabelCol: 4,
+              },
+            ],
+            showLegend: false,
+            showValues: true,
+            categoryLabelPosition: "low",
+            valueAxisNumberFormat: "0백만;[Red]-0백만;-",
+            dataLabelNumberFormat: "0.00백만;[Red]-0.00백만;-",
+            barGapWidth: 260,
+            valueAxisMin: -bridgeAxisLimit / 1000000,
+            valueAxisMax: bridgeAxisLimit / 1000000,
+            valueAxisMajorUnit: bridgeAxisLimit / 2000000,
+            chartStyle: 2,
+          };
+        }
+
+        if (title.includes("월별 차이 히트맵")) {
+          const categories = rows.map((row, index) =>
+            String(row.월 ? (row.범위 ? row.범위 + " " : "") + row.월 : getNativeChartLabel(row, index)),
+          );
+          const baseValues = rows.map((row) => getNativeChartNumber(row.기준연도 ?? row.base));
+          const compareValues = rows.map((row) => getNativeChartNumber(row.비교연도 ?? row.compare));
+          const deltaValues = baseValues.map((value, index) => value - compareValues[index]);
+          return {
+            title,
+            type: "heatmap",
+            visualKind: "linked-heatmap",
+            categories,
+            columns: [
+              { name: "범위·월", values: categories, editable: false },
+              { name: baseName, values: baseValues, editable: true },
+              { name: compareName, values: compareValues, editable: true },
+              {
+                name: "차이",
+                values: deltaValues,
+                formula: (rowNumber) => "B" + rowNumber + "-C" + rowNumber,
+              },
+            ],
+            series: [],
+            showLegend: false,
+            showValues: true,
+          };
+        }
+
+        if (id.includes("monthly-chart") || title.includes("월별 절감 흐름")) {
+          const categories = rows.map((row, index) =>
+            String(row.월 ? (row.범위 ? row.범위 + " " : "") + row.월 : getNativeChartLabel(row, index)),
+          );
+          const baseValues = rows.map((row) => getNativeChartNumber(row.기준연도 ?? row.base));
+          const compareValues = rows.map((row) => getNativeChartNumber(row.비교연도 ?? row.compare));
+          const deltaValues = baseValues.map((value, index) => value - compareValues[index]);
+          return {
+            title,
+            type: "combo",
+            categories,
+            columns: [
+              { name: "월", values: categories, editable: false },
+              { name: baseName, values: baseValues, editable: true },
+              { name: compareName, values: compareValues, editable: true },
+              {
+                name: "차이",
+                values: deltaValues,
+                formula: (rowNumber) => "B" + rowNumber + "-C" + rowNumber,
+              },
+              {
+                name: "절감 확대",
+                values: deltaValues.map((value) => (value < 0 ? value : null)),
+                formula: (rowNumber) => "IF(D" + rowNumber + "<0,D" + rowNumber + ",\"\")",
+              },
+              {
+                name: "절감 축소",
+                values: deltaValues.map((value) => (value > 0 ? value : null)),
+                formula: (rowNumber) => "IF(D" + rowNumber + ">0,D" + rowNumber + ",\"\")",
+              },
+            ],
+            series: [
+              { name: "절감 확대", col: 5, chartType: "bar", color: "27AE60", fillAlpha: 30000 },
+              { name: "절감 축소", col: 6, chartType: "bar", color: "EB5757", fillAlpha: 30000 },
+              { name: baseName, col: 2, chartType: "line", color: "2F80ED" },
+              ...(vm?.compareYear ? [{ name: compareName, col: 3, chartType: "line", color: "F2994A", dashed: true }] : []),
+            ],
+            showLegend: true,
+            showValues: false,
+            hiddenLegendSeries: [0, 1],
+            legendPosition: "t",
+            legendFontSize: 1000,
+            legendBold: true,
+            categoryLabelPosition: "low",
+            valueAxisNumberFormat: '0,,백만;-0,,백만;-',
+            barGapWidth: 100,
+          };
+        }
+
+        if (id.includes("type-share") || title.includes("기준 연도 구성")) {
+          const categories = rows.map((row, index) => String(row.작업유형 || getNativeChartLabel(row, index)));
+          const signedValues = rows.map((row) => getNativeChartNumber(row.기준연도절감 ?? row.기준연도));
+          const chartValues = signedValues.map((value) => Math.abs(value));
+          const centerValue = signedValues.reduce((sum, value) => sum + value, 0);
+          const centerText = formatComparePlain(centerValue);
+          const pointColors = rows.map((row, index) => {
+            const color = String(row?.색상 || row?.color || palette[index % palette.length])
+              .replace("#", "")
+              .toUpperCase();
+            return /^[0-9A-F]{6}$/.test(color) ? color : palette[index % palette.length];
+          });
+          return {
+            title,
+            type: "doughnut",
+            categories,
+            columns: [
+              { name: "작업유형", values: categories, editable: false },
+              { name: baseName + " 절감액", values: signedValues, editable: true },
+              {
+                name: "구성 차트값",
+                values: chartValues,
+                formula: (rowNumber) => "ABS(B" + rowNumber + ")",
+              },
+              {
+                name: "총 절감",
+                values: signedValues.map((_value, index) => (index === 0 ? centerValue : null)),
+                formula: (_rowNumber, rowIndex, dataStartRow, dataEndRow) =>
+                  rowIndex === 0 ? "SUM(B" + dataStartRow + ":B" + dataEndRow + ")" : null,
+              },
+              {
+                name: "중앙 라벨",
+                values: signedValues.map((_value, index) => (index === 0 ? centerText : null)),
+                formula: (rowNumber, rowIndex) =>
+                  rowIndex === 0 ? buildNativeCenterLabelFormula("D" + rowNumber) : null,
+              },
+            ],
+            series: [
+              {
+                name: baseName + " 구성",
+                col: 3,
+                chartType: "doughnut",
+                color: "2F80ED",
+                pointColors,
+              },
+            ],
+            centerLabel: {
+              valueCol: 5,
+              valueText: centerText,
+              label: "총 절감",
+            },
+            showLegend: true,
+            showValues: false,
+          };
+        }
+
+        if (id.includes("type-chart") || title.includes("작업 유형별 거리") || title.includes("성격별 차이")) {
+          const categories = rows.map((row, index) => String(row.작업유형 || row.구분 || getNativeChartLabel(row, index)));
+          const baseValues = rows.map((row) => getNativeChartNumber(row.기준연도));
+          const compareValues = rows.map((row) => getNativeChartNumber(row.비교연도));
+          const positions = categories.map((_value, index) => categories.length - index);
+          const visibleValues = [...baseValues, ...(vm?.compareYear ? compareValues : [])];
+          const minimum = Math.min(0, ...visibleValues);
+          const maximum = Math.max(0, ...visibleValues);
+          const maxAbs = Math.max(1, Math.abs(minimum), Math.abs(maximum));
+          const axisMajorUnit = maxAbs >= 10000000 ? 10000000 : maxAbs >= 1000000 ? 1000000 : 100000;
+          const axisLimit = Math.max(axisMajorUnit * 2, Math.ceil(maxAbs / axisMajorUnit) * axisMajorUnit);
+          const labelPosition = -axisLimit * 1.18;
+          return {
+            title,
+            type: "dumbbell",
+            visualKind: "linked-dumbbell",
+            categories,
+            columns: [
+              { name: "구분", values: categories, editable: false },
+              { name: baseName, values: baseValues, editable: true },
+              { name: compareName, values: compareValues, editable: true },
+              {
+                name: "차이",
+                values: baseValues.map((value, index) => value - compareValues[index]),
+                formula: (rowNumber) => "B" + rowNumber + "-C" + rowNumber,
+              },
+              { name: "표시 위치", values: positions, editable: false },
+              { name: "연결 위치 1", values: positions, editable: false },
+              { name: "연결 위치 2", values: positions, editable: false },
+              { name: "레이블 위치", values: positions.map(() => labelPosition), editable: false },
+            ],
+            series: [
+              { name: baseName, xCol: 2, yCol: 5, chartType: "scatterMarker", color: "2F80ED" },
+              ...(vm?.compareYear
+                ? [{ name: compareName, xCol: 3, yCol: 5, chartType: "scatterMarker", color: "F2994A" }]
+                : []),
+              { name: "구분", xCol: 8, yCol: 5, chartType: "scatterLabel", color: "FFFFFF", labels: categories },
+            ],
+            showLegend: true,
+            showValues: false,
+            legendPosition: "t",
+            legendFontSize: 1000,
+            legendBold: true,
+            xAxisNumberFormat: '0,,백만;[Red]-0,,백만;-',
+            xAxisMin: -axisLimit * 1.42,
+            xAxisMax: axisLimit,
+            xAxisMajorUnit: axisMajorUnit,
+          };
+        }
+
+        const rankedPanelTitles = ["변동 큰 월", "영향도 순위", "상위 차이"];
+        const isRankedPanel =
+          rankedPanelTitles.some((keyword) => title.includes(keyword)) ||
+          chart?.sourcePanel?.classList?.contains("compare-diff-segment");
+        if (isRankedPanel) {
+          const categories = rows.map((row, index) =>
+            String(
+              row?.월 ||
+              row?.작업유형 ||
+              row?.절감항목 ||
+              row?.구분 ||
+              getNativeChartLabel(row, index),
+            ),
+          );
+          const baseValues = rows.map((row) => getNativeChartNumber(row.기준연도 ?? row.base));
+          const compareValues = rows.map((row) => getNativeChartNumber(row.비교연도 ?? row.compare));
+          const deltaValues = rows.map((row, index) => {
+            const explicit = row.차이 ?? row.delta;
+            return explicit === "" || explicit === undefined
+              ? baseValues[index] - compareValues[index]
+              : getNativeChartNumber(explicit);
+          });
+          const scopeValues = rows.map((row) => String(row.범위 || ""));
+          const scopeDescriptions = rows.map((row) => String(row.범위설명 || ""));
+          const scaleMaximums = rows.map((row) => Math.max(0, getNativeChartNumber(row.척도기준)));
+          return {
+            title,
+            type: "rankedBars",
+            visualKind: "linked-ranked-bars",
+            categories,
+            columns: [
+              { name: "구분", values: categories, editable: false },
+              { name: baseName, values: baseValues, editable: true },
+              { name: compareName, values: compareValues, editable: true },
+              {
+                name: "차이",
+                values: deltaValues,
+                formula: (rowNumber) => "B" + rowNumber + "-C" + rowNumber,
+              },
+              {
+                name: "상태",
+                values: deltaValues.map((value) => value < 0 ? "절감 확대" : value > 0 ? "절감 축소" : "변동 없음"),
+                formula: (rowNumber) =>
+                  'IF(D' + rowNumber + '<0,"절감 확대",IF(D' + rowNumber + '>0,"절감 축소","변동 없음"))',
+              },
+              {
+                name: "절대차이",
+                values: deltaValues.map((value) => Math.abs(value)),
+                formula: (rowNumber) => "ABS(D" + rowNumber + ")",
+              },
+              { name: "범위", values: scopeValues, editable: false },
+              { name: "범위설명", values: scopeDescriptions, editable: false },
+              { name: "척도기준", values: scaleMaximums, editable: false },
+            ],
+            series: [],
+            showLegend: false,
+            showValues: true,
+          };
+        }
+
+        const categories = rows.map((row, index) => String(getNativeChartLabel(row, index)));
+        const baseValues = rows.map((row) => getNativeChartNumber(row.기준연도 ?? row.base));
+        const compareValues = rows.map((row) => getNativeChartNumber(row.비교연도 ?? row.compare));
+        const rawDelta = rows.map((row, index) => {
+          const explicit = row.차이 ?? row.delta;
+          return explicit === "" || explicit === undefined
+            ? baseValues[index] - compareValues[index]
+            : getNativeChartNumber(explicit);
+        });
+        return {
+          title,
+          type: "bar",
+          categories,
+          columns: [
+            { name: "구분", values: categories, editable: false },
+            { name: baseName, values: baseValues, editable: true },
+            { name: compareName, values: compareValues, editable: true },
+            {
+              name: "차이",
+              values: rawDelta,
+              formula: (rowNumber) => "B" + rowNumber + "-C" + rowNumber,
+            },
+            {
+              name: "절감 확대",
+              values: rawDelta.map((value) => (value < 0 ? value : null)),
+              formula: (rowNumber) => "IF(D" + rowNumber + "<0,D" + rowNumber + ",\"\")",
+            },
+            {
+              name: "절감 축소",
+              values: rawDelta.map((value) => (value > 0 ? value : null)),
+              formula: (rowNumber) => "IF(D" + rowNumber + ">0,D" + rowNumber + ",\"\")",
+            },
+          ],
+          series: [
+            { name: "절감 확대", col: 5, chartType: "bar", color: "27AE60" },
+            { name: "절감 축소", col: 6, chartType: "bar", color: "EB5757" },
+          ],
+          showLegend: true,
+          showValues: true,
+        };
+      }
+
+      function addNativeChartDataWorksheet(workbook, charts, vm) {
+        const worksheet = workbook.addWorksheet("차트 연계 데이터");
+        worksheet.properties.showGridLines = false;
+        worksheet.views = [{ state: "frozen", ySplit: 1 }];
+        worksheet.getCell("A1").value =
+          "노란색 입력 셀을 수정하면 파란색 수식 셀과 차트 워크시트의 편집 연동 시각화가 자동 갱신됩니다.";
+        worksheet.getCell("A1").font = { bold: true, color: { argb: "FF0F4C81" } };
+        worksheet.getCell("A1").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8F2FF" } };
+        let rowCursor = 3;
+        const chartSpecs = [];
+        charts.forEach((chart, chartIndex) => {
+          const model = buildNativeChartModel(chart, vm);
+          const columnCount = Math.max(2, model.columns.length);
+          worksheet.mergeCells(rowCursor, 1, rowCursor, columnCount);
+          worksheet.getCell(rowCursor, 1).value = (chartIndex + 1) + ". " + model.title;
+          worksheet.getCell(rowCursor, 1).font = { bold: true, size: 14, color: { argb: "FF102A43" } };
+          worksheet.getCell(rowCursor, 1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCEBFA" } };
+          const headerRow = rowCursor + 1;
+          const dataStartRow = rowCursor + 2;
+          const rowCount = Math.max(1, model.categories.length);
+          const dataEndRow = dataStartRow + rowCount - 1;
+          model.columns.forEach((column, columnIndex) => {
+            const colNumber = columnIndex + 1;
+            const headerCell = worksheet.getCell(headerRow, colNumber);
+            headerCell.value = column.name;
+            headerCell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+            headerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF24476B" } };
+            headerCell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+            for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+              const rowNumber = dataStartRow + rowIndex;
+              const cell = worksheet.getCell(rowNumber, colNumber);
+              const sourceValue = column.values[rowIndex];
+              const currentValue =
+                sourceValue !== undefined ? sourceValue : columnIndex === 0 ? "데이터 없음" : null;
+              if (typeof column.formula === "function") {
+                const formula = column.formula(rowNumber, rowIndex, dataStartRow, dataEndRow);
+                const result =
+                  typeof currentValue === "number"
+                    ? (Number.isFinite(currentValue) ? currentValue : 0)
+                    : currentValue ?? "";
+                cell.value = formula ? { formula, result } : currentValue;
+                cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEAF3FA" } };
+                cell.protection = { locked: true };
+              } else {
+                cell.value = currentValue;
+                if (column.editable) {
+                  cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF4CC" } };
+                }
+              }
+              cell.alignment = {
+                vertical: "middle",
+                horizontal: columnIndex === 0 ? "left" : "right",
+                wrapText: columnIndex === 0,
+              };
+              if (typeof currentValue === "number") cell.numFmt = '#,##0;[Red]-#,##0;"-"';
+              cell.border = { bottom: { style: "thin", color: { argb: "FFE1E8F0" } } };
+            }
+          });
+          const categories = model.categories.length ? model.categories : ["데이터 없음"];
+          chartSpecs.push({
+            title: model.title,
+            type: model.type,
+            visualKind: model.visualKind || "native-chart",
+            sheetName: worksheet.name,
+            categoryCol: 1,
+            categoryValues: categories,
+            seriesNames: [model.columns[1]?.name || "기준 연도", model.columns[2]?.name || "비교 연도"],
+            headerRow,
+            dataStartRow,
+            dataEndRow,
+            columnValues: model.columns.map((column) => column.values || []),
+            series: model.series.map((series) => ({
+              ...series,
+              values: series.col ? model.columns[series.col - 1]?.values || [] : [],
+              xValues: series.xCol ? model.columns[series.xCol - 1]?.values || [] : [],
+              yValues: series.yCol ? model.columns[series.yCol - 1]?.values || [] : [],
+              dataLabelValues: series.dataLabelCol ? model.columns[series.dataLabelCol - 1]?.values || [] : [],
+            })),
+            showLegend: model.showLegend,
+            showValues: model.showValues,
+            hiddenLegendSeries: model.hiddenLegendSeries || [],
+            legendPosition: model.legendPosition || "b",
+            legendFontSize: model.legendFontSize || 900,
+            legendBold: model.legendBold === true,
+            categoryLabelPosition: model.categoryLabelPosition || "",
+            valueAxisNumberFormat: model.valueAxisNumberFormat || "",
+            dataLabelNumberFormat: model.dataLabelNumberFormat || "",
+            barGapWidth: model.barGapWidth || null,
+            chartStyle: model.chartStyle || null,
+            valueAxisMin: model.valueAxisMin ?? null,
+            valueAxisMax: model.valueAxisMax ?? null,
+            valueAxisMajorUnit: model.valueAxisMajorUnit ?? null,
+            xAxisNumberFormat: model.xAxisNumberFormat || "",
+            xAxisMin: model.xAxisMin ?? null,
+            xAxisMax: model.xAxisMax ?? null,
+            xAxisMajorUnit: model.xAxisMajorUnit ?? null,
+            centerLabel: model.centerLabel
+              ? {
+                  ...model.centerLabel,
+                  cellReference:
+                    "$" + excelColumnName(model.centerLabel.valueCol) + "$" + dataStartRow,
+                }
+              : null,
+          });
+          rowCursor = dataEndRow + 3;
+        });
+        worksheet.columns = [
+          { width: 30 },
+          { width: 18 },
+          { width: 18 },
+          { width: 18 },
+          { width: 18 },
+          { width: 18 },
+          { width: 18 },
+          { width: 18 },
+          { width: 32 },
+          { width: 18 },
+        ];
+        return chartSpecs;
+      }
+
+      function blendExcelHeatColor(rgb, alpha) {
+        const channels = String(rgb)
+          .split(",")
+          .map((value) => Math.max(0, Math.min(255, Number(value) || 0)));
+        return channels
+          .map((channel) => Math.round(255 + (channel - 255) * alpha).toString(16).padStart(2, "0"))
+          .join("")
+          .toUpperCase();
+      }
+
+      function renderLinkedHeatmapsOnChartSheet(chartSheet, chartSpecs) {
+        const heatmapSpecs = (chartSpecs || []).filter((spec) => spec.type === "heatmap");
+        if (!heatmapSpecs.length) return;
+        chartSheet.properties.showGridLines = false;
+        chartSheet.views = [{ state: "frozen", ySplit: 2 }];
+        let rowCursor = 3;
+        let conditionalPriority = 1;
+        heatmapSpecs.forEach((spec, specIndex) => {
+          const grouped = new Map();
+          spec.categoryValues.forEach((label, index) => {
+            const text = String(label || "").trim();
+            const match = text.match(/^(.*?)(\d{1,2}월)$/);
+            const scope = (match?.[1] || "전체").trim() || "전체";
+            const month = match?.[2] || text || index + 1 + "월";
+            if (!grouped.has(scope)) grouped.set(scope, []);
+            grouped.get(scope).push({ index, month });
+          });
+
+          const widest = Math.max(1, ...Array.from(grouped.values()).map((items) => items.length));
+          const lastColumn = excelColumnName(widest + 1);
+          chartSheet.mergeCells("A" + rowCursor + ":" + lastColumn + rowCursor);
+          const titleCell = chartSheet.getCell("A" + rowCursor);
+          titleCell.value = (specIndex + 1) + ". " + spec.title;
+          titleCell.font = { bold: true, size: 16, color: { argb: "FF173B61" } };
+          titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8F2FF" } };
+          titleCell.alignment = { vertical: "middle", horizontal: "left" };
+          chartSheet.getRow(rowCursor).height = 27;
+          rowCursor += 2;
+
+          grouped.forEach((items, scope) => {
+            chartSheet.mergeCells("A" + rowCursor + ":" + lastColumn + rowCursor);
+            const scopeCell = chartSheet.getCell("A" + rowCursor);
+            scopeCell.value = scope;
+            scopeCell.font = { bold: true, size: 12, color: { argb: "FF24476B" } };
+            scopeCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3F7FB" } };
+            rowCursor += 1;
+
+            [
+              { label: spec.seriesNames?.[0] || "기준 연도", dataCol: 2 },
+              { label: spec.seriesNames?.[1] || "비교 연도", dataCol: 3 },
+              { label: "차이", dataCol: 4 },
+            ].forEach((lane) => {
+              const labelCell = chartSheet.getCell(rowCursor, 1);
+              labelCell.value = lane.label;
+              labelCell.font = { bold: true, color: { argb: "FF173B61" } };
+              labelCell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+              const monthRow = rowCursor;
+              const valueRow = rowCursor + 1;
+              const initialValues = [];
+              items.forEach((item, itemIndex) => {
+                const outputCol = itemIndex + 2;
+                const sourceRow = spec.dataStartRow + item.index;
+                const monthCell = chartSheet.getCell(monthRow, outputCol);
+                const valueCell = chartSheet.getCell(valueRow, outputCol);
+                const initialValue = getNativeChartNumber(spec.columnValues?.[lane.dataCol - 1]?.[item.index]);
+                initialValues.push(initialValue);
+                monthCell.value = item.month;
+                monthCell.font = { bold: true, size: 9, color: { argb: "FF486581" } };
+                monthCell.alignment = { vertical: "middle", horizontal: "center" };
+                valueCell.value = {
+                  formula:
+                    "'" + String(spec.sheetName).replace(/'/g, "''") + "'!" +
+                    excelColumnName(lane.dataCol) + sourceRow,
+                  result: initialValue,
+                };
+                valueCell.numFmt = '[Red]#,##0;[Green]-#,##0;"-"';
+                valueCell.font = {
+                  bold: true,
+                  size: 9,
+                  color: { argb: initialValue < 0 ? "FF1E8449" : initialValue > 0 ? "FFC0392B" : "FF829AB1" },
+                };
+                valueCell.alignment = { vertical: "middle", horizontal: "center", shrinkToFit: true };
+                const maxAbs = Math.max(1, ...items.map((entry) =>
+                  Math.abs(getNativeChartNumber(spec.columnValues?.[lane.dataCol - 1]?.[entry.index])),
+                ));
+                const alpha = initialValue === 0 ? 0.035 : Math.min(0.42, 0.08 + (Math.abs(initialValue) / maxAbs) * 0.34);
+                const rgb = initialValue < 0 ? "39,174,96" : initialValue > 0 ? "235,87,87" : "130,154,177";
+                const fill = blendExcelHeatColor(rgb, alpha);
+                [monthCell, valueCell].forEach((cell) => {
+                  cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + fill } };
+                  cell.border = {
+                    top: { style: "thin", color: { argb: "FFD9E2EC" } },
+                    bottom: { style: "thin", color: { argb: "FFD9E2EC" } },
+                    left: { style: "thin", color: { argb: "FFD9E2EC" } },
+                    right: { style: "thin", color: { argb: "FFD9E2EC" } },
+                  };
+                });
+              });
+              const startColumn = excelColumnName(2);
+              const endColumn = excelColumnName(items.length + 1);
+              const conditionalRange = "$" + startColumn + "$" + valueRow + ":$" + endColumn + "$" + valueRow;
+              const anchor = startColumn + valueRow;
+              const dynamicMaximum = "MAX(MAX(" + conditionalRange + "),-MIN(" + conditionalRange + "),1)";
+              const conditionalFill = (argb, fontArgb) => ({
+                fill: { type: "pattern", pattern: "solid", fgColor: { argb }, bgColor: { argb } },
+                font: { color: { argb: fontArgb }, bold: true },
+              });
+              chartSheet.addConditionalFormatting({
+                ref: startColumn + valueRow + ":" + endColumn + valueRow,
+                rules: [
+                  {
+                    type: "expression",
+                    priority: conditionalPriority++,
+                    formulae: [anchor + "=0"],
+                    style: conditionalFill("FFF7FAFC", "FF829AB1"),
+                    stopIfTrue: true,
+                  },
+                  ...[
+                    [0.75, "FFA4DDBC"],
+                    [0.5, "FFB7E3C9"],
+                    [0.25, "FFD1EFDD"],
+                    [0, "FFE6F7ED"],
+                  ].map(([threshold, color]) => ({
+                    type: "expression",
+                    priority: conditionalPriority++,
+                    formulae: [
+                      "AND(" + anchor + "<0,-" + anchor + ">=" + dynamicMaximum + "*" + threshold + ")",
+                    ],
+                    style: conditionalFill(color, "FF1E8449"),
+                    stopIfTrue: true,
+                  })),
+                  ...[
+                    [0.75, "FFF7B8B8"],
+                    [0.5, "FFF9CACA"],
+                    [0.25, "FFFBDDDD"],
+                    [0, "FFFDEEEE"],
+                  ].map(([threshold, color]) => ({
+                    type: "expression",
+                    priority: conditionalPriority++,
+                    formulae: [
+                      "AND(" + anchor + ">0," + anchor + ">=" + dynamicMaximum + "*" + threshold + ")",
+                    ],
+                    style: conditionalFill(color, "FFC0392B"),
+                    stopIfTrue: true,
+                  })),
+                ],
+              });
+              chartSheet.getRow(monthRow).height = 20;
+              chartSheet.getRow(valueRow).height = 25;
+              rowCursor += 3;
+            });
+            rowCursor += 1;
+          });
+          rowCursor += 2;
+        });
+        chartSheet.getColumn(1).width = 19;
+        for (let column = 2; column <= 14; column += 1) chartSheet.getColumn(column).width = 13;
+      }
+
+      function renderLinkedRankedBarsOnChartSheet(chartSheet, chartSpecs) {
+        const rankedSpecs = (chartSpecs || []).filter((spec) => spec.type === "rankedBars");
+        if (!rankedSpecs.length) return;
+        chartSheet.properties.showGridLines = false;
+        chartSheet.views = [{ state: "frozen", ySplit: 2 }];
+        const startColumn = 1;
+        const endColumn = 25;
+        const labelEndColumn = 13;
+        const valueStartColumn = 14;
+        let rowCursor = 3;
+        let conditionalPriority = 500;
+        const thinBorder = { style: "thin", color: { argb: "FFD9E2EC" } };
+        const editNote = chartSheet.getCell("J1").value;
+        chartSheet.getCell("J1").value = null;
+        chartSheet.mergeCells(1, 1, 1, 13);
+        chartSheet.mergeCells(1, 14, 1, 25);
+        const editNoteCell = chartSheet.getCell(1, 14);
+        editNoteCell.value = editNote;
+        editNoteCell.font = { bold: true, size: 9, color: { argb: "FF486581" } };
+        editNoteCell.alignment = { vertical: "middle", horizontal: "right", shrinkToFit: true };
+        const sourceSheetReference = (spec, columnNumber, rowNumber, absolute = true) => {
+          const escaped = String(spec.sheetName).replace(/'/g, "''");
+          const column = excelColumnName(columnNumber);
+          return "'" + escaped + "'!" + (absolute ? "$" : "") + column + (absolute ? "$" : "") + rowNumber;
+        };
+
+        rankedSpecs.forEach((spec, specIndex) => {
+          chartSheet.mergeCells(rowCursor, startColumn, rowCursor, endColumn);
+          const titleCell = chartSheet.getCell(rowCursor, startColumn);
+          titleCell.value = (specIndex + 1) + ". " + spec.title;
+          titleCell.font = { bold: true, size: 16, color: { argb: "FF173B61" } };
+          titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8F2FF" } };
+          titleCell.alignment = { vertical: "middle", horizontal: "left" };
+          chartSheet.getRow(rowCursor).height = 29;
+          rowCursor += 2;
+
+          if (!spec.categoryValues?.length) {
+            chartSheet.mergeCells(rowCursor, startColumn, rowCursor + 1, endColumn);
+            const emptyCell = chartSheet.getCell(rowCursor, startColumn);
+            emptyCell.value = "표시할 데이터가 없습니다.";
+            emptyCell.font = { color: { argb: "FF829AB1" }, italic: true };
+            emptyCell.alignment = { vertical: "middle", horizontal: "center" };
+            rowCursor += 4;
+            return;
+          }
+
+          const grouped = new Map();
+          spec.categoryValues.forEach((label, index) => {
+            const scope = String(spec.columnValues?.[6]?.[index] || "").trim() || spec.title;
+            if (!grouped.has(scope)) grouped.set(scope, []);
+            grouped.get(scope).push({ index, label: String(label || "") });
+          });
+          const showScopeHeader = grouped.size > 1 || spec.title.includes("변동 큰 월");
+
+          grouped.forEach((items, scope) => {
+            if (showScopeHeader) {
+              chartSheet.mergeCells(rowCursor, startColumn, rowCursor, 5);
+              const scopeCell = chartSheet.getCell(rowCursor, startColumn);
+              scopeCell.value = scope;
+              scopeCell.font = { bold: true, size: 12, color: { argb: "FF24476B" } };
+              scopeCell.alignment = { vertical: "middle", horizontal: "left" };
+              chartSheet.mergeCells(rowCursor, 6, rowCursor, endColumn);
+              const descriptionCell = chartSheet.getCell(rowCursor, 6);
+              descriptionCell.value = String(spec.columnValues?.[7]?.[items[0]?.index] || "");
+              descriptionCell.font = { bold: true, size: 9, color: { argb: "FF829AB1" } };
+              descriptionCell.alignment = { vertical: "middle", horizontal: "right", shrinkToFit: true };
+              for (let column = startColumn; column <= endColumn; column += 1) {
+                chartSheet.getCell(rowCursor, column).fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: "FFF7FAFC" },
+                };
+              }
+              chartSheet.getRow(rowCursor).height = 23;
+              rowCursor += 1;
+            }
+
+            const sourceRows = items.map((item) => spec.dataStartRow + item.index);
+            const firstSourceRow = Math.min(...sourceRows);
+            const lastSourceRow = Math.max(...sourceRows);
+            const escapedSheet = String(spec.sheetName).replace(/'/g, "''");
+            const dynamicMaximum =
+              "MAX('" + escapedSheet + "'!$F$" + firstSourceRow + ":$F$" + lastSourceRow +
+              ",'" + escapedSheet + "'!$I$" + firstSourceRow + ":$I$" + lastSourceRow + ",1)";
+
+            items.forEach((item) => {
+              const sourceRow = spec.dataStartRow + item.index;
+              const initialDelta = getNativeChartNumber(spec.columnValues?.[3]?.[item.index]);
+              const initialAbsolute = Math.abs(initialDelta);
+              const initialScale = Math.max(
+                1,
+                ...items.map((entry) => Math.abs(getNativeChartNumber(spec.columnValues?.[3]?.[entry.index]))),
+                ...items.map((entry) => getNativeChartNumber(spec.columnValues?.[8]?.[entry.index])),
+              );
+              const deltaReference = sourceSheetReference(spec, 4, sourceRow);
+              const statusReference = sourceSheetReference(spec, 5, sourceRow);
+              const absoluteReference = sourceSheetReference(spec, 6, sourceRow);
+              const labelRow = rowCursor;
+              const barRow = rowCursor + 1;
+              const statusRow = rowCursor + 2;
+
+              chartSheet.mergeCells(labelRow, startColumn, labelRow, labelEndColumn);
+              const labelCell = chartSheet.getCell(labelRow, startColumn);
+              labelCell.value = item.label;
+              labelCell.font = { bold: true, size: 11, color: { argb: "FF334E68" } };
+              labelCell.alignment = { vertical: "middle", horizontal: "left", shrinkToFit: true };
+
+              chartSheet.mergeCells(labelRow, valueStartColumn, labelRow, endColumn);
+              const valueCell = chartSheet.getCell(labelRow, valueStartColumn);
+              valueCell.value = { formula: deltaReference, result: initialDelta };
+              valueCell.numFmt = '0.00,,"백만원";[Red]-0.00,,"백만원";"-"';
+              valueCell.font = {
+                bold: true,
+                size: 11,
+                color: { argb: initialDelta < 0 ? "FFC0392B" : initialDelta > 0 ? "FF0B6BCB" : "FF829AB1" },
+              };
+              valueCell.alignment = { vertical: "middle", horizontal: "right", shrinkToFit: true };
+
+              for (let column = startColumn; column <= endColumn; column += 1) {
+                const step = column - startColumn + 1;
+                const threshold = step / (endColumn - startColumn + 1);
+                const barCell = chartSheet.getCell(barRow, column);
+                const formula =
+                  step === 1
+                    ? "IF(" + absoluteReference + '=0,"",SIGN(' + deltaReference + "))"
+                    : "IF(" + absoluteReference + '=0,"",IF(' + absoluteReference + "/" + dynamicMaximum +
+                      ">=" + threshold.toFixed(6) + ",SIGN(" + deltaReference + '),""))';
+                const result =
+                  initialAbsolute > 0 && (step === 1 || initialAbsolute / initialScale >= threshold)
+                    ? Math.sign(initialDelta)
+                    : "";
+                barCell.value = { formula, result };
+                barCell.numFmt = ";;;";
+                barCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDF2F7" } };
+                barCell.font = { color: { argb: "FFEDF2F7" } };
+                barCell.border = {
+                  top: thinBorder,
+                  bottom: thinBorder,
+                  left: column === startColumn ? thinBorder : undefined,
+                  right: column === endColumn ? thinBorder : undefined,
+                };
+              }
+              chartSheet.addConditionalFormatting({
+                ref: excelColumnName(startColumn) + barRow + ":" + excelColumnName(endColumn) + barRow,
+                rules: [
+                  {
+                    type: "expression",
+                    priority: conditionalPriority++,
+                    formulae: [excelColumnName(startColumn) + barRow + "=1"],
+                    style: {
+                      fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFEB5757" }, bgColor: { argb: "FFEB5757" } },
+                      font: { color: { argb: "FFEB5757" } },
+                    },
+                  },
+                  {
+                    type: "expression",
+                    priority: conditionalPriority++,
+                    formulae: [excelColumnName(startColumn) + barRow + "=-1"],
+                    style: {
+                      fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FF27AE60" }, bgColor: { argb: "FF27AE60" } },
+                      font: { color: { argb: "FF27AE60" } },
+                    },
+                  },
+                ],
+              });
+
+              chartSheet.mergeCells(statusRow, startColumn, statusRow, endColumn);
+              const statusCell = chartSheet.getCell(statusRow, startColumn);
+              statusCell.value = {
+                formula: statusReference,
+                result: initialDelta < 0 ? "절감 확대" : initialDelta > 0 ? "절감 축소" : "변동 없음",
+              };
+              statusCell.font = { bold: true, size: 9, color: { argb: "FF627D98" } };
+              statusCell.alignment = { vertical: "middle", horizontal: "left" };
+
+              for (let row = labelRow; row <= statusRow; row += 1) {
+                for (let column = startColumn; column <= endColumn; column += 1) {
+                  const cell = chartSheet.getCell(row, column);
+                  if (row !== barRow) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
+                  if (column === startColumn) cell.border = { ...(cell.border || {}), left: thinBorder };
+                  if (column === endColumn) cell.border = { ...(cell.border || {}), right: thinBorder };
+                  if (row === labelRow) cell.border = { ...(cell.border || {}), top: thinBorder };
+                  if (row === statusRow) cell.border = { ...(cell.border || {}), bottom: thinBorder };
+                }
+              }
+              chartSheet.getRow(labelRow).height = 22;
+              chartSheet.getRow(barRow).height = 13;
+              chartSheet.getRow(statusRow).height = 19;
+              rowCursor += 4;
+            });
+            rowCursor += 1;
+          });
+          rowCursor += 2;
+        });
+
+        for (let column = startColumn; column <= endColumn; column += 1) {
+          chartSheet.getColumn(column).width = 3;
+        }
+      }
+
+      function escapeChartXml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&apos;");
+      }
+
+      function excelColumnName(columnNumber) {
+        let value = Number(columnNumber);
+        let result = "";
+        while (value > 0) {
+          const remainder = (value - 1) % 26;
+          result = String.fromCharCode(65 + remainder) + result;
+          value = Math.floor((value - 1) / 26);
+        }
+        return result || "A";
+      }
+
+      function excelChartReference(sheetName, columnNumber, startRow, endRow) {
+        const escapedSheet = String(sheetName).replace(/'/g, "''");
+        const column = excelColumnName(columnNumber);
+        return "'" + escapedSheet + "'!$" + column + "$" + startRow + ":$" + column + "$" + endRow;
+      }
+
+      function excelChartRangeReference(sheetName, startColumn, startRow, endColumn, endRow) {
+        const escapedSheet = String(sheetName).replace(/'/g, "''");
+        return (
+          "'" + escapedSheet + "'!$" + excelColumnName(startColumn) + "$" + startRow +
+          ":$" + excelColumnName(endColumn) + "$" + endRow
+        );
+      }
+
+      function buildChartStringCache(values) {
+        const points = (values || [])
+          .map((value, index) => '<c:pt idx="' + index + '"><c:v>' + escapeChartXml(value) + "</c:v></c:pt>")
+          .join("");
+        return '<c:strCache><c:ptCount val="' + (values || []).length + '"/>' + points + "</c:strCache>";
+      }
+
+      function buildChartNumberCache(values) {
+        const points = (values || [])
+          .map((value, index) => {
+            if (
+              value === null ||
+              value === undefined ||
+              (typeof value === "string" && value.trim() === "")
+            ) {
+              return "";
+            }
+            const number = Number(value);
+            return Number.isFinite(number) ? '<c:pt idx="' + index + '"><c:v>' + number + "</c:v></c:pt>" : "";
+          })
+          .join("");
+        return (
+          '<c:numCache><c:formatCode>#,##0;[Red]-#,##0</c:formatCode><c:ptCount val="' +
+          (values || []).length +
+          '"/>' +
+          points +
+          "</c:numCache>"
+        );
+      }
+
+      function buildChartSingleStringCache(value) {
+        return '<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>' +
+          escapeChartXml(value) + '</c:v></c:pt></c:strCache>';
+      }
+
+      function buildBarCustomDataLabels(spec, series) {
+        if (!series.dataLabelCol) return "";
+        const labels = series.dataLabelValues || [];
+        const items = labels
+          .map((label, index) => {
+            const row = spec.dataStartRow + index;
+            const labelReference = excelChartReference(spec.sheetName, series.dataLabelCol, row, row);
+            return (
+              '<c:dLbl><c:idx val="' + index + '"/><c:tx><c:strRef><c:f>' +
+              escapeChartXml(labelReference) + '</c:f>' +
+              buildChartSingleStringCache(label) +
+              '</c:strRef></c:tx><c:dLblPos val="outEnd"/><c:showLegendKey val="0"/>' +
+              '<c:showVal val="0"/><c:showCatName val="0"/><c:showSerName val="0"/></c:dLbl>'
+            );
+          })
+          .join("");
+        return items
+          ? '<c:dLbls>' + items + '<c:showLegendKey val="0"/><c:showVal val="0"/>' +
+            '<c:showCatName val="0"/><c:showSerName val="0"/></c:dLbls>'
+          : "";
+      }
+
+      function getFiniteChartNumber(value) {
+        if (value === null || value === undefined || value === "") return null;
+        const number = Number(value);
+        return Number.isFinite(number) ? number : null;
+      }
+
+      function buildChartSeriesXml(spec, series, seriesIndex, chartType) {
+        const categoryReference = excelChartReference(
+          spec.sheetName,
+          spec.categoryCol,
+          spec.dataStartRow,
+          spec.dataEndRow,
+        );
+        const valueReference = excelChartReference(
+          spec.sheetName,
+          series.col,
+          spec.dataStartRow,
+          spec.dataEndRow,
+        );
+        const color = String(series.color || "2F80ED").replace("#", "");
+        const fillAlpha =
+          chartType === "bar" && Number.isFinite(Number(series.fillAlpha))
+            ? Math.max(0, Math.min(100000, Math.round(Number(series.fillAlpha))))
+            : null;
+        const fillColorXml =
+          '<a:srgbClr val="' + color + '">' +
+          (fillAlpha === null ? "" : '<a:alpha val="' + fillAlpha + '"/>') +
+          "</a:srgbClr>";
+        const effectivePointColors = Array.isArray(series.pointColors) ? series.pointColors : [];
+        const pointColors = effectivePointColors
+          .map(
+            (pointColor, pointIndex) =>
+              '<c:dPt><c:idx val="' +
+              pointIndex +
+              '"/>' +
+              (chartType === "bar" ? '<c:invertIfNegative val="0"/>' : "") +
+              '<c:spPr><a:solidFill><a:srgbClr val="' +
+              String(pointColor).replace("#", "") +
+              '"/></a:solidFill><a:ln><a:noFill/></a:ln></c:spPr></c:dPt>',
+          )
+          .join("");
+        const marker =
+          chartType === "line"
+            ? '<c:marker><c:symbol val="circle"/><c:size val="6"/><c:spPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:ln w="19050"><a:solidFill><a:srgbClr val="' +
+              color +
+              '"/></a:solidFill></a:ln></c:spPr></c:marker>'
+            : "";
+        const dash = series.dashed ? '<a:prstDash val="dash"/>' : "";
+        const lineProperties =
+          chartType === "line"
+            ? '<c:spPr><a:ln w="28575"><a:solidFill><a:srgbClr val="' +
+              color +
+              '"/></a:solidFill>' +
+              dash +
+              "</a:ln></c:spPr>"
+            : '<c:spPr><a:solidFill>' + fillColorXml +
+              '</a:solidFill><a:ln><a:noFill/></a:ln></c:spPr>';
+        return (
+          "<c:ser>" +
+          '<c:idx val="' +
+          seriesIndex +
+          '"/><c:order val="' +
+          seriesIndex +
+          '"/><c:tx><c:v>' +
+          escapeChartXml(series.name) +
+          "</c:v></c:tx>" +
+          lineProperties +
+          (chartType === "bar" ? '<c:invertIfNegative val="0"/>' : "") +
+          pointColors +
+          (chartType === "bar" ? buildBarCustomDataLabels(spec, series) : "") +
+          marker +
+          '<c:cat><c:strRef><c:f>' +
+          escapeChartXml(categoryReference) +
+          "</c:f>" +
+          buildChartStringCache(spec.categoryValues) +
+          "</c:strRef></c:cat>" +
+          '<c:val><c:numRef><c:f>' +
+          escapeChartXml(valueReference) +
+          "</c:f>" +
+          buildChartNumberCache(series.values) +
+          "</c:numRef></c:val>" +
+          (chartType === "line" ? '<c:smooth val="0"/>' : "") +
+          "</c:ser>"
+        );
+      }
+
+      function buildScatterNumberReference(reference, values) {
+        return (
+          '<c:numRef><c:f>' + escapeChartXml(reference) + '</c:f>' +
+          buildChartNumberCache(values) + '</c:numRef>'
+        );
+      }
+
+      function buildScatterCustomLabels(labels, position = "l") {
+        if (!labels?.length) return "";
+        const items = labels
+          .map(
+            (label, index) =>
+              '<c:dLbl><c:idx val="' + index + '"/><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p>' +
+              '<a:r><a:rPr lang="ko-KR" sz="850"/><a:t>' + escapeChartXml(label) +
+              '</a:t></a:r><a:endParaRPr lang="ko-KR"/></a:p></c:rich></c:tx>' +
+              '<c:dLblPos val="' + escapeChartXml(position) + '"/><c:showLegendKey val="0"/><c:showVal val="0"/>' +
+              '<c:showCatName val="0"/><c:showSerName val="0"/></c:dLbl>',
+          )
+          .join("");
+        return '<c:dLbls>' + items + '<c:showLegendKey val="0"/><c:showVal val="0"/>' +
+          '<c:showCatName val="0"/><c:showSerName val="0"/></c:dLbls>';
+      }
+
+      function buildDumbbellChartXml(spec, chartNumber) {
+        const xAxisId = 200000 + chartNumber * 10 + 1;
+        const yAxisId = 200000 + chartNumber * 10 + 2;
+        const rowCount = Math.max(1, spec.dataEndRow - spec.dataStartRow + 1);
+        const connectors = [];
+        for (let index = 0; index < rowCount; index += 1) {
+          const row = spec.dataStartRow + index;
+          const xReference = excelChartRangeReference(spec.sheetName, 2, row, 3, row);
+          const yReference = excelChartRangeReference(spec.sheetName, 6, row, 7, row);
+          const baseValue = getNativeChartNumber(spec.columnValues?.[1]?.[index]);
+          const compareValue = getNativeChartNumber(spec.columnValues?.[2]?.[index]);
+          const position = getNativeChartNumber(spec.columnValues?.[4]?.[index]);
+          connectors.push(
+            '<c:ser><c:idx val="' + index + '"/><c:order val="' + index + '"/><c:tx><c:v></c:v></c:tx>' +
+              '<c:spPr><a:ln w="19050"><a:solidFill><a:srgbClr val="CBD5E1"/></a:solidFill></a:ln></c:spPr>' +
+              '<c:marker><c:symbol val="none"/></c:marker><c:xVal>' +
+              buildScatterNumberReference(xReference, [baseValue, compareValue]) + '</c:xVal><c:yVal>' +
+              buildScatterNumberReference(yReference, [position, position]) + '</c:yVal><c:smooth val="0"/></c:ser>',
+          );
+        }
+        const markerSeries = (spec.series || [])
+          .filter((series) => series.chartType === "scatterMarker")
+          .map((series, markerIndex) => {
+            const order = rowCount + markerIndex;
+            const xReference = excelChartReference(spec.sheetName, series.xCol, spec.dataStartRow, spec.dataEndRow);
+            const yReference = excelChartReference(spec.sheetName, series.yCol, spec.dataStartRow, spec.dataEndRow);
+            const color = String(series.color || "2F80ED").replace("#", "");
+            return (
+              '<c:ser><c:idx val="' + order + '"/><c:order val="' + order + '"/><c:tx><c:v>' +
+              escapeChartXml(series.name) + '</c:v></c:tx><c:spPr><a:ln><a:noFill/></a:ln></c:spPr>' +
+              '<c:marker><c:symbol val="circle"/><c:size val="8"/><c:spPr><a:solidFill><a:srgbClr val="' +
+              color + '"/></a:solidFill><a:ln w="12700"><a:solidFill><a:srgbClr val="FFFFFF"/>' +
+              '</a:solidFill></a:ln></c:spPr></c:marker>' +
+              buildScatterCustomLabels(series.labels) + '<c:xVal>' +
+              buildScatterNumberReference(xReference, series.xValues) + '</c:xVal><c:yVal>' +
+              buildScatterNumberReference(yReference, series.yValues) + '</c:yVal><c:smooth val="0"/></c:ser>'
+            );
+          })
+          .join("");
+        const markerSeriesCount = (spec.series || []).filter((series) => series.chartType === "scatterMarker").length;
+        const labelSeries = (spec.series || [])
+          .filter((series) => series.chartType === "scatterLabel")
+          .map((series, labelIndex) => {
+            const order = rowCount + markerSeriesCount + labelIndex;
+            const xReference = excelChartReference(spec.sheetName, series.xCol, spec.dataStartRow, spec.dataEndRow);
+            const yReference = excelChartReference(spec.sheetName, series.yCol, spec.dataStartRow, spec.dataEndRow);
+            return (
+              '<c:ser><c:idx val="' + order + '"/><c:order val="' + order + '"/><c:tx><c:v></c:v></c:tx>' +
+              '<c:spPr><a:ln><a:noFill/></a:ln></c:spPr><c:marker><c:symbol val="none"/></c:marker>' +
+              buildScatterCustomLabels(series.labels, "l") + '<c:xVal>' +
+              buildScatterNumberReference(xReference, series.xValues) + '</c:xVal><c:yVal>' +
+              buildScatterNumberReference(yReference, series.yValues) + '</c:yVal><c:smooth val="0"/></c:ser>'
+            );
+          })
+          .join("");
+        const hiddenLegendEntries = Array.from({ length: rowCount }, (_value, index) =>
+          '<c:legendEntry><c:idx val="' + index + '"/><c:delete val="1"/></c:legendEntry>',
+        ).join("") +
+          (labelSeries
+            ? '<c:legendEntry><c:idx val="' + (rowCount + markerSeriesCount) + '"/><c:delete val="1"/></c:legendEntry>'
+            : "");
+        const xAxisNumberFormat = spec.xAxisNumberFormat || '#,##0;[Red]-#,##0';
+        const xAxisMin = getFiniteChartNumber(spec.xAxisMin);
+        const xAxisMax = getFiniteChartNumber(spec.xAxisMax);
+        const xAxisMajor = getFiniteChartNumber(spec.xAxisMajorUnit);
+        const xAxisScaling =
+          '<c:scaling><c:orientation val="minMax"/>' +
+          (xAxisMin !== null ? '<c:min val="' + xAxisMin + '"/>' : "") +
+          (xAxisMax !== null ? '<c:max val="' + xAxisMax + '"/>' : "") +
+          '</c:scaling>';
+        const xAxisMajorUnit = xAxisMajor !== null
+          ? '<c:majorUnit val="' + xAxisMajor + '"/>'
+          : "";
+        const legendPosition = spec.legendPosition || "b";
+        const legendFontSize = Number(spec.legendFontSize) || 900;
+        const legendBold = spec.legendBold ? ' b="1"' : "";
+        return (
+          '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+          '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" ' +
+          'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+          'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+          '<c:date1904 val="0"/><c:lang val="ko-KR"/><c:roundedCorners val="0"/><c:style val="10"/><c:chart>' +
+          '<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="ko-KR" sz="1400" b="1"/>' +
+          '<a:t>' + escapeChartXml(spec.title) + '</a:t></a:r><a:endParaRPr lang="ko-KR"/></a:p></c:rich></c:tx>' +
+          '<c:layout/><c:overlay val="0"/></c:title><c:autoTitleDeleted val="0"/><c:plotArea><c:layout><c:manualLayout>' +
+          '<c:layoutTarget val="inner"/><c:xMode val="factor"/><c:yMode val="factor"/><c:wMode val="factor"/><c:hMode val="factor"/>' +
+          '<c:x val="0.12"/><c:y val="0.08"/><c:w val="0.82"/><c:h val="0.78"/></c:manualLayout></c:layout>' +
+          '<c:scatterChart><c:scatterStyle val="lineMarker"/><c:varyColors val="0"/>' +
+          connectors.join("") + markerSeries + labelSeries + '<c:axId val="' + xAxisId + '"/><c:axId val="' + yAxisId +
+          '"/></c:scatterChart><c:valAx><c:axId val="' + xAxisId + '"/>' + xAxisScaling +
+          '<c:delete val="0"/><c:axPos val="b"/><c:majorGridlines><c:spPr><a:ln w="9525">' +
+          '<a:solidFill><a:srgbClr val="E6ECF2"/></a:solidFill></a:ln></c:spPr></c:majorGridlines>' +
+          '<c:numFmt formatCode="' + escapeChartXml(xAxisNumberFormat) + '" sourceLinked="0"/>' + xAxisMajorUnit + '<c:majorTickMark val="none"/>' +
+          '<c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="' + yAxisId +
+          '"/><c:crosses val="autoZero"/><c:crossBetween val="midCat"/></c:valAx>' +
+          '<c:valAx><c:axId val="' + yAxisId + '"/><c:scaling><c:orientation val="minMax"/><c:min val="0.5"/>' +
+          '<c:max val="' + (rowCount + 0.5) + '"/></c:scaling><c:delete val="1"/><c:axPos val="l"/>' +
+          '<c:numFmt formatCode="0" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/>' +
+          '<c:tickLblPos val="none"/><c:majorUnit val="1"/><c:crossAx val="' + xAxisId +
+          '"/><c:crosses val="autoZero"/><c:crossBetween val="midCat"/></c:valAx></c:plotArea>' +
+          '<c:legend>' + hiddenLegendEntries + '<c:legendPos val="' + escapeChartXml(legendPosition) + '"/><c:layout/><c:overlay val="0"/>' +
+          '<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="' + legendFontSize + '"' + legendBold +
+          '/></a:pPr><a:endParaRPr lang="ko-KR" sz="' + legendFontSize + '"' + legendBold + '/></a:p></c:txPr></c:legend><c:plotVisOnly val="1"/>' +
+          '<c:dispBlanksAs val="gap"/><c:showDLblsOverMax val="0"/></c:chart><c:printSettings>' +
+          '<c:headerFooter/><c:pageMargins b="0.75" l="0.7" r="0.7" t="0.75" header="0.3" footer="0.3"/>' +
+          '<c:pageSetup/></c:printSettings></c:chartSpace>'
+        );
+      }
+
+      function buildNativeChartXml(spec, chartNumber) {
+        if (spec.type === "dumbbell") return buildDumbbellChartXml(spec, chartNumber);
+        const catAxisId = 100000 + chartNumber * 10 + 1;
+        const valAxisId = 100000 + chartNumber * 10 + 2;
+        const barSeries = spec.series.filter((series) => series.chartType === "bar");
+        const lineSeries = spec.series.filter((series) => series.chartType === "line");
+        const doughnutSeries = spec.series.filter((series) => series.chartType === "doughnut");
+        let seriesOrder = 0;
+        let plotXml = "";
+        if (doughnutSeries.length) {
+          const doughnutXml = doughnutSeries
+            .map((series) => buildChartSeriesXml(spec, series, seriesOrder++, "doughnut"))
+            .join("");
+          plotXml =
+            '<c:doughnutChart><c:varyColors val="1"/>' +
+            doughnutXml +
+            '<c:dLbls><c:showLegendKey val="0"/><c:showVal val="0"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/></c:dLbls><c:firstSliceAng val="270"/><c:holeSize val="58"/></c:doughnutChart>';
+        } else {
+          if (barSeries.length) {
+            const hasCustomDataLabels = barSeries.some((series) => series.dataLabelCol);
+            const barXml = barSeries
+              .map((series) => buildChartSeriesXml(spec, series, seriesOrder++, "bar"))
+              .join("");
+            plotXml +=
+              '<c:barChart><c:barDir val="' +
+              (spec.type === "bar" ? "bar" : "col") +
+              '"/><c:grouping val="clustered"/><c:varyColors val="0"/>' +
+              barXml +
+              (spec.showValues
+                ? '<c:dLbls>' +
+                  (spec.dataLabelNumberFormat
+                    ? '<c:numFmt formatCode="' + escapeChartXml(spec.dataLabelNumberFormat) + '" sourceLinked="0"/>'
+                    : "") +
+                  '<c:dLblPos val="outEnd"/><c:showLegendKey val="0"/><c:showVal val="' +
+                  (hasCustomDataLabels ? "0" : "1") +
+                  '"/><c:showCatName val="0"/><c:showSerName val="0"/></c:dLbls>'
+                : "") +
+              '<c:gapWidth val="' +
+              (Number.isFinite(Number(spec.barGapWidth))
+                ? Math.max(0, Math.min(500, Math.round(Number(spec.barGapWidth))))
+                : spec.type === "combo" ? 220 : 120) +
+              '"/><c:overlap val="' +
+              (spec.type === "combo" || barSeries.length > 1 ? "100" : "0") +
+              '"/><c:axId val="' +
+              catAxisId +
+              '"/><c:axId val="' +
+              valAxisId +
+              '"/></c:barChart>';
+          }
+          if (lineSeries.length) {
+            const lineXml = lineSeries
+              .map((series) => buildChartSeriesXml(spec, series, seriesOrder++, "line"))
+              .join("");
+            plotXml +=
+              '<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>' +
+              lineXml +
+              '<c:marker val="1"/><c:smooth val="0"/><c:axId val="' +
+              catAxisId +
+              '"/><c:axId val="' +
+              valAxisId +
+              '"/></c:lineChart>';
+          }
+          const horizontal = spec.type === "bar";
+          const categoryLabelPosition =
+            spec.categoryLabelPosition || (horizontal ? "nextTo" : "low");
+          const valueAxisNumberFormat =
+            spec.valueAxisNumberFormat || '#,##0;[Red]-#,##0';
+          const valueAxisMin = getFiniteChartNumber(spec.valueAxisMin);
+          const valueAxisMax = getFiniteChartNumber(spec.valueAxisMax);
+          const valueAxisMajor = getFiniteChartNumber(spec.valueAxisMajorUnit);
+          const valueAxisScaling =
+            '<c:scaling><c:orientation val="minMax"/>' +
+            (valueAxisMin !== null ? '<c:min val="' + valueAxisMin + '"/>' : "") +
+            (valueAxisMax !== null ? '<c:max val="' + valueAxisMax + '"/>' : "") +
+            '</c:scaling>';
+          const valueAxisMajorUnit = valueAxisMajor !== null
+            ? '<c:majorUnit val="' + valueAxisMajor + '"/>'
+            : "";
+          plotXml +=
+            '<c:catAx><c:axId val="' +
+            catAxisId +
+            '"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="' +
+            (horizontal ? "l" : "b") +
+            '"/><c:numFmt formatCode="General" sourceLinked="1"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="' +
+            escapeChartXml(categoryLabelPosition) +
+            '"/><c:spPr><a:ln><a:noFill/></a:ln></c:spPr><c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="900"/></a:pPr><a:endParaRPr lang="ko-KR"/></a:p></c:txPr><c:crossAx val="' +
+            valAxisId +
+            '"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>' +
+            '<c:valAx><c:axId val="' +
+            valAxisId +
+            '"/>' + valueAxisScaling + '<c:delete val="0"/><c:axPos val="' +
+            (horizontal ? "b" : "l") +
+            '"/><c:majorGridlines><c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="D9E2EC"/></a:solidFill></a:ln></c:spPr></c:majorGridlines><c:numFmt formatCode="' +
+            escapeChartXml(valueAxisNumberFormat) +
+            '" sourceLinked="0"/>' + valueAxisMajorUnit + '<c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="' +
+            catAxisId +
+            '"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>';
+        }
+        const hiddenLegendEntries = (spec.hiddenLegendSeries || [])
+          .map(
+            (index) =>
+              '<c:legendEntry><c:idx val="' + Number(index) + '"/><c:delete val="1"/></c:legendEntry>',
+          )
+          .join("");
+        const legendPosition = spec.legendPosition || "b";
+        const legendFontSize = Number(spec.legendFontSize) || 900;
+        const legendBold = spec.legendBold ? ' b="1"' : "";
+        const legend = spec.showLegend
+          ? '<c:legend>' + hiddenLegendEntries + '<c:legendPos val="' + escapeChartXml(legendPosition) +
+            '"/><c:layout/><c:overlay val="0"/><c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="' +
+            legendFontSize + '"' + legendBold + '/></a:pPr><a:endParaRPr lang="ko-KR" sz="' +
+            legendFontSize + '"' + legendBold + '/></a:p></c:txPr></c:legend>'
+          : "";
+        return (
+          '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+          '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+          '<c:date1904 val="0"/><c:lang val="ko-KR"/><c:roundedCorners val="0"/><c:style val="' +
+          (Number.isFinite(Number(spec.chartStyle)) ? Math.max(1, Math.min(48, Math.round(Number(spec.chartStyle)))) : 10) +
+          '"/><c:chart>' +
+          '<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="ko-KR" sz="1400" b="1"/><a:t>' +
+          escapeChartXml(spec.title) +
+          '</a:t></a:r><a:endParaRPr lang="ko-KR"/></a:p></c:rich></c:tx><c:layout/><c:overlay val="0"/></c:title>' +
+          '<c:autoTitleDeleted val="0"/><c:plotArea><c:layout/>' +
+          plotXml +
+          "</c:plotArea>" +
+          legend +
+          '<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/><c:showDLblsOverMax val="0"/></c:chart><c:printSettings><c:headerFooter/><c:pageMargins b="0.75" l="0.7" r="0.7" t="0.75" header="0.3" footer="0.3"/><c:pageSetup/></c:printSettings></c:chartSpace>'
+        );
+      }
+
+      function buildDoughnutCenterShapeXml(spec, fromColumn, fromRow, firstShapeId) {
+        if (!spec?.centerLabel?.cellReference) return "";
+        const columnWidthEmu = 838200;
+        const rowHeightEmu = 220980;
+        const firstRowHeightEmu = 320040;
+        const chartLeftEmu = fromColumn * columnWidthEmu;
+        const chartTopEmu = firstRowHeightEmu + Math.max(0, fromRow - 1) * rowHeightEmu;
+        const shapeLeftEmu = chartLeftEmu + 2628900;
+        const valueTopEmu = chartTopEmu + 1496060;
+        const labelTopEmu = valueTopEmu + 381000;
+        const shapeWidthEmu = 2286000;
+        const valueHeightEmu = 381000;
+        const labelHeightEmu = 304800;
+        const sheetName = String(spec.sheetName || "차트 연계 데이터").replace(/'/g, "''");
+        const textLink = "'" + sheetName + "'!" + spec.centerLabel.cellReference;
+        const valueText = escapeChartXml(spec.centerLabel.valueText || "0");
+        const labelText = escapeChartXml(spec.centerLabel.label || "총 절감");
+        const valueFieldId = "{00000000-0000-0000-0000-" + String(firstShapeId).padStart(12, "0").slice(-12) + "}";
+        const shapeStyle =
+          '<xdr:style><a:lnRef idx="0"><a:scrgbClr r="0" g="0" b="0"/></a:lnRef>' +
+          '<a:fillRef idx="0"><a:scrgbClr r="0" g="0" b="0"/></a:fillRef>' +
+          '<a:effectRef idx="0"><a:scrgbClr r="0" g="0" b="0"/></a:effectRef>' +
+          '<a:fontRef idx="minor"><a:schemeClr val="dk1"/></a:fontRef></xdr:style>';
+        const shapeProperties = (left, top, width, height) =>
+          '<xdr:spPr><a:xfrm><a:off x="' + left + '" y="' + top + '"/><a:ext cx="' + width + '" cy="' + height +
+          '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></xdr:spPr>';
+        const marker = (tag, column, columnOffset, row, rowOffset) =>
+          '<xdr:' + tag + '><xdr:col>' + column + '</xdr:col><xdr:colOff>' + columnOffset +
+          '</xdr:colOff><xdr:row>' + row + '</xdr:row><xdr:rowOff>' + rowOffset + '</xdr:rowOff></xdr:' + tag + '>';
+        const valueAnchor =
+          '<xdr:twoCellAnchor editAs="oneCell">' +
+          marker("from", fromColumn + 3, 114300, fromRow + 6, 170180) +
+          marker("to", fromColumn + 5, 723900, fromRow + 8, 109220) +
+          '<xdr:sp textlink="' + escapeChartXml(textLink) + '"><xdr:nvSpPr><xdr:cNvPr id="' + firstShapeId +
+          '" name="도넛 중앙 합계"/><xdr:cNvSpPr txBox="1"/></xdr:nvSpPr>' +
+          shapeProperties(shapeLeftEmu, valueTopEmu, shapeWidthEmu, valueHeightEmu) + shapeStyle +
+          '<xdr:txBody><a:bodyPr vertOverflow="clip" horzOverflow="clip" vert="horz" wrap="square" rtlCol="0" anchor="ctr"><a:noAutofit/></a:bodyPr>' +
+          '<a:p><a:pPr algn="ctr"/><a:fld id="' + valueFieldId + '" type="TxLink"><a:rPr lang="ko-KR" sz="1500" b="1">' +
+          '<a:solidFill><a:srgbClr val="102A43"/></a:solidFill><a:latin typeface="맑은 고딕"/><a:ea typeface="맑은 고딕"/></a:rPr>' +
+          '<a:t>' + valueText + '</a:t></a:fld><a:endParaRPr lang="ko-KR" sz="1500" b="1"><a:solidFill><a:srgbClr val="102A43"/></a:solidFill>' +
+          '<a:latin typeface="맑은 고딕"/><a:ea typeface="맑은 고딕"/></a:endParaRPr></a:p></xdr:txBody></xdr:sp>' +
+          '<xdr:clientData/></xdr:twoCellAnchor>';
+        const labelAnchor =
+          '<xdr:twoCellAnchor editAs="oneCell">' +
+          marker("from", fromColumn + 3, 114300, fromRow + 8, 109220) +
+          marker("to", fromColumn + 5, 723900, fromRow + 9, 193040) +
+          '<xdr:sp><xdr:nvSpPr><xdr:cNvPr id="' + (firstShapeId + 1) +
+          '" name="도넛 중앙 설명"/><xdr:cNvSpPr txBox="1"/></xdr:nvSpPr>' +
+          shapeProperties(shapeLeftEmu, labelTopEmu, shapeWidthEmu, labelHeightEmu) + shapeStyle +
+          '<xdr:txBody><a:bodyPr vertOverflow="clip" horzOverflow="clip" vert="horz" wrap="square" rtlCol="0" anchor="ctr"><a:noAutofit/></a:bodyPr>' +
+          '<a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="ko-KR" sz="1100"><a:solidFill><a:srgbClr val="627D98"/></a:solidFill>' +
+          '<a:latin typeface="맑은 고딕"/><a:ea typeface="맑은 고딕"/></a:rPr><a:t>' + labelText +
+          '</a:t></a:r><a:endParaRPr lang="ko-KR" sz="1100"><a:solidFill><a:srgbClr val="627D98"/></a:solidFill>' +
+          '<a:latin typeface="맑은 고딕"/><a:ea typeface="맑은 고딕"/></a:endParaRPr></a:p></xdr:txBody></xdr:sp>' +
+          '<xdr:clientData/></xdr:twoCellAnchor>';
+        return valueAnchor + labelAnchor;
+      }
+
+      async function resolveWorksheetPartPath(zip, worksheetName) {
+        const workbookXml = await zip.file("xl/workbook.xml").async("string");
+        const relationshipsXml = await zip.file("xl/_rels/workbook.xml.rels").async("string");
+        const parser = new DOMParser();
+        const workbookDoc = parser.parseFromString(workbookXml, "application/xml");
+        const relationshipDoc = parser.parseFromString(relationshipsXml, "application/xml");
+        const relationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+        const sheet = Array.from(workbookDoc.getElementsByTagNameNS("*", "sheet")).find(
+          (item) => item.getAttribute("name") === worksheetName,
+        );
+        if (!sheet) throw new Error("차트 워크시트를 찾을 수 없습니다.");
+        const relationshipId = sheet.getAttributeNS(relationshipNamespace, "id") || sheet.getAttribute("r:id");
+        const relationship = Array.from(relationshipDoc.getElementsByTagNameNS("*", "Relationship")).find(
+          (item) => item.getAttribute("Id") === relationshipId,
+        );
+        if (!relationship) throw new Error("차트 워크시트 연결 정보를 찾을 수 없습니다.");
+        const target = String(relationship.getAttribute("Target") || "").replace(/^\/+/, "");
+        return target.startsWith("xl/") ? target : "xl/" + target;
+      }
+
+      function getNextOpenXmlPartIndex(zip, pattern) {
+        let max = 0;
+        Object.keys(zip.files).forEach((name) => {
+          const match = name.match(pattern);
+          if (match) max = Math.max(max, Number(match[1]) || 0);
+        });
+        return max + 1;
+      }
+
+      function appendOpenXmlRelationship(xml, relationshipXml) {
+        if (!xml) {
+          return (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            relationshipXml +
+            "</Relationships>"
+          );
+        }
+        if (xml.includes("</Relationships>")) {
+          return xml.replace("</Relationships>", relationshipXml + "</Relationships>");
+        }
+        return xml.replace(/\/>\s*$/, ">" + relationshipXml + "</Relationships>");
+      }
+
+      async function patchWorkbookWithNativeCharts(buffer, chartSpecs, chartSheetName = "차트") {
+        chartSpecs = (chartSpecs || []).filter(
+          (spec) => spec.type !== "heatmap" && spec.type !== "rankedBars",
+        );
+        if (!chartSpecs.length) return buffer;
+        const zip = await JSZip.loadAsync(buffer);
+        const worksheetPath = await resolveWorksheetPartPath(zip, chartSheetName);
+        const worksheetFilename = worksheetPath.split("/").pop();
+        const worksheetRelsPath =
+          worksheetPath.slice(0, worksheetPath.lastIndexOf("/")) + "/_rels/" + worksheetFilename + ".rels";
+        const drawingIndex = getNextOpenXmlPartIndex(zip, /^xl\/drawings\/drawing(\d+)\.xml$/);
+        const firstChartIndex = getNextOpenXmlPartIndex(zip, /^xl\/charts\/chart(\d+)\.xml$/);
+        const worksheetRelsEntry = zip.file(worksheetRelsPath);
+        let worksheetRelsXml = worksheetRelsEntry ? await worksheetRelsEntry.async("string") : "";
+        const existingRelationshipIds = Array.from(worksheetRelsXml.matchAll(/Id="rId(\d+)"/g)).map(
+          (match) => Number(match[1]) || 0,
+        );
+        const drawingRelationshipId = "rId" + (Math.max(0, ...existingRelationshipIds) + 1);
+        worksheetRelsXml = appendOpenXmlRelationship(
+          worksheetRelsXml,
+          '<Relationship Id="' +
+            drawingRelationshipId +
+            '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing' +
+            drawingIndex +
+            '.xml"/>',
+        );
+        zip.file(worksheetRelsPath, worksheetRelsXml);
+
+        let worksheetXml = await zip.file(worksheetPath).async("string");
+        if (!/<drawing\b/.test(worksheetXml)) {
+          worksheetXml = worksheetXml.replace(
+            "</worksheet>",
+            '<drawing r:id="' + drawingRelationshipId + '"/></worksheet>',
+          );
+        }
+        zip.file(worksheetPath, worksheetXml);
+
+        const anchors = [];
+        const drawingRelationships = [];
+        let nextShapeId = chartSpecs.length + 2;
+        chartSpecs.forEach((spec, index) => {
+          const chartIndex = firstChartIndex + index;
+          const relationshipId = "rId" + (index + 1);
+          const fromColumn = (index % 2) * 10;
+          const fromRow = Math.floor(index / 2) * 20 + 1;
+          const toColumn = fromColumn + 9;
+          const toRow = fromRow + 18;
+          anchors.push(
+            '<xdr:twoCellAnchor editAs="oneCell"><xdr:from><xdr:col>' +
+              fromColumn +
+              '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' +
+              fromRow +
+              '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>' +
+              toColumn +
+              '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' +
+              toRow +
+              '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="' +
+              (index + 2) +
+              '" name="' +
+              escapeChartXml(spec.title) +
+              '"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="' +
+              relationshipId +
+              '"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>',
+          );
+          if (spec.type === "doughnut" && spec.centerLabel) {
+            anchors.push(buildDoughnutCenterShapeXml(spec, fromColumn, fromRow, nextShapeId));
+            nextShapeId += 2;
+          }
+          drawingRelationships.push(
+            '<Relationship Id="' +
+              relationshipId +
+              '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart' +
+              chartIndex +
+              '.xml"/>',
+          );
+          zip.file("xl/charts/chart" + chartIndex + ".xml", buildNativeChartXml(spec, chartIndex));
+        });
+
+        zip.file(
+          "xl/drawings/drawing" + drawingIndex + ".xml",
+          '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' +
+            anchors.join("") +
+            "</xdr:wsDr>",
+        );
+        zip.file(
+          "xl/drawings/_rels/drawing" + drawingIndex + ".xml.rels",
+          '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            drawingRelationships.join("") +
+            "</Relationships>",
+        );
+
+        let contentTypesXml = await zip.file("[Content_Types].xml").async("string");
+        const overrides = [
+          '<Override PartName="/xl/drawings/drawing' +
+            drawingIndex +
+            '.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>',
+          ...chartSpecs.map(
+            (_spec, index) =>
+              '<Override PartName="/xl/charts/chart' +
+              (firstChartIndex + index) +
+              '.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>',
+          ),
+        ];
+        contentTypesXml = contentTypesXml.replace("</Types>", overrides.join("") + "</Types>");
+        zip.file("[Content_Types].xml", contentTypesXml);
+
+        const workbookXmlEntry = zip.file("xl/workbook.xml");
+        if (workbookXmlEntry) {
+          let workbookXml = await workbookXmlEntry.async("string");
+          if (/<calcPr\b/.test(workbookXml)) {
+            workbookXml = workbookXml.replace(
+              /<calcPr\b[^>]*\/>/,
+              '<calcPr calcId="191029" calcMode="auto" fullCalcOnLoad="1" forceFullCalc="1"/>',
+            );
+          } else {
+            workbookXml = workbookXml.replace(
+              "</workbook>",
+              '<calcPr calcId="191029" calcMode="auto" fullCalcOnLoad="1" forceFullCalc="1"/></workbook>',
+            );
+          }
+          zip.file("xl/workbook.xml", workbookXml);
+        }
+        return zip.generateAsync({
+          type: "uint8array",
+          compression: "DEFLATE",
+          compressionOptions: { level: 6 },
+          mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+      }
+
       async function exportExcelJsChartReport(target, filename, fallback) {
         const payload = getChartExportPayload(target);
         if (!payload.charts.length) {
           fallback();
           return;
         }
+        ensureExcelJsForChartExport(async () => {
+          ensureJsZipForChartExport(async () => {
+            try {
+              const workbook = new ExcelJS.Workbook();
+              workbook.creator = "월별 비용 절감 대시보드";
+              workbook.created = new Date();
+              workbook.modified = new Date();
+              workbook.calcProperties.fullCalcOnLoad = true;
+              addExcelJsRowsSheet(workbook, "README", [
+                { 항목: "보고서", 값: filename || "chart_export.xlsx" },
+                { 항목: "생성일시", 값: formatExportDateTime() },
+                { 항목: "편집 연동 시각화수", 값: payload.charts.length },
+                { 항목: "편집 방법", 값: "차트 연계 데이터 시트의 노란색 셀을 수정하면 차트 시트의 네이티브 차트·덤벨·히트맵·순위 막대가 자동 갱신됩니다." },
+                { 항목: "검증 기준", 값: "화면 원본 시트는 브라우저의 픽셀 기준본이며, 차트 시트는 같은 Top N·정렬·범위·부호·색상·척도를 사용하는 유형별 전용 Excel 시각화입니다." },
+              ]);
+              const chartSheet = workbook.addWorksheet("차트");
+              chartSheet.properties.showGridLines = false;
+              chartSheet.getCell("A1").value = "편집 연동 Excel 시각화";
+              chartSheet.getCell("A1").font = { bold: true, size: 16, color: { argb: "FF173B61" } };
+              chartSheet.getCell("J1").value = "데이터 수정: '차트 연계 데이터' 시트의 노란색 셀";
+              chartSheet.getCell("J1").font = { bold: true, color: { argb: "FF486581" } };
+              chartSheet.columns = Array.from({ length: 20 }, () => ({ width: 11 }));
+
+              const chartSpecs = addNativeChartDataWorksheet(
+                workbook,
+                payload.charts,
+                compareCurrentViewModel,
+              );
+              renderLinkedHeatmapsOnChartSheet(chartSheet, chartSpecs);
+              renderLinkedRankedBarsOnChartSheet(chartSheet, chartSpecs);
+
+              const referenceCharts = payload.charts.filter((chart) => chart.svg || chart.sourcePanel);
+              if (referenceCharts.length) {
+                const referenceSheet = workbook.addWorksheet("화면 원본");
+                referenceSheet.properties.showGridLines = false;
+                referenceSheet.columns = [{ width: 4 }, { width: 24 }, { width: 24 }, { width: 24 }, { width: 24 }, { width: 24 }];
+                referenceSheet.getCell("B2").value = "브라우저 화면 차트 픽셀 기준본";
+                referenceSheet.getCell("B2").font = { bold: true, size: 16, color: { argb: "FF173B61" } };
+                let referenceRow = 4;
+                for (const chart of referenceCharts) {
+                  referenceSheet.getCell("B" + referenceRow).value = chart.index + ". " + chart.title;
+                  referenceSheet.getCell("B" + referenceRow).font = { bold: true, color: { argb: "FF173B61" } };
+                  const image = chart.svg
+                    ? await svgToPngDataUrl(chart.svg)
+                    : await domElementToPngDataUrl(chart.sourcePanel);
+                  const imageId = workbook.addImage({ base64: image.dataUrl, extension: "png" });
+                  referenceSheet.addImage(imageId, {
+                    tl: { col: 1, row: referenceRow },
+                    ext: { width: Math.min(760, image.width), height: Math.min(340, image.height) },
+                  });
+                  referenceRow += Math.max(22, Math.ceil(Math.min(500, image.height) / 15) + 4);
+                }
+              }
+
+              const filteredRows = getDashboardFilteredRowsForExport();
+              addExcelJsRowsSheet(workbook, "현재 필터", normalizeExcelRows(filteredRows));
+              if (!target && compareCurrentViewModel) {
+                addExcelJsRowsSheet(workbook, "비교 월별 전체", (compareCurrentViewModel.monthlyRows || []).map((row) => ({
+                  월: row.monthNumber + "월",
+                  기준연도: row.base,
+                  비교연도: row.compare,
+                  차이: row.delta,
+                })));
+              }
+              const buffer = await workbook.xlsx.writeBuffer();
+              const patchedBuffer = await patchWorkbookWithNativeCharts(buffer, chartSpecs, "차트");
+              const blob = new Blob([patchedBuffer], {
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              });
+              const link = document.createElement("a");
+              link.href = URL.createObjectURL(blob);
+              link.download = filename || "chart_export.xlsx";
+              document.body.appendChild(link);
+              link.click();
+              const objectUrl = link.href;
+              link.remove();
+              window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1200);
+            } catch (error) {
+              console.error("[Native Excel chart export]", error);
+              fallback();
+            }
+          }, fallback);
+        }, fallback);
+        return;
         ensureExcelJsForChartExport(async () => {
           try {
             const workbook = new ExcelJS.Workbook();
@@ -6276,10 +8001,79 @@
         }, fallback);
       }
 
+      function buildRankedPanelExportRow(row, labelKey, scope, scopeDescription, scaleMaximum) {
+        const label = row?.label || row?.type || row?.detail || (row?.monthNumber ? `${row.monthNumber}월` : "");
+        return {
+          [labelKey]: label,
+          범위: scope || "",
+          범위설명: scopeDescription || "",
+          기준연도: row?.base?.saving ?? row?.base ?? "",
+          비교연도: row?.compare?.saving ?? row?.compare ?? "",
+          차이: row?.delta ?? "",
+          척도기준: Number.isFinite(Number(scaleMaximum)) ? Number(scaleMaximum) : 0,
+        };
+      }
+
       function getPanelExportRows(panel, vm) {
-        const title = panel?.querySelector("h3")?.textContent?.trim() || "패널";
+        const title =
+          panel?.querySelector("h3, .compare-diff-segment-title")?.textContent?.trim() || "패널";
         if (!vm) {
           return [{ 구분: title, 내용: panel?.innerText || "" }];
+        }
+        if (title.includes("성격별 차이")) {
+          return (vm.categoryRows || []).map((row) => ({
+            구분: row.label,
+            기준연도: row.base,
+            비교연도: row.compare,
+            차이: row.delta,
+            기준비중: row.baseShare,
+            비교비중: row.compareShare,
+          }));
+        }
+        const maintenanceSegments = ["건축", "기계", "전기", "탐지/기타"];
+        if (panel?.classList?.contains("compare-diff-segment") || maintenanceSegments.includes(title)) {
+          const segmentRows = (vm.detailRows || []).filter(
+            (row) => row.category === "maintenance" && row.segment === title,
+          );
+          const topRows = getCompareTopRows(segmentRows, 3);
+          const scaleMaximum = getCompareRowsMaxDelta(topRows);
+          const description = `Top ${topRows.length} · ${formatComparePlain(d3.sum(segmentRows, (row) => row.delta))}`;
+          return topRows.map((row) =>
+            buildRankedPanelExportRow(row, "절감항목", title, description, scaleMaximum),
+          );
+        }
+        if (title.includes("공사성 상위 차이")) {
+          const sourceRows = (vm.detailRows || []).filter((row) => row.category === "construction");
+          const topRows = getCompareTopRows(sourceRows, 10);
+          const scaleMaximum = getCompareRowsMaxDelta(topRows);
+          return topRows.map((row) =>
+            buildRankedPanelExportRow(row, "절감항목", "공사성", `Top ${topRows.length}`, scaleMaximum),
+          );
+        }
+        if (title.includes("영선 전환 상위 차이")) {
+          return maintenanceSegments.flatMap((segment) => {
+            const segmentRows = (vm.detailRows || []).filter(
+              (row) => row.category === "maintenance" && row.segment === segment,
+            );
+            const topRows = getCompareTopRows(segmentRows, 3);
+            const scaleMaximum = getCompareRowsMaxDelta(topRows);
+            const description = `Top ${topRows.length} · ${formatComparePlain(d3.sum(segmentRows, (row) => row.delta))}`;
+            return topRows.map((row) =>
+              buildRankedPanelExportRow(row, "절감항목", segment, description, scaleMaximum),
+            );
+          });
+        }
+        if (title.includes("영향도 순위")) {
+          const scope = title.includes("공사성")
+            ? "construction"
+            : title.includes("영선")
+              ? "maintenance"
+              : "total";
+          const rows = getCompareTypeScopeRows(vm, scope).slice(0, 6);
+          const label = getCompareTypeScopeLabel(scope);
+          return rows.map((row) =>
+            buildRankedPanelExportRow(row, "작업유형", label, `Top ${rows.length}`, vm.maxDelta),
+          );
         }
         if (title.includes("월별 절감 흐름")) {
           const scope = title.includes("공사성")
@@ -6294,18 +8088,39 @@
             차이: row.delta,
           }));
         }
-        if (title.includes("월별 차이") || title.includes("변동 큰 월")) {
+        if (title.includes("변동 큰 월")) {
+          const scopes = [
+            { key: "total", label: "전체", subtitle: "전체 작업유형 기준", rows: vm.monthlyRows || [] },
+            { key: "construction", label: "공사성", subtitle: "관리소 제외 기준", rows: vm.monthlyConstructionRows || [] },
+            { key: "maintenance", label: "영선 전환", subtitle: "관리소 자체 처리 기준", rows: vm.monthlyMaintenanceRows || [] },
+          ];
+          return scopes.flatMap((scope) => {
+            const topRows = getCompareMonthVariationRows(scope.rows);
+            const scaleMaximum = getCompareRowsMaxDelta(topRows);
+            const monthRange = formatCompareMonthRange(topRows.map((row) => row.monthNumber));
+            const description = `${scope.subtitle} · Top ${topRows.length}${monthRange ? ` · ${monthRange}` : ""}`;
+            return topRows.map((row) =>
+              buildRankedPanelExportRow(row, "월", scope.label, description, scaleMaximum),
+            );
+          });
+        }
+        if (title.includes("월별 차이")) {
           return [
             ...(vm.monthlyRows || []).map((row) => ({ 범위: "전체", 월: `${row.monthNumber}월`, 기준연도: row.base, 비교연도: row.compare, 차이: row.delta })),
             ...(vm.monthlyConstructionRows || []).map((row) => ({ 범위: "공사성", 월: `${row.monthNumber}월`, 기준연도: row.base, 비교연도: row.compare, 차이: row.delta })),
             ...(vm.monthlyMaintenanceRows || []).map((row) => ({ 범위: "영선 전환", 월: `${row.monthNumber}월`, 기준연도: row.base, 비교연도: row.compare, 차이: row.delta })),
           ];
         }
-        if (title.includes("작업 유형별") || title.includes("영향도") || title.includes("기준 연도 구성")) {
-          return (vm.typeRows || []).map((row) => compareMetricRow(row, "작업유형"));
+        if (title.includes("기준 연도 구성")) {
+          const rows = title.includes("공사성")
+            ? vm.typeConstructionRows
+            : title.includes("영선")
+              ? vm.typeMaintenanceRows
+              : vm.typeRows;
+          return buildCompareTypeShareExportRows(rows, title);
         }
-        if (title.includes("상위 차이")) {
-          return (vm.detailRows || []).map((row) => compareMetricRow(row, "절감항목"));
+        if (title.includes("작업 유형별") || title.includes("영향도")) {
+          return (vm.typeRows || []).map((row) => compareMetricRow(row, "작업유형"));
         }
         return [{ 구분: title, 내용: panel?.innerText || "" }];
       }
@@ -6340,7 +8155,7 @@
 
       window.exportScopedExcelReport = function exportScopedExcelReport(target, filename) {
         const title =
-          target?.querySelector("h3")?.textContent?.trim() ||
+          target?.querySelector("h3, .compare-diff-segment-title")?.textContent?.trim() ||
           target?.closest("article")?.querySelector("h3")?.textContent?.trim() ||
           "엑셀 추출";
         const outputName = filename || `${title.replace(/[\\/?*\[\]:]/g, " ").trim() || "export"}.xlsx`;
@@ -6356,7 +8171,10 @@
                   : normalizeExcelRows(filteredRows);
               appendRowsSheet(wb, title, rows);
               appendRowsSheet(wb, "현재 필터 원자료", normalizeExcelRows(filteredRows));
-            } else if (target?.classList?.contains("compare-panel")) {
+            } else if (
+              target?.classList?.contains("compare-panel") ||
+              target?.classList?.contains("compare-diff-segment")
+            ) {
               appendRowsSheet(wb, title, getPanelExportRows(target, compareCurrentViewModel));
               if (compareCurrentViewModel) appendCompareSheets(wb, compareCurrentViewModel, "관련 비교");
             } else {
@@ -6375,39 +8193,44 @@
         runSheetReport();
       };
 
-      function createExcelScopeButton(label = "xls") {
+      function createExcelScopeButton(label = "📊 xls") {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "excel-export-btn";
         button.textContent = label;
-        button.title = "엑셀 다운로드";
-        button.setAttribute("aria-label", "엑셀 다운로드");
+        button.title = "화면 기준본과 편집 연동 네이티브 차트를 엑셀로 다운로드";
+        button.setAttribute("aria-label", "화면 기준본과 편집 연동 네이티브 차트를 엑셀로 다운로드");
         return button;
       }
 
       window.injectScopedExcelExportButtons = function injectScopedExcelExportButtons(root = document) {
         root.querySelectorAll(".summary-card").forEach((card) => {
-          if (card.querySelector(":scope > .excel-export-btn")) return;
           const heading = card.querySelector("h3");
           if (!heading) return;
-          const button = createExcelScopeButton();
-          button.addEventListener("click", (event) => {
+          const button = card.querySelector(":scope > .excel-export-btn") || createExcelScopeButton();
+          button.textContent = "📊 xls";
+          button.onclick = (event) => {
             event.preventDefault();
             event.stopPropagation();
             window.exportScopedExcelReport(card);
-          });
-          heading.insertAdjacentElement("afterend", button);
+          };
+          if (!button.parentNode) heading.insertAdjacentElement("afterend", button);
         });
         root.querySelectorAll(".compare-panel").forEach((panel) => {
           const head = panel.querySelector(".compare-panel-head");
-          if (!head || head.querySelector(".excel-export-btn")) return;
-          const button = createExcelScopeButton("xls");
-          button.addEventListener("click", (event) => {
+          if (!head) return;
+          if (head.querySelector("[data-compare-chart-export]")) {
+            head.querySelectorAll(".excel-export-btn").forEach((button) => button.remove());
+            return;
+          }
+          const button = head.querySelector(".excel-export-btn") || createExcelScopeButton();
+          button.textContent = "📊 xls";
+          button.onclick = (event) => {
             event.preventDefault();
             event.stopPropagation();
             window.exportScopedExcelReport(panel);
-          });
-          head.appendChild(button);
+          };
+          if (!button.parentNode) head.appendChild(button);
         });
       };
       // Ensure the script runs after the DOM is fully loaded
@@ -7055,6 +8878,31 @@
           updateTable();
         }
       }
+
+      function bindDetailTableScrollBoundary() {
+        const tableContainer = document.getElementById("table-container");
+        if (!tableContainer || tableContainer.dataset.scrollBoundaryBound === "1") return;
+        tableContainer.dataset.scrollBoundaryBound = "1";
+        tableContainer.addEventListener(
+          "wheel",
+          (event) => {
+            if (!tableContainer.classList.contains("detail-table-mode")) return;
+            const style = getComputedStyle(tableContainer);
+            if (style.overflowY !== "auto" && style.overflowY !== "scroll") return;
+            const maxScrollTop = tableContainer.scrollHeight - tableContainer.clientHeight;
+            if (maxScrollTop <= 1) return;
+            const atTop = tableContainer.scrollTop <= 1;
+            const atBottom = tableContainer.scrollTop >= maxScrollTop - 1;
+            if ((event.deltaY < 0 && atTop) || (event.deltaY > 0 && atBottom)) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          },
+          { passive: false },
+        );
+      }
+
+      bindDetailTableScrollBoundary();
 
       function normalizeDashboardLayout() {
         const chartElement = document.getElementById("chart");
@@ -10082,8 +11930,16 @@
             chartKey = "character-summary";
           } else if (h3Text.includes("공사성 상위 차이")) {
             chartKey = "top-diff-construction";
-          } else if (h3Text.includes("영선 전환 상위 차이") || h3Text === "건축" || h3Text === "기계" || h3Text === "전기" || h3Text.includes("탐지/기타")) {
+          } else if (h3Text.includes("영선 전환 상위 차이")) {
             chartKey = "top-diff-maintenance";
+          } else if (h3Text === "건축") {
+            chartKey = "top-diff-maintenance-building";
+          } else if (h3Text === "기계") {
+            chartKey = "top-diff-maintenance-mechanical";
+          } else if (h3Text === "전기") {
+            chartKey = "top-diff-maintenance-electrical";
+          } else if (h3Text.includes("탐지/기타")) {
+            chartKey = "top-diff-maintenance-etc";
           } else if (svgId === "compare-monthly-chart" || h3Text.includes("월별 절감 흐름 · 전체")) {
             chartKey = "monthly-total";
           } else if (svgId === "compare-monthly-chart-construction" || h3Text.includes("월별 절감 흐름 · 공사성")) {
@@ -10115,24 +11971,31 @@
           }
 
           const btn = document.createElement("button");
+          head.querySelectorAll(".excel-export-btn").forEach((button) => button.remove());
           btn.type = "button";
           btn.className = "compare-mini-btn btn-xls-export";
           btn.style.cssText = "margin-left:auto; font-size:11px; padding:2px 8px; background:#27ae60; color:#ffffff; border:none; border-radius:4px; cursor:pointer; font-weight:bold; display:inline-flex; align-items:center; gap:3px;";
           btn.setAttribute("data-compare-chart-export", chartKey);
           btn.innerHTML = "📊 xls";
-          btn.title = `${h3Text || "차트"} 엑셀 다운로드 (차트 시각화 이미지 + 원천 증빙 데이터 2개 시트)`;
+          btn.title = `${h3Text || "차트"} 엑셀 다운로드 (화면 기준본 + 편집 연동 네이티브 차트 + 연계 데이터)`;
 
           btn.addEventListener("click", function (e) {
             e.stopPropagation();
-            exportCompareChartWorkbook(chartKey, h3Text);
+            exportCompareChartWorkbook(chartKey, h3Text, panel);
           });
 
           head.appendChild(btn);
         });
       };
 
-      async function exportCompareChartWorkbook(chartKey, customTitle) {
+      async function exportCompareChartWorkbook(chartKey, customTitle, sourcePanel) {
         if (!compareCurrentViewModel) return;
+        const trigger = document.querySelector(`[data-compare-chart-export="${chartKey}"]`);
+        const panel = sourcePanel || trigger?.closest(".compare-diff-segment, .compare-panel");
+        if (panel && typeof window.exportScopedExcelReport === "function") {
+          window.exportScopedExcelReport(panel);
+          return;
+        }
         const vm = compareCurrentViewModel;
         try {
           let summaryTitle = customTitle || "비교 차트 분석 요약";
@@ -10160,7 +12023,9 @@
               [`${vm.baseYear}년 구성비`]: `${(row.baseShare * 100).toFixed(1)}%`,
             }));
           } else if (chartKey && chartKey.startsWith("top-diff-")) {
-            const category = chartKey.replace("top-diff-", "");
+            const category = chartKey.startsWith("top-diff-maintenance")
+              ? "maintenance"
+              : chartKey.replace("top-diff-", "");
             summaryTitle = `${category === "construction" ? "공사성" : "영선 전환"} 상위 차이 항목 요약`;
             const filteredDetails = vm.detailRows.filter((r) => r.category === category);
             sourceRows = vm.rows.filter((r) => getCompareCharacterKeyFromType(r.type) === category);
@@ -10427,7 +12292,7 @@
           button.addEventListener("click", function (event) {
             event.stopPropagation();
             const key = this.getAttribute("data-compare-chart-export");
-            exportCompareChartWorkbook(key);
+            exportCompareChartWorkbook(key, null, this.closest(".compare-diff-segment, .compare-panel"));
           });
         });
       }
@@ -10439,7 +12304,11 @@
           if (chartBtn) {
             event.stopPropagation();
             const key = chartBtn.getAttribute("data-compare-chart-export");
-            exportCompareChartWorkbook(key);
+            exportCompareChartWorkbook(
+              key,
+              null,
+              chartBtn.closest(".compare-diff-segment, .compare-panel"),
+            );
             return;
           }
           const drillBtn = event.target.closest("[data-compare-drilldown-export]");
@@ -11320,7 +13189,7 @@
             <div class="compare-drilldown-head">
               <h3>${escapeCompareHtml(title)}<small>${escapeCompareHtml(formatCompareBasisLabel(vm))}</small></h3>
               <div class="compare-drilldown-actions">
-                <button type="button" class="compare-drilldown-xls" data-compare-drilldown-export="${isTypeMode ? "types" : "details"}" data-tooltip="${escapeCompareHtml(exportTooltip)}" aria-label="${escapeCompareHtml(title)} 엑셀 다운로드">xls</button>
+                <button type="button" class="compare-drilldown-xls" data-compare-drilldown-export="${isTypeMode ? "types" : "details"}" data-tooltip="${escapeCompareHtml(exportTooltip)}" aria-label="${escapeCompareHtml(title)} 엑셀 다운로드">📊 xls</button>
                 <button type="button" class="compare-drilldown-popout" data-compare-drilldown-popout title="상세테이블 전체보기" aria-label="상세테이블 전체보기">⛶</button>
                 <button type="button" class="compare-drilldown-close" data-compare-detail-close>닫기</button>
               </div>
@@ -14000,6 +15869,13 @@
         .getElementById("download-csv-btn")
         .addEventListener("click", downloadCSV);
 
+      function serializeInlineState(value) {
+        return JSON.stringify(value)
+          .replace(/</g, "\\u003c")
+          .replace(/\u2028/g, "\\u2028")
+          .replace(/\u2029/g, "\\u2029");
+      }
+
       async function downloadHTML() {
         if (!allData || allData.length === 0) {
           const confirmation = confirm(
@@ -14012,9 +15888,50 @@
           applyTableColumnContract();
           applyResponsiveTableLabels();
           syncMobileStickyLayout();
-          let htmlContent = document.documentElement.outerHTML;
-          const dataString = JSON.stringify(allData || []);
-          const hyperlinkRulesString = JSON.stringify(hyperlinkRules || []);
+          const snapshot = document.documentElement.cloneNode(true);
+          snapshot
+            .querySelectorAll(
+              "#compare-overlay, #compare-chart-popout-overlay, .compare-drilldown-popout-overlay, .compare-basis-overlay, #compare-monthly-tooltip, .note-popup, #table-xls-btn, script[data-sheetjs-export-loader], script[data-exceljs-export-loader], script[data-jszip-export-loader], script[data-html2canvas-export-loader]",
+            )
+            .forEach((node) => node.remove());
+          // cloneNode does not copy event listeners. Remove runtime binding flags so
+          // every downloaded generation binds workbook controls again on startup.
+          snapshot.querySelectorAll("[data-bound]").forEach((node) => {
+            node.removeAttribute("data-bound");
+          });
+          // A network request can be in flight at the exact save moment. Persist a
+          // canonical idle control state instead of transient loading text/classes.
+          const snapshotWorkbookModeButton = snapshot.querySelector(
+            "#xlsx-source-mode-btn",
+          );
+          if (snapshotWorkbookModeButton) {
+            snapshotWorkbookModeButton.classList.remove(
+              "is-auto",
+              "is-manual",
+              "is-loading",
+            );
+            snapshotWorkbookModeButton.textContent = "Web Auto";
+            snapshotWorkbookModeButton.setAttribute(
+              "data-tooltip",
+              "GitHub XLSX 자동 로드와 수동 XLSX 모드를 전환합니다",
+            );
+            snapshotWorkbookModeButton.removeAttribute("title");
+          }
+          const snapshotWorkbookUploadButton = snapshot.querySelector(
+            "#xlsx-upload-btn",
+          );
+          if (snapshotWorkbookUploadButton) {
+            snapshotWorkbookUploadButton.classList.remove("is-loading");
+            snapshotWorkbookUploadButton.removeAttribute("title");
+          }
+          // D3 force simulation coordinates contain harmless floating-point jitter.
+          // Persist an empty runtime layer so every generation rebuilds the same
+          // bubble chart from allData instead of nesting a sampled live frame.
+          const snapshotBubbleChart = snapshot.querySelector("#chart");
+          if (snapshotBubbleChart) snapshotBubbleChart.replaceChildren();
+          let htmlContent = "<!doctype html>\n" + snapshot.outerHTML;
+          const dataString = serializeInlineState(allData || []);
+          const hyperlinkRulesString = serializeInlineState(hyperlinkRules || []);
           const selectedYearsString = JSON.stringify(Array.from(selectedYears));
           const selectedMonthsString = JSON.stringify(
             Array.from(selectedMonths),
@@ -14034,11 +15951,11 @@
 
           // Replace 로직을 개선하여 변수의 현재 값에 관계없이 대체하도록 수정
           htmlContent = htmlContent.replace(
-            /(let allData\s*=\s*)[^;]*;/g,
+            /(^\s*let allData\s*=\s*).*?;\s*$/m,
             `let allData = ${dataString};`,
           );
           htmlContent = htmlContent.replace(
-            /(let hyperlinkRules\s*=\s*)[^;]*;/g,
+            /(^\s*let hyperlinkRules\s*=\s*).*?;\s*$/m,
             `let hyperlinkRules = ${hyperlinkRulesString};`,
           );
           htmlContent = htmlContent.replace(
