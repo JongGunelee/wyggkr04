@@ -1,0 +1,2691 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>작업 투입전 절차 인포그래픽</title>
+    <style>
+        :root {
+            --bg: #f1f4f8;
+            --surface: #ffffff;
+            --border: #dce1e8;
+            --border-dim: #eef2f6;
+            --ink-deep: #0f172a;
+            --ink-main: #334155;
+            --ink-muted: #64748b;
+            --ink-dim: #94a3b8;
+            
+            /* 체계적 의미 기반 시스템 컬러 팔레트 */
+            --color-danger: #ef4444;   /* 🔴 고위험 / 교통사고 위험 (Red) */
+            --color-warning: #f59e0b;  /* 🟡 비효율 / 시간손실 / 이원화 (Amber) */
+            --color-security: #4f46e5; /* 🔵 보안 / 동일성 검증 한계 (Indigo) */
+            --color-success: #10b981;  /* 🟢 저위험 / 자체조회 / 선행성공사례 (Emerald) */
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; }
+
+        html {
+            font-size: 14.5px;
+            -webkit-text-size-adjust: 100%;
+        }
+        body {
+            font-family: 'Malgun Gothic', '맑은 고딕', -apple-system, sans-serif;
+            line-height: 1.5;
+            background: var(--bg);
+            color: var(--ink-main);
+            padding: 16px 12px;
+        }
+
+        /* ═══ 전체 인포그래픽 시트 ═══ */
+        .sheet {
+            max-width: 1280px;
+            margin: 0 auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+            position: relative;
+            transition: max-width 0.25s ease, border-radius 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        /* ━━━ 마스터 헤더 숨김 시 100% 전체 화면 최적화 (Full-Screen Layout Optimization) ━━━ */
+        .sheet.headers-hidden {
+            max-width: 100% !important;
+            border-radius: 6px;
+            box-shadow: 0 8px 36px rgba(15, 23, 42, 0.12);
+        }
+        .sheet.headers-hidden .sheet-main {
+            padding: 20px 28px 24px 28px;
+            gap: 28px;
+            min-height: calc(100vh - 40px);
+        }
+        .sheet.headers-hidden .card-image-block {
+            height: 135px;
+        }
+        .sheet.headers-hidden .proc-wide-card .card-image-block {
+            height: 125px;
+        }
+        .sheet.headers-hidden .proc-area .area-label {
+            padding-left: 36px;
+        }
+
+        /* ━━━ 좌측 최상단 헤더 전체 숨기기/보이기 원형 버튼 ━━━ */
+        .master-header-toggle-btn {
+            position: absolute;
+            top: 10px;
+            left: 12px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #0f172a;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+            z-index: 90;
+            line-height: 1;
+            transition: transform 0.15s ease, background 0.15s ease;
+            user-select: none;
+        }
+        .master-header-toggle-btn:hover {
+            background: #3b82f6;
+            transform: scale(1.1);
+        }
+        .master-header-toggle-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* ── 헤더 밴드 ── */
+        .sheet-banner {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            padding: 14px 24px;
+            text-align: center;
+            border-bottom: 3px solid var(--color-warning);
+        }
+        .sheet-banner h1 {
+            font-size: 25.2px;
+            color: #ffffff;
+            font-weight: 800;
+            letter-spacing: -0.015em;
+        }
+        .sheet-banner .sub {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-top: 2px;
+        }
+        .sheet-banner em {
+            color: #fca5a5;
+            font-style: normal;
+            font-weight: 700;
+        }
+
+        /* ━━━ 카드 상호연결 인터랙티브 조작 툴바 (접기/펴기) ━━━ */
+        .connection-toolbar-header {
+            background: #1e293b;
+            color: #ffffff;
+            padding: 9px 16px;
+            font-size: 12.5px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            user-select: none;
+            transition: background 0.15s ease;
+        }
+        .connection-toolbar-header:hover {
+            background: #334155;
+        }
+        .connection-toolbar-header .toggle-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .connection-control-bar {
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+            padding: 10px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        .connection-control-bar.collapsed {
+            display: none !important;
+        }
+        .control-group-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .control-group label {
+            font-weight: 700;
+            color: var(--ink-deep);
+            white-space: nowrap;
+        }
+        .control-select, .control-input {
+            font-family: inherit;
+            font-size: 12px;
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #ffffff;
+            color: var(--ink-deep);
+            outline: none;
+        }
+        .control-select:focus, .control-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+        }
+        .btn-action {
+            font-family: inherit;
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-primary { background: #0f172a; color: #ffffff; }
+        .btn-primary:hover { background: #1e293b; }
+        .btn-secondary { background: #e2e8f0; color: #334155; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-accent { background: #f59e0b; color: #ffffff; }
+        .btn-accent:hover { background: #d97706; }
+        .btn-danger { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
+        .btn-danger:hover { background: #fee2e2; }
+
+        /* ═══ 메인 레이아웃 ═══ */
+        .sheet-main {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+            padding: 18px 22px;
+            align-items: stretch;
+            overflow: visible !important; /* 🎯 조종 노드가 상단 헤더 영역으로 이동하더라도 지장물 아래로 가려짐 방지 */
+        }
+
+        /* 오버레이 SVG 연계 선 (헤더 및 지장물 최상단 z-index 9999 적용으로 노드 항상 재선택 가능 보장) */
+        #connection-svg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999 !important; /* 🎯 메인 헤더 컨테이너 및 지장물 최상단(Top Most) 레이어 배치로 100% 선택 가능 */
+            overflow: visible !important;
+        }
+        #connection-svg-overlay path {
+            pointer-events: stroke;
+            cursor: pointer;
+            transition: stroke-width 0.2s;
+        }
+        #connection-svg-overlay path:hover {
+            stroke-width: 4.5px !important;
+        }
+
+        /* ━━━ 다골절 및 조종점 핸들 노드 스타일 ━━━ */
+        .control-node-handle {
+            fill: #3b82f6;
+            stroke: #ffffff;
+            stroke-width: 2.5px;
+            cursor: grab;
+            pointer-events: all;
+            filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+            transition: transform 0.15s ease, fill 0.15s ease;
+        }
+        .control-node-handle:hover, .control-node-handle:active {
+            fill: #ef4444 !important;
+            stroke: #ffffff !important;
+            stroke-width: 3px !important;
+            r: 10.5 !important;
+            cursor: grabbing !important;
+            filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.9)) !important;
+        }
+        .control-node-text {
+            font-size: 10px;
+            font-weight: 700;
+            fill: #ffffff;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+            user-select: none;
+        }
+        .guideline-dash {
+            stroke: #3b82f6;
+            stroke-width: 1.2px;
+            stroke-dasharray: 4 4;
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        @keyframes flowDash {
+            to { stroke-dashoffset: -24; }
+        }
+        .flow-animated {
+            animation: flowDash 1s linear infinite;
+        }
+
+        /* 헤더 숨김 시 '프로세스 현황' 제목과 최상단 원형 버튼 겹침 방지 */
+        .sheet.headers-hidden .proc-area .area-label {
+            padding-left: 34px;
+        }
+
+        .area-label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--ink-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 10px;
+            padding-left: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: padding-left 0.2s ease;
+        }
+        .area-label::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 14px;
+            background: #0f172a;
+            border-radius: 2px;
+        }
+
+        /* ━━━ 공통 카드 디자인 (바탕화면 대비 또렷한 1.5px 프레임 & 입체감 강화) ━━━ */
+        .card-item {
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-top: 4px solid;
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+            transition: transform 0.25s cubic-bezier(0.34, 1.75, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+            position: relative;
+            cursor: pointer;
+            z-index: 1;
+        }
+        /* 🚀 마우스 커서 호버 시 3배 더 명확하고 입체적인 3D 수직 부상 확대 & 네온 발광 효과 (.hover-lift 클래스 포함) */
+        .card-item:hover,
+        .card-item.hover-lift {
+            border-color: #0284c7;
+            transform: translateY(-12px) scale(1.085);
+            box-shadow: 0 28px 56px -6px rgba(15, 23, 42, 0.28), 0 14px 28px -4px rgba(2, 132, 199, 0.25), 0 0 0 3.5px rgba(6, 182, 212, 0.6), 0 0 22px rgba(6, 182, 212, 0.35);
+            z-index: 25;
+        }
+
+        /* ⚡ 1. 출발 카드 선택 (High-Contrast Neon Cyan Pulse + Floating Badge Tag) */
+        .card-item.selected-source {
+            border-color: #06b6d4 !important;
+            animation: sourceSelectPulse 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10;
+        }
+        .card-item.selected-source::after {
+            content: "🚩 [출발 선택됨]";
+            position: absolute;
+            top: -12px;
+            right: 12px;
+            background: #06b6d4;
+            color: #ffffff;
+            font-size: 10.5px;
+            font-weight: 800;
+            padding: 2px 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(6, 182, 212, 0.45);
+            pointer-events: none;
+            letter-spacing: 0.2px;
+            z-index: 15;
+            animation: badgeBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* 🔮 2. 도착 카드 선택 (High-Contrast Neon Magenta Pulse + Floating Badge Tag) */
+        .card-item.selected-target {
+            border-color: #d946ef !important;
+            animation: targetSelectPulse 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10;
+        }
+        .card-item.selected-target::after {
+            content: "🎯 [도착 선택됨]";
+            position: absolute;
+            top: -12px;
+            right: 12px;
+            background: #d946ef;
+            color: #ffffff;
+            font-size: 10.5px;
+            font-weight: 800;
+            padding: 2px 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(217, 70, 239, 0.45);
+            pointer-events: none;
+            letter-spacing: 0.2px;
+            z-index: 15;
+            animation: badgeBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes sourceSelectPulse {
+            0% { box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.45), 0 0 16px rgba(6, 182, 212, 0.35); transform: scale(1.008); }
+            50% { box-shadow: 0 0 0 5.5px rgba(6, 182, 212, 0.8), 0 0 24px rgba(6, 182, 212, 0.6); transform: scale(1.015); }
+            100% { box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.45), 0 0 16px rgba(6, 182, 212, 0.35); transform: scale(1.008); }
+        }
+
+        @keyframes targetSelectPulse {
+            0% { box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.45), 0 0 16px rgba(217, 70, 239, 0.35); transform: scale(1.008); }
+            50% { box-shadow: 0 0 0 5.5px rgba(217, 70, 239, 0.8), 0 0 24px rgba(217, 70, 239, 0.6); transform: scale(1.015); }
+            100% { box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.45), 0 0 16px rgba(217, 70, 239, 0.35); transform: scale(1.008); }
+        }
+
+        @keyframes badgeBounce {
+            0% { opacity: 0; transform: translateY(4px) scale(0.85); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* 🔍 카드 4배(400%) 정밀 확대 모달 - 세로 스크롤바 미생성 뷰포트 최적화 */
+        #card-zoom-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow: hidden; /* 세로 스크롤바 생성 전면 차단 */
+        }
+        #card-zoom-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .zoom-modal-dialog {
+            background: #0f172a;
+            border-radius: 18px;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.75), 0 0 0 2px rgba(56, 189, 248, 0.4);
+            max-width: 96vw;
+            max-height: 96vh;
+            width: 880px;
+            height: 96vh;
+            overflow: hidden; /* 세로 스크롤바 차단 */
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.94);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+        #card-zoom-modal.active .zoom-modal-dialog {
+            transform: scale(1);
+        }
+        .zoom-modal-header {
+            background: #0f172a;
+            color: #ffffff;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #0284c7;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .zoom-modal-title-block {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .zoom-modal-title {
+            font-size: 14.5px;
+            font-weight: 800;
+            color: #38bdf8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        .btn-anno-toggle {
+            background: #1e293b;
+            color: #38bdf8;
+            border: 1.5px solid #0284c7;
+            border-radius: 18px;
+            padding: 4px 13px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .btn-anno-toggle:hover {
+            background: #0284c7;
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        /* 🖍️ 판서 옵션 툴바 (Annotation Toolbar) CSS - 접기/펴기 지원 */
+        .zoom-annotation-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1e293b;
+            padding: 5px 14px;
+            border-radius: 30px;
+            border: 1px solid #334155;
+            flex-wrap: wrap;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 200px;
+            opacity: 1;
+            overflow: hidden;
+        }
+        .zoom-annotation-toolbar.collapsed {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin: 0;
+            border: none;
+            pointer-events: none;
+        }
+        .btn-anno-tool {
+            background: #334155;
+            color: #f8fafc;
+            border: 1.5px solid #475569;
+            border-radius: 16px;
+            padding: 3px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-anno-tool:hover, .btn-anno-tool.active {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #38bdf8;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+        .anno-divider {
+            width: 1px;
+            height: 18px;
+            background: #475569;
+            margin: 0 3px;
+        }
+        .anno-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+        .anno-color-palette {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .color-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .color-dot:hover, .color-dot.active {
+            transform: scale(1.25);
+            box-shadow: 0 0 10px rgba(255,255,255,0.8);
+            border-color: #38bdf8;
+        }
+        .anno-select {
+            background: #0f172a;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            border-radius: 12px;
+            padding: 3px 8px;
+            font-size: 11.5px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-anno-action {
+            background: #475569;
+            color: #ffffff;
+            border: none;
+            border-radius: 16px;
+            padding: 4px 10px;
+            font-size: 11.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .btn-anno-action:hover {
+            background: #64748b;
+        }
+        .btn-anno-action.danger {
+            background: #b91c1c;
+        }
+        .btn-anno-action.danger:hover {
+            background: #dc2626;
+        }
+
+        /* 4배(400%) 확대 모달 판서 캔버스 Overlay & 뷰포트 맞춤 4면 전면 외곽선 & 내용 잘림 0% 보장 */
+        .zoomed-card-wrapper {
+            position: relative;
+            background: #ffffff;
+            border-style: solid;
+            border-width: 2.5px;
+            border-top-width: 8px;
+            border-color: #cbd5e1;
+            border-radius: 18px;
+            padding: clamp(14px, 2.2vh, 22px) clamp(16px, 2.2vw, 26px);
+            width: 100%;
+            height: 100%;
+            max-width: 880px;
+            max-height: 100%;
+            box-shadow: 0 25px 65px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.2);
+            box-sizing: border-box;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden; /* 세로 스크롤바 차단 */
+        }
+        .annotation-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 18px;
+            z-index: 99;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .zoom-modal-close-btn {
+            background: #ef4444;
+            color: #ffffff;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(239, 68, 68, 0.45);
+            transition: all 0.15s ease;
+        }
+        .zoom-modal-close-btn:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+        }
+        .zoom-modal-body {
+            padding: 20px; /* 뷰포트 내부 4면 외곽선 안심 여백 버퍼 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; /* 세로 스크롤바 차단 */
+            background: #1e293b;
+            flex: 1;
+            box-sizing: border-box;
+        }
+        .zoomed-card-wrapper .card-item {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            transform: none !important; /* 🎯 클릭 시 호버 12px 상부 이동(translateY(-12px) scale(1.085)) 및 쏠림 100% 무효화하여 상단/좌측 잘림 원천 차단! */
+            animation: none !important; /* 🎯 선택 맥동 애니메이션(Pulse) 100% 무효화 */
+            height: 100% !important;
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            overflow: hidden !important;
+        }
+        .zoomed-card-wrapper .card-text-block {
+            flex-shrink: 0 !important; /* 상단 텍스트 수직 압축 및 상단/좌측 잘림 100% 원천 방지 */
+            width: 100% !important;
+            margin-bottom: 6px !important;
+        }
+        .zoomed-card-wrapper .card-title {
+            font-size: clamp(18px, 2.8vh, 25px) !important;
+            margin-top: 4px !important;
+            margin-bottom: 6px !important;
+        }
+        .zoomed-card-wrapper .card-tag {
+            font-size: clamp(11px, 1.6vh, 14px) !important;
+            padding: 3px 10px !important;
+            display: inline-block !important;
+        }
+        .zoomed-card-wrapper .card-desc {
+            font-size: clamp(13px, 2vh, 17px) !important;
+            line-height: 1.45 !important;
+            margin-top: 4px !important;
+        }
+        .zoomed-card-wrapper .card-image-block {
+            flex: 1 !important;
+            min-height: 0 !important; /* 남은 내부 유연 가용 공간 자동 적응 */
+            width: 100% !important;
+            margin-top: 6px !important;
+            border-radius: 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            overflow: hidden !important;
+        }
+        .zoomed-card-wrapper .card-image-block svg {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            object-fit: contain !important; /* 수직 팽창 방지 비율 자동 축소/확대 */
+        }
+        .zoomed-card-wrapper .badge-num {
+            width: clamp(28px, 3.8vh, 38px) !important;
+            height: clamp(28px, 3.8vh, 38px) !important;
+            font-size: clamp(14px, 2vh, 18px) !important;
+            top: 8px !important;
+            left: 8px !important;
+        }
+
+        /* 🟢 올가미 구역 4배(400%) 전용 확대 모달 스타일 - 4면 외곽선 100% 완벽 가시성 보장 */
+        .zoomed-lasso-group-wrapper {
+            position: relative;
+            background: #ffffff;
+            border: 4.5px dashed #008751;
+            border-radius: 20px;
+            padding: clamp(14px, 2vh, 22px) clamp(16px, 2vw, 26px);
+            width: 100%;
+            height: auto;
+            max-width: 960px;
+            max-height: calc(100% - 12px); /* 4면 외곽선 잘림 100% 방지 */
+            box-shadow: 0 25px 65px rgba(0, 135, 81, 0.4);
+            box-sizing: border-box;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+        .zoomed-lasso-badge-tag {
+            background: #008751;
+            color: #ffffff;
+            font-size: clamp(13px, 2vh, 16px);
+            font-weight: 800;
+            padding: 6px 20px;
+            border-radius: 20px;
+            align-self: flex-start;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 12px rgba(0, 135, 81, 0.35);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .zoomed-lasso-content-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .zoomed-lasso-top-row {
+            display: flex;
+            gap: 12px;
+            height: 48%;
+            width: 100%;
+        }
+        .zoomed-lasso-top-spacer {
+            flex: 1;
+            visibility: hidden;
+        }
+        .zoomed-lasso-p2-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+        .zoomed-lasso-bottom-row {
+            height: 48%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .zoomed-lasso-card-item {
+            flex: 1;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-top: 4px solid;
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            transform: none !important;
+            animation: none !important;
+        }
+        .zoomed-lasso-card-item .card-text-block {
+            flex-shrink: 0 !important; /* 수직 압축 및 밀림 방지 */
+            width: 100% !important;
+        }
+        .zoomed-lasso-card-item .card-title {
+            font-size: clamp(14px, 2vh, 18px) !important;
+            margin-top: 2px !important;
+            margin-bottom: 3px !important;
+        }
+        .zoomed-lasso-card-item .card-tag {
+            font-size: clamp(10px, 1.3vh, 12px) !important;
+            padding: 2px 7px !important;
+            display: inline-block !important;
+        }
+        .zoomed-lasso-card-item .card-desc {
+            font-size: clamp(11.5px, 1.5vh, 14.5px) !important;
+            line-height: 1.35 !important;
+            margin-top: 2px !important;
+        }
+        .zoomed-lasso-card-item .card-image-block {
+            flex: none !important; /* 🎯 이미지 단독 세로 팽창 및 개별 확대 100% 금지! */
+            height: 110px !important; /* 🎯 원본 시트 카드와 100% 동일한 정적 고정 높이 유지 (단독 확대 금지) */
+            max-height: 110px !important;
+            min-height: 110px !important;
+            width: 100% !important;
+            margin-top: 4px !important;
+            border-radius: 8px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            overflow: hidden !important;
+        }
+        .zoomed-lasso-card-item .card-image-block svg {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            object-fit: contain !important; /* viewBox 3:1 수직 팽창 방지 및 하단 잘림 100% 원천 차단 */
+        }
+        .zoomed-lasso-card-item .badge-num {
+            width: clamp(24px, 3.2vh, 32px) !important;
+            height: clamp(24px, 3.2vh, 32px) !important;
+            font-size: clamp(12px, 1.6vh, 16px) !important;
+            top: 6px !important;
+            left: 6px !important;
+        }
+        @media (max-width: 600px) {
+            .zoomed-lasso-top-row {
+                flex-direction: column;
+                height: auto;
+            }
+            .zoomed-lasso-top-spacer {
+                display: none;
+            }
+            .zoomed-lasso-bottom-row {
+                height: auto;
+            }
+        }
+
+        /* 카드 상단 텍스트 영역 */
+        .card-text-block {
+            margin-bottom: 8px;
+        }
+        .card-head {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 3px;
+            flex-wrap: wrap;
+        }
+        .card-tag {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--ink-muted);
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 1px 7px;
+            white-space: nowrap;
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--ink-deep);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .card-desc {
+            font-size: 11.5px;
+            line-height: 1.4;
+            color: var(--ink-main);
+            margin-top: 3px;
+            word-break: keep-all;
+        }
+        .card-desc strong { color: var(--ink-deep); font-weight: 700; }
+
+        /* 카드 하단 SVG 이미지 박스 영역 */
+        .card-image-block {
+            width: 100%;
+            height: 110px;
+            background: #f8fafc;
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .card-image-block svg { width: 100%; height: 100%; }
+
+        /* 우측 분석 카드 뱃지 번호 */
+        .badge-num {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            z-index: 2;
+        }
+
+        /* ━━━ 좌측: 프로세스 현황 영역 ━━━ */
+        .proc-area {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .proc-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 12px;
+            flex: 1;
+            position: relative;
+            margin-top: 14px;
+        }
+        .proc-wide-card {
+            grid-column: 1 / -1;
+        }
+        .proc-wide-card .card-image-block {
+            height: 100px;
+        }
+
+        /* ━━━ 우측: 심층 분석 영역 ━━━ */
+        .insight-area {
+            border-left: 1px solid var(--border);
+            padding-left: 22px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .insight-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 12px;
+            flex: 1;
+        }
+
+        /* ── 반응형 ── */
+        @media (max-width: 1024px) {
+            .sheet-main { grid-template-columns: 1fr; }
+            .insight-area { border-left: none; padding-left: 0; border-top: 1px solid var(--border); padding-top: 14px; }
+            .proc-grid, .insight-grid { grid-template-rows: auto; }
+        }
+
+        /* ── 인쇄 ── */
+        @media print {
+            body { background: #fff; padding: 0; }
+            .sheet { box-shadow: none; border: none; border-radius: 0; max-width: 100%; }
+            .sheet-banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .connection-toolbar-header, .connection-control-bar { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="sheet">
+
+    <!-- 🎯 좌측 최상단 헤더 전체 숨기기/보이기 원형 버튼 (-/+) -->
+    <button id="btn-master-toggle" class="master-header-toggle-btn" title="전체 헤더 숨기기 (-)">−</button>
+
+    <!-- ━━━ 전체 상단 헤더 감싸기 영역 (숨기기/보이기 대상) ━━━ -->
+    <div id="all-headers-wrapper">
+        <!-- 상단 타이틀 밴드 -->
+        <div class="sheet-banner">
+            <h1>작업 투입전 절차</h1>
+            <div class="sub">(오전 안전 조회 <em>주관</em> 이원화)</div>
+        </div>
+
+        <!-- ━━━ 카드 상호연결 조작 툴바 (접기/펴기 헤더 & 옵션 컨테이너) ━━━ -->
+        <div class="connection-toolbar-header" id="toolbar-toggle-btn">
+            <span>⚙️ 카드 간 연계 연결선 조작 옵션</span>
+            <span class="toggle-badge" id="toolbar-toggle-label">▶ 옵션 메뉴 펴기</span>
+        </div>
+
+        <div class="connection-control-bar collapsed" id="toolbar-container">
+            <div class="control-group-wrapper">
+                <div class="control-group">
+                    <label for="select-source">시작 카드 (출발):</label>
+                    <select id="select-source" class="control-select">
+                        <option value="" selected>(카드 선택)</option>
+                        <option value="proc-1">[좌측] 저수조 고위험</option>
+                        <option value="proc-2">[좌측] 건축 수장</option>
+                        <option value="proc-3">[좌측] 기계/전기 이원화</option>
+                        <option value="insight-1">[우측] 1. 이동 시간 손실(원가↑,안전=)</option>
+                        <option value="insight-2">[우측] 2. 접촉 사고 위험(시스템적 리스크)</option>
+                        <option value="insight-3">[우측] 3. 근로자 검증 취약</option>
+                        <option value="insight-4">[우측] 4. 선행 프로세스</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="select-target">도착 카드 (도착):</label>
+                    <select id="select-target" class="control-select">
+                        <option value="" selected>(카드 선택)</option>
+                        <option value="proc-1">[좌측] 저수조 고위험</option>
+                        <option value="proc-2">[좌측] 건축 수장</option>
+                        <option value="proc-3">[좌측] 기계/전기 이원화</option>
+                        <option value="insight-1">[우측] 1. 이동 시간 손실(원가↑,안전=)</option>
+                        <option value="insight-2">[우측] 2. 접촉 사고 위험(시스템적 리스크)</option>
+                        <option value="insight-3">[우측] 3. 근로자 검증 취약</option>
+                        <option value="insight-4">[우측] 4. 선행 프로세스</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="select-direction">흐름 방향:</label>
+                    <select id="select-direction" class="control-select">
+                        <option value="forward" selected>➔ 정방향</option>
+                        <option value="reverse">◀ 역방향</option>
+                        <option value="bidirectional">↔ 양방향</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="select-style">연결선 패턴:</label>
+                    <select id="select-style" class="control-select">
+                        <option value="animated" selected>✨ 동적 흐름 점선 (Animated Pulse)</option>
+                        <option value="dashed">--- 일반 점선 (Dashed)</option>
+                        <option value="solid">━━ 실선 (Solid)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="select-color">선 색상:</label>
+                    <select id="select-color" class="control-select">
+                        <option value="#10b981" selected>🟢 녹색 (Emerald)</option>
+                        <option value="#f59e0b">🟡 황색 (Amber)</option>
+                        <option value="#ef4444">🔴 적색 (Red)</option>
+                        <option value="#4f46e5">🔵 남색 (Indigo)</option>
+                        <option value="#0f172a">⚫ 다크 (Navy)</option>
+                    </select>
+                </div>
+
+                <div class="control-group" style="background: #ffffff; padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px;">
+                    <label for="input-curvature" style="display: flex; align-items: center; gap: 4px;">
+                        🎢 곡선 곡률/자유도:
+                        <input type="range" id="input-curvature" min="-180" max="180" value="0" class="control-input" style="width: 100px; cursor: pointer;">
+                        <span id="curvature-val-display" style="font-weight: bold; color: #0f172a; min-width: 38px;">0px</span>
+                    </label>
+                </div>
+
+                <!-- 👁️ 모든 연결선 숨기기/보이기 토글 스위치 (신규 / 기본값: OFF 숨기기) -->
+                <div class="control-group" style="background: #e0f2fe; border: 1.5px solid #0284c7; padding: 3px 10px; border-radius: 6px;">
+                    <label for="chk-toggle-lines" style="cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 700; color: #0369a1;">
+                        <input type="checkbox" id="chk-toggle-lines" style="cursor: pointer;">
+                        👁️ 모든 연결선 표시 (ON/OFF)
+                    </label>
+                </div>
+
+                <!-- ✨ 연결 애니메이션 토글 스위치 (기본값: ON / 자동으로 작동) -->
+                <div class="control-group" style="background: #ffffff; padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px;">
+                    <label for="chk-toggle-anim" style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="chk-toggle-anim" style="cursor: pointer;" checked>
+                        ✨ 연결 애니메이션 (ON/OFF)
+                    </label>
+                </div>
+
+                <!-- 🏷️ 라벨 표시 토글 스위치 (기본값: OFF) -->
+                <div class="control-group" style="background: #ffffff; padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px;">
+                    <label for="chk-toggle-label" style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="chk-toggle-label" style="cursor: pointer;">
+                        🏷️ '연계 흐름' 라벨 표시 (ON/OFF)
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label for="input-label">라벨 문구:</label>
+                    <input type="text" id="input-label" class="control-input" placeholder="예: 연계 흐름" style="width: 90px;" value="연계 흐름">
+                </div>
+            </div>
+
+            <div class="control-group-wrapper">
+                <button id="btn-add-connection" class="btn-action btn-accent">➕ 연결 추가</button>
+                <button id="btn-add-point" class="btn-action btn-secondary" style="background: #3b82f6; color: #ffffff;">📍 꺾임 포인트 추가</button>
+                <button id="btn-remove-point" class="btn-action btn-secondary" style="background: #64748b; color: #ffffff;">➖ 포인트 삭제</button>
+                <button id="btn-load-preset" class="btn-action btn-secondary">🔄 요청 연계 복원 (충돌 회피)</button>
+                <button id="btn-save-standalone" class="btn-action btn-primary" style="background: #10b981;">💾 단독 HTML 저장</button>
+                <button id="btn-clear-all" class="btn-action btn-danger">🗑️ 전체 삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ 메인 레이아웃 ═══ -->
+    <div class="sheet-main">
+
+        <!-- SVG 오버레이 연계선 박스 -->
+        <svg id="connection-svg-overlay">
+            <defs>
+                <marker id="arrow-fwd-f59e0b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#f59e0b"/>
+                </marker>
+                <marker id="arrow-fwd-ef4444" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#ef4444"/>
+                </marker>
+                <marker id="arrow-fwd-4f46e5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#4f46e5"/>
+                </marker>
+                <marker id="arrow-fwd-10b981" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#10b981"/>
+                </marker>
+                <marker id="arrow-fwd-0f172a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#0f172a"/>
+                </marker>
+                <marker id="arrow-fwd-3b82f6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#3b82f6"/>
+                </marker>
+            </defs>
+        </svg>
+
+        <!-- ━━━ 좌측 컬럼: 프로세스 현황 ━━━ -->
+        <div class="proc-area">
+            <div class="area-label">프로세스 현황</div>
+
+            <div class="proc-grid">
+                
+                <!-- 🔴 [위험 공종] 저수조 및 고위험 작업 -->
+                <div class="card-item" data-card-id="proc-1" style="border-top-color: var(--color-danger)">
+                    <div class="card-text-block">
+                        <div class="card-head">
+                            <span class="card-tag">'14년 협의 → '15~'19년 시행</span>
+                        </div>
+                        <strong class="card-title" style="color: var(--color-danger)">저수조 및 고위험 작업</strong>
+                        <p class="card-desc">
+                            <strong>단지 직접 방문 → 대면 교육·점검</strong> (안전 주관)
+                        </p>
+                    </div>
+                    <div class="card-image-block">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="25 42 355 148">
+                            <style>
+                                .a-ln{fill:none;stroke:#0f172a;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+                                .a-ds{fill:none;stroke:#94a3b8;stroke-width:2.5;stroke-dasharray:6 6;stroke-linecap:round}
+                                .a-t1{font-family:'Malgun Gothic',sans-serif;font-size:15px;font-weight:700;fill:#0f172a;text-anchor:middle;dominant-baseline:middle}
+                                .a-t2{font-family:'Malgun Gothic',sans-serif;font-size:13px;fill:#64748b;text-anchor:middle;dominant-baseline:middle}
+                            </style>
+                            <rect x="40" y="55" width="110" height="120" fill="#fef2f2" stroke="#ef4444" stroke-width="2.5" rx="12"/>
+                            <circle cx="95" cy="95" r="14" class="a-ln"/>
+                            <path d="M 75 130 C 75 112, 115 112, 115 130" class="a-ln"/>
+                            <text x="95" y="152" class="a-t1">안전 주관</text>
+                            <path d="M 150 115 L 245 115" class="a-ds"/>
+                            <polygon points="245,110 255,115 245,120" fill="#94a3b8"/>
+                            <rect x="165" y="98" width="70" height="24" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+                            <text x="200" y="110" class="a-t2" font-weight="bold" fill="#0f172a">직접 방문</text>
+                            <text x="200" y="135" font-family="'Malgun Gothic',sans-serif" font-size="8.8" font-weight="bold" fill="#64748b" text-anchor="middle" dominant-baseline="middle">합의 시간 (조회)</text>
+                            <text x="200" y="149" font-family="'Malgun Gothic',sans-serif" font-size="8.0" font-weight="bold" fill="#64748b" text-anchor="middle" dominant-baseline="middle">→ 공도구 점검(필증 부착)</text>
+                            <text x="200" y="163" font-family="'Malgun Gothic',sans-serif" font-size="8.5" font-weight="bold" fill="#64748b" text-anchor="middle" dominant-baseline="middle">→ 09시00분(준비/시작)</text>
+                            <rect x="255" y="55" width="110" height="120" fill="#f0f9ff" stroke="#0284c7" stroke-width="2.5" rx="12"/>
+                            <rect x="285" y="75" width="28" height="34" class="a-ln" rx="3"/>
+                            <line x1="293" y1="87" x2="305" y2="87" class="a-ln"/>
+                            <line x1="293" y1="97" x2="305" y2="97" class="a-ln"/>
+                            <path d="M 320 98 L 310 108 A 4 4 0 1 0 317 115 L 327 105 A 4 4 0 0 0 320 98" class="a-ln"/>
+                            <text x="310" y="142" class="a-t1">교육 및 점검</text>
+                            <text x="310" y="160" class="a-t2">(단지내 현장)</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 🟢 [일반/저위험 공종] 건축 수장 작업 -->
+                <div class="card-item" data-card-id="proc-2" style="border-top-color: var(--color-success)">
+                    <div class="card-text-block">
+                        <div class="card-head">
+                            <span class="card-tag">'14년 협의 → '15~현재 시행</span>
+                        </div>
+                        <strong class="card-title" style="color: var(--color-success)">건축 수장 작업</strong>
+                        <p class="card-desc">
+                            <strong>사택 자체 조회, 1회/연 원내 교육<span style="color: #94a3b8; font-weight: 600;">(안전 주관)</span></strong>
+                        </p>
+                    </div>
+                    <div class="card-image-block">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="25 42 355 148">
+                            <style>
+                                .b-ln{fill:none;stroke:#0f172a;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+                                .b-ds{fill:none;stroke:#94a3b8;stroke-width:2.5;stroke-dasharray:6 6;stroke-linecap:round}
+                                .b-t1{font-family:'Malgun Gothic',sans-serif;font-size:15px;font-weight:700;fill:#0f172a;text-anchor:middle;dominant-baseline:middle}
+                                .b-t2{font-family:'Malgun Gothic',sans-serif;font-size:13px;fill:#64748b;text-anchor:middle;dominant-baseline:middle}
+                            </style>
+                            <rect x="40" y="55" width="110" height="120" fill="#ecfdf5" stroke="#10b981" stroke-width="2.5" rx="12"/>
+                            <circle cx="95" cy="85" r="12" class="b-ln"/>
+                            <path d="M 80 115 C 80 103, 110 103, 110 115" class="b-ln"/>
+                            <circle cx="65" cy="95" r="8" class="b-ln"/>
+                            <circle cx="125" cy="95" r="8" class="b-ln"/>
+                            <text x="95" y="142" class="b-t1">계약자 주관</text>
+                            <text x="95" y="160" class="b-t2">자체 조회</text>
+                            <path d="M 150 115 L 245 115" class="b-ds"/>
+                            <polygon points="245,110 255,115 245,120" fill="#94a3b8"/>
+                            <rect x="165" y="98" width="70" height="24" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+                            <text x="200" y="110" class="b-t2" font-weight="bold" fill="#0f172a">자체 실시</text>
+                            <text x="200" y="135" font-family="'Malgun Gothic',sans-serif" font-size="8.8" font-weight="bold" fill="#64748b" text-anchor="middle" dominant-baseline="middle">07시30분 (조회)</text>
+                            <text x="200" y="149" font-family="'Malgun Gothic',sans-serif" font-size="8.8" font-weight="bold" fill="#64748b" text-anchor="middle" dominant-baseline="middle">→ 준비(자재/공구)</text>
+                            <text x="200" y="163" font-family="'Malgun Gothic',sans-serif" font-size="8.8" font-weight="bold" fill="#64748b" text-anchor="middle" dominant-baseline="middle">→ 09시00분(시작)</text>
+                            <rect x="255" y="55" width="110" height="120" fill="#f0fdf4" stroke="#16a34a" stroke-width="2.5" rx="12"/>
+                            <circle cx="310" cy="95" r="16" class="b-ln"/>
+                            <circle cx="310" cy="95" r="6" class="b-ln"/>
+                            <path d="M 310 71 L 310 79 M 310 111 L 310 119 M 286 95 L 294 95 M 326 95 L 334 95" class="b-ln"/>
+                            <text x="310" y="142" class="b-t1">건축 수장</text>
+                            <text x="310" y="160" class="b-t2">(단지내 현장)</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 🟡 [이원화 프로세스] 기타 (기계/전기) 작업 -->
+                <div class="card-item proc-wide-card" data-card-id="proc-3" style="border-top-color: var(--color-warning)">
+                    <div class="card-text-block">
+                        <div class="card-head">
+                            <span class="card-tag">'14년 협의 → '15~현재 시행</span>
+                        </div>
+                        <strong class="card-title" style="color: #d97706">기타 (기계/전기) 작업 이원화 프로세스</strong>
+                        <p class="card-desc">
+                            <strong>원내 1차(안전 주관) ▶ 단지 2차(계약 주관) 이원화</strong>
+                        </p>
+                    </div>
+                    <div class="card-image-block">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="160 25 490 165">
+                            <style>
+                                .c-ln{fill:none;stroke:#0f172a;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+                                .c-ds{fill:none;stroke:#94a3b8;stroke-width:2.5;stroke-dasharray:8 8;stroke-linecap:round}
+                                .c-t1{font-family:'Malgun Gothic',sans-serif;font-size:18px;font-weight:700;fill:#0f172a;text-anchor:middle;dominant-baseline:middle}
+                                .c-t2{font-family:'Malgun Gothic',sans-serif;font-size:15px;fill:#64748b;text-anchor:middle;dominant-baseline:middle}
+                            </style>
+                            <rect x="180" y="50" width="160" height="130" fill="#fef2f2" stroke="#ef4444" stroke-width="2.5" rx="12"/>
+                            <rect x="225" y="38" width="70" height="24" fill="#0f172a" rx="12"/>
+                            <text x="260" y="50" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">1차 조회</text>
+                            <rect x="230" y="75" width="60" height="34" class="c-ln" rx="3"/>
+                            <line x1="240" y1="109" x2="235" y2="128" class="c-ln"/>
+                            <line x1="280" y1="109" x2="285" y2="128" class="c-ln"/>
+                            <text x="260" y="92" font-size="14" fill="#0f172a" font-weight="bold" text-anchor="middle" dominant-baseline="middle">안전</text>
+                            <text x="260" y="148" class="c-t1">기술원 원내</text>
+                            <text x="260" y="168" class="c-t2">(안전 주관)</text>
+                            <path d="M 340 115 L 460 115" class="c-ds"/>
+                            <polygon points="455,108 470,115 455,122" fill="#94a3b8"/>
+                            <rect x="370" y="98" width="60" height="34" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="8"/>
+                            <text x="400" y="115" font-size="15" font-weight="700" fill="#64748b" text-anchor="middle" dominant-baseline="middle">이동</text>
+                            <rect x="475" y="50" width="160" height="130" fill="#fffbeb" stroke="#f59e0b" stroke-width="2.5" rx="12"/>
+                            <rect x="520" y="38" width="70" height="24" fill="#0f172a" rx="12"/>
+                            <text x="555" y="50" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">2차 조회</text>
+                            <rect x="535" y="73" width="40" height="46" class="c-ln" rx="4"/>
+                            <path d="M 546 95 L 553 102 L 567 86" class="c-ln" stroke="#16a34a"/>
+                            <text x="555" y="148" class="c-t1">사택 단지내</text>
+                            <text x="555" y="168" class="c-t2">(계약담당 주관)</text>
+                        </svg>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ━━━ 우측 컬럼: 심층 분석 ━━━ -->
+        <div class="insight-area">
+            <div class="area-label">안전 부서 → 정규화 (안전 전문가 방문 교육/점검 필요성)</div>
+
+            <div class="insight-grid">
+
+                <!-- 🟡 1. 이동 시간 손실 -->
+                <div class="card-item" data-card-id="insight-1" style="border-top-color: var(--color-warning)">
+                    <div class="card-text-block">
+                        <strong class="card-title">1. 이동 시간 손실(원가↑,안전=)</strong>
+                        <p class="card-desc">
+                            <strong>이동·주차 지연 (10시 투입, 오전 실작업 1.5H)</strong><br>
+                            <span style="font-size: 10.5px; color: #d97706; font-weight: 600;">시공사 견적 원가 상승 요인</span>
+                        </p>
+                    </div>
+                    <div class="card-image-block">
+                        <span class="badge-num" style="background: var(--color-warning)">1</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+                            <rect x="15" y="15" width="50" height="35" fill="#fef2f2" stroke="#ef4444" stroke-width="2.5" rx="12"/>
+                            <text x="40" y="32" font-size="12" font-weight="bold" fill="#0f172a" text-anchor="middle" dominant-baseline="middle">기술원</text>
+                            <rect x="135" y="15" width="50" height="35" fill="#fffbeb" stroke="#f59e0b" stroke-width="2.5" rx="12"/>
+                            <text x="160" y="32" font-size="12" font-weight="bold" fill="#0f172a" text-anchor="middle" dominant-baseline="middle">사택</text>
+                            <path d="M 65 32 L 135 32" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-dasharray="6 6" stroke-linecap="round"/>
+                            <polygon points="130,28 137,32 130,36" fill="#94a3b8"/>
+                            <rect x="75" y="20" width="50" height="18" fill="#ffffff" rx="3"/>
+                            <text x="100" y="29" font-size="10" font-weight="bold" fill="#ef4444" text-anchor="middle" dominant-baseline="middle">편도 2.5Km</text>
+                            <circle cx="45" cy="82" r="14" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M 45 74 L 45 82 L 52 86" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <text x="125" y="76" font-size="12" font-weight="bold" fill="#0f172a" text-anchor="middle" dominant-baseline="middle">오전 실작업 1.5H</text>
+                            <text x="125" y="94" font-size="10" fill="#64748b" text-anchor="middle" dominant-baseline="middle">(10:00~11:30)</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 🔴 2. 교통/사고 위험 -->
+                <div class="card-item" data-card-id="insight-2" style="border-top-color: var(--color-danger)">
+                    <div class="card-text-block">
+                        <strong class="card-title">2. 접촉 사고 위험(시스템적 리스크)</strong>
+                        <p class="card-desc">
+                            <strong>불필요한 차량 이동 (편도 2.5Km 사고위험)</strong><br>
+                            <span style="font-size: 10.5px; color: #ef4444; font-weight: 600;">운전 과실+구조적 유발 요인</span>
+                        </p>
+                    </div>
+                    <div class="card-image-block">
+                        <span class="badge-num" style="background: var(--color-danger)">2</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+                            <path d="M 20 90 L 180 90" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-dasharray="6 6" stroke-linecap="round"/>
+                            <path d="M 115 80 L 105 62 L 75 62 L 65 80 Z" fill="#f1f5f9" stroke="#0f172a" stroke-width="2" stroke-linejoin="round"/>
+                            <rect x="55" y="80" width="70" height="16" fill="#ffffff" stroke="#0f172a" stroke-width="2" rx="3"/>
+                            <circle cx="70" cy="96" r="6" fill="#fff" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/>
+                            <circle cx="110" cy="96" r="6" fill="#fff" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/>
+                            <path d="M 100 15 L 122 50 L 78 50 Z" fill="#fef2f2" stroke="#ef4444" stroke-width="2.5"/>
+                            <line x1="100" y1="27" x2="100" y2="39" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+                            <circle cx="100" cy="44" r="1.5" fill="#ef4444"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 🔵 3. 근로자 투입 검증 취약(보안) -->
+                <div class="card-item" data-card-id="insight-3" style="border-top-color: var(--color-security)">
+                    <div class="card-text-block">
+                        <strong class="card-title">3. 근로자 투입 검증 취약(보안)</strong>
+                        <p class="card-desc">
+                            <strong>개방형 사택 (이수자-투입인원 검증 불가)</strong><br>
+                            <span style="font-size: 10.5px; color: #4f46e5; font-weight: 600;">투입전 조회 사진 (서명지) DB화 실투입 수시 점검</span>
+                        </p>
+                    </div>
+                    <div class="card-image-block">
+                        <span class="badge-num" style="background: var(--color-security)">3</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+                            <path d="M 100 10 L 100 105" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="7 5" stroke-linecap="round"/>
+                            <circle cx="50" cy="35" r="12" fill="none" stroke="#4f46e5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M 30 72 C 30 52, 70 52, 70 72" fill="none" stroke="#4f46e5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="35" y="55" width="30" height="15" fill="#ffffff" stroke="#4f46e5" stroke-width="1.5" rx="3"/>
+                            <text x="50" y="62.5" font-size="9" font-weight="bold" fill="#4f46e5" text-anchor="middle" dominant-baseline="middle">이수증</text>
+                            <path d="M 75 45 L 125 45" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-dasharray="3 3" stroke-linecap="round"/>
+                            <polygon points="120,41 127,45 120,49" fill="#0f172a"/>
+                            <text x="100" y="35" font-size="16" font-weight="bold" fill="#ef4444" text-anchor="middle" dominant-baseline="middle">?</text>
+                            <circle cx="150" cy="35" r="12" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-dasharray="3 3" stroke-linecap="round"/>
+                            <path d="M 130 72 C 130 52, 170 72, 170 72" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-dasharray="3 3" stroke-linecap="round"/>
+                            <text x="100" y="98" font-size="12" font-weight="bold" fill="#64748b" text-anchor="middle" dominant-baseline="middle">무결성 확인 불가</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 🟢 4. 선행 프로세스 존재 -->
+                <div class="card-item" data-card-id="insight-4" style="border-top-color: var(--color-success)">
+                    <div class="card-text-block">
+                        <strong class="card-title">4. 선행 프로세스 존재</strong>
+                        <p class="card-desc">
+                            <strong>직접 방문 교육 선례 ('15~'19년 검증 완료)</strong><br>
+                            <span style="font-size: 10.5px; color: #047857; font-weight: 600;">안전 담당자 사전 협의</span>
+                        </p>
+                    </div>
+                    <div class="card-image-block">
+                        <span class="badge-num" style="background: var(--color-success)">4</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+                            <rect x="18" y="18" width="62" height="55" fill="#ecfdf5" stroke="#10b981" stroke-width="2.5" rx="12"/>
+                            <line x1="30" y1="35" x2="68" y2="35" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="30" y1="48" x2="68" y2="48" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
+                            <text x="49" y="92" font-size="11" font-weight="bold" fill="#0f172a" text-anchor="middle" dominant-baseline="middle">안전 협의 완료</text>
+                            <circle cx="148" cy="45" r="22" fill="#ecfdf5" stroke="#10b981" stroke-width="2.5"/>
+                            <path d="M 137 45 L 144 52 L 160 36" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            <text x="148" y="92" font-size="11" font-weight="bold" fill="#0f172a" text-anchor="middle" dominant-baseline="middle">'15~'19년 검증</text>
+                        </svg>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ━━━ 다골절 & 다중 포인트 실시간 자유곡률 로직 ━━━ -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const svgOverlay = document.getElementById('connection-svg-overlay');
+        const sheetMain = document.querySelector('.sheet-main');
+        
+        const toolbarHeaderBtn = document.getElementById('toolbar-toggle-btn');
+        const toolbarHeaderLabel = document.getElementById('toolbar-toggle-label');
+        const toolbarContainer = document.getElementById('toolbar-container');
+        const chkToggleLines = document.getElementById('chk-toggle-lines');
+        const chkToggleAnim = document.getElementById('chk-toggle-anim');
+        const chkToggleLabel = document.getElementById('chk-toggle-label');
+
+        const selectSource = document.getElementById('select-source');
+        const selectTarget = document.getElementById('select-target');
+        const selectDirection = document.getElementById('select-direction');
+        const selectStyle = document.getElementById('select-style');
+        const selectColor = document.getElementById('select-color');
+        const inputLabel = document.getElementById('input-label');
+        const inputCurvature = document.getElementById('input-curvature');
+        const curvatureValDisplay = document.getElementById('curvature-val-display');
+        
+        const btnAdd = document.getElementById('btn-add-connection');
+        const btnAddPoint = document.getElementById('btn-add-point');
+        const btnRemovePoint = document.getElementById('btn-remove-point');
+        const btnPreset = document.getElementById('btn-load-preset');
+        const btnClear = document.getElementById('btn-clear-all');
+
+        let connections = [];
+        let selectedSourceCard = null;
+        let selectedSourceAnchor = null;
+        let selectedTargetCard = null;
+        let selectedTargetAnchor = null;
+        let isLinesVisible = false; // 👁️ 모든 연결선 기본값: OFF (숨기기)
+        let isAnimationOn = true; // ✨ 연결 애니메이션 기본값: ON (자동 작동)
+        let showLabels = false; // 🏷️ 기본값: OFF (라벨 숨김)
+        let activeConnectionIndex = null; // 현재 선택된 곡선 인덱스
+
+        const btnMasterToggle = document.getElementById('btn-master-toggle');
+        const allHeadersWrapper = document.getElementById('all-headers-wrapper');
+        let isHeadersVisible = true;
+
+        // 🎯 좌측 최상단 마스터 헤더 전체 숨기기/보이기 (+/-) 이벤트 (전체 화면 최적화 & 겹침 방지)
+        btnMasterToggle.addEventListener('click', () => {
+            isHeadersVisible = !isHeadersVisible;
+            const sheetEl = document.querySelector('.sheet');
+            if (isHeadersVisible) {
+                allHeadersWrapper.style.display = 'block';
+                if (sheetEl) sheetEl.classList.remove('headers-hidden');
+                btnMasterToggle.textContent = '−';
+                btnMasterToggle.setAttribute('title', '전체 헤더 숨기기 (-)');
+            } else {
+                allHeadersWrapper.style.display = 'none';
+                if (sheetEl) sheetEl.classList.add('headers-hidden');
+                btnMasterToggle.textContent = '+';
+                btnMasterToggle.setAttribute('title', '전체 헤더 보이기 (+)');
+            }
+            renderConnections();
+            setTimeout(renderConnections, 150);
+            setTimeout(renderConnections, 260);
+        });
+
+        // ⚙️ 툴바 접기/펴기 토글 이벤트 (기본값: 접힘)
+        toolbarHeaderBtn.addEventListener('click', () => {
+            const isCollapsed = toolbarContainer.classList.toggle('collapsed');
+            toolbarHeaderLabel.textContent = isCollapsed ? '▶ 옵션 메뉴 펴기' : '▼ 옵션 메뉴 접기';
+        });
+
+        // 👁️ 모든 연결선 숨기기/보이기 토글 이벤트 (기본값: OFF / 숨기기)
+        chkToggleLines.addEventListener('change', () => {
+            isLinesVisible = chkToggleLines.checked;
+            renderConnections();
+        });
+
+        // ✨ 연결 애니메이션 ON/OFF 토글 이벤트 (기본값: OFF)
+        chkToggleAnim.addEventListener('change', () => {
+            isAnimationOn = chkToggleAnim.checked;
+            renderConnections();
+        });
+
+        // 🏷️ 라벨 ON/OFF 토글 이벤트 (기본값: OFF)
+        chkToggleLabel.addEventListener('change', () => {
+            showLabels = chkToggleLabel.checked;
+            renderConnections();
+        });
+
+        // 🎢 곡선 자유도/곡률 슬라이더 조절 이벤트
+        inputCurvature.addEventListener('input', () => {
+            const val = parseInt(inputCurvature.value);
+            curvatureValDisplay.textContent = val + 'px';
+            if (activeConnectionIndex !== null && connections[activeConnectionIndex]) {
+                connections[activeConnectionIndex].channelOffset = val;
+                renderConnections();
+            }
+        });
+
+        // 📍 꺾임 포인트 추가 (다골절 생성)
+        btnAddPoint.addEventListener('click', () => {
+            if (activeConnectionIndex === null || !connections[activeConnectionIndex]) {
+                alert('포인트를 추가할 연계 곡선을 먼저 화면에서 클릭하여 선택해주세요.');
+                return;
+            }
+            const conn = connections[activeConnectionIndex];
+            if (!conn.controlPoints) conn.controlPoints = [];
+            
+            const count = conn.controlPoints.length;
+            const newPt = { x: 400 + (count * 40), y: 120 + (count * 30) };
+            conn.controlPoints.push(newPt);
+            conn.hasCustomPoints = true;
+            renderConnections();
+        });
+
+        // ➖ 포인트 삭제
+        btnRemovePoint.addEventListener('click', () => {
+            if (activeConnectionIndex === null || !connections[activeConnectionIndex]) {
+                alert('포인트를 삭제할 연계 곡선을 먼저 선택해주세요.');
+                return;
+            }
+            const conn = connections[activeConnectionIndex];
+            if (conn.controlPoints && conn.controlPoints.length > 0) {
+                conn.controlPoints.pop();
+                renderConnections();
+            }
+        });
+
+        // 동적 색상 화살표 마커 생성기
+        function getMarkerId(colorStr) {
+            const cleanColor = colorStr.replace('#', '');
+            const markerId = 'arrow-fwd-' + cleanColor;
+            if (!document.getElementById(markerId)) {
+                const defs = svgOverlay.querySelector('defs') || svgOverlay.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'defs'));
+                const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                marker.setAttribute('id', markerId);
+                marker.setAttribute('viewBox', '0 0 10 10');
+                marker.setAttribute('refX', '8');
+                marker.setAttribute('refY', '5');
+                marker.setAttribute('markerWidth', '6');
+                marker.setAttribute('markerHeight', '6');
+                marker.setAttribute('orient', 'auto-start-reverse');
+                marker.innerHTML = `<path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="${colorStr}"/>`;
+                defs.appendChild(marker);
+            }
+            return markerId;
+        }
+
+        // 🎯 사용자 지정 연결선 초기화 (모든 연결선 0개로 깨끗이 유지)
+        function loadDefaultUserConnections() {
+            activeConnectionIndex = null;
+            connections = [];
+            renderConnections();
+        }
+
+        // 🎯 카드 엘리먼트의 변형(CSS transform / pulse 애니메이션)에 영향받지 않는 순수 레이아웃 위치 측정
+        function getCardLayoutRect(el, container) {
+            let top = 0, left = 0;
+            let curr = el;
+            while (curr && curr !== container) {
+                left += curr.offsetLeft;
+                top += curr.offsetTop;
+                curr = curr.offsetParent;
+            }
+            return {
+                left: left,
+                top: top,
+                right: left + el.offsetWidth,
+                bottom: top + el.offsetHeight,
+                width: el.offsetWidth,
+                height: el.offsetHeight
+            };
+        }
+
+        // 🟢 안전 녹색 (#008751) 둥근 꼭지점 직선 점선 올가미 (proc-2 & proc-3 감싸기) 동적 SVG 렌더링
+        function renderSafetyGreenLasso() {
+            let lassoG = svgOverlay.querySelector('#safety-green-lasso-layer');
+            if (lassoG) lassoG.remove();
+
+            svgOverlay.style.display = 'block';
+
+            const p2El = document.querySelector('[data-card-id="proc-2"]');
+            const p3El = document.querySelector('[data-card-id="proc-3"]');
+            if (!p2El || !p3El || !sheetMain) return;
+
+            const p2Layout = getCardLayoutRect(p2El, sheetMain);
+            const p3Layout = getCardLayoutRect(p3El, sheetMain);
+
+            const pad = 8; // 좌우 및 하단 여백 margin
+            const padTop = 18; // 올가미 뱃지 및 상단 올가미 라인 상부 이동 확장 여백 (카드 상단과 겹침/붙음 100% 방지)
+
+            const p2 = {
+                left: p2Layout.left - pad,
+                top: p2Layout.top - padTop,
+                right: p2Layout.right + pad,
+                bottom: p2Layout.bottom + pad
+            };
+            const p3 = {
+                left: p3Layout.left - pad,
+                top: p3Layout.top - pad,
+                right: p3Layout.right + pad,
+                bottom: p3Layout.bottom + pad
+            };
+
+            // 🎯 우측 테두리를 단일 maxRight로 완전 통일하여 연결선 생성/애니메이션 시 수직선 꺾임/비틀림 100% 원천 차단
+            const maxRight = Math.max(p2.right, p3.right);
+            p2.right = maxRight;
+            p3.right = maxRight;
+
+            lassoG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            lassoG.setAttribute('id', 'safety-green-lasso-layer');
+
+            let pathD = '';
+            const isDesktopL = (p2.left > p3.left + 20) && (p3.top > p2.top + 20);
+
+            const r = 12; // 둥근 꼭지점 라운딩 반지름
+
+            if (isDesktopL) {
+                // 데스크탑 2x2 배치: proc-2(우상단) & proc-3(하단) 꼭지점이 둥근 L자형 올가미
+                const innerY = p3.top;
+                pathD = `M ${p2.left} ${p2.top + r} ` +
+                        `A ${r} ${r} 0 0 1 ${p2.left + r} ${p2.top} ` +
+                        `L ${maxRight - r} ${p2.top} ` +
+                        `A ${r} ${r} 0 0 1 ${maxRight} ${p2.top + r} ` +
+                        `L ${maxRight} ${p3.bottom - r} ` +
+                        `A ${r} ${r} 0 0 1 ${maxRight - r} ${p3.bottom} ` +
+                        `L ${p3.left + r} ${p3.bottom} ` +
+                        `A ${r} ${r} 0 0 1 ${p3.left} ${p3.bottom - r} ` +
+                        `L ${p3.left} ${innerY + r} ` +
+                        `A ${r} ${r} 0 0 1 ${p3.left + r} ${innerY} ` +
+                        `L ${p2.left - r} ${innerY} ` +
+                        `A ${r} ${r} 0 0 0 ${p2.left} ${innerY - r} Z`;
+            } else {
+                // 모바일 세로 세로 스택: proc-2 & proc-3 꼭지점이 둥근 직사각형 올가미
+                const minLeft = Math.min(p2.left, p3.left);
+                pathD = `M ${minLeft} ${p2.top + r} ` +
+                        `A ${r} ${r} 0 0 1 ${minLeft + r} ${p2.top} ` +
+                        `L ${maxRight - r} ${p2.top} ` +
+                        `A ${r} ${r} 0 0 1 ${maxRight} ${p2.top + r} ` +
+                        `L ${maxRight} ${p3.bottom - r} ` +
+                        `A ${r} ${r} 0 0 1 ${maxRight - r} ${p3.bottom} ` +
+                        `L ${minLeft + r} ${p3.bottom} ` +
+                        `A ${r} ${r} 0 0 1 ${minLeft} ${p3.bottom - r} Z`;
+            }
+
+            // 1) 안전 녹색 (#008751) 약간 굵은 둥근 점선 올가미 패스 (클릭 가능)
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', pathD);
+            path.setAttribute('fill', 'rgba(0, 135, 81, 0.035)');
+            path.setAttribute('stroke', '#008751');
+            path.setAttribute('stroke-width', '2.5');
+            path.setAttribute('stroke-dasharray', '7 4');
+            path.setAttribute('stroke-linejoin', 'round');
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('pointer-events', 'all');
+            path.style.cursor = 'pointer';
+            path.setAttribute('title', '클릭 시 올가미 구역 4배 확대 & 판서 모드 실행');
+            lassoG.appendChild(path);
+
+            // 2) 올가미 상단 뱃지 탭 (Safety Green Tag: '🟢 현재 절차' - 폰트 크기 '절차' 스펙 17.5px 900 100% 동일 통일)
+            const badgeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            badgeG.setAttribute('pointer-events', 'all');
+            badgeG.style.cursor = 'pointer';
+            badgeG.setAttribute('title', '클릭 시 올가미 구역 4배 확대 & 판서 모드 실행');
+
+            const textWidth = 148; // 통일된 17.5px 폰트 기준 정밀 피팅 탭 폭
+            const badgeHeight = 30; // 17.5px 대형 폰트 맞춤 탭 높이
+            const badgeX = p2.left + 12;
+            const badgeY = p2.top - 15;
+
+            const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bgRect.setAttribute('x', badgeX);
+            bgRect.setAttribute('y', badgeY);
+            bgRect.setAttribute('width', textWidth);
+            bgRect.setAttribute('height', badgeHeight);
+            bgRect.setAttribute('rx', badgeHeight / 2);
+            bgRect.setAttribute('fill', '#008751');
+
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', badgeX + textWidth / 2); // 🎯 수평 정중앙 (Horizontal Center)
+            text.setAttribute('y', badgeY + badgeHeight / 2); // 🎯 수직 정중앙 (Vertical Center)
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('dominant-baseline', 'central'); // 🎯 SVG 수직 정중앙 베이스라인
+            text.setAttribute('font-size', '17.5'); // 🎯 '절차' 크기와 100% 동일 통일
+            text.setAttribute('font-weight', '900'); // 🎯 900 굵은 볼드 통일
+            text.setAttribute('fill', '#ffffff');
+            text.textContent = '🟢 현재 절차';
+
+            badgeG.appendChild(bgRect);
+            badgeG.appendChild(text);
+
+            // 🎯 올가미 뱃지 및 올가미 테두리 클릭 시 올가미 구역 4배 확대(판서) 모드 실행!
+            const openLassoZoomHandler = (e) => {
+                e.stopPropagation();
+                openLassoGroupZoomModal();
+            };
+            badgeG.addEventListener('click', openLassoZoomHandler);
+            path.addEventListener('click', openLassoZoomHandler);
+
+            lassoG.appendChild(badgeG);
+
+            svgOverlay.insertBefore(lassoG, svgOverlay.firstChild);
+        }
+
+        // 📐 연결선 다골절 & 다중 포인트 실시간 자유곡률 Bezier 렌더링
+        function renderConnections() {
+            renderSafetyGreenLasso();
+
+            const oldG = svgOverlay.querySelector('g.connections-layer');
+            if (oldG) oldG.remove();
+
+            // 👁️ 모든 연결선 숨기기/보이기 제어 (기본값: OFF / 숨기기)
+            if (!isLinesVisible) {
+                return;
+            }
+
+            const mainRect = sheetMain.getBoundingClientRect();
+            if (mainRect.width === 0) return;
+
+            const gLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            gLayer.setAttribute('class', 'connections-layer');
+
+            connections.forEach((conn, index) => {
+                const srcEl = document.querySelector(`[data-card-id="${conn.sourceId}"]`);
+                const tgtEl = document.querySelector(`[data-card-id="${conn.targetId}"]`);
+                if (!srcEl || !tgtEl) return;
+
+                const srcRect = srcEl.getBoundingClientRect();
+                const tgtRect = tgtEl.getBoundingClientRect();
+
+                // 🎯 1. 출발/도착 카드 앵커 포인트 (사용자 마우스 정밀 클릭 상대 위치 반영)
+                let x1, y1, x2, y2;
+                if (conn.srcAnchor && conn.srcAnchor.relX !== undefined) {
+                    x1 = srcRect.left + srcRect.width * conn.srcAnchor.relX - mainRect.left;
+                    y1 = srcRect.top + srcRect.height * conn.srcAnchor.relY - mainRect.top;
+                } else {
+                    x1 = srcRect.left + srcRect.width * 0.5 - mainRect.left;
+                    y1 = srcRect.top + srcRect.height * 0.5 - mainRect.top;
+                }
+
+                if (conn.tgtAnchor && conn.tgtAnchor.relX !== undefined) {
+                    x2 = tgtRect.left + tgtRect.width * conn.tgtAnchor.relX - mainRect.left;
+                    y2 = tgtRect.top + tgtRect.height * conn.tgtAnchor.relY - mainRect.top;
+                } else {
+                    x2 = tgtRect.left + tgtRect.width * 0.5 - mainRect.left;
+                    y2 = tgtRect.top + tgtRect.height * 0.5 - mainRect.top;
+                }
+
+                const customOffset = (conn.channelOffset !== undefined) ? conn.channelOffset : 0;
+                let cx1 = (x1 + x2) / 2;
+                let cy1 = (y1 + y2) / 2 + customOffset; // 🎯 조종 노드 점을 연결선 바로 위(최근접)로 정밀 안착
+                let cx2 = cx1;
+                let cy2 = cy1;
+
+                // 사용자 수동 조작이 없는 경우 레이아웃 반응형에 맞춰 조종점 동적 업데이트 (기본 1개 꺾임 조종 노드)
+                if (!conn.hasCustomPoints || !conn.controlPoints || conn.controlPoints.length === 0) {
+                    conn.controlPoints = [
+                        { x: cx1, y: cy1 }
+                    ];
+                }
+
+                // 🎯 2. 다골절 다중 포인트 (N-Point) Bezier 경로 생성
+                let pathD = '';
+                const pts = conn.controlPoints;
+                if (pts.length === 1) {
+                    pathD = `M ${x1} ${y1} Q ${pts[0].x} ${pts[0].y}, ${x2} ${y2}`;
+                } else if (pts.length === 2) {
+                    pathD = `M ${x1} ${y1} C ${pts[0].x} ${pts[0].y}, ${pts[1].x} ${pts[1].y}, ${x2} ${y2}`;
+                } else {
+                    let d = `M ${x1} ${y1}`;
+                    const allPts = [{ x: x1, y: y1 }, ...pts, { x: x2, y: y2 }];
+                    for (let i = 1; i < allPts.length - 1; i += 2) {
+                        if (i + 1 < allPts.length) {
+                            const endPt = allPts[i + 2] || allPts[i + 1];
+                            d += ` C ${allPts[i].x} ${allPts[i].y}, ${allPts[i + 1].x} ${allPts[i + 1].y}, ${endPt.x} ${endPt.y}`;
+                        } else {
+                            d += ` Q ${allPts[i].x} ${allPts[i].y}, ${allPts[allPts.length - 1].x} ${allPts[allPts.length - 1].y}`;
+                        }
+                    }
+                    pathD = d;
+                }
+
+                // 1) 클릭 터치 확장용 투명 영역
+                const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                hitPath.setAttribute('d', pathD);
+                hitPath.setAttribute('fill', 'none');
+                hitPath.setAttribute('stroke', 'transparent');
+                hitPath.setAttribute('stroke-width', '18');
+                hitPath.setAttribute('stroke-linecap', 'round');
+                hitPath.setAttribute('pointer-events', 'stroke');
+                hitPath.style.cursor = 'pointer';
+
+                // 2) 실제 가시적 곡선 경로
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathD);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', activeConnectionIndex === index ? '#3b82f6' : (conn.color || '#10b981'));
+                path.setAttribute('stroke-width', activeConnectionIndex === index ? '4.8' : '3.0');
+                path.setAttribute('stroke-linecap', 'round');
+                path.setAttribute('pointer-events', 'stroke');
+                path.style.cursor = 'pointer';
+                if (activeConnectionIndex === index) {
+                    path.setAttribute('filter', 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.95))');
+                }
+
+                const markerId = getMarkerId(activeConnectionIndex === index ? '#3b82f6' : (conn.color || '#10b981'));
+
+                if (conn.direction === 'forward') {
+                    path.setAttribute('marker-end', `url(#${markerId})`);
+                } else if (conn.direction === 'reverse') {
+                    path.setAttribute('marker-start', `url(#${markerId})`);
+                } else if (conn.direction === 'bidirectional') {
+                    path.setAttribute('marker-start', `url(#${markerId})`);
+                    path.setAttribute('marker-end', `url(#${markerId})`);
+                }
+
+                if (conn.style === 'dashed') {
+                    path.setAttribute('stroke-dasharray', '6 6');
+                } else if (conn.style === 'animated') {
+                    path.setAttribute('stroke-dasharray', '8 6');
+                    if (isAnimationOn) {
+                        path.classList.add('flow-animated');
+                    }
+                }
+
+                // 🎢 곡선 클릭 토글 이벤트 (이미 선택되어 있는 상태에서 한 번 더 선택 시 설정 확정 및 선택 해제)
+                const selectLineHandler = (e) => {
+                    e.stopPropagation();
+                    if (activeConnectionIndex === index) {
+                        // 이미 선택된 선 한 번 더 클릭: 기존 설정 확정 후 곡률/자유도 선택만 즉시 해제
+                        activeConnectionIndex = null;
+                    } else {
+                        // 곡선 선택 및 툴바 설정 연동
+                        activeConnectionIndex = index;
+                        const curOffset = (conn.channelOffset !== undefined) ? conn.channelOffset : 0;
+                        inputCurvature.value = curOffset;
+                        curvatureValDisplay.textContent = curOffset + 'px';
+
+                        selectSource.value = conn.sourceId;
+                        selectTarget.value = conn.targetId;
+                        selectDirection.value = conn.direction || 'forward';
+                        selectStyle.value = conn.style || 'animated';
+                        selectColor.value = conn.color || '#f59e0b';
+                        inputLabel.value = conn.label || '';
+                    }
+
+                    renderConnections();
+                };
+
+                hitPath.addEventListener('click', selectLineHandler);
+                path.addEventListener('click', selectLineHandler);
+
+                gLayer.appendChild(hitPath);
+                gLayer.appendChild(path);
+
+                // 🎯 3. 선택된 곡선의 다골절 조종점(Control Handle Nodes) 화면 드래그 & 이동 렌더링
+                if (activeConnectionIndex === index) {
+                    // 1) 가이드라인
+                    const guidePts = [{ x: x1, y: y1 }, ...conn.controlPoints, { x: x2, y: y2 }];
+                    for (let i = 0; i < guidePts.length - 1; i++) {
+                        const guideLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        guideLine.setAttribute('x1', guidePts[i].x);
+                        guideLine.setAttribute('y1', guidePts[i].y);
+                        guideLine.setAttribute('x2', guidePts[i+1].x);
+                        guideLine.setAttribute('y2', guidePts[i+1].y);
+                        guideLine.setAttribute('class', 'guideline-dash');
+                        gLayer.appendChild(guideLine);
+                    }
+
+                    // 2) 실시간 드래그 가능한 조종점 마우스 핸들 노드
+                    conn.controlPoints.forEach((pt, pIdx) => {
+                        const handleG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                        handleG.style.cursor = 'grab';
+
+                        // 깔끔한 원형 조종 노드 (숫자 번호 텍스트 제거)
+                        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                        circle.setAttribute('cx', pt.x);
+                        circle.setAttribute('cy', pt.y);
+                        circle.setAttribute('r', '8.5');
+                        circle.setAttribute('class', 'control-node-handle');
+
+                        handleG.appendChild(circle);
+
+                        // 마우스 실시간 드래그 이동 (Live Drag & Drop)
+                        handleG.addEventListener('mousedown', (e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+
+                            const onMouseMove = (moveEvt) => {
+                                const mRect = sheetMain.getBoundingClientRect();
+                                pt.x = moveEvt.clientX - mRect.left;
+                                pt.y = moveEvt.clientY - mRect.top;
+                                conn.hasCustomPoints = true;
+                                renderConnections();
+                            };
+
+                            const onMouseUp = () => {
+                                window.removeEventListener('mousemove', onMouseMove);
+                                window.removeEventListener('mouseup', onMouseUp);
+                            };
+
+                            window.addEventListener('mousemove', onMouseMove);
+                            window.addEventListener('mouseup', onMouseUp);
+                        });
+
+                        gLayer.appendChild(handleG);
+                    });
+                }
+
+                // 🏷️ 라벨 표시
+                if (showLabels && conn.label) {
+                    const midX = (x1 + x2) / 2;
+                    const midY = (y1 + y2) / 2 + customOffset * 0.45;
+
+                    const labelG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    labelG.style.cursor = 'pointer';
+                    labelG.addEventListener('click', selectLineHandler);
+
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    const textWidth = conn.label.length * 10.5 + 16;
+                    rect.setAttribute('x', midX - textWidth / 2);
+                    rect.setAttribute('y', midY - 11);
+                    rect.setAttribute('width', textWidth);
+                    rect.setAttribute('height', '22');
+                    rect.setAttribute('rx', '11');
+                    rect.setAttribute('fill', '#ffffff');
+                    rect.setAttribute('stroke', activeConnectionIndex === index ? '#3b82f6' : (conn.color || '#f59e0b'));
+                    rect.setAttribute('stroke-width', '1.5');
+                    rect.setAttribute('box-shadow', '0 2px 6px rgba(0,0,0,0.1)');
+                    
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', midX);
+                    text.setAttribute('y', midY + 4);
+                    text.setAttribute('font-size', '10.5');
+                    text.setAttribute('font-weight', 'bold');
+                    text.setAttribute('fill', activeConnectionIndex === index ? '#3b82f6' : (conn.color || '#f59e0b'));
+                    text.setAttribute('text-anchor', 'middle');
+                    text.textContent = conn.label;
+
+                    labelG.appendChild(rect);
+                    labelG.appendChild(text);
+                    gLayer.appendChild(labelG);
+                }
+
+                // 🎯 4. 연결선 원형 내 '-' 삭제 버튼 (클릭 시 해당 연결선 즉시 제거)
+                const delX = (pts && pts[0]) ? pts[0].x + 22 : (x1 + x2) / 2 + 22;
+                const delY = (pts && pts[0]) ? pts[0].y - 12 : (y1 + y2) / 2 - 12;
+
+                const delBtnG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                delBtnG.setAttribute('class', 'btn-delete-line');
+                delBtnG.style.cursor = 'pointer';
+                delBtnG.setAttribute('pointer-events', 'all');
+                delBtnG.setAttribute('title', '연결선 삭제 (-)');
+
+                const delCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                delCircle.setAttribute('cx', delX);
+                delCircle.setAttribute('cy', delY);
+                delCircle.setAttribute('r', '10.5');
+                delCircle.setAttribute('fill', '#ef4444');
+                delCircle.setAttribute('stroke', '#ffffff');
+                delCircle.setAttribute('stroke-width', '2');
+                delCircle.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))');
+
+                const delLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                delLine.setAttribute('x1', delX - 4.5);
+                delLine.setAttribute('y1', delY);
+                delLine.setAttribute('x2', delX + 4.5);
+                delLine.setAttribute('y2', delY);
+                delLine.setAttribute('stroke', '#ffffff');
+                delLine.setAttribute('stroke-width', '2.5');
+                delLine.setAttribute('stroke-linecap', 'round');
+
+                delBtnG.appendChild(delCircle);
+                delBtnG.appendChild(delLine);
+
+                // 원형 '-' 버튼 클릭 시 해당 연결선 즉시 제거!
+                delBtnG.addEventListener('click', (delEvt) => {
+                    delEvt.stopPropagation();
+                    connections.splice(index, 1);
+                    activeConnectionIndex = null;
+                    renderConnections();
+                });
+
+                gLayer.appendChild(delBtnG);
+            });
+
+            svgOverlay.appendChild(gLayer);
+        }
+
+        let toastTimeout = null;
+        function showToastHint(msg) {
+            let toastEl = document.getElementById('ui-toast-hint');
+            if (!toastEl) {
+                toastEl = document.createElement('div');
+                toastEl.id = 'ui-toast-hint';
+                toastEl.style.cssText = 'position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:99999; background:rgba(15,23,42,0.92); color:#38bdf8; padding:9px 18px; border-radius:20px; font-size:12.5px; font-weight:700; box-shadow:0 10px 25px rgba(0,0,0,0.3); border:1.5px solid #0284c7; pointer-events:none; transition:all 0.3s ease; opacity:0;';
+                document.body.appendChild(toastEl);
+            }
+            toastEl.textContent = msg;
+            toastEl.style.opacity = '1';
+            toastEl.style.transform = 'translateX(-50%) translateY(0)';
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toastEl.style.opacity = '0';
+                toastEl.style.transform = 'translateX(-50%) translateY(-10px)';
+            }, 2200);
+        }
+
+        // 🎯 사용자가 카드 섹션 어디든 마우스 커서로 찍은 포인트를 100% 순수 기준으로 출발/도착 앵커 바인딩 & 녹색 동적 연결선 생성
+        document.querySelectorAll('.card-item').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const cardId = card.getAttribute('data-card-id');
+                const cRect = card.getBoundingClientRect();
+
+                // ↩️ 1. 이미 선택된 카드를 다시 클릭한 경우: 내부/외곽 불문하고 즉시 선택 해제!
+                if (selectedSourceCard === cardId) {
+                    selectedSourceCard = null;
+                    selectedSourceAnchor = null;
+                    document.querySelectorAll('.card-item').forEach(c => c.classList.remove('selected-source', 'selected-target'));
+                    selectSource.value = '';
+                    selectTarget.value = '';
+                    showToastHint('↩️ 카드 선택이 해제되었습니다.');
+                    return;
+                }
+
+                // 🎯 2. 카드 섹션 내부 어디든 마우스 커서가 찍은 무작위 포인트의 정밀 상대 좌표(relX, relY) 계산
+                const relX = Math.max(0, Math.min(1, (e.clientX - cRect.left) / cRect.width));
+                const relY = Math.max(0, Math.min(1, (e.clientY - cRect.top) / cRect.height));
+
+                if (!selectedSourceCard) {
+                    // 1번째 클릭: 출발 카드 지정 및 사용자가 찍은 마우스 상대 위치(srcAnchor) 기록
+                    document.querySelectorAll('.card-item').forEach(c => c.classList.remove('selected-source', 'selected-target'));
+                    selectedSourceCard = cardId;
+                    selectedSourceAnchor = { relX: relX, relY: relY };
+                    selectedTargetCard = null;
+                    selectedTargetAnchor = null;
+                    card.classList.add('selected-source');
+                    selectSource.value = cardId;
+                    selectTarget.value = '';
+                    showToastHint('🚩 [출발 카드] 선택 완료! 연결할 도착 카드를 클릭하세요.');
+                } else {
+                    // 2번째 클릭: 도착 카드 지정 및 마우스 클릭 위치(tgtAnchor) 기록 ➔ 정밀 클릭 위치 연결 + 녹색(#10b981) 동적 흐름선 + 중앙 꺾임 포인트 1개 자동 생성 및 편집!
+                    selectedTargetCard = cardId;
+                    selectedTargetAnchor = { relX: relX, relY: relY };
+                    card.classList.add('selected-target');
+                    selectTarget.value = cardId;
+
+                    const srcEl = document.querySelector(`[data-card-id="${selectedSourceCard}"]`);
+                    const tgtEl = document.querySelector(`[data-card-id="${selectedTargetCard}"]`);
+                    const mRect = sheetMain.getBoundingClientRect();
+
+                    let x1 = 200, y1 = 100, x2 = 400, y2 = 200;
+                    if (srcEl && tgtEl && mRect.width > 0) {
+                        const sR = srcEl.getBoundingClientRect();
+                        const tR = tgtEl.getBoundingClientRect();
+                        x1 = sR.left + sR.width * selectedSourceAnchor.relX - mRect.left;
+                        y1 = sR.top + sR.height * selectedSourceAnchor.relY - mRect.top;
+                        x2 = tR.left + tR.width * selectedTargetAnchor.relX - mRect.left;
+                        y2 = tR.top + tR.height * selectedTargetAnchor.relY - mRect.top;
+                    }
+
+                    const midPt = {
+                        x: Math.round((x1 + x2) / 2),
+                        y: Math.round((y1 + y2) / 2 - 25)
+                    };
+
+                    // 🎨 기존 연결선과 식별이 명확한 가독성 높은 고대비 순차 팔레트
+                    const seqColors = [
+                        '#10b981', // 🟢 에메랄드 녹색
+                        '#0284c7', // 🔵 시안/스카이 블루
+                        '#8b5cf6', // 🟣 퍼플/바이올렛
+                        '#f59e0b', // 🟠 비비드 앰버
+                        '#ef4444', // 🔴 코랄 크림슨
+                        '#ec4899', // 💖 일렉트릭 핑크
+                        '#84cc16', // 🟡 라임 골드
+                        '#14b8a6'  // 🌊 틸
+                    ];
+                    const autoSeqColor = seqColors[connections.length % seqColors.length];
+
+                    // 🎨 순차 가독성 색상이 적용된 동적 흐름선 생성
+                    const newConn = {
+                        id: 'conn-' + Date.now(),
+                        sourceId: selectedSourceCard,
+                        targetId: selectedTargetCard,
+                        srcAnchor: selectedSourceAnchor,
+                        tgtAnchor: selectedTargetAnchor,
+                        direction: selectDirection.value || 'forward',
+                        style: 'animated',     // ✨ 동적 흐름 점선
+                        color: autoSeqColor,   // 🎨 순차 가독성 색상 자동 적용!
+                        label: inputLabel.value.trim() || '연계 흐름',
+                        channelOffset: 0,
+                        controlPoints: [ midPt ],
+                        hasCustomPoints: true
+                    };
+
+                    connections.push(newConn);
+                    activeConnectionIndex = null; // 🎯 연결선 생성 즉시 확정 상태로 설정
+
+                    // 🎯 카드 선택 강조 테두리 및 뱃지 즉시 제거 (선택 표시 확정)
+                    document.querySelectorAll('.card-item').forEach(c => c.classList.remove('selected-source', 'selected-target'));
+                    selectedSourceCard = null;
+                    selectedSourceAnchor = null;
+                    selectedTargetCard = null;
+                    selectedTargetAnchor = null;
+                    selectSource.value = '';
+                    selectTarget.value = '';
+
+                    // 연결선 자동 표시 ON
+                    isLinesVisible = true;
+                    chkToggleLines.checked = true;
+
+                    // 화면 렌더링 갱신
+                    renderConnections();
+
+                    showToastHint('🎨 순차 가독성 색상이 적용된 동적 흐름선이 연결되었습니다.');
+                }
+            });
+        });
+
+        selectSource.addEventListener('change', () => {
+            document.querySelectorAll('.card-item').forEach(c => c.classList.remove('selected-source'));
+            selectedSourceCard = selectSource.value;
+            if (selectedSourceCard) {
+                const el = document.querySelector(`[data-card-id="${selectedSourceCard}"]`);
+                if (el) el.classList.add('selected-source');
+            }
+        });
+
+        selectTarget.addEventListener('change', () => {
+            document.querySelectorAll('.card-item').forEach(c => c.classList.remove('selected-target'));
+            selectedTargetCard = selectTarget.value;
+            if (selectedTargetCard) {
+                const el = document.querySelector(`[data-card-id="${selectedTargetCard}"]`);
+                if (el) el.classList.add('selected-target');
+            }
+        });
+
+        // 연결 추가
+        btnAdd.addEventListener('click', () => {
+            const src = selectSource.value;
+            const tgt = selectTarget.value;
+            if (!src || !tgt) {
+                alert('시작 카드와 도착 카드를 모두 선택해주세요.');
+                return;
+            }
+            if (src === tgt) {
+                alert('시작 카드와 도착 카드는 서로 달라야 합니다.');
+                return;
+            }
+
+            const count = connections.length;
+            const offsetList = [-45, 10, 55, -80, 80];
+            const channelOffset = offsetList[count % offsetList.length];
+
+            connections.push({
+                id: 'conn-' + Date.now(),
+                sourceId: src,
+                targetId: tgt,
+                direction: selectDirection.value,
+                style: selectStyle.value,
+                color: selectColor.value,
+                label: inputLabel.value.trim() || '연계 흐름',
+                channelOffset: channelOffset
+            });
+
+            activeConnectionIndex = connections.length - 1;
+            renderConnections();
+
+            document.querySelectorAll('.card-item').forEach(c => c.classList.remove('selected-source', 'selected-target'));
+            selectedSourceCard = null;
+            selectedTargetCard = null;
+            selectSource.value = '';
+            selectTarget.value = '';
+        });
+
+        // 기본 요청 연계 복원 버튼
+        btnPreset.addEventListener('click', () => {
+            loadDefaultUserConnections();
+        });
+
+        // 💾 단독 HTML 저장 버튼 (N차 단독 저장시에도 원본과 100% 동일한 무결성 보존)
+        const btnSave = document.getElementById('btn-save-standalone');
+        btnSave.addEventListener('click', () => {
+            // 🎯 1. 저장 전 옵션 컨테이너 및 헤더 버튼을 닫힘(접힘) 상태로 통일 설정
+            toolbarContainer.classList.add('collapsed');
+            toolbarHeaderLabel.textContent = '▶ 옵션 메뉴 펴기';
+
+            // 🎯 2. 선택된 카드, 2배 확대 모달 및 곡선 조종점 노드 선택 해제
+            closeCardZoomModal();
+            activeConnectionIndex = null;
+            document.querySelectorAll('.card-item').forEach(c => c.classList.remove('selected-source', 'selected-target'));
+
+            // 🎯 3. 체크박스 DOM 상태 동기화
+            if (isLinesVisible) chkToggleLines.setAttribute('checked', 'checked');
+            else chkToggleLines.removeAttribute('checked');
+
+            if (isAnimationOn) chkToggleAnim.setAttribute('checked', 'checked');
+            else chkToggleAnim.removeAttribute('checked');
+
+            if (showLabels) chkToggleLabel.setAttribute('checked', 'checked');
+            else chkToggleLabel.removeAttribute('checked');
+
+            // 🎯 4. N차 저장 시 동적 렌더링 노드 중복 축적 방지를 위해 임시 제거 후 outerHTML 캡처
+            const oldConnG = svgOverlay.querySelector('g.connections-layer');
+            if (oldConnG) oldConnG.remove();
+            const oldLassoG = svgOverlay.querySelector('#safety-green-lasso-layer');
+            if (oldLassoG) oldLassoG.remove();
+
+            let htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+            // 🎯 5. 캡처 후 화면 렌더링 즉시 복원
+            renderConnections();
+
+            const connJson = JSON.stringify(connections, null, 4);
+            const isLinesVisibleVal = isLinesVisible ? 'true' : 'false';
+            const showLabelsVal = showLabels ? 'true' : 'false';
+            const isAnimationOnVal = isAnimationOn ? 'true' : 'false';
+            const isHeadersVisibleVal = isHeadersVisible ? 'true' : 'false';
+
+            htmlContent = htmlContent.replace(
+                /let connections\s*=\s*\[[\s\S]*?\];/m,
+                `let connections = ${connJson};`
+            );
+            htmlContent = htmlContent.replace(
+                /let isLinesVisible\s*=\s*(true|false);/m,
+                `let isLinesVisible = ${isLinesVisibleVal};`
+            );
+            htmlContent = htmlContent.replace(
+                /let showLabels\s*=\s*(true|false);/m,
+                `let showLabels = ${showLabelsVal};`
+            );
+            htmlContent = htmlContent.replace(
+                /let isAnimationOn\s*=\s*(true|false);/m,
+                `let isAnimationOn = ${isAnimationOnVal};`
+            );
+            htmlContent = htmlContent.replace(
+                /let isHeadersVisible\s*=\s*(true|false);/m,
+                `let isHeadersVisible = ${isHeadersVisibleVal};`
+            );
+
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = '안전조회_단독저장본.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+
+            alert('N차 저장 시에도 원본과 100% 동일한 무결성을 유지하는 단독 파일(안전조회_단독저장본.html)이 저장되었습니다.');
+        });
+
+        // 전체 삭제 버튼
+        btnClear.addEventListener('click', () => {
+            connections = [];
+            activeConnectionIndex = null;
+            renderConnections();
+        });
+
+        window.addEventListener('resize', renderConnections);
+
+        // 🎯 마우스 커서 떨림/흔들림 100% 차단 (레이아웃 리플로우 0% 이벤트 드라이븐 구조)
+        document.querySelectorAll('.card-item').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.classList.add('hover-lift');
+            });
+
+            card.addEventListener('mouseleave', (e) => {
+                const rt = e.relatedTarget;
+                // 마우스 이동 목적지가 SVG 연계선 레이어인 경우 호버 부상 상태 유지 (커서 떨림 100% 제거)
+                if (rt && (rt.closest('#connection-svg-overlay') || rt.closest('#safety-green-lasso-layer'))) {
+                    return;
+                }
+                card.classList.remove('hover-lift');
+            });
+        });
+
+        // SVG 오버레이 마우스 외곽 완전 이탈 시 안전 해제
+        svgOverlay.addEventListener('mouseleave', (e) => {
+            const rt = e.relatedTarget;
+            if (!rt || !rt.closest('.card-item')) {
+                document.querySelectorAll('.card-item.hover-lift').forEach(c => c.classList.remove('hover-lift'));
+            }
+        });
+
+        // 🎯 모든 연결선 숨기기/보이기 초기 체크박스 상태 동기화
+        chkToggleLines.checked = isLinesVisible;
+
+        // 🎯 헤더 전체 표시/숨김 초기 상태 설정
+        const sheetEl = document.querySelector('.sheet');
+        if (!isHeadersVisible) {
+            allHeadersWrapper.style.display = 'none';
+            if (sheetEl) sheetEl.classList.add('headers-hidden');
+            btnMasterToggle.textContent = '+';
+            btnMasterToggle.setAttribute('title', '전체 헤더 보이기 (+)');
+        } else {
+            if (sheetEl) sheetEl.classList.remove('headers-hidden');
+        }
+
+        // 🔍 카드 2배(200%) 확대 정밀 보기 & 판서(Canvas Annotation) 모달 제어
+        const zoomModal = document.getElementById('card-zoom-modal');
+        const zoomModalBody = document.getElementById('zoom-modal-body');
+        const btnCloseZoomModal = document.getElementById('btn-close-zoom-modal');
+
+        let annoTool = 'ortho'; // 📐 기본값: 직선+직각 판서 도구
+        let annoColor = '#ef4444';
+        let annoWidth = 6;
+        let annoStrokes = [];
+        let isDrawingAnno = false;
+        let currentStrokeObj = null;
+
+        function initAnnotationCanvas(wrapperEl) {
+            const canvas = document.createElement('canvas');
+            canvas.className = 'annotation-canvas';
+            wrapperEl.appendChild(canvas);
+
+            setTimeout(() => {
+                canvas.width = wrapperEl.offsetWidth;
+                canvas.height = wrapperEl.offsetHeight;
+                redrawAnnoCanvas(canvas);
+            }, 60);
+
+            function getPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
+                const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            }
+
+            function startAnno(e) {
+                isDrawingAnno = true;
+                const pos = getPos(e);
+                if (annoTool === 'ortho' || annoTool === 'rect') {
+                    currentStrokeObj = {
+                        tool: annoTool,
+                        color: annoColor,
+                        width: parseInt(annoWidth, 10),
+                        startPos: pos,
+                        endPos: pos
+                    };
+                } else {
+                    currentStrokeObj = {
+                        tool: annoTool, // 'pen' or 'highlighter'
+                        color: annoColor,
+                        width: parseInt(annoWidth, 10),
+                        points: [pos]
+                    };
+                }
+                annoStrokes.push(currentStrokeObj);
+            }
+
+            function drawAnno(e) {
+                if (!isDrawingAnno || !currentStrokeObj) return;
+                const pos = getPos(e);
+                if (currentStrokeObj.tool === 'ortho' || currentStrokeObj.tool === 'rect') {
+                    currentStrokeObj.endPos = pos;
+                } else {
+                    currentStrokeObj.points.push(pos);
+                }
+                redrawAnnoCanvas(canvas);
+            }
+
+            function stopAnno() {
+                isDrawingAnno = false;
+                currentStrokeObj = null;
+            }
+
+            canvas.addEventListener('mousedown', startAnno);
+            canvas.addEventListener('mousemove', drawAnno);
+            canvas.addEventListener('mouseup', stopAnno);
+            canvas.addEventListener('mouseleave', stopAnno);
+
+            canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startAnno(e); }, { passive: false });
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); drawAnno(e); }, { passive: false });
+            canvas.addEventListener('touchend', stopAnno);
+        }
+
+        function redrawAnnoCanvas(canvas) {
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            annoStrokes.forEach(stroke => {
+                if (stroke.tool === 'ortho') {
+                    if (!stroke.startPos || !stroke.endPos) return;
+                    ctx.beginPath();
+                    ctx.lineCap = 'square';
+                    ctx.lineJoin = 'miter';
+                    ctx.strokeStyle = stroke.color;
+                    ctx.lineWidth = stroke.width;
+                    ctx.globalAlpha = 1.0;
+                    ctx.moveTo(stroke.startPos.x, stroke.startPos.y);
+                    ctx.lineTo(stroke.endPos.x, stroke.startPos.y);
+                    ctx.lineTo(stroke.endPos.x, stroke.endPos.y);
+                    ctx.stroke();
+                } else if (stroke.tool === 'rect') {
+                    if (!stroke.startPos || !stroke.endPos) return;
+                    const x = Math.min(stroke.startPos.x, stroke.endPos.x);
+                    const y = Math.min(stroke.startPos.y, stroke.endPos.y);
+                    const w = Math.abs(stroke.endPos.x - stroke.startPos.x);
+                    const h = Math.abs(stroke.endPos.y - stroke.startPos.y);
+
+                    ctx.beginPath();
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'miter';
+                    ctx.strokeStyle = stroke.color;
+                    ctx.lineWidth = stroke.width;
+                    ctx.globalAlpha = 1.0;
+                    ctx.strokeRect(x, y, w, h);
+                } else {
+                    if (!stroke.points || stroke.points.length < 2) return;
+                    ctx.beginPath();
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.strokeStyle = stroke.color;
+                    ctx.lineWidth = stroke.width;
+
+                    if (stroke.tool === 'highlighter') {
+                        ctx.globalAlpha = 0.45;
+                    } else {
+                        ctx.globalAlpha = 1.0;
+                    }
+
+                    ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+                    for (let i = 1; i < stroke.points.length; i++) {
+                        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+                    }
+                    ctx.stroke();
+                }
+            });
+            ctx.globalAlpha = 1.0;
+        }
+
+        // 판서 옵션 툴바 이벤트 연결
+        const toolOrthoBtn = document.getElementById('tool-ortho');
+        const toolRectBtn = document.getElementById('tool-rect');
+        const toolPenBtn = document.getElementById('tool-pen');
+        const toolHighlighterBtn = document.getElementById('tool-highlighter');
+        const strokeWidthSelect = document.getElementById('anno-stroke-width');
+        const btnUndoAnno = document.getElementById('btn-anno-undo');
+        const btnClearAnno = document.getElementById('btn-anno-clear');
+
+        function setActiveTool(toolName) {
+            annoTool = toolName;
+            [toolOrthoBtn, toolRectBtn, toolPenBtn, toolHighlighterBtn].forEach(btn => {
+                if (btn) btn.classList.remove('active');
+            });
+            if (toolName === 'ortho' && toolOrthoBtn) toolOrthoBtn.classList.add('active');
+            if (toolName === 'rect' && toolRectBtn) toolRectBtn.classList.add('active');
+            if (toolName === 'pen' && toolPenBtn) toolPenBtn.classList.add('active');
+            if (toolName === 'highlighter' && toolHighlighterBtn) toolHighlighterBtn.classList.add('active');
+        }
+
+        if (toolOrthoBtn) toolOrthoBtn.addEventListener('click', () => setActiveTool('ortho'));
+        if (toolRectBtn) toolRectBtn.addEventListener('click', () => setActiveTool('rect'));
+        if (toolPenBtn) toolPenBtn.addEventListener('click', () => setActiveTool('pen'));
+        if (toolHighlighterBtn) toolHighlighterBtn.addEventListener('click', () => setActiveTool('highlighter'));
+
+        document.querySelectorAll('.color-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                dot.classList.add('active');
+                annoColor = dot.getAttribute('data-color');
+            });
+        });
+
+        if (strokeWidthSelect) {
+            strokeWidthSelect.addEventListener('change', (e) => {
+                annoWidth = parseInt(e.target.value, 10);
+            });
+        }
+
+        if (btnUndoAnno) {
+            btnUndoAnno.addEventListener('click', () => {
+                annoStrokes.pop();
+                const cvs = document.querySelector('.annotation-canvas');
+                if (cvs) redrawAnnoCanvas(cvs);
+            });
+        }
+
+        if (btnClearAnno) {
+            btnClearAnno.addEventListener('click', () => {
+                annoStrokes = [];
+                const cvs = document.querySelector('.annotation-canvas');
+                if (cvs) redrawAnnoCanvas(cvs);
+            });
+        }
+
+        const btnToggleAnnoBar = document.getElementById('btn-toggle-anno-bar');
+        const zoomAnnoToolbar = document.getElementById('zoom-annotation-toolbar');
+
+        if (btnToggleAnnoBar && zoomAnnoToolbar) {
+            btnToggleAnnoBar.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isCollapsed = zoomAnnoToolbar.classList.toggle('collapsed');
+                if (isCollapsed) {
+                    btnToggleAnnoBar.textContent = '▶ 판서 메뉴 펴기';
+                } else {
+                    btnToggleAnnoBar.textContent = '▼ 판서 메뉴 접기';
+                }
+            });
+        }
+
+        function openCardZoomModal(cardEl) {
+            if (!cardEl) return;
+            const clone = cardEl.cloneNode(true);
+            clone.classList.remove('selected-source', 'selected-target', 'hover-lift');
+            clone.style.transform = 'none';
+            clone.style.margin = '0';
+            clone.style.padding = '0';
+            clone.style.pointerEvents = 'none';
+
+            const topColor = window.getComputedStyle(cardEl).borderTopColor || '#0284c7';
+
+            const wrap = document.createElement('div');
+            wrap.className = 'zoomed-card-wrapper';
+            wrap.style.borderColor = '#94a3b8'; // 좌·우·하단 실선 테두리 명확화
+            wrap.style.borderTopColor = topColor; // 상단 대형 상징 테마 컬러 적용
+            wrap.appendChild(clone);
+
+            zoomModalBody.innerHTML = '';
+            zoomModalBody.appendChild(wrap);
+
+            // 📐 판서 기본 도구를 'ortho' (직선+직각)로 지정
+            setActiveTool('ortho');
+
+            // 🖍️ 판서 옵션 툴바 초기 접힘(collapsed) 상태 설정
+            if (zoomAnnoToolbar) zoomAnnoToolbar.classList.add('collapsed');
+            if (btnToggleAnnoBar) btnToggleAnnoBar.textContent = '▶ 판서 메뉴 펴기';
+
+            // 🖍️ 판서 캔버스 Overlay 초기화 및 이벤트 바인딩
+            annoStrokes = [];
+            initAnnotationCanvas(wrap);
+
+            zoomModal.classList.add('active');
+            showToastHint('🔍 카드 4배(400%) 정밀 확대 모드 실행 (판서 메뉴 기본 접힘)');
+        }
+
+        // 🟢 올가미 뱃지/영역 클릭 시 올가미 구역(proc-2, proc-3) 4배 확대 & 유첨 원본 이미지 형태 및 L자 배치 100% 일치 통합 판서 모드 실행
+        function openLassoGroupZoomModal() {
+            const p2El = document.querySelector('[data-card-id="proc-2"]');
+            const p3El = document.querySelector('[data-card-id="proc-3"]');
+            if (!p2El || !p3El) return;
+
+            const clone2 = p2El.cloneNode(true);
+            const clone3 = p3El.cloneNode(true);
+            clone2.classList.remove('selected-source', 'selected-target');
+            clone3.classList.remove('selected-source', 'selected-target');
+            clone2.style.pointerEvents = 'none';
+            clone3.style.pointerEvents = 'none';
+
+            const wrap = document.createElement('div');
+            wrap.className = 'zoomed-lasso-group-wrapper';
+
+            const badge = document.createElement('div');
+            badge.className = 'zoomed-lasso-badge-tag';
+            badge.innerHTML = '🟢 현재 절차 (올가미 구역 400% 확대)';
+            wrap.appendChild(badge);
+
+            // 유첨 원본 이미지와 100% 동일한 L자형 올가미 구역 배치
+            // 상단: [빈 공간(proc-1 위치)] [proc-2 (건축 수장 작업)]
+            // 하단: [proc-3 (기타 작업 이원화 프로세스 - 100% Wide 카드)]
+            const contentLayout = document.createElement('div');
+            contentLayout.className = 'zoomed-lasso-content-layout';
+
+            const topRow = document.createElement('div');
+            topRow.className = 'zoomed-lasso-top-row';
+
+            const spacer = document.createElement('div');
+            spacer.className = 'zoomed-lasso-top-spacer';
+
+            const p2Container = document.createElement('div');
+            p2Container.className = 'zoomed-lasso-p2-container';
+            clone2.className = 'zoomed-lasso-card-item';
+            clone2.style.borderTopColor = 'var(--color-success)';
+            p2Container.appendChild(clone2);
+
+            topRow.appendChild(spacer);
+            topRow.appendChild(p2Container);
+
+            const bottomRow = document.createElement('div');
+            bottomRow.className = 'zoomed-lasso-bottom-row';
+            clone3.className = 'zoomed-lasso-card-item proc-wide-card';
+            clone3.style.borderTopColor = 'var(--color-warning)';
+            bottomRow.appendChild(clone3);
+
+            contentLayout.appendChild(topRow);
+            contentLayout.appendChild(bottomRow);
+            wrap.appendChild(contentLayout);
+
+            zoomModalBody.innerHTML = '';
+            zoomModalBody.appendChild(wrap);
+
+            // 📐 판서 기본 도구를 'ortho' (직선+직각)로 지정
+            setActiveTool('ortho');
+
+            // 🖍️ 판서 옵션 툴바 초기 접힘(collapsed) 상태 설정
+            if (zoomAnnoToolbar) zoomAnnoToolbar.classList.add('collapsed');
+            if (btnToggleAnnoBar) btnToggleAnnoBar.textContent = '▶ 판서 메뉴 펴기';
+
+            // 🖍️ 판서 캔버스 Overlay 초기화 (올가미 래퍼 전체 영역 덮음)
+            annoStrokes = [];
+            initAnnotationCanvas(wrap);
+
+            zoomModal.classList.add('active');
+            showToastHint('🟢 올가미 구역(현재 절차) 원본 형태 4배 확대 & 판서 모드 실행');
+        }
+
+        function closeCardZoomModal() {
+            if (zoomModal) zoomModal.classList.remove('active');
+            if (zoomModalBody) zoomModalBody.innerHTML = '';
+            if (zoomAnnoToolbar) zoomAnnoToolbar.classList.add('collapsed');
+            if (btnToggleAnnoBar) btnToggleAnnoBar.textContent = '▶ 판서 메뉴 펴기';
+            annoStrokes = [];
+        }
+
+        if (btnCloseZoomModal) {
+            btnCloseZoomModal.addEventListener('click', closeCardZoomModal);
+        }
+        if (zoomModal) {
+            zoomModal.addEventListener('click', (e) => {
+                if (e.target === zoomModal) closeCardZoomModal();
+            });
+        }
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeCardZoomModal();
+        });
+
+        // 🎯 카드 더블클릭(dblclick) 시 4배 확대 & 판서 모드 즉시 실행
+        document.querySelectorAll('.card-item').forEach(card => {
+            card.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                openCardZoomModal(card);
+            });
+        });
+
+        // 초기화 시 렌더링 (저장 데이터가 있는 경우 렌더링, 없으면 0개 클린 상태 유지)
+        renderConnections();
+    });
+</script>
+
+<!-- 🔍 카드 4배(400%) 정밀 확대 & 판서 모달 (Zoom Inspect & Annotation Modal) -->
+<div id="card-zoom-modal">
+    <div class="zoom-modal-dialog">
+        <div class="zoom-modal-header">
+            <div class="zoom-modal-title-block">
+                <span class="zoom-modal-title">🔍 카드 4배(400%) 정밀 확대 & 판서</span>
+                <button type="button" class="btn-anno-toggle" id="btn-toggle-anno-bar">▶ 판서 메뉴 펴기</button>
+            </div>
+            
+            <!-- 🖍️ 판서 옵션 툴바 (Annotation Toolbar - 기본 collapsed 접힘 상태) -->
+            <div class="zoom-annotation-toolbar collapsed" id="zoom-annotation-toolbar">
+                <button type="button" class="btn-anno-tool active" id="tool-ortho" title="직선+직각 판서 (기본값)">📐 직선+직각</button>
+                <button type="button" class="btn-anno-tool" id="tool-rect" title="직사각형 영역 판서">🟩 직사각형</button>
+                <button type="button" class="btn-anno-tool" id="tool-pen" title="자유 펜 드로잉">✏️ 펜</button>
+                <button type="button" class="btn-anno-tool" id="tool-highlighter" title="형광펜 하이라이트">🖍️ 형광펜</button>
+                
+                <div class="anno-divider"></div>
+                
+                <span class="anno-label">색상:</span>
+                <div class="anno-color-palette">
+                    <button type="button" class="color-dot active" data-color="#ef4444" style="background:#ef4444;" title="빨강"></button>
+                    <button type="button" class="color-dot" data-color="#10b981" style="background:#10b981;" title="녹색"></button>
+                    <button type="button" class="color-dot" data-color="#38bdf8" style="background:#38bdf8;" title="파랑"></button>
+                    <button type="button" class="color-dot" data-color="#fde047" style="background:#fde047;" title="노랑"></button>
+                    <button type="button" class="color-dot" data-color="#ffffff" style="background:#ffffff;" title="흰색"></button>
+                    <button type="button" class="color-dot" data-color="#0f172a" style="background:#0f172a;" title="검정"></button>
+                </div>
+
+                <div class="anno-divider"></div>
+
+                <span class="anno-label">두께:</span>
+                <select id="anno-stroke-width" class="anno-select">
+                    <option value="3">얇게 (3px)</option>
+                    <option value="6" selected>보통 (6px)</option>
+                    <option value="12">굵게 (12px)</option>
+                </select>
+
+                <div class="anno-divider"></div>
+
+                <button type="button" class="btn-anno-action" id="btn-anno-undo" title="최근 판서 취소">↩️ 되돌리기</button>
+                <button type="button" class="btn-anno-action danger" id="btn-anno-clear" title="판서 전체 지우기">🧹 전체 지우기</button>
+            </div>
+
+            <button type="button" class="zoom-modal-close-btn" id="btn-close-zoom-modal">✕ 4배 확대 닫기</button>
+        </div>
+        <div class="zoom-modal-body" id="zoom-modal-body">
+            <!-- 4배 확대 복제 카드 노드 & 판서 캔버스 배치 -->
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
