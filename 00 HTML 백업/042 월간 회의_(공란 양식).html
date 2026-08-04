@@ -871,6 +871,62 @@
             box-sizing: border-box;
         }
 
+        .anno-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 4px 6px 4px;
+            border-bottom: 1px solid rgba(0,0,0,0.12);
+            margin-bottom: 6px;
+            user-select: none;
+            touch-action: none;
+        }
+        .anno-panel-drag-handle {
+            cursor: move;
+            font-weight: bold;
+            font-size: 13px;
+            color: #222;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            touch-action: none;
+        }
+        .anno-panel-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .anno-panel-action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            color: #555;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .anno-panel-action-btn:hover {
+            background-color: rgba(0,0,0,0.08);
+        }
+        #annotationSettingsPanel.collapsed .anno-panel-body {
+            display: none !important;
+        }
+        #annotationSettingsPanel.collapsed {
+            padding-bottom: 6px !important;
+        }
+        .anno-panel-resize-handle {
+            position: absolute;
+            right: 3px;
+            bottom: 3px;
+            font-size: 10px;
+            color: #888;
+            cursor: nwse-resize;
+            user-select: none;
+            touch-action: none;
+        }
+        #annotationSettingsPanel.collapsed .anno-panel-resize-handle {
+            display: none !important;
+        }
         #closeAnnotationSettingsBtn {
             position: absolute;
             top: 5px;
@@ -4540,7 +4596,14 @@
             </div>
         </div>
         <div id="annotationSettingsPanel">
-            <span id="closeAnnotationSettingsBtn" title="설정 적용 및 닫기">&times;</span>
+            <div id="annoPanelHeader" class="anno-panel-header">
+                <span id="annoPanelDragHandle" class="anno-panel-drag-handle" title="손가락으로 드래그해서 위치 이동">⠿ 판서 설정</span>
+                <div class="anno-panel-header-actions">
+                    <button type="button" id="toggleCollapseAnnoPanelBtn" class="anno-panel-action-btn" title="접기/펴기">▼</button>
+                    <span id="closeAnnotationSettingsBtn" title="설정 적용 및 닫기">&times;</span>
+                </div>
+            </div>
+            <div id="annoPanelBody" class="anno-panel-body">
             <div class="annotation-tool-row">
                 <button id="annoToolPen" data-tool="pen" title="펜">펜</button>
                 <button id="annoToolHighlighter" data-tool="highlighter" title="형광펜">형광펜</button>
@@ -4571,6 +4634,8 @@
                 <input type="checkbox" id="annoKeepDrawingsVisible" checked>
                 <label for="annoKeepDrawingsVisible" style="font-size:11px; white-space: nowrap;">그림 유지(비활성시)</label>
             </div>
+            </div>
+            <div id="annoPanelResizeHandle" class="anno-panel-resize-handle" title="손가락으로 드래그해서 크기 조절">◢</div>
         </div>
 
         <button type="button" id="openFocusedEditorBtn" class="image-edit-btn-open" title="선택한 입력 영역을 큰 창에서 편집">확대 편집</button>
@@ -9993,6 +10058,7 @@ function clampImagesToContainers(scope = contentArea) {
                     clonedImgZoomEl2.removeAttribute('data-pan-bound');
                 }
                 clonedDoc.querySelectorAll('[data-pan-bound]').forEach(el => { delete el.dataset.panBound; el.removeAttribute('data-pan-bound'); });
+            clonedDoc.querySelectorAll('[data-pinch-bound]').forEach(el => { delete el.dataset.pinchBound; el.removeAttribute('data-pinch-bound'); });
                 clonedDoc.querySelectorAll('[data-listener-attached]').forEach(el => { delete el.dataset.listenerAttached; el.removeAttribute('data-listener-attached'); });
                 clonedDoc.querySelectorAll('[data-drag-initialized]').forEach(el => { delete el.dataset.dragInitialized; el.removeAttribute('data-drag-initialized'); });
                 clonedDoc.querySelectorAll('[data-draggable-initialized]').forEach(el => { delete el.dataset.draggableInitialized; el.removeAttribute('data-draggable-initialized'); });
@@ -13750,7 +13816,183 @@ document.addEventListener('focusin', e => {
             const zoomPanBtn = document.getElementById('zoomPanBtn');
             if (zoomPanBtn) zoomPanBtn.addEventListener('click', togglePanTool);
 
-            function bindZoomOverlayPanEvents(zoomOverlayEl) {
+            function makeAnnoPanelDraggableAndResizable() {
+            const panel = document.getElementById('annotationSettingsPanel');
+            if (!panel || panel.dataset.dragInitialized === 'true') return;
+            panel.dataset.dragInitialized = 'true';
+
+            const dragHandle = document.getElementById('annoPanelDragHandle');
+            const collapseBtn = document.getElementById('toggleCollapseAnnoPanelBtn');
+            const resizeHandle = document.getElementById('annoPanelResizeHandle');
+
+            if (collapseBtn) {
+                collapseBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isCollapsed = panel.classList.toggle('collapsed');
+                    collapseBtn.textContent = isCollapsed ? '▲' : '▼';
+                });
+            }
+
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let initialLeft = 0, initialTop = 0;
+            let pointerId = null;
+
+            const onDragStart = (e) => {
+                if (e.target.closest('button') || e.target.closest('input') || e.target.closest('#closeAnnotationSettingsBtn') || e.target.closest('#annoPanelResizeHandle')) return;
+                if (e.cancelable) e.preventDefault();
+                e.stopPropagation();
+
+                isDragging = true;
+                const rect = panel.getBoundingClientRect();
+                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
+
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
+                panel.style.left = `${rect.left}px`;
+                panel.style.top = `${rect.top}px`;
+
+                startX = pt.x;
+                startY = pt.y;
+                initialLeft = rect.left;
+                initialTop = rect.top;
+
+                if (e.pointerId !== undefined && dragHandle && dragHandle.setPointerCapture) {
+                    pointerId = e.pointerId;
+                    try { dragHandle.setPointerCapture(pointerId); } catch(ex) {}
+                }
+            };
+
+            const onDragMove = (e) => {
+                if (!isDragging) return;
+                if (e.cancelable) e.preventDefault();
+                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
+                const deltaX = pt.x - startX;
+                const deltaY = pt.y - startY;
+
+                const rect = panel.getBoundingClientRect();
+                const pos = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.clampPosition) ? AppLayers.ui.clampPosition(initialLeft + deltaX, initialTop + deltaY, rect.width, rect.height) : { left: Math.max(0, initialLeft + deltaX), top: Math.max(0, initialTop + deltaY) };
+
+                panel.style.left = `${pos.left}px`;
+                panel.style.top = `${pos.top}px`;
+            };
+
+            const onDragEnd = (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                if (pointerId !== null && dragHandle && dragHandle.releasePointerCapture) {
+                    try { dragHandle.releasePointerCapture(pointerId); } catch(ex) {}
+                    pointerId = null;
+                }
+            };
+
+            if (dragHandle) {
+                dragHandle.addEventListener('pointerdown', onDragStart, { passive: false });
+                dragHandle.addEventListener('pointermove', onDragMove, { passive: false });
+                dragHandle.addEventListener('pointerup', onDragEnd, { passive: false });
+                dragHandle.addEventListener('pointercancel', onDragEnd, { passive: false });
+
+                dragHandle.addEventListener('touchstart', onDragStart, { passive: false });
+                dragHandle.addEventListener('touchmove', onDragMove, { passive: false });
+                dragHandle.addEventListener('touchend', onDragEnd, { passive: false });
+            }
+
+            let isResizing = false;
+            let resizeStartX = 0, resizeWidth = 0;
+            let resizePointerId = null;
+
+            const onResizeStart = (e) => {
+                if (e.cancelable) e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
+                resizeStartX = pt.x;
+                resizeWidth = panel.offsetWidth;
+
+                if (e.pointerId !== undefined && resizeHandle && resizeHandle.setPointerCapture) {
+                    resizePointerId = e.pointerId;
+                    try { resizeHandle.setPointerCapture(resizePointerId); } catch(ex) {}
+                }
+            };
+
+            const onResizeMove = (e) => {
+                if (!isResizing) return;
+                if (e.cancelable) e.preventDefault();
+                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
+                const deltaX = pt.x - resizeStartX;
+                const newWidth = Math.max(200, Math.min(window.innerWidth - 16, resizeWidth + deltaX));
+                panel.style.width = `${newWidth}px`;
+            };
+
+            const onResizeEnd = (e) => {
+                if (!isResizing) return;
+                isResizing = false;
+                if (resizePointerId !== null && resizeHandle && resizeHandle.releasePointerCapture) {
+                    try { resizeHandle.releasePointerCapture(resizePointerId); } catch(ex) {}
+                    resizePointerId = null;
+                }
+            };
+
+            if (resizeHandle) {
+                resizeHandle.addEventListener('pointerdown', onResizeStart, { passive: false });
+                resizeHandle.addEventListener('pointermove', onResizeMove, { passive: false });
+                resizeHandle.addEventListener('pointerup', onResizeEnd, { passive: false });
+                resizeHandle.addEventListener('pointercancel', onResizeEnd, { passive: false });
+
+                resizeHandle.addEventListener('touchstart', onResizeStart, { passive: false });
+                resizeHandle.addEventListener('touchmove', onResizeMove, { passive: false });
+                resizeHandle.addEventListener('touchend', onResizeEnd, { passive: false });
+            }
+        }
+
+        function bindMobilePinchZoomEvents(zoomOverlayEl) {
+            if (!zoomOverlayEl) zoomOverlayEl = document.getElementById('imageZoomOverlay');
+            if (!zoomOverlayEl) return;
+            if (zoomOverlayEl.dataset.pinchBound === 'true') return;
+            zoomOverlayEl.dataset.pinchBound = 'true';
+
+            let initialPinchDistance = 0;
+            let initialPinchScale = 1.0;
+
+            const getTouchDistance = (e) => {
+                if (e.touches && e.touches.length >= 2) {
+                    const t1 = e.touches[0];
+                    const t2 = e.touches[1];
+                    return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                }
+                return 0;
+            };
+
+            zoomOverlayEl.addEventListener('touchstart', (e) => {
+                if (e.touches && e.touches.length === 2) {
+                    initialPinchDistance = getTouchDistance(e);
+                    initialPinchScale = typeof currentZoomScale !== 'undefined' ? currentZoomScale : 1.0;
+                }
+            }, { passive: true });
+
+            zoomOverlayEl.addEventListener('touchmove', (e) => {
+                if (e.touches && e.touches.length === 2 && initialPinchDistance > 0) {
+                    if (e.cancelable) e.preventDefault();
+                    const currentDist = getTouchDistance(e);
+                    if (currentDist > 0) {
+                        const ratio = currentDist / initialPinchDistance;
+                        const newScale = Math.max(0.25, Math.min(5.0, initialPinchScale * ratio));
+                        if (typeof updateImageZoomScale === 'function') {
+                            updateImageZoomScale(newScale);
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            const resetPinch = () => {
+                initialPinchDistance = 0;
+            };
+
+            zoomOverlayEl.addEventListener('touchend', resetPinch, { passive: true });
+            zoomOverlayEl.addEventListener('touchcancel', resetPinch, { passive: true });
+        }
+
+        function bindZoomOverlayPanEvents(zoomOverlayEl) {
                 if (!zoomOverlayEl) zoomOverlayEl = document.getElementById('imageZoomOverlay');
                 if (!zoomOverlayEl) return;
                 if (zoomOverlayEl.dataset.panBound === 'true') return;
@@ -13819,6 +14061,8 @@ document.addEventListener('focusin', e => {
                 }
             }
             bindZoomOverlayPanEvents(document.getElementById('imageZoomOverlay'));
+            bindMobilePinchZoomEvents(document.getElementById('imageZoomOverlay'));
+            makeAnnoPanelDraggableAndResizable();
 
             
             const zoomCropBtn = document.getElementById('zoomCropBtn');
