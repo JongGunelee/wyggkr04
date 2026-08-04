@@ -2340,6 +2340,9 @@
 
         /* START: 텍스트 서식 플로팅 툴바 CSS 정의 */
         .text-format-toolbar {
+            max-width: 94vw !important;
+            overflow-x: auto !important;
+            touch-action: manipulation !important;
             position: absolute;
             display: none;
             align-items: center !important;
@@ -4444,15 +4447,9 @@
                         style="font-size: large;"><br></span></div>
 
                 <div class="section-subtitle" data-editable-type="section-subtitle"><span style="font-size: large;">▶
-                        5월말 집행비</span></div>
+                        5월말 집행비 (PO금액)</span></div>
                 <div class="flow" data-editable-type="flow-container">
                     <span data-editable-type="flow-span" class="highlight">총 4.4천만원 (16건)</span>
-                    <span data-editable-type="flow-span"><b>=</b></span>
-                    <span data-editable-type="flow-span">수장공사 2.6천만원 (6건)</span>
-                    <span data-editable-type="flow-span">➕</span>
-                    <span data-editable-type="flow-span">건축(실비정산) 4.8백만원 (1건)</span>
-                    <span data-editable-type="flow-span">➕</span>
-                    <span data-editable-type="flow-span">세대내 보일러 外 1.3천만원 (9건)</span>
                 </div>
 
             </div>
@@ -5128,7 +5125,37 @@
                 }
             }
 
-            function resetRuntimeArtifacts(targetDoc) {
+                    // --- START: 본문 내 오염된 중복 툴바 자동 정화 함수 (042 무결성 보증) ---
+        function cleanCurrentDocumentOfDuplicateToolbars(targetDoc = document) {
+            try {
+                const defaultParent = targetDoc.getElementById('appContainer') || targetDoc.body;
+                // 1. 본문 영역(#content, #focusedEditorSurface, .insert-area, .box 등) 내부에 오염/복제되어 들어간 서식 툴바 노드 전면 제거
+                const contentToolbars = targetDoc.querySelectorAll(
+                    '#content .text-format-toolbar, #content #textFormatToolbar, ' +
+                    '#focusedEditorSurface .text-format-toolbar, #focusedEditorSurface #textFormatToolbar, ' +
+                    '.insert-area .text-format-toolbar, .insert-area #textFormatToolbar, ' +
+                    '.box .text-format-toolbar, .box #textFormatToolbar'
+                );
+                contentToolbars.forEach(el => el.remove());
+
+                // 2. defaultParent 자식이 아닌 곳에 있거나 2개 이상 존재하는 툴바 제거
+                const allTextFormatToolbars = targetDoc.querySelectorAll('#textFormatToolbar');
+                allTextFormatToolbars.forEach((el, index) => {
+                    if (el.parentNode !== defaultParent && el.parentNode !== targetDoc.body) {
+                        el.remove();
+                    } else if (index > 0) {
+                        el.remove();
+                    }
+                });
+            } catch (e) {
+                console.error('툴바 정화 중 오류:', e);
+            }
+        }
+        window.cleanCurrentDocumentOfDuplicateToolbars = cleanCurrentDocumentOfDuplicateToolbars;
+        // --- END: 본문 내 오염된 중복 툴바 자동 정화 함수 ---
+
+        function resetRuntimeArtifacts(targetDoc) {
+                if (targetDoc) cleanCurrentDocumentOfDuplicateToolbars(targetDoc);
                 if (!targetDoc) return targetDoc;
 
                 const clonedBodyEl = targetDoc.body;
@@ -6864,8 +6891,8 @@ function clampImagesToContainers(scope = contentArea) {
                 subtitles.forEach(subtitle => {
                     if (subtitle.textContent.includes('월말 집행비')) {
                         subtitle.innerHTML = subtitle.innerHTML.replace(
-                            /\d{1,2}월말/,
-                            `${prevMonth}월말`
+                            /\d{1,2}월말\s*집행비(\s*\(PO금액\))?/,
+                            `${prevMonth}월말 집행비 (PO금액)`
                         );
                     }
                 });
@@ -8186,55 +8213,57 @@ function clampImagesToContainers(scope = contentArea) {
                 }
             }
 
-            // START: 텍스트 서식 플로팅 툴바 제어 함수
+
+        
+
+            // START: 텍스트 서식 플로팅 툴바 제어 함수 (무결성 보증 개작)
             function showTextFormatToolbar(range) {
                 const toolbar = document.getElementById('textFormatToolbar');
                 if (!toolbar) return;
+                if (!range) {
+                    hideTextFormatToolbar();
+                    return;
+                }
 
                 const rect = range.getBoundingClientRect();
                 if (rect.width === 0 && rect.height === 0) {
-                    toolbar.style.display = 'none';
+                    hideTextFormatToolbar();
                     return;
                 }
 
                 const focusedEditor = document.getElementById('focusedEditorOverlay');
                 const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
-                const container = isFocusedActive ? document.getElementById('focusedEditorSurface') : contentArea;
-                if (!container) return;
+                const defaultParent = document.getElementById('appContainer') || document.body;
 
-                // 툴바를 활성화된 컨테이너 내부로 대피시킴
-                if (toolbar.parentNode !== container) {
-                    container.appendChild(toolbar);
+                // [무결성 보증 핵심] 툴바는 오직 appContainer 또는 body 직계 자식으로만 위치시킴 (에디터 본문 내부 침투/중복 표출 원천 차단)
+                if (toolbar.parentNode !== defaultParent && toolbar.parentNode !== document.body) {
+                    defaultParent.appendChild(toolbar);
                 }
 
                 // 크기 계산을 위해 일시적으로 보임 처리
                 toolbar.style.display = 'flex';
 
                 const toolbarRect = toolbar.getBoundingClientRect();
-                const containerRect = container.getBoundingClientRect();
+                const pageScrollY = window.scrollY || window.pageYOffset || 0;
+                const pageScrollX = window.scrollX || window.pageXOffset || 0;
 
-                // 컨테이너 상대 좌표 계산
-                const selTop = rect.top - containerRect.top + container.scrollTop;
-                const selLeft = rect.left - containerRect.left + container.scrollLeft;
+                const selTop = rect.top + pageScrollY;
+                const selLeft = rect.left + pageScrollX;
 
                 const tbHeight = toolbarRect.height || 42;
                 const tbWidth = toolbarRect.width || 230;
 
-                let targetTop = selTop - tbHeight - 12;
+                let targetTop = selTop - tbHeight - 10;
                 let targetLeft = selLeft + (rect.width / 2) - (tbWidth / 2);
 
-                // 경계 영역 제한 (Clamping)
-                const minTop = container.scrollTop + 4;
-                const maxTop = container.scrollTop + container.clientHeight - tbHeight - 4;
-                const minLeft = container.scrollLeft + 4;
-                const maxLeft = container.scrollLeft + container.clientWidth - tbWidth - 4;
-
-                // 공간 부족시 선택 영역 하단에 배치 (rect.height 간격 확보)
-                if (targetTop < minTop) {
+                // 화면 상단 선택영역 위 공간 부족 시 아래쪽에 배치
+                if (targetTop < pageScrollY + 4) {
                     targetTop = selTop + rect.height + 8;
                 }
 
-                targetTop = Math.max(minTop, Math.min(maxTop, targetTop));
+                // 좌우 경계 제한 (Clamping & Mobile Viewport Support)
+                const minLeft = pageScrollX + 4;
+                const maxLeft = pageScrollX + document.documentElement.clientWidth - tbWidth - 4;
                 targetLeft = Math.max(minLeft, Math.min(maxLeft, targetLeft));
 
                 toolbar.style.position = 'absolute';
@@ -9659,6 +9688,12 @@ function clampImagesToContainers(scope = contentArea) {
                     : Array.from(scope.querySelectorAll('[data-editable-type="flow-span"], .flow > span'));
 
                 flowSpans.forEach(span => {
+                    if (span.dataset.noChip === 'true' || span.classList.contains('no-chip-tool')) {
+                        span.removeAttribute('data-editable-type');
+                        span.removeAttribute('title');
+                        span.querySelectorAll(':scope > .item-controls').forEach(ctrl => ctrl.remove());
+                        return;
+                    }
                     span.dataset.editableType = 'flow-span';
                     span.setAttribute('contenteditable', 'true');
                     span.querySelectorAll(':scope > .item-controls').forEach(ctrl => ctrl.remove());
@@ -9667,6 +9702,7 @@ function clampImagesToContainers(scope = contentArea) {
             }
 
             function saveHTML() {
+                cleanCurrentDocumentOfDuplicateToolbars();
                 if (menuPanel.style.display === "flex") togglePanel();
                 const focusedOverlay = document.getElementById('focusedEditorOverlay');
                 if (focusedOverlay && focusedOverlay.classList.contains('active')) {
@@ -11544,7 +11580,8 @@ function clampImagesToContainers(scope = contentArea) {
                     const button = document.getElementById('openFocusedEditorBtn');
                     if (!button || !target) return;
                     focusedEditorTarget = target;
-                    if (target.dataset.editableType === 'flow-span' || target.closest('.flow')) {
+                    const isNoChip = target.dataset.noChip === 'true' || target.classList.contains('no-chip-tool') || !!target.closest('.no-chip-tool');
+                    if (!isNoChip && (target.dataset.editableType === 'flow-span' || target.closest('.flow'))) {
                         button.classList.remove('visible');
                         showFlowChipToolbar(target);
                         return;
@@ -11697,7 +11734,11 @@ function clampImagesToContainers(scope = contentArea) {
                 function getFlowSpanSiblings(span = focusedEditorTarget) {
                     const flow = getFlowSpanParent(span);
                     if (!flow) return [];
-                    return Array.from(flow.children).filter(child => child.matches('[data-editable-type="flow-span"], .flow > span'));
+                    return Array.from(flow.children).filter(child => 
+                        child.matches('[data-editable-type="flow-span"], .flow > span') && 
+                        child.dataset.noChip !== 'true' && 
+                        !child.classList.contains('no-chip-tool')
+                    );
                 }
 
                 function setFlowChipSelected(chip, selected) {
@@ -12019,6 +12060,11 @@ function clampImagesToContainers(scope = contentArea) {
                     const toolbar = document.getElementById('flowChipToolbar');
                     if (!toolbar || !target) return;
                     focusedEditorTarget = target;
+                    const isNoChip = target.dataset.noChip === 'true' || target.classList.contains('no-chip-tool') || !!target.closest('.no-chip-tool');
+                    if (isNoChip) {
+                        toolbar.classList.remove('visible');
+                        return;
+                    }
                     if (target.dataset.editableType === 'flow-span' || target.closest('.flow')) {
                         if (!flowChipMultiSelectMode && (selectedFlowChips.length !== 1 || selectedFlowChips[0] !== target)) {
                             clearFlowChipSelection();
@@ -13074,6 +13120,10 @@ document.addEventListener('focusin', e => {
 
                         const target = getFocusedEditableTarget(e.target);
                         if (target && !overlay?.classList.contains('active')) {
+                            if (target.dataset.noChip === 'true' || target.classList.contains('no-chip-tool') || target.closest('.no-chip-tool')) {
+                                showFocusedEditorButton(target);
+                                return;
+                            }
                             if (target.dataset.editableType === 'flow-span' || target.closest('.flow')) {
                                 if (flowChipMultiSelectMode || e.ctrlKey || e.metaKey || e.shiftKey) {
                                     if (!flowChipMultiSelectMode) setFlowChipMultiSelectMode(true);
