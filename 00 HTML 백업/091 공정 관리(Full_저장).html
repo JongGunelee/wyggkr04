@@ -99355,7 +99355,7 @@ function showPendingSettlementModal(periodType, projects) {
                     });
                     const linePoints = plotted.map(point => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
                     const pointNodes = plotted.map((point, index) => `<g><circle class="st-tt-trend-point" data-st-tt-trend-index="${index}" tabindex="0" role="button" aria-label="${escTT(point.detail)}" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="5"></circle><text class="st-tt-trend-axis-label" x="${point.x.toFixed(1)}" y="116">${escTT(point.year)}</text></g>`).join('');
-                    trendHTML = `<div class="st-tt-trend-chart"><svg viewBox="0 0 320 128" role="img" aria-label="${escTT(evidencePayload.trendAriaLabel || title)}"><polyline class="st-tt-trend-line" points="${linePoints}"></polyline>${pointNodes}</svg><div class="st-tt-trend-detail" data-st-tt-trend-detail aria-live="polite">${escTT(plotted[plotted.length - 1].detail)}</div></div>`;
+                    trendHTML = `<div class="st-tt-trend-chart"><svg viewBox="0 0 320 128" role="img" aria-label="${escTT(evidencePayload.trendAriaLabel || title)}"><polyline class="st-tt-trend-line" points="${linePoints}"></polyline>${pointNodes}</svg><div class="st-tt-trend-detail" data-st-tt-trend-detail aria-live="polite">${escTT(plotted[0].detail)}</div></div>`;
                 }
                 const evidenceUnitLabel = trendSeries.length ? '\uac1c \uc5f0\ub3c4' : '\uac1c \ub3d9';
                 tt.innerHTML = `<div class="st-tt-close-bar"><button class="st-tt-close-btn" onclick="this.closest('.stl-group-tooltip').remove()">\u2715</button><div class="st-tt-drag-handle" style="flex-grow:1; cursor:grab; height:34px; margin:0 10px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:12px; font-weight:bold; border:1px dashed #cbd5e1; border-radius:8px; user-select:none;">\u21cf 드래그 이동 \u21c1</div><button class="st-tt-close-btn" onclick="this.closest('.stl-group-tooltip').remove()">\u2715</button></div><div class="st-tt-scroll-area" style="flex-grow:1; overflow-y:auto; overflow-x:hidden; padding-right:4px;"><div class="st-tt-title">\ud83d\udcca ${escTT(title)}</div>${statsHTML}${formulaHTML}${trendHTML}<div style="font-weight:800;color:#334155;border-bottom:1px solid #e2e8f0;padding-bottom:5px;">\uc0c1\uc138 \uc99d\ube59 \ubaa9\ub85d \u00b7 ${totalCount}${evidenceUnitLabel}</div><div class="st-tt-evidence-list">${itemsHTML}</div></div><div class="st-tt-resize-handle" style="position:absolute; bottom:0; right:0; width:24px; height:24px; cursor:nwse-resize; display:flex; align-items:flex-end; justify-content:flex-end; padding:4px; color:#cbd5e1; font-size:18px; line-height:0.8; user-select:none;">\u21f2</div>`;
@@ -141313,6 +141313,8 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-rate-formula { display:block; color:#64748b; font-size:8px; font-weight:800; line-height:1.15; white-space:nowrap; }
         .cost-analysis-rate-sort-icon { flex:0 0 auto; color:#0891b2; font-size:10px; }
         .cost-analysis-rate-trend-table .cost-analysis-rate-year-start { border-left:2px solid #0f766e !important; }
+        .cost-analysis-rate-trend-table .cost-analysis-rate-trend-cell { width:126px; min-width:126px; border-left:2px solid #0f766e !important; border-right:2px solid #0f766e !important; }
+        .cost-analysis-rate-trend-table th:last-child,.cost-analysis-rate-trend-table td:last-child { border-right:1px solid #e2e8f0; }
         .cost-analysis-rate-trend-table td { text-align:right; }
         .cost-analysis-rate-trend-table td:first-child { text-align:center; font-weight:900; }
         .cost-analysis-rate-change-up { color:#b91c1c; font-weight:900; }
@@ -141324,8 +141326,7 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-rate-summary-row > th { left:0; z-index:9; color:#0f172a; text-align:center; }
         .cost-analysis-rate-summary-row [data-cost-rate-summary-evidence] { cursor:pointer; }
         .cost-analysis-rate-summary-row [data-cost-rate-summary-evidence]:hover,.cost-analysis-rate-summary-row [data-cost-rate-summary-evidence]:focus-visible { background:#e0f2fe; box-shadow:inset 0 0 0 2px #38bdf8; outline:0; }
-        .cost-analysis-rate-trend-table th:last-child,.cost-analysis-rate-trend-table td:last-child { width:126px; min-width:126px; }
-        .cost-analysis-rate-sparkline { display:grid; grid-template-columns:minmax(68px,84px) auto; align-items:center; justify-content:center; gap:3px; min-width:0; width:100%; border:0; padding:0; background:transparent; color:inherit; font:inherit; cursor:pointer; }
+        .cost-analysis-rate-sparkline { display:grid; grid-template-columns:auto minmax(68px,84px); align-items:center; justify-content:center; gap:3px; min-width:0; width:100%; border:0; padding:0; background:transparent; color:inherit; font:inherit; cursor:pointer; }
         .cost-analysis-rate-sparkline:hover,.cost-analysis-rate-sparkline:focus-visible { border-radius:4px; outline:2px solid #38bdf8; outline-offset:2px; background:#e0f2fe; }
         .cost-analysis-rate-sparkline svg { display:block; width:84px; height:36px; overflow:visible; }
         .cost-analysis-rate-sparkline polyline { fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; }
@@ -141453,7 +141454,7 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-section > summary { padding:9px 2px; color:#334155; font-size:12px; font-weight:900; cursor:pointer; }
         .cost-analysis-table-wrap { position:relative; max-width:100%; overflow:auto; border:1px solid #e2e8f0; border-radius:6px; background:#fff; }
         .cost-analysis-table { width:100%; min-width:1080px; border-collapse:separate; border-spacing:0; table-layout:fixed; font-size:11px; }
-        .cost-analysis-detail-wrap .cost-analysis-table { min-width:1598px; }
+        .cost-analysis-detail-wrap .cost-analysis-table { min-width:1432px; }
         .cost-analysis-table th,.cost-analysis-table td { height:38px; padding:7px 8px; border-bottom:1px solid #e2e8f0; border-right:1px solid #f1f5f9; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center; vertical-align:middle; }
         .cost-analysis-table th { position:sticky; top:0; z-index:4; background:#f8fafc; color:#334155; font-weight:900; box-shadow:0 1px 0 #e2e8f0; }
         .cost-analysis-table th button { width:100%; border:0; padding:0; background:transparent; color:inherit; font:inherit; cursor:pointer; }
@@ -141476,11 +141477,15 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-column-pop.hidden { display:none; }
         .cost-analysis-column-pop label { display:flex; align-items:center; gap:7px; padding:5px; color:#334155; font-size:11px; font-weight:800; }
         .cost-analysis-empty { padding:28px; color:#64748b; font-size:12px; font-weight:800; text-align:center; }
-        #workContentCostAnalysisBtn { margin-left:8px; border:2px solid #dc2626; }
-        #workContentCostAnalysisFullscreenBtn { flex:0 0 auto; border:2px solid #dc2626; border-radius:6px; min-height:32px; padding:5px 9px; background:#fff7f7; color:#b91c1c; font-size:11px; font-weight:900; cursor:pointer; white-space:nowrap; }
+        #workContentCostAnalysisBtn,#workContentCostCompareBtn { margin-left:8px; }
+        #workContentCostAnalysisBtn { border:2px solid #dc2626; }
+        #workContentCostCompareBtn { border:2px solid #0f766e; color:#0f766e; background:#f0fdfa; }
+        #workContentCostAnalysisFullscreenBtn,#workContentCostCompareFullscreenBtn { flex:0 0 auto; border-radius:6px; min-height:32px; padding:5px 9px; font-size:11px; font-weight:900; cursor:pointer; white-space:nowrap; }
+        #workContentCostAnalysisFullscreenBtn { border:2px solid #dc2626; background:#fff7f7; color:#b91c1c; }
+        #workContentCostCompareFullscreenBtn { border:2px solid #0f766e; background:#f0fdfa; color:#0f766e; }
         @media (max-width:767px) {
-            #workContentCostAnalysisBtn { flex:0 0 auto; min-height:28px; margin-left:3px; padding:4px 6px; font-size:9px; line-height:1.15; }
-            #workContentCostAnalysisFullscreenBtn { min-height:28px; padding:4px 6px; font-size:9px; }
+            #workContentCostAnalysisBtn,#workContentCostCompareBtn { flex:0 0 auto; min-height:28px; margin-left:3px; padding:4px 6px; font-size:9px; line-height:1.15; }
+            #workContentCostAnalysisFullscreenBtn,#workContentCostCompareFullscreenBtn { min-height:28px; padding:4px 6px; font-size:9px; }
             #costSavingAnalysisModal { padding:0; align-items:stretch; justify-content:stretch; }
             .cost-analysis-panel { width:100vw; height:100dvh; border:0; border-radius:0; }
             .cost-analysis-head { padding:9px 8px; }
@@ -141504,11 +141509,11 @@ window.openAddNewProjectModal = function(editProject) {
             .cost-analysis-table.cost-analysis-rate-trend-table { width:100%; font-size:9px; line-height:1.3; }
             .cost-analysis-rate-trend-table th,.cost-analysis-rate-trend-table td { padding:5px 4px; white-space:nowrap; overflow-wrap:normal; word-break:keep-all; }
             .cost-analysis-rate-trend-table th:first-child,.cost-analysis-rate-trend-table td:first-child { width:62px; min-width:62px; }
-            .cost-analysis-rate-trend-table th:last-child,.cost-analysis-rate-trend-table td:last-child { width:126px; min-width:126px; }
+            .cost-analysis-rate-trend-table .cost-analysis-rate-trend-cell { width:126px; min-width:126px; }
             .cost-analysis-rate-trend-table th button { gap:4px; }
             .cost-analysis-rate-formula { font-size:8px; white-space:nowrap; }
             .cost-analysis-rate-sort-icon { font-size:10px; }
-            .cost-analysis-rate-sparkline { grid-template-columns:minmax(68px,84px) auto; gap:3px; min-width:0; }
+            .cost-analysis-rate-sparkline { grid-template-columns:auto minmax(68px,84px); gap:3px; min-width:0; }
             .cost-analysis-rate-sparkline svg { width:84px; height:36px; }
             .cost-analysis-rate-sparkline strong { text-align:center; }
             .cost-analysis-rate-editor-head { align-items:flex-start; flex-wrap:wrap; padding:6px 7px; }
@@ -141547,7 +141552,7 @@ window.openAddNewProjectModal = function(editProject) {
     <script id="codex-cost-estimation-analysis-20260711">
     (function installCostEstimationAnalysis20260711() {
         'use strict';
-        if (window.CostEstimationAnalysis && window.CostEstimationAnalysis.version === '2026.07.30.3') return;
+        if (window.CostEstimationAnalysis && window.CostEstimationAnalysis.version === '2026.08.04.1') return;
 
         var STORAGE_KEY = 'codex_cost_estimation_vault_v1';
         var MODE_KEY = 'codex_cost_estimation_source_mode_v1';
@@ -141568,7 +141573,7 @@ window.openAddNewProjectModal = function(editProject) {
         var columnDefs = [
             ['building', '\uac74\ubb3c\ub3d9'], ['household', '\uc138\ub300\ud638\uc218'], ['maintenanceCode', '\uc720\uc9c0\uad00\ub9ac\ubc88\ud638'], ['projectName', '\uc720\uc9c0\uad00\ub9ac\uba85(\ud504\ub85c\uc81d\ud2b8\uba85)'], ['rateYear', '\ub2e8\uac00 \uc5f0\ub3c4'], ['rateSource', '\ub2e8\uac00 \ucd9c\ucc98'], ['baseCost', '\uae30\ubcf8 \uacac\uc801 \ucf54\uc2a4\ud2b8'],
             ['fee', 'Fee'], ['confirmed', '\ud655\uc815 \uacac\uc801\uc561 (Fee\ud3ec\ud568)'], ['actualPo', '\uc2e4\uc81c \ud22c\uc785 PO'],
-            ['delta', '\uc808\uac10/\uc99d\uc561'], ['status', '\ud310\uc815'], ['processes', '\uc2e4\uc81c \uc218\ud589 \uacf5\uc815']
+            ['delta', '\uc808\uac10/\uc99d\uc561'], ['status', '\ud310\uc815'], ['processes', '\uc218\ud589 \uacf5\uc815']
         ];
 
         function escapeHtml(value) {
@@ -141620,15 +141625,33 @@ window.openAddNewProjectModal = function(editProject) {
             return key === 'saving' ? 'good' : (key === 'overrun' || key === 'unmatched' ? 'bad' : (key === 'excluded' ? 'warn' : ''));
         }
         function normalizeAnalysisDate(value) {
+            function formatParts(year, month, day) {
+                var y = Number(year), m = Number(month), d = Number(day);
+                if (!Number.isInteger(y) || y < 2000 || y > 2099 || !Number.isInteger(m) || m < 1 || m > 12 || !Number.isInteger(d) || d < 1 || d > 31) return '';
+                var check = new Date(y, m - 1, d);
+                if (check.getFullYear() !== y || check.getMonth() !== m - 1 || check.getDate() !== d) return '';
+                return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+            }
+            function formatDate(date) {
+                if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+                return formatParts(date.getFullYear(), date.getMonth() + 1, date.getDate());
+            }
+            if (value instanceof Date) return formatDate(value);
+            if (typeof value === 'number' && Number.isFinite(value) && value > 20000 && value < 100000) {
+                var excelDate = new Date(Date.UTC(1899, 11, 30) + Math.floor(value) * 86400000);
+                return formatParts(excelDate.getUTCFullYear(), excelDate.getUTCMonth() + 1, excelDate.getUTCDate());
+            }
             var text = String(value == null ? '' : value).trim();
             if (!text) return '';
-            var direct = text.match(/(20\d{2})[-./](\d{1,2})[-./](\d{1,2})/);
-            if (direct) return direct[1] + '-' + String(Number(direct[2])).padStart(2, '0') + '-' + String(Number(direct[3])).padStart(2, '0');
-            var ym = text.match(/(20\d{2})\s*(?:[-./\ub144]\s*)?(\d{1,2})\s*(?:\uc6d4)?/);
-            if (ym) return ym[1] + '-' + String(Number(ym[2])).padStart(2, '0') + '-01';
-            var parsed = new Date(text);
-            if (Number.isNaN(parsed.getTime())) return '';
-            return parsed.getFullYear() + '-' + String(parsed.getMonth() + 1).padStart(2, '0') + '-' + String(parsed.getDate()).padStart(2, '0');
+            var compactDate = text.match(/^(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])$/);
+            if (compactDate) return formatParts(compactDate[1], compactDate[2], compactDate[3]);
+            var compactMonth = text.match(/^(20\d{2})(0[1-9]|1[0-2])$/);
+            if (compactMonth) return formatParts(compactMonth[1], compactMonth[2], 1);
+            var direct = text.match(/(20\d{2})[-./](0?[1-9]|1[0-2])[-./](0?[1-9]|[12]\d|3[01])/);
+            if (direct) return formatParts(direct[1], direct[2], direct[3]);
+            var ym = text.match(/^(20\d{2})(?:\s*[-./\ub144]\s*|\s+)(0?[1-9]|1[0-2])(?:\s*\uc6d4)?(?:\s*$|[^\d])/);
+            if (ym) return formatParts(ym[1], ym[2], 1);
+            return formatDate(new Date(text));
         }
         function analysisDateBounds(source) {
             source = source || {};
@@ -142820,7 +142843,7 @@ window.openAddNewProjectModal = function(editProject) {
             var delta = last && previous ? last.value - previous.value : 0;
             return { points: points, delta: delta, key: delta > 0 ? 'up' : (delta < 0 ? 'down' : 'flat'), label: delta > 0 ? '\uc0c1\uc2b9' : (delta < 0 ? '\ud558\ub77d' : '\ubcf4\ud569') };
         }
-        function renderRateTrendSparkline(building, years, books) {
+        function renderRateTrendSparkline(building, years, books, plotYears) {
             var trend = rateTrendDirection(building, years, books);
             if (!trend.points.length) return '<span class="cost-analysis-na">-</span>';
             var width = 116;
@@ -142828,20 +142851,26 @@ window.openAddNewProjectModal = function(editProject) {
             var min = Math.min.apply(null, trend.points.map(function(point) { return point.value; }));
             var max = Math.max.apply(null, trend.points.map(function(point) { return point.value; }));
             var range = max - min || 1;
-            var plotted = trend.points.map(function(point) {
-                var x = years.length > 1 ? 8 + point.index * (width - 16) / (years.length - 1) : width / 2;
-                var y = height - 8 - (point.value - min) / range * (height - 16);
-                return { year: point.year, value: point.value, x: x, y: y };
+            var visualYears = (plotYears && plotYears.length ? plotYears : years).filter(function(year) {
+                return books[year] && books[year][building] && Number.isFinite(Number(books[year][building].cost || 0));
             });
-            var last = plotted[plotted.length - 1];
-            var previous = plotted[plotted.length - 2] || { x: last.x - 1, y: last.y };
-            var angle = Math.atan2(last.y - previous.y, last.x - previous.x) * 180 / Math.PI;
+            if (!visualYears.length) visualYears = trend.points.map(function(point) { return point.year; });
+            var plotted = visualYears.map(function(year, index) {
+                var row = books[year] && books[year][building];
+                var value = row ? Number(row.cost || 0) : NaN;
+                var x = visualYears.length > 1 ? 8 + index * (width - 16) / (visualYears.length - 1) : width / 2;
+                var y = height - 8 - (value - min) / range * (height - 16);
+                return { year: year, value: value, x: x, y: y };
+            });
+            var arrowTip = plotted[0];
+            var arrowTail = plotted[1] || { x: arrowTip.x + 1, y: arrowTip.y };
+            var angle = Math.atan2(arrowTip.y - arrowTail.y, arrowTip.x - arrowTail.x) * 180 / Math.PI;
             var tone = trend.key === 'up' ? '#dc2626' : (trend.key === 'down' ? '#047857' : '#64748b');
             var polyline = plotted.map(function(point) { return point.x.toFixed(1) + ',' + point.y.toFixed(1); }).join(' ');
             var circles = plotted.map(function(point) { return '<circle cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="2.2"></circle>'; }).join('');
-            var arrow = plotted.length > 1 ? '<polygon points="' + last.x.toFixed(1) + ',' + last.y.toFixed(1) + ' ' + (last.x - 9).toFixed(1) + ',' + (last.y - 4).toFixed(1) + ' ' + (last.x - 9).toFixed(1) + ',' + (last.y + 4).toFixed(1) + '" transform="rotate(' + angle.toFixed(1) + ' ' + last.x.toFixed(1) + ' ' + last.y.toFixed(1) + ')"></polygon>' : '';
+            var arrow = plotted.length > 1 ? '<polygon points="' + arrowTip.x.toFixed(1) + ',' + arrowTip.y.toFixed(1) + ' ' + (arrowTip.x - 9).toFixed(1) + ',' + (arrowTip.y - 4).toFixed(1) + ' ' + (arrowTip.x - 9).toFixed(1) + ',' + (arrowTip.y + 4).toFixed(1) + '" transform="rotate(' + angle.toFixed(1) + ' ' + arrowTip.x.toFixed(1) + ' ' + arrowTip.y.toFixed(1) + ')"></polygon>' : '';
             var aria = buildingLabel(building) + ' \ub2e8\uac00 \ucd94\uc138: ' + plotted.map(function(point) { return point.year + '\ub144 ' + Math.round(point.value).toLocaleString('ko-KR') + '\uc6d0'; }).join(', ') + ' \u00b7 ' + trend.label;
-            return '<button type="button" class="cost-analysis-rate-sparkline cost-analysis-rate-trend-' + trend.key + '" data-cost-rate-sparkline data-cost-rate-trend-evidence="' + escapeHtml(building) + '" aria-label="' + escapeHtml(aria + ' \uc0c1\uc138 \ubd84\uc11d \uc5f4\uae30') + '"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-hidden="true" style="color:' + tone + '"><polyline points="' + polyline + '"></polyline>' + circles + arrow + '</svg><strong>' + escapeHtml(trend.label) + '</strong></button>';
+            return '<button type="button" class="cost-analysis-rate-sparkline cost-analysis-rate-trend-' + trend.key + '" data-cost-rate-sparkline data-cost-rate-trend-evidence="' + escapeHtml(building) + '" aria-label="' + escapeHtml(aria + ' \uc0c1\uc138 \ubd84\uc11d \uc5f4\uae30') + '"><strong>' + escapeHtml(trend.label) + '</strong><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-hidden="true" style="color:' + tone + '"><polyline points="' + polyline + '"></polyline>' + circles + arrow + '</svg></button>';
         }
         function buildRateTrendLineEvidence(building) {
             var dataset = buildRateTrendDataset();
@@ -142859,6 +142888,7 @@ window.openAddNewProjectModal = function(editProject) {
                 return { year:point.year + '\ub144', value:point.value, detail:detail, delta:delta, percent:percent, direction:direction };
             });
             var first = series[0], last = series[series.length - 1];
+            var visualSeries = series.slice().reverse();
             var totalDelta = last.value - first.value;
             var totalPercent = first.value !== 0 ? totalDelta / first.value * 100 : NaN;
             return {
@@ -142866,19 +142896,19 @@ window.openAddNewProjectModal = function(editProject) {
                 totalCount:series.length,
                 stats:[
                     { label:'\uac74\ubb3c\ub3d9', value:buildingLabel(building) },
-                    { label:'\ube44\uad50 \uae30\uac04', value:first.year + ' \u2192 ' + last.year },
-                    { label:'\ucd1d \uc99d\uac10', value:formatRateChangeWon(totalDelta) + ' \u00b7 ' + formatRateChangePercent(totalPercent) },
-                    { label:'\ucd94\uc138 \ud310\uc815', value:trend.label }
+                    { label:'\ube44\uad50 \uae30\uac04', value:last.year + ' \u2192 ' + first.year },
+                    { label:'\ucd5c\uc2e0-\ucd5c\ucd08 \uc99d\uac10', value:formatRateChangeWon(totalDelta) + ' \u00b7 ' + formatRateChangePercent(totalPercent) },
+                    { label:'\ucd5c\uc2e0 \uc9c1\uc804 \ud310\uc815', value:trend.label }
                 ],
                 formulas:[
                     '\uc5f0\ub3c4\ubcc4 \ub2e8\uac00 = GitHub ##\ub144_\uae30\ubcf8\uacac\uc801 \ub2e8\uac00.xlsb\uc758 \uac74\ubb3c\ub3d9 \ucf54\uc2a4\ud2b8(\uc6d0)',
                     '\uc9c1\uc804 \ub300\ube44 \uc99d\uac10\uc561 = \ub2f9\ud574 \ub2e8\uac00 - \uc9c1\uc804 \ub2e8\uac00',
                     '\uc9c1\uc804 \ub300\ube44 \uc99d\uac10\ub960 = \uc99d\uac10\uc561 \u00f7 \uc9c1\uc804 \ub2e8\uac00 \u00d7 100',
-                    '\ucd94\uc138 \ud310\uc815 = \ucd5c\uc885 \uc5f0\ub3c4 \ub2e8\uac00 - \uc9c1\uc804 \uc5f0\ub3c4 \ub2e8\uac00\uc758 \ubd80\ud638'
+                    '\ucd5c\uc2e0 \uc9c1\uc804 \ud310\uc815 = \ucd5c\uc2e0 \uc5f0\ub3c4 \ub2e8\uac00 - \uc9c1\uc804 \uc5f0\ub3c4 \ub2e8\uac00\uc758 \ubd80\ud638'
                 ],
                 trendAriaLabel:buildingLabel(building) + ' \uc5f0\ub3c4\ubcc4 \ub2e8\uac00 \ucd94\uc138',
-                trendSeries:series,
-                items:series.map(function(point) {
+                trendSeries:visualSeries,
+                items:visualSeries.map(function(point) {
                     var tone = !Number.isFinite(point.delta) ? '#64748b' : (point.delta > 0 ? '#dc2626' : (point.delta < 0 ? '#047857' : '#64748b'));
                     return {
                         name:point.year,
@@ -142904,7 +142934,7 @@ window.openAddNewProjectModal = function(editProject) {
                 var attrs = ' data-cost-rate-summary-evidence="' + escapeHtml(metric) + '" data-cost-rate-summary-year="' + escapeHtml(year) + '" tabindex="0" role="button" aria-label="' + escapeHtml(rateYearPrefix(year) + ' ' + label + ' \uc0b0\uc2dd \ubc0f \uc0b0\ucd9c\uadfc\uac70') + '"';
                 return '<td class="cost-analysis-rate-year-start"' + attrs + '>' + Number(item.count || 0).toLocaleString('ko-KR') + '\uac1c \ube44\uad50</td><td class="' + rateChangeTone(delta) + '"' + attrs + '>' + formatRateChangeWon(delta) + '</td><td class="' + rateChangeTone(percent) + '"' + attrs + '>' + formatRateChangePercent(percent) + '</td>';
             }).join('');
-            return '<tr class="cost-analysis-rate-summary-row" data-cost-rate-summary="' + escapeHtml(metric) + '"><th scope="row">' + escapeHtml(label) + '</th>' + cells + '<td>-</td></tr>';
+            return '<tr class="cost-analysis-rate-summary-row" data-cost-rate-summary="' + escapeHtml(metric) + '"><th scope="row">' + escapeHtml(label) + '</th><td class="cost-analysis-rate-trend-cell">-</td>' + cells + '</tr>';
         }
         function renderRateTrendHeading(meta) {
             return '<summary><span>\uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00 \uc99d\uac10 \ubd84\uc11d</span><span class="cost-analysis-summary-actions"><small>' + meta + '</small><button type="button" class="cost-analysis-inline-fullscreen" data-cost-rate-trend-fullscreen-open aria-label="\uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00 \uc99d\uac10 \ubd84\uc11d \uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button></span></summary>';
@@ -142922,7 +142952,7 @@ window.openAddNewProjectModal = function(editProject) {
             if (!buildingKeys.length) {
                 return '<details class="cost-analysis-rate-trend" data-cost-rate-trend' + open + '>' + renderRateTrendHeading('0\uac1c \ub3d9 \u00b7 ' + escapeHtml(costParentScopeLabel())) + '<div class="cost-analysis-empty">\ud604\uc7ac \uc0c1\uc704 \ud544\ud130\uc5d0 \ub9e4\uce6d\ub418\ub294 \uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.</div></details>';
             }
-            var firstHeader = '<th rowspan="2"' + rateTrendSortAttributes('building') + '>' + renderRateTrendSortButton('building', '\uac74\ubb3c\ub3d9', '') + '</th>' + displayYears.map(function(year) { return '<th class="cost-analysis-rate-year-start" colspan="' + (years.indexOf(year) > 0 ? '3' : '1') + '">' + escapeHtml(rateYearPrefix(year)) + '</th>'; }).join('') + '<th rowspan="2">\ub2e8\uac00 \ucd94\uc138</th>';
+            var firstHeader = '<th rowspan="2"' + rateTrendSortAttributes('building') + '>' + renderRateTrendSortButton('building', '\uac74\ubb3c\ub3d9', '') + '</th><th rowspan="2" class="cost-analysis-rate-trend-cell">\ub2e8\uac00 \ucd94\uc138</th>' + displayYears.map(function(year) { return '<th class="cost-analysis-rate-year-start" colspan="' + (years.indexOf(year) > 0 ? '3' : '1') + '">' + escapeHtml(rateYearPrefix(year)) + '</th>'; }).join('');
             var secondHeader = displayYears.map(function(year) {
                 var chronologicalIndex = years.indexOf(year);
                 var costKey = year + ':cost';
@@ -142949,7 +142979,7 @@ window.openAddNewProjectModal = function(editProject) {
                         cells += '<td class="' + rateChangeTone(delta) + '">' + formatRateChangeWon(delta) + '</td><td class="' + rateChangeTone(percent) + '">' + (comparable && previousCost === 0 && currentCost !== 0 ? '\uc2e0\uaddc' : formatRateChangePercent(percent)) + '</td>';
                     }
                 });
-                return '<tr tabindex="0" data-cost-rate-trend-row><td>' + escapeHtml(buildingLabel(building)) + '</td>' + cells + '<td>' + renderRateTrendSparkline(building, years, books) + '</td></tr>';
+                return '<tr tabindex="0" data-cost-rate-trend-row><td>' + escapeHtml(buildingLabel(building)) + '</td><td class="cost-analysis-rate-trend-cell">' + renderRateTrendSparkline(building, years, books, displayYears) + '</td>' + cells + '</tr>';
             }).join('');
             var statistics = buildRateTrendStatistics(years, books, buildingKeys);
             var footer = renderRateTrendSummaryRow('\ud3c9\uade0', 'average', displayYears, years, statistics) + renderRateTrendSummaryRow('\uc911\uac04\uac12', 'median', displayYears, years, statistics);
@@ -143010,7 +143040,7 @@ window.openAddNewProjectModal = function(editProject) {
             return '<td' + attrs + '>' + content + '</td>';
         }
         function renderDetailColgroup() {
-            var widths = { building:80, household:90, maintenanceCode:130, projectName:220, rateYear:90, rateSource:120, baseCost:130, fee:70, confirmed:130, actualPo:130, delta:130, status:100, processes:130 };
+            var widths = { building:66, household:72, maintenanceCode:108, projectName:184, rateYear:74, rateSource:100, baseCost:130, fee:70, confirmed:130, actualPo:130, delta:130, status:100, processes:90 };
             return '<colgroup><col style="width:48px">' + columnDefs.map(function(def) { return '<col style="width:' + (widths[def[0]] || 100) + 'px">'; }).join('') + '</colgroup>';
         }
         function pagedCostRows(rows, stateKey, pageSize) {
@@ -143438,7 +143468,7 @@ window.openAddNewProjectModal = function(editProject) {
             modal.setAttribute('aria-labelledby', 'costAnalysisTitle');
             modal.innerHTML = '<div class="cost-analysis-panel"><header class="cost-analysis-head"><button type="button" class="cost-analysis-btn icon cost-analysis-left-close mr-3" data-cost-close aria-label="닫기" title="닫기">&times;</button><div><h3 id="costAnalysisTitle" class="cost-analysis-title">\uc138\ub300\ub0b4 \uc218\uc7a5\uc791\uc5c5 \ube44\uc6a9 \uc808\uac10 \uc2ec\uce35 \ubd84\uc11d</h3><div class="cost-analysis-status" aria-live="polite"></div></div><div class="cost-analysis-head-actions"><button type="button" class="cost-analysis-btn icon" data-cost-fullscreen-open aria-label="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" aria-expanded="false">\u26f6</button><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors px-2 leading-none cursor-pointer focus:outline-none" data-cost-close aria-label="닫기" title="닫기">&times;</button></div></header>' +
                 '<div class="cost-analysis-toolbar"><div class="cost-analysis-source" role="group" aria-label="\ub2e8\uac00 \ucd9c\ucc98"><button type="button" data-source-mode="auto">\uc790\ub3d9</button><button type="button" data-source-mode="manual">\uc218\ub3d9</button></div><div data-cost-rate-year-control></div><button type="button" class="cost-analysis-btn" data-cost-remote-load>\uc6d0\uaca9 \ubd88\ub7ec\uc624\uae30</button><button type="button" class="cost-analysis-btn primary" data-cost-remote-save>\uc6d0\uaca9 \uc800\uc7a5</button><button type="button" class="cost-analysis-btn" data-cost-local-open>\ud30c\uc77c \ubd88\ub7ec\uc624\uae30</button><button type="button" class="cost-analysis-btn" data-cost-download>\ub2e8\uac00 XLSB</button><button type="button" class="cost-analysis-btn primary" data-cost-export-all title="Excel \uc804\uccb4 \ub2e4\uc6b4\ub85c\ub4dc">\u21e9 Excel \uc804\uccb4</button><div class="cost-analysis-period-filter" data-cost-period-filter></div><input type="file" data-cost-file accept=".xlsb,.xlsx" hidden><span class="cost-analysis-toolbar-spacer"></span><div class="cost-analysis-column-menu"><button type="button" class="cost-analysis-btn" data-cost-columns>\uc5f4 \ud45c\uc2dc</button><div class="cost-analysis-column-pop hidden" data-cost-column-pop></div></div></div>' +
-                '<main class="cost-analysis-body"><div data-cost-source-audit></div><div data-cost-rollover></div><div class="cost-analysis-top-sections"><details class="cost-analysis-section" data-cost-section="settings"><summary><span>\u25b6\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815</span><button type="button" class="cost-analysis-inline-fullscreen" data-cost-settings-fullscreen-open aria-label="\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815 \uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button></summary><div data-cost-settings></div></details><details class="cost-analysis-section" data-cost-section="other"><summary><span>\u25b6\uae30\ud0c0 \uc791\uc5c5 \ubd84\ub958 (\uc218\uc7a5\uc791\uc5c5 \uc81c\uc678)</span></summary><div data-cost-exceptions></div></details></div><section class="cost-analysis-kpis" data-cost-kpis></section><div class="cost-analysis-detail-head"><h4>\uc218\uc7a5\uc791\uc5c5 \uc138\ub300 \uc0c1\uc138</h4><div class="cost-analysis-detail-actions"><button type="button" class="cost-analysis-btn cost-analysis-compare-entry" data-cost-compare-open title="선택한 연도를 같은 조건으로 비교">선택↔비교</button><button type="button" class="cost-analysis-btn icon" data-cost-table-fullscreen-open aria-label="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button><button type="button" class="cost-analysis-btn" data-cost-evidence="all">\uc804\uccb4 \uc99d\ube59</button></div></div><span data-cost-table-anchor hidden></span><section data-cost-table></section></main></div>' +
+                '<main class="cost-analysis-body"><div data-cost-source-audit></div><div data-cost-rollover></div><div class="cost-analysis-top-sections"><details class="cost-analysis-section" data-cost-section="settings"><summary><span>\u25b6\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815</span><button type="button" class="cost-analysis-inline-fullscreen" data-cost-settings-fullscreen-open aria-label="\uac74\ubb3c\ub3d9 \ub2e8\uac00 \uc124\uc815 \uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button></summary><div data-cost-settings></div></details><details class="cost-analysis-section" data-cost-section="other"><summary><span>\u25b6\uae30\ud0c0 \uc791\uc5c5 \ubd84\ub958 (\uc218\uc7a5\uc791\uc5c5 \uc81c\uc678)</span></summary><div data-cost-exceptions></div></details></div><section class="cost-analysis-kpis" data-cost-kpis></section><div class="cost-analysis-detail-head"><h4>\uc218\uc7a5\uc791\uc5c5 \uc138\ub300 \uc0c1\uc138</h4><div class="cost-analysis-detail-actions"><button type="button" class="cost-analysis-btn icon" data-cost-table-fullscreen-open aria-label="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button><button type="button" class="cost-analysis-btn" data-cost-evidence="all">\uc804\uccb4 \uc99d\ube59</button></div></div><span data-cost-table-anchor hidden></span><section data-cost-table></section></main></div>' +
                 '<div id="costAnalysisTableFullscreen" class="hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="costAnalysisTableFullscreenTitle"><div class="cost-analysis-table-fullscreen-panel"><header class="cost-analysis-head"><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors mr-3 leading-none cursor-pointer focus:outline-none" data-cost-table-fullscreen-close aria-label="닫기" title="닫기">&times;</button><h3 id="costAnalysisTableFullscreenTitle" class="cost-analysis-title">\uc218\uc7a5\uc791\uc5c5 \uc138\ub300 \uc0c1\uc138 - \uc804\uccb4 \ud654\uba74</h3><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors px-2 leading-none cursor-pointer focus:outline-none" data-cost-table-fullscreen-close aria-label="닫기" title="닫기">&times;</button></header><main class="cost-analysis-table-fullscreen-body" data-cost-table-fullscreen-body></main></div></div>' +
                 '<div id="costAnalysisEvidenceModal" class="hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="costAnalysisEvidenceTitle"><div class="cost-analysis-evidence-panel"><header class="cost-analysis-head"><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors mr-3 leading-none cursor-pointer focus:outline-none" data-cost-evidence-close aria-label="닫기" title="닫기">&times;</button><div><h3 id="costAnalysisEvidenceTitle" class="cost-analysis-title" data-cost-evidence-title>\uc0c1\uc138 \uc99d\ube59</h3></div><div class="cost-analysis-head-actions"><button type="button" class="cost-analysis-btn primary" data-cost-evidence-export title="Excel \ub2e4\uc6b4\ub85c\ub4dc">\u21e9 Excel</button><button type="button" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors px-2 leading-none cursor-pointer focus:outline-none" data-cost-evidence-close aria-label="닫기" title="닫기">&times;</button></div></header><div class="cost-analysis-evidence-formula" data-cost-evidence-formula></div><div class="cost-analysis-evidence-summary" data-cost-evidence-summary></div><main class="cost-analysis-evidence-body" data-cost-evidence-body></main></div></div>';
             bindModal(modal);
@@ -144084,6 +144114,16 @@ window.openAddNewProjectModal = function(editProject) {
             if (token !== state.lifecycleToken || modal.classList.contains('hidden')) return;
             if (projectDataSignature() !== initialSignature || !state.analysis || state.source === 'github') { state.analysis = null; render(); }
         }
+        async function prepareComparisonSource() {
+            captureCostParentScope();
+            activateAutomaticTarget();
+            await Promise.all([
+                startAutomaticRateLoad(false).catch(function() { return state.rows; }),
+                waitForProjectDataReady(8000)
+            ]);
+            state.analysis = null;
+            return buildAnalysis({ ignorePeriodFilter: true, commit: false });
+        }
         function close() {
             var modal = document.getElementById('costSavingAnalysisModal');
             if (!modal) return;
@@ -144122,26 +144162,58 @@ window.openAddNewProjectModal = function(editProject) {
                 button.addEventListener('click', open);
                 title.insertAdjacentElement('afterend', button);
             }
+            var compareButton = modal.querySelector('#workContentCostCompareFullscreenBtn');
+            if (!compareButton) {
+                compareButton = document.createElement('button');
+                compareButton.id = 'workContentCostCompareFullscreenBtn';
+                compareButton.type = 'button';
+                compareButton.textContent = '\uc120\ud0dd\u2194\ube44\uad50';
+                compareButton.title = '\uc218\uc7a5\uc791\uc5c5 \uc120\ud0dd\u2194\ube44\uad50';
+                compareButton.setAttribute('aria-label', '\uc218\uc7a5\uc791\uc5c5 \uc120\ud0dd\u2194\ube44\uad50');
+                compareButton.addEventListener('click', function() {
+                    if (window.CostYearCompare && typeof window.CostYearCompare.open === 'function') window.CostYearCompare.open({ direct:true });
+                });
+            }
+            if (button.nextElementSibling !== compareButton) button.insertAdjacentElement('afterend', compareButton);
             return button;
         }
         function ensureEntryButton() {
             var title = document.getElementById('workContentResultTitle');
-            if (!title || document.getElementById('workContentCostAnalysisBtn')) return;
-            var button = document.createElement('button');
-            button.id = 'workContentCostAnalysisBtn';
-            button.type = 'button';
-            button.className = 'cost-analysis-btn';
-            button.textContent = '\uc218\uc7a5\uc791\uc5c5 \uae30\ubcf8 \uacac\uc801\ubd84\uc11d';
-            button.title = '\uc218\uc7a5\uc791\uc5c5 \uae30\ubcf8 \uacac\uc801\ubd84\uc11d';
-            button.setAttribute('aria-label', '\uc218\uc7a5\uc791\uc5c5 \uae30\ubcf8 \uacac\uc801\ubd84\uc11d');
-            button.hidden = true;
-            button.addEventListener('click', open);
-            title.insertAdjacentElement('afterend', button);
-            syncEntryButton();
+            if (!title) return null;
+            var button = document.getElementById('workContentCostAnalysisBtn');
+            if (!button) {
+                button = document.createElement('button');
+                button.id = 'workContentCostAnalysisBtn';
+                button.type = 'button';
+                button.className = 'cost-analysis-btn';
+                button.textContent = '\uc218\uc7a5\uc791\uc5c5 \uae30\ubcf8 \uacac\uc801\ubd84\uc11d';
+                button.title = '\uc218\uc7a5\uc791\uc5c5 \uae30\ubcf8 \uacac\uc801\ubd84\uc11d';
+                button.setAttribute('aria-label', '\uc218\uc7a5\uc791\uc5c5 \uae30\ubcf8 \uacac\uc801\ubd84\uc11d');
+                button.hidden = true;
+                button.addEventListener('click', open);
+                title.insertAdjacentElement('afterend', button);
+            }
+            var compareButton = document.getElementById('workContentCostCompareBtn');
+            if (!compareButton) {
+                compareButton = document.createElement('button');
+                compareButton.id = 'workContentCostCompareBtn';
+                compareButton.type = 'button';
+                compareButton.className = 'cost-analysis-btn cost-analysis-compare-entry';
+                compareButton.textContent = '\uc120\ud0dd\u2194\ube44\uad50';
+                compareButton.title = '\uc218\uc7a5\uc791\uc5c5 \uc120\ud0dd\u2194\ube44\uad50';
+                compareButton.setAttribute('aria-label', '\uc218\uc7a5\uc791\uc5c5 \uc120\ud0dd\u2194\ube44\uad50');
+                compareButton.hidden = true;
+                compareButton.addEventListener('click', function() {
+                    if (window.CostYearCompare && typeof window.CostYearCompare.open === 'function') window.CostYearCompare.open({ direct:true });
+                });
+            }
+            if (button.nextElementSibling !== compareButton) button.insertAdjacentElement('afterend', compareButton);
+            return button;
         }
         function syncEntryButton() {
             ensureEntryButton();
             var button = document.getElementById('workContentCostAnalysisBtn');
+            var compareButton = document.getElementById('workContentCostCompareBtn');
             var api = window.CodexWorkContentSearch;
             var current = api && api.getState ? api.getState() : null;
             var title = document.getElementById('workContentResultTitle');
@@ -144150,6 +144222,7 @@ window.openAddNewProjectModal = function(editProject) {
                 button.textContent = '\uc218\uc7a5\uc791\uc5c5 \uae30\ubcf8 \uacac\uc801\ubd84\uc11d';
                 button.hidden = !((current && current.viewMode === 'household') || householdTitle);
             }
+            if (compareButton) compareButton.hidden = !button || button.hidden;
             ensureFullscreenEntryButton();
         }
         function scheduleEntryButtonSync() {
@@ -144175,7 +144248,7 @@ window.openAddNewProjectModal = function(editProject) {
             try { localStorage.setItem(MODE_KEY, 'auto'); } catch (e) { }
             loadRateYearPreference();
             hydrateVerifiedRemoteCache(false);
-            ensureEntryButton();
+            syncEntryButton();
             bindWorkContentApiSync();
             document.addEventListener('click', function(event) {
                 if (event.target && event.target.closest && event.target.closest('#workContentSearchBtn,#workContentHouseholdViewBtn,#workContentSearchViewBtn,#workContentSequenceViewBtn,#workContentPartialSequenceViewBtn,#workContentResultFullscreenBtn')) scheduleEntryButtonSync();
@@ -144187,8 +144260,8 @@ window.openAddNewProjectModal = function(editProject) {
             window.addEventListener('resize', scheduleEntryButtonSync, { passive: true });
         }
         window.CostEstimationAnalysis = {
-            version: '2026.07.30.3', open: open, close: close, loadDefault: loadDefault,
-            analyze: buildAnalysis, getComparisonSource: function() { return buildAnalysis({ ignorePeriodFilter: true, commit: false }); }, remoteSave: remoteSave, getRemotePath: getRemotePath,
+            version: '2026.08.04.1', open: open, close: close, loadDefault: loadDefault,
+            analyze: buildAnalysis, getComparisonSource: function() { captureCostParentScope(); return buildAnalysis({ ignorePeriodFilter: true, commit: false }); }, prepareComparisonSource: prepareComparisonSource, releaseComparisonSource: releaseCostParentScope, ensureModal: ensureModal, remoteSave: remoteSave, getRemotePath: getRemotePath,
             openEvidence: openEvidence, downloadAnalysisWorkbook: downloadAnalysisWorkbook, downloadEvidenceWorkbook: downloadEvidenceWorkbook,
             getState: function() { return { sourceMode: state.sourceMode, source: state.source, rows: state.rows.slice(), rowsByYear: Object.keys(state.rowsByYear).reduce(function(out, year) { out[year] = (state.rowsByYear[year] || []).slice(); return out; }, {}), sourceByYear: Object.assign({}, state.sourceByYear), errorByYear: Object.assign({}, state.errorByYear), remoteCatalog: state.remoteCatalog.map(function(entry) { return Object.assign({}, entry); }), activeRateYear: state.activeRateYear, rateYearPreference: state.rateYearOverride || 'auto', targetRateYear: getTargetRateYear(), availableRateYears: availableRateYears(), sourceWarnings: state.sourceWarnings.slice(), sourceNotices: state.sourceNotices.slice(), verifiedMetaByYear: Object.assign({}, state.verifiedMetaByYear), startupStarted: state.startupStarted, startupPending: !!state.startupPromise, remotePath: state.remotePath, remoteSha: state.remoteSha, analysis: state.analysis, evidence: state.evidence, parentFilterContext: state.parentFilterContext ? Object.assign({}, state.parentFilterContext) : null, scopedRateBuildings: Object.keys(state.parentRateBuildings).sort(function(a, b) { return String(a).localeCompare(String(b), 'ko-KR', { numeric:true }); }), filterYear: state.filterYear, filterYears: state.filterYears.slice(), filterType: state.filterType, filterValue: state.filterValue, filterValues: state.filterValues.slice(), periodBasis: state.periodBasis, analysisPage: state.analysisPage, evidencePage: state.evidencePage, otherPage: state.otherPage, lastError: state.lastError }; }
         };
@@ -144325,6 +144398,10 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-compare-chart-head > div { min-width:0; }
         .cost-compare-chart-head h4 { margin:0; overflow:hidden; color:#1e293b; font-size:12px; font-weight:900; letter-spacing:0; text-overflow:ellipsis; white-space:nowrap; }
         .cost-compare-chart-head span { display:block; margin-top:2px; overflow:hidden; color:#64748b; font-size:9px; font-weight:800; letter-spacing:0; text-overflow:ellipsis; white-space:nowrap; }
+        .cost-compare-chart-tools { display:flex; flex:0 0 auto; align-items:center; gap:4px; }
+        .cost-compare-chart-export { min-width:54px; height:28px; border:1px solid #0f766e; border-radius:5px; padding:0 6px; background:#f0fdfa; color:#0f766e; font-size:10px; font-weight:900; line-height:1; cursor:pointer; white-space:nowrap; }
+        .cost-compare-chart-export:hover,.cost-compare-chart-export:focus-visible { background:#0f766e; color:#fff; outline:2px solid rgba(15,118,110,.16); outline-offset:1px; }
+        .cost-compare-chart-export:disabled { cursor:wait; opacity:.64; }
         .cost-compare-chart-open { flex:0 0 28px; width:28px; min-width:28px; height:28px; border:1px solid #cbd5e1; border-radius:5px; padding:0; background:#fff; color:#334155; font-size:15px; font-weight:900; line-height:1; cursor:pointer; }
         .cost-compare-chart-open:hover,.cost-compare-chart-open:focus-visible { border-color:#0f766e; color:#0f766e; outline:2px solid rgba(15,118,110,.16); outline-offset:1px; }
         .cost-compare-chart-body { min-width:0; padding:8px; }
@@ -144359,7 +144436,7 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-compare-donut-legend strong { color:#1e293b; }
         #costAnalysisCompareChartPopout { position:fixed; inset:0; z-index:3; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,.7); }
         .cost-compare-chart-popout-panel { width:min(1180px,calc(100vw - 32px)); height:min(820px,calc(100dvh - 32px)); display:grid; grid-template-rows:auto minmax(0,1fr); min-width:0; overflow:hidden; border:1px solid #b8c6d8; border-radius:8px; background:#f8fafc; box-shadow:0 24px 70px rgba(15,23,42,.4); }
-        .cost-compare-chart-popout-head { display:grid; grid-template-columns:minmax(0,1fr) 34px; align-items:center; gap:8px; padding:9px 10px; border-bottom:1px solid #d8e1ec; background:#fff; }
+        .cost-compare-chart-popout-head { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px; padding:9px 10px; border-bottom:1px solid #d8e1ec; background:#fff; }
         .cost-compare-chart-popout-head h4 { margin:0; color:#102a43; font-size:15px; font-weight:900; letter-spacing:0; }
         .cost-compare-chart-popout-head p { margin:2px 0 0; color:#64748b; font-size:9px; font-weight:800; }
         .cost-compare-chart-popout-body { min-width:0; min-height:0; overflow:auto; padding:12px; background:#eef2f7; }
@@ -144429,7 +144506,7 @@ window.openAddNewProjectModal = function(editProject) {
     <script id="codex-cost-year-compare-20260728">
     (function installCostYearCompare20260728() {
         'use strict';
-        if (window.CostYearCompare && window.CostYearCompare.version === '2026.07.28.5') return;
+        if (window.CostYearCompare && window.CostYearCompare.version === '2026.08.04.1') return;
 
         var PAGE_SIZE = 80;
         var STATUS_ORDER = ['saving', 'compliant', 'overrun', 'excluded', 'unmatched'];
@@ -144439,6 +144516,7 @@ window.openAddNewProjectModal = function(editProject) {
         var renderRaf = 0;
         var lastFocus = null;
         var chartLastFocus = null;
+        var directHostOpened = false;
 
         function escapeHtml(value) {
             return String(value == null ? '' : value).replace(/[&<>"']/g, function(ch) {
@@ -144692,7 +144770,7 @@ window.openAddNewProjectModal = function(editProject) {
             return text.length > limit ? text.slice(0, Math.max(1, limit - 1)) + '…' : text;
         }
         function chartCard(key, title, subtitle, visual, wide) {
-            return '<article class="cost-compare-chart-card' + (wide ? ' is-wide' : '') + '"><div class="cost-compare-chart-head"><div><h4>' + escapeHtml(title) + '</h4><span>' + escapeHtml(subtitle) + '</span></div><button type="button" class="cost-compare-chart-open" data-cost-chart-open="' + escapeHtml(key) + '" aria-label="' + escapeHtml(title + ' 확대') + '" title="차트 확대">⛶</button></div><div class="cost-compare-chart-body">' + visual + '</div></article>';
+            return '<article class="cost-compare-chart-card' + (wide ? ' is-wide' : '') + '" data-cost-chart-card="' + escapeHtml(key) + '"><div class="cost-compare-chart-head"><div><h4>' + escapeHtml(title) + '</h4><span>' + escapeHtml(subtitle) + '</span></div><div class="cost-compare-chart-tools"><button type="button" class="cost-compare-chart-export" data-cost-chart-export="' + escapeHtml(key) + '" aria-label="' + escapeHtml(title + ' 연동 Excel 내보내기') + '" title="연계 데이터·차트·화면 원본 Excel 내보내기">📊 xls</button><button type="button" class="cost-compare-chart-open" data-cost-chart-open="' + escapeHtml(key) + '" aria-label="' + escapeHtml(title + ' 확대') + '" title="차트 확대">⛶</button></div></div><div class="cost-compare-chart-body">' + visual + '</div></article>';
         }
         function renderBridgeChart(vm) {
             var compareValue = vm.compareYear ? number(vm.comparison.delta) : 0;
@@ -144902,6 +144980,13 @@ window.openAddNewProjectModal = function(editProject) {
         }
         function chartTitle(key) {
             var titles = {
+                'summary-hero':'비교 종합 요약',
+                'summary-character-saving':'물량 절감 기여 (기준 구조)',
+                'summary-character-overrun':'기준 초과 부담 (기준 구조)',
+                'summary-table':'총괄 비교 항목',
+                'monthly-table':'월별 동기 비교',
+                'status-table':'판정별 비교',
+                'detail-table':'연계 상세 증빙',
                 'summary-bridge':'총괄 브릿지',
                 'summary-project':'프로젝트 차이 영향도',
                 'monthly-flow':'월별 순 절감/증액 흐름',
@@ -144917,7 +145002,7 @@ window.openAddNewProjectModal = function(editProject) {
             if (key === 'monthly-heatmap') return '기준·비교·차이 3행';
             if (key === 'monthly-variation') return '절대 차이 Top 4';
             if (key === 'status-share') return (vm.baseYear || '기준') + '년 실제 PO';
-            return (vm.baseYear || '기준') + '년 ↔ ' + (vm.compareYear || '비교 없음') + '년';
+            return (vm.baseYear || '기준') + '년 ↔ ' + (vm.compareYear ? vm.compareYear + '년' : '비교 없음');
         }
         function chartVisual(vm, key) {
             if (key === 'summary-bridge') return renderBridgeChart(vm);
@@ -145018,7 +145103,7 @@ window.openAddNewProjectModal = function(editProject) {
             var caption = hasCompare ? vm.baseYear + '년 - ' + vm.compareYear + '년 · ' + summaryChangeLabel(vm.totalDelta) : '비교 연도를 하나 더 선택하세요.';
             return '<section class="cost-compare-summary-hero" data-cost-summary-hero>' +
                 '<article class="cost-compare-summary-impact ' + tone + '"><span class="cost-compare-summary-label">핵심 차이</span><strong title="' + escapeHtml(hasCompare ? formatSignedWon(vm.totalDelta) : '비교 연도 미선택') + '">' + (hasCompare ? escapeHtml(summaryCompactWon(vm.totalDelta)) : '-') + '</strong><p>' + escapeHtml(caption) + '</p><div class="cost-compare-summary-meter" aria-hidden="true"><span style="' + summaryMeterStyle(vm) + '"></span></div></article>' +
-                '<article class="cost-compare-chart-card cost-compare-summary-bridge"><div class="cost-compare-chart-head"><div><h4>총괄 브릿지</h4><span>' + escapeHtml(chartSubtitle(vm, 'summary-bridge')) + '</span></div><button type="button" class="cost-compare-chart-open" data-cost-chart-open="summary-bridge" aria-label="총괄 브릿지 확대" title="차트 확대">⛶</button></div><div class="cost-compare-chart-body">' + renderBridgeChart(vm) + '</div></article>' +
+                '<article class="cost-compare-chart-card cost-compare-summary-bridge" data-cost-chart-card="summary-bridge"><div class="cost-compare-chart-head"><div><h4>총괄 브릿지</h4><span>' + escapeHtml(chartSubtitle(vm, 'summary-bridge')) + '</span></div><div class="cost-compare-chart-tools"><button type="button" class="cost-compare-chart-export" data-cost-chart-export="summary-bridge" aria-label="총괄 브릿지 연동 Excel 내보내기" title="연계 데이터·차트·화면 원본 Excel 내보내기">📊 xls</button><button type="button" class="cost-compare-chart-open" data-cost-chart-open="summary-bridge" aria-label="총괄 브릿지 확대" title="차트 확대">⛶</button></div></div><div class="cost-compare-chart-body">' + renderBridgeChart(vm) + '</div></article>' +
                 '<div class="cost-compare-summary-year-stack">' + renderSummaryYearCard(vm, 'base') + renderSummaryYearCard(vm, 'compare') + '</div>' +
                 '</section>';
         }
@@ -145068,7 +145153,7 @@ window.openAddNewProjectModal = function(editProject) {
             var baseWidth = Math.max(row.baseShare > 0 ? 2 : 0, row.baseShare * 100);
             var compareWidth = Math.max(row.compareShare > 0 ? 2 : 0, row.compareShare * 100);
             return '<section class="cost-compare-summary-character-block ' + summaryCharacterTone(row, hasCompare) + '" data-summary-character="' + row.key + '">' +
-                '<div class="cost-compare-summary-character-title"><div><strong>' + escapeHtml(row.label) + '</strong><small>' + escapeHtml(row.caption) + '</small></div><span class="cost-compare-summary-status">' + escapeHtml(summaryCharacterStatus(row, hasCompare)) + '</span></div>' +
+                '<div class="cost-compare-summary-character-title"><div><strong>' + escapeHtml(row.label) + '</strong><small>' + escapeHtml(row.caption) + '</small></div><div class="cost-compare-summary-character-actions" style="display:flex;align-items:center;gap:6px;flex:0 0 auto;"><button type="button" class="cost-compare-chart-export" data-cost-chart-export="summary-character-' + escapeHtml(row.key) + '" aria-label="' + escapeHtml(row.label + ' 연동 Excel 내보내기') + '" title="연계 데이터·차트·화면 원본 Excel 내보내기">📊 xls</button><span class="cost-compare-summary-status">' + escapeHtml(summaryCharacterStatus(row, hasCompare)) + '</span></div></div>' +
                 '<div class="cost-compare-summary-character-metrics"><div><span>' + escapeHtml(vm.baseYear + '년') + '</span><strong title="' + escapeHtml(formatWon(row.baseAmount)) + '">' + escapeHtml(summaryCompactWon(row.baseAmount)) + '</strong></div><div><span>' + escapeHtml(hasCompare ? vm.compareYear + '년' : '비교') + '</span><strong title="' + escapeHtml(hasCompare ? formatWon(row.compareAmount) : '-') + '">' + (hasCompare ? escapeHtml(summaryCompactWon(row.compareAmount)) : '-') + '</strong></div><div><span>금액 차이</span><strong title="' + escapeHtml(hasCompare ? formatSignedWon(row.amountDelta) : '-') + '">' + (hasCompare ? escapeHtml(summaryCompactWon(row.amountDelta)) : '-') + '</strong></div><div><span>세대 차이</span><strong>' + (hasCompare ? escapeHtml(formatSignedCount(row.countDelta)) : '-') + '</strong></div></div>' +
                 '<div class="cost-compare-summary-share"><div class="cost-compare-summary-share-row"><span>' + escapeHtml(vm.baseYear + '년 구성') + '</span><div class="cost-compare-summary-share-track"><span style="--share-width:' + baseWidth.toFixed(1) + '%;--share-color:' + row.color + '"></span></div><span>' + summaryPercent(row.baseShare) + '</span></div><div class="cost-compare-summary-share-row"><span>' + escapeHtml(hasCompare ? vm.compareYear + '년 구성' : '비교 구성') + '</span><div class="cost-compare-summary-share-track"><span style="--share-width:' + (hasCompare ? compareWidth.toFixed(1) : '0') + '%;--share-color:#9fb3c8"></span></div><span>' + (hasCompare ? summaryPercent(row.compareShare) : '-') + '</span></div></div>' +
                 '<p class="cost-compare-summary-insight">' + escapeHtml(summaryCharacterInsight(row, vm)) + '</p></section>';
@@ -145106,7 +145191,7 @@ window.openAddNewProjectModal = function(editProject) {
             if (!popout) return;
             var title = chartTitle(compareState.chartKey);
             popout.parentElement.classList.add('cost-chart-popout-open');
-            popout.innerHTML = '<section class="cost-compare-chart-popout-panel"><header class="cost-compare-chart-popout-head"><div><h4 id="costAnalysisCompareChartTitle">' + escapeHtml(title) + '</h4><p>' + escapeHtml(chartSubtitle(vm, compareState.chartKey)) + '</p></div><button type="button" class="cost-compare-btn icon" data-cost-chart-close aria-label="차트 닫기" title="닫기">&times;</button></header><div class="cost-compare-chart-popout-body"><div class="cost-compare-chart-body">' + chartVisual(vm, compareState.chartKey) + '</div></div></section>';
+            popout.innerHTML = '<section class="cost-compare-chart-popout-panel" data-cost-chart-popout="' + escapeHtml(compareState.chartKey) + '"><header class="cost-compare-chart-popout-head"><div><h4 id="costAnalysisCompareChartTitle">' + escapeHtml(title) + '</h4><p>' + escapeHtml(chartSubtitle(vm, compareState.chartKey)) + '</p></div><div class="cost-compare-chart-tools"><button type="button" class="cost-compare-chart-export" data-cost-chart-export="' + escapeHtml(compareState.chartKey) + '" aria-label="' + escapeHtml(title + ' 연동 Excel 내보내기') + '" title="연계 데이터·차트·화면 원본 Excel 내보내기">📊 xls</button><button type="button" class="cost-compare-btn icon" data-cost-chart-close aria-label="차트 닫기" title="닫기">&times;</button></div></header><div class="cost-compare-chart-popout-body"><div class="cost-compare-chart-body">' + chartVisual(vm, compareState.chartKey) + '</div></div></section>';
             var panel = document.querySelector('#costAnalysisCompareModal > .cost-compare-panel');
             if (panel) { panel.inert = true; panel.setAttribute('aria-hidden', 'true'); }
         }
@@ -145139,7 +145224,7 @@ window.openAddNewProjectModal = function(editProject) {
                 ['물량 절감액','saving',formatWon,formatSignedWon,false],
                 ['기준 초과액','overrun',formatWon,formatSignedWon,true]
             ];
-            return renderSummaryHero(vm) + renderSummaryCharacter(vm) + '<div class="cost-compare-chart-grid">' + chartCard('summary-project', chartTitle('summary-project'), '절대 차이 Top 8', chartVisual(vm, 'summary-project'), true) + '</div><section class="cost-compare-panel-section"><div class="cost-compare-panel-title"><h4>총괄 비교</h4><span>같은 선택 조건으로 연도만 분리 · 정확한 원 단위</span></div><div class="cost-compare-table-wrap"><table class="cost-compare-table"><thead><tr><th>항목</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년' : '기준') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년' : '비교') + '</th><th>차이 (기준-비교)</th></tr></thead><tbody>' +
+            return renderSummaryHero(vm) + renderSummaryCharacter(vm) + '<div class="cost-compare-chart-grid">' + chartCard('summary-project', chartTitle('summary-project'), '절대 차이 Top 8', chartVisual(vm, 'summary-project'), true) + '</div><section class="cost-compare-panel-section" data-cost-compare-section="summary-table"><div class="cost-compare-panel-title"><div><h4>총괄 비교</h4><span>같은 선택 조건으로 연도만 분리 · 정확한 원 단위</span></div><button type="button" class="cost-compare-chart-export" data-cost-chart-export="summary-table" aria-label="총괄 비교 연동 Excel 내보내기" title="연계 데이터·차트·화면 원본 Excel 내보내기">📊 xls</button></div><div class="cost-compare-table-wrap"><table class="cost-compare-table"><thead><tr><th>항목</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년' : '기준') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년' : '비교') + '</th><th>차이 (기준-비교)</th></tr></thead><tbody>' +
                 metrics.map(function(metric) {
                     var baseValue = number(vm.base[metric[1]]);
                     var compareValue = number(vm.comparison[metric[1]]);
@@ -145150,7 +145235,7 @@ window.openAddNewProjectModal = function(editProject) {
         }
         function renderMonthly(vm) {
             var max = Math.max.apply(null, [1].concat(vm.monthly.map(function(item) { return Math.abs(item.delta); })));
-            return renderChartDashboard(vm, 'monthly') + '<section class="cost-compare-panel-section"><div class="cost-compare-panel-title"><h4>월별 동기 비교</h4><span>선택 월만 표시</span></div><div class="cost-compare-table-wrap"><table class="cost-compare-table"><thead><tr><th>월</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년 세대' : '기준 세대') + '</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년 순차액' : '기준 순차액') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년 세대' : '비교 세대') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년 순차액' : '비교 순차액') + '</th><th>연도 차이</th><th>영향도</th></tr></thead><tbody>' +
+            return renderChartDashboard(vm, 'monthly') + '<section class="cost-compare-panel-section" data-cost-compare-section="monthly-table"><div class="cost-compare-panel-title"><div><h4>월별 동기 비교</h4><span>선택 월만 표시</span></div><button type="button" class="cost-compare-chart-export" data-cost-chart-export="monthly-table" aria-label="월별 동기 비교 연동 Excel 내보내기" title="연계 데이터·차트·화면 원본 Excel 내보내기">📊 xls</button></div><div class="cost-compare-table-wrap"><table class="cost-compare-table"><thead><tr><th>월</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년 세대' : '기준 세대') + '</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년 순차액' : '기준 순차액') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년 세대' : '비교 세대') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년 순차액' : '비교 순차액') + '</th><th>연도 차이</th><th>영향도</th></tr></thead><tbody>' +
                 vm.monthly.map(function(item) {
                     var width = Math.round(Math.abs(item.delta) / max * 100);
                     return '<tr><td data-align="left"><strong>' + escapeHtml(item.month + '월') + '</strong></td><td>' + formatCount(item.base.count) + '</td><td class="' + valueClass(item.base.delta, true) + '">' + formatWon(item.base.delta) + '</td><td>' + (vm.compareYear ? formatCount(item.comparison.count) : '-') + '</td><td class="' + valueClass(item.comparison.delta, true) + '">' + (vm.compareYear ? formatWon(item.comparison.delta) : '-') + '</td><td class="' + valueClass(item.delta, true) + '">' + (vm.compareYear ? formatSignedWon(item.delta) : '-') + '</td><td><div class="cost-compare-delta-bar' + (item.delta > 0 ? ' is-bad' : '') + '"><span style="width:' + width + '%"></span></div></td></tr>';
@@ -145158,7 +145243,7 @@ window.openAddNewProjectModal = function(editProject) {
                 '</tbody></table></div></section>';
         }
         function renderStatus(vm) {
-            return renderChartDashboard(vm, 'status') + '<section class="cost-compare-panel-section"><div class="cost-compare-panel-title"><h4>판정별 비교</h4><span>절감·준수·초과·제외·미매칭</span></div><div class="cost-compare-table-wrap"><table class="cost-compare-table"><thead><tr><th>판정</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년 세대' : '기준 세대') + '</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년 실제 PO' : '기준 PO') + '</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년 차액' : '기준 차액') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년 세대' : '비교 세대') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년 실제 PO' : '비교 PO') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년 차액' : '비교 차액') + '</th><th>세대 차이</th><th>금액 차이</th></tr></thead><tbody>' +
+            return renderChartDashboard(vm, 'status') + '<section class="cost-compare-panel-section" data-cost-compare-section="status-table"><div class="cost-compare-panel-title"><div><h4>판정별 비교</h4><span>절감·준수·초과·제외·미매칭</span></div><button type="button" class="cost-compare-chart-export" data-cost-chart-export="status-table" aria-label="판정별 비교 연동 Excel 내보내기" title="연계 데이터·차트·화면 원본 Excel 내보내기">📊 xls</button></div><div class="cost-compare-table-wrap"><table class="cost-compare-table"><thead><tr><th>판정</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년 세대' : '기준 세대') + '</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년 실제 PO' : '기준 PO') + '</th><th>' + escapeHtml(vm.baseYear ? vm.baseYear + '년 차액' : '기준 차액') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년 세대' : '비교 세대') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년 실제 PO' : '비교 PO') + '</th><th>' + escapeHtml(vm.compareYear ? vm.compareYear + '년 차액' : '비교 차액') + '</th><th>세대 차이</th><th>금액 차이</th></tr></thead><tbody>' +
                 vm.byStatus.map(function(item) {
                     return '<tr><td data-align="left"><strong>' + escapeHtml(STATUS_LABELS[item.status] || item.status) + '</strong></td><td>' + formatCount(item.base.count) + '</td><td>' + formatWon(item.base.actualPo) + '</td><td class="' + valueClass(item.base.delta, true) + '">' + formatWon(item.base.delta) + '</td><td>' + (vm.compareYear ? formatCount(item.comparison.count) : '-') + '</td><td>' + (vm.compareYear ? formatWon(item.comparison.actualPo) : '-') + '</td><td class="' + valueClass(item.comparison.delta, true) + '">' + (vm.compareYear ? formatWon(item.comparison.delta) : '-') + '</td><td>' + (vm.compareYear ? formatSignedCount(item.countDelta) : '-') + '</td><td class="' + valueClass(item.delta, true) + '">' + (vm.compareYear ? formatSignedWon(item.delta) : '-') + '</td></tr>';
                 }).join('') +
@@ -145178,7 +145263,7 @@ window.openAddNewProjectModal = function(editProject) {
             compareState.page = Math.max(0, Math.min(compareState.page, pageCount - 1));
             var start = compareState.page * PAGE_SIZE;
             var pageRows = rows.slice(start, start + PAGE_SIZE);
-            return '<details class="cost-compare-detail cost-compare-panel-section"><summary>연계 상세 증빙 ' + rows.length.toLocaleString('ko-KR') + '세대 · 페이지당 ' + PAGE_SIZE + '행</summary><div class="cost-compare-detail-table"><table class="cost-compare-table"><thead><tr><th>No.</th><th>연도</th><th>건물동</th><th>세대호수</th><th>유지관리번호</th><th>유지관리명(프로젝트명)</th><th>판정</th><th>확정 견적액 (Fee포함)</th><th>실제 투입 PO</th><th>절감/증액</th></tr></thead><tbody>' +
+            return '<details class="cost-compare-detail cost-compare-panel-section" data-cost-compare-section="detail-table"><summary><div style="display:flex;align-items:center;justify-content:space-between;width:100%;"><span>연계 상세 증빙 ' + rows.length.toLocaleString('ko-KR') + '세대 · 페이지당 ' + PAGE_SIZE + '행</span><button type="button" class="cost-compare-chart-export" data-cost-chart-export="detail-table" aria-label="연계 상세 증빙 연동 Excel 내보내기" title="연계 데이터·차트·화면 원본 Excel 내보내기">📊 xls</button></div></summary><div class="cost-compare-detail-table"><table class="cost-compare-table"><thead><tr><th>No.</th><th>연도</th><th>건물동</th><th>세대호수</th><th>유지관리번호</th><th>유지관리명(프로젝트명)</th><th>판정</th><th>확정 견적액 (Fee포함)</th><th>실제 투입 PO</th><th>절감/증액</th></tr></thead><tbody>' +
                 pageRows.map(function(item, index) {
                     var row = item.row;
                     return '<tr><td>' + (start + index + 1) + '</td><td>' + escapeHtml(item.year + '년') + '</td><td>' + escapeHtml(buildingLabel(row.building)) + '</td><td>' + escapeHtml(row.household === 'N/A' ? 'N/A' : String(row.household || '') + '호') + '</td><td>' + escapeHtml(row.maintenanceCode || '-') + '</td><td data-align="left" title="' + escapeHtml(row.projectName || '') + '">' + escapeHtml(row.projectName || '-') + '</td><td>' + escapeHtml(STATUS_LABELS[row.status] || row.status || '-') + '</td><td>' + formatWon(row.confirmed) + '</td><td>' + formatWon(row.actualPo) + '</td><td class="' + valueClass(row.delta, true) + '">' + formatWon(row.delta) + '</td></tr>';
@@ -145222,6 +145307,10 @@ window.openAddNewProjectModal = function(editProject) {
         }
         function ensureModal() {
             var host = document.getElementById('costSavingAnalysisModal');
+            if (!host) {
+                var costApi = window.CostEstimationAnalysis;
+                if (costApi && typeof costApi.ensureModal === 'function') host = costApi.ensureModal();
+            }
             if (!host) return null;
             var modal = host.querySelector('#costAnalysisCompareModal');
             if (modal) return modal;
@@ -145236,13 +145325,20 @@ window.openAddNewProjectModal = function(editProject) {
             host.appendChild(modal);
             return modal;
         }
-        function open() {
+        function open(options) {
+            options = options || {};
             var modal = ensureModal();
             if (!modal) return;
             lastFocus = document.activeElement;
+            var host = document.getElementById('costSavingAnalysisModal');
+            directHostOpened = !!(options.direct && host && host.classList.contains('hidden'));
+            if (directHostOpened) {
+                host.classList.remove('hidden');
+                host.classList.add('cost-compare-direct');
+                host.setAttribute('aria-hidden', 'false');
+            }
             sourceModel = readSourceModel();
             compareState = makeDefaultState(sourceModel);
-            var host = document.getElementById('costSavingAnalysisModal');
             var parentPanel = host && host.querySelector(':scope > .cost-analysis-panel');
             if (host) host.classList.add('cost-compare-open');
             if (parentPanel) { parentPanel.inert = true; parentPanel.setAttribute('aria-hidden', 'true'); }
@@ -145251,8 +145347,21 @@ window.openAddNewProjectModal = function(editProject) {
             renderBody();
             var closeButton = modal.querySelector('[data-cost-compare-close]');
             if (closeButton) closeButton.focus({ preventScroll:true });
+            if (options.direct) {
+                var api = window.CostEstimationAnalysis;
+                if (api && typeof api.prepareComparisonSource === 'function') {
+                    Promise.resolve(api.prepareComparisonSource()).then(function() {
+                        if (compareState) refresh();
+                    }).catch(function(error) {
+                        if (!compareState) return;
+                        compareState.notice = '\ube44\uad50 \ub370\uc774\ud130 \uac31\uc2e0 \uc2e4\ud328: ' + String(error && error.message || error);
+                        scheduleRender();
+                    });
+                }
+            }
         }
         function close(restoreFocus) {
+            var closeDirectHost = directHostOpened;
             var modal = document.getElementById('costAnalysisCompareModal');
             if (renderRaf) { cancelAnimationFrame(renderRaf); renderRaf = 0; }
             closeChartPopout(false);
@@ -145271,6 +145380,14 @@ window.openAddNewProjectModal = function(editProject) {
             var parentPanel = host && host.querySelector(':scope > .cost-analysis-panel');
             if (host) host.classList.remove('cost-compare-open');
             if (parentPanel) { parentPanel.inert = false; parentPanel.removeAttribute('aria-hidden'); }
+            if (closeDirectHost && host) {
+                host.classList.add('hidden');
+                host.classList.remove('cost-compare-direct');
+                host.setAttribute('aria-hidden', 'true');
+                var costApi = window.CostEstimationAnalysis;
+                if (costApi && typeof costApi.releaseComparisonSource === 'function') costApi.releaseComparisonSource();
+            }
+            directHostOpened = false;
             if (restoreFocus !== false && lastFocus && lastFocus.isConnected && typeof lastFocus.focus === 'function') lastFocus.focus({ preventScroll:true });
             lastFocus = null;
         }
@@ -145299,6 +145416,814 @@ window.openAddNewProjectModal = function(editProject) {
             compareState.page = 0;
             compareState.notice = '';
             scheduleRender();
+        }
+        function chartExportColumnName(index) {
+            var value = Number(index) + 1;
+            var name = '';
+            while (value > 0) {
+                var remainder = (value - 1) % 26;
+                name = String.fromCharCode(65 + remainder) + name;
+                value = Math.floor((value - 1) / 26);
+            }
+            return name;
+        }
+        function chartExportCell(row, column) {
+            return chartExportColumnName(column) + String(row);
+        }
+        function chartExportXml(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function(character) {
+                return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&apos;' })[character];
+            });
+        }
+        function chartExportSheetRef(name) {
+            return "'" + String(name || '').replace(/'/g, "''") + "'";
+        }
+        function chartExportSafeFileName(value) {
+            return String(value == null ? '' : value).replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, '_').slice(0, 72) || '비교_차트';
+        }
+        function buildChartExportSpec(vm, key) {
+            var title = chartTitle(key);
+            var subtitle = chartSubtitle(vm, key);
+            var baseLabel = (vm.baseYear || '기준') + '년';
+            var compareLabel = vm.compareYear ? vm.compareYear + '년' : '비교 없음';
+            var spec = {
+                key:key,
+                title:title,
+                subtitle:subtitle,
+                headers:[],
+                rows:[],
+                formulas:[],
+                inputCells:[],
+                formulaCells:[],
+                nativeKind:'bar',
+                barDirection:'bar',
+                series:[],
+                categoryColumn:0,
+                numberFormat:'#,##0;[Red]-#,##0;-',
+                axisNumberFormat:'#,##0,"천원";[Red]-#,##0,"천원";-',
+                dataLabelNumberFormat:'#,##0,"천원";[Red]-#,##0,"천원";-',
+                legendPosition:'b',
+                categoryTickLabelPosition:'low',
+                categoryCrosses:'autoZero',
+                crossBetween:'between',
+                showDataLabels:true
+            };
+            function addDeltaFormulas() {
+                spec.rows.forEach(function(row, index) {
+                    var excelRow = index + 2;
+                    spec.formulas.push({ cell:'D' + excelRow, formula:'B' + excelRow + '-C' + excelRow, value:number(row[3]) });
+                    spec.inputCells.push('B' + excelRow, 'C' + excelRow);
+                    spec.formulaCells.push('D' + excelRow);
+                });
+            }
+            function signedSeries(name, column, role) {
+                return { name:name, column:column, color:'#64748b', role:role || '', signed:true };
+            }
+            if (key === 'summary-bridge') {
+                spec.axisNumberFormat = '0,,"백만";[Red]-0,,"백만";-';
+                spec.dataLabelNumberFormat = '0,,"백만";[Red]-0,,"백만";-';
+                spec.headers = ['구간','금액'];
+                spec.rows = [[compareLabel, number(vm.comparison.delta)], ['차이 (기준-비교)', number(vm.totalDelta)], [baseLabel, number(vm.base.delta)]];
+                spec.formulas.push({ cell:'B3', formula:'B4-B2', value:number(vm.totalDelta) });
+                spec.inputCells = ['B2','B4'];
+                spec.formulaCells = ['B3'];
+                spec.nativeKind = 'column';
+                spec.barDirection = 'col';
+                spec.series = [{
+                    name:'순 절감/증액',
+                    column:1,
+                    color:'#64748b',
+                    pointColors:['#64748b', chartDeltaColor(vm.totalDelta), '#0f766e']
+                }];
+                return spec;
+            }
+            if (key === 'summary-project') {
+                spec.isTable = true;
+                spec.headers = ['프로젝트',baseLabel,compareLabel,'차이 (기준-비교)'];
+                spec.rows = projectDifferenceRows(vm).slice(0, 8).map(function(row) { return [row.label, row.baseValue, row.compareValue, row.delta]; });
+                addDeltaFormulas();
+                spec.series = [signedSeries('차이 (기준-비교)', 3)];
+                return spec;
+            }
+            if (key === 'monthly-flow' || key === 'monthly-heatmap') {
+                spec.axisNumberFormat = '0,,"백만";[Red]-0,,"백만";-';
+                spec.dataLabelNumberFormat = '0,,"백만";[Red]-0,,"백만";-';
+                spec.headers = ['월',baseLabel,compareLabel,'차이 (기준-비교)'];
+                spec.rows = (vm.monthly || []).map(function(row) { return [row.month + '월', row.base.delta, row.comparison.delta, row.delta]; });
+                addDeltaFormulas();
+                spec.nativeKind = key === 'monthly-flow' ? 'combo' : 'column';
+                spec.isHeatmap = key === 'monthly-heatmap';
+                spec.barDirection = 'col';
+                spec.showDataLabels = key !== 'monthly-flow';
+                spec.series = [signedSeries('차이 (기준-비교)', 3, 'bar'), { name:baseLabel, column:1, color:'#0f766e', role:'line' }, { name:compareLabel, column:2, color:'#d946ef', role:'line' }];
+                return spec;
+            }
+            if (key === 'monthly-variation') {
+                spec.headers = ['월',baseLabel,compareLabel,'차이 (기준-비교)'];
+                spec.rows = (vm.monthly || []).slice().sort(function(a,b) { return Math.abs(number(b.delta)) - Math.abs(number(a.delta)); }).slice(0,4).map(function(row) { return [row.month + '월', row.base.delta, row.comparison.delta, row.delta]; });
+                addDeltaFormulas();
+                spec.series = [signedSeries('차이 (기준-비교)', 3)];
+                return spec;
+            }
+            if (key === 'status-distance' || key === 'status-impact') {
+                spec.headers = ['판정',baseLabel,compareLabel,'차이 (기준-비교)','Y축'];
+                spec.rows = statusDifferenceRows(vm).map(function(row, index) { return [row.label, row.baseValue, row.compareValue, row.delta, index + 1]; });
+                addDeltaFormulas();
+                if (key === 'status-distance') {
+                    spec.nativeKind = 'scatter';
+                    spec.series = [{ name:baseLabel, column:1, color:'#0f766e' }, { name:compareLabel, column:2, color:'#d946ef' }];
+                } else {
+                    spec.isTable = true;
+                    spec.nativeKind = 'bar';
+                    spec.barDirection = 'bar';
+                    spec.series = [signedSeries('차이 (기준-비교)', 3)];
+                }
+                return spec;
+            }
+            if (key === 'summary-hero') {
+                spec.isTable = true;
+                spec.headers = ['구분', baseLabel, compareLabel, '차이 (기준-비교)'];
+                spec.rows = [
+                    ['세대수 (세대)', vm.base.count, vm.comparison.count, vm.base.count - vm.comparison.count],
+                    ['확정 견적액', number(vm.base.confirmed), number(vm.comparison.confirmed), number(vm.base.confirmed) - number(vm.comparison.confirmed)],
+                    ['실제 투입 PO', number(vm.base.actualPo), number(vm.comparison.actualPo), number(vm.base.actualPo) - number(vm.comparison.actualPo)],
+                    ['순 절감/증액', number(vm.base.delta), number(vm.comparison.delta), number(vm.base.delta) - number(vm.comparison.delta)]
+                ];
+                addDeltaFormulas();
+                spec.nativeKind = 'column';
+                spec.barDirection = 'col';
+                spec.series = [signedSeries(baseLabel, 1), signedSeries(compareLabel, 2)];
+                return spec;
+            }
+            if (key === 'summary-character-saving' || key === 'summary-character-overrun') {
+                spec.isTable = true;
+                var isSaving = key === 'summary-character-saving';
+                var charRows = summaryCharacterRows(vm);
+                var targetRow = isSaving ? charRows[0] : charRows[1];
+                spec.headers = ['구분', baseLabel, compareLabel, '차이 (기준-비교)', '세대 차이'];
+                spec.rows = [
+                    [targetRow.label, number(targetRow.baseAmount), number(targetRow.compareAmount), number(targetRow.amountDelta), targetRow.countDelta]
+                ];
+                addDeltaFormulas();
+                spec.nativeKind = 'bar';
+                spec.barDirection = 'bar';
+                spec.series = [signedSeries(baseLabel, 1), signedSeries(compareLabel, 2)];
+                return spec;
+            }
+            if (key === 'summary-table') {
+                spec.isTable = true;
+                var metricsList = [
+                    ['세대수 (세대)', 'count', formatCount, formatSignedCount, false],
+                    ['확정 견적액 (Fee포함)', 'confirmed', formatWon, formatSignedWon, false],
+                    ['실제 투입 PO', 'actualPo', formatWon, formatSignedWon, false],
+                    ['순 절감/증액', 'delta', formatWon, formatSignedWon, true],
+                    ['물량 절감액', 'saving', formatWon, formatSignedWon, false],
+                    ['기준 초과액', 'overrun', formatWon, formatSignedWon, true]
+                ];
+                spec.headers = ['항목', baseLabel, compareLabel, '차이 (기준-비교)'];
+                spec.rows = metricsList.map(function(m) {
+                    var bVal = number(vm.base[m[1]]);
+                    var cVal = number(vm.comparison[m[1]]);
+                    return [m[0], bVal, cVal, bVal - cVal];
+                });
+                addDeltaFormulas();
+                spec.nativeKind = 'bar';
+                spec.barDirection = 'bar';
+                spec.series = [signedSeries(baseLabel, 1), signedSeries(compareLabel, 2)];
+                return spec;
+            }
+            if (key === 'monthly-table') {
+                spec.isTable = true;
+                spec.headers = ['월', baseLabel + ' 세대', baseLabel + ' 순차액', compareLabel + ' 세대', compareLabel + ' 순차액', '연도 차이'];
+                spec.rows = vm.monthly.map(function(item) {
+                    return [item.month + '월', item.base.count, number(item.base.delta), item.comparison.count, number(item.comparison.delta), number(item.delta)];
+                });
+                spec.rows.forEach(function(row, index) {
+                    var excelRow = index + 2;
+                    spec.formulas.push({ cell:'F' + excelRow, formula:'C' + excelRow + '-E' + excelRow, value:number(row[5]) });
+                    spec.inputCells.push('C' + excelRow, 'E' + excelRow);
+                    spec.formulaCells.push('F' + excelRow);
+                });
+                spec.nativeKind = 'column';
+                spec.barDirection = 'col';
+                spec.series = [signedSeries(baseLabel + ' 순차액', 2), signedSeries(compareLabel + ' 순차액', 4)];
+                return spec;
+            }
+            if (key === 'status-table') {
+                spec.isTable = true;
+                spec.headers = ['판정', baseLabel + ' 세대', baseLabel + ' PO', baseLabel + ' 차액', compareLabel + ' 세대', compareLabel + ' PO', compareLabel + ' 차액', '세대 차이', '금액 차이'];
+                spec.rows = vm.byStatus.map(function(item) {
+                    return [STATUS_LABELS[item.status] || item.status, item.base.count, number(item.base.actualPo), number(item.base.delta), item.comparison.count, number(item.comparison.actualPo), number(item.comparison.delta), item.countDelta, item.delta];
+                });
+                spec.rows.forEach(function(row, index) {
+                    var excelRow = index + 2;
+                    spec.formulas.push({ cell:'H' + excelRow, formula:'B' + excelRow + '-E' + excelRow, value:number(row[7]) });
+                    spec.formulas.push({ cell:'I' + excelRow, formula:'D' + excelRow + '-G' + excelRow, value:number(row[8]) });
+                    spec.inputCells.push('B' + excelRow, 'D' + excelRow, 'E' + excelRow, 'G' + excelRow);
+                    spec.formulaCells.push('H' + excelRow, 'I' + excelRow);
+                });
+                spec.nativeKind = 'bar';
+                spec.barDirection = 'bar';
+                spec.series = [signedSeries(baseLabel + ' 차액', 3), signedSeries(compareLabel + ' 차액', 6)];
+                return spec;
+            }
+            if (key === 'detail-table') {
+                spec.isTable = true;
+                var sorted = sortedDetailRows(vm);
+                spec.headers = ['No.', '연도', '건물동', '세대호수', '유지관리번호', '유지관리명(프로젝트명)', '판정', '확정 견적액 (Fee포함)', '실제 투입 PO', '절감/증액'];
+                spec.rows = sorted.map(function(item, index) {
+                    var row = item.row;
+                    return [index + 1, item.year + '년', buildingLabel(row.building), row.household === 'N/A' ? 'N/A' : String(row.household || '') + '호', row.maintenanceCode || '-', row.projectName || '-', STATUS_LABELS[row.status] || row.status || '-', number(row.confirmed), number(row.actualPo), number(row.delta)];
+                });
+                spec.rows.forEach(function(row, index) {
+                    var excelRow = index + 2;
+                    spec.formulas.push({ cell:'J' + excelRow, formula:'H' + excelRow + '-I' + excelRow, value:number(row[9]) });
+                    spec.inputCells.push('H' + excelRow, 'I' + excelRow);
+                    spec.formulaCells.push('J' + excelRow);
+                });
+                spec.nativeKind = 'bar';
+                spec.barDirection = 'bar';
+                spec.series = [signedSeries('절감/증액', 9)];
+                return spec;
+            }
+            if (key === 'status-share') {
+                var statusShareRows = (vm.byStatus || []).map(function(row, index) {
+                    return {
+                        label:STATUS_LABELS[row.status] || row.status,
+                        value:Math.abs(number(row.base.actualPo)),
+                        color:chartStatusColor(row.status, index)
+                    };
+                }).filter(function(row) { return row.value > .5; });
+                var statusShareTotal = statusShareRows.reduce(function(sum, row) { return sum + row.value; }, 0);
+                spec.headers = ['판정',baseLabel + ' 실제 PO'];
+                spec.rows = statusShareRows.map(function(row) {
+                    var pct = statusShareTotal > 0 ? (row.value / statusShareTotal * 100).toFixed(1) + '%' : '0.0%';
+                    return [row.label + '   ' + pct, row.value];
+                });
+                spec.rows.forEach(function(row, index) { spec.inputCells.push('B' + (index + 2)); });
+                spec.nativeKind = 'doughnut';
+                spec.series = [{ name:baseLabel + ' 실제 PO', column:1, color:'#0f766e', pointColors:statusShareRows.map(function(row) { return row.color; }) }];
+                spec.legendPosition = 'r';
+                spec.dataLabelNumberFormat = '0.0%';
+                spec.centerLabel = '실제 PO';
+                spec.centerValue = statusShareRows.reduce(function(sum, row) { return sum + row.value; }, 0);
+                spec.centerValueText = chartCompactWonUnsigned(spec.centerValue);
+                return spec;
+            }
+            throw new Error('지원하지 않는 비교 차트입니다: ' + key);
+        }
+        function applyChartExportCellStyle(cell, fillColor, fontColor) {
+            if (!cell) return;
+            cell.s = {
+                fill:{ patternType:'solid', fgColor:{ rgb:fillColor } },
+                font:{ name:'맑은 고딕', sz:10, color:{ rgb:fontColor || '1F2937' } },
+                alignment:{ vertical:'center', horizontal:'right' },
+                border:{
+                    top:{ style:'thin', color:{ rgb:'D7E0EB' } },
+                    bottom:{ style:'thin', color:{ rgb:'D7E0EB' } },
+                    left:{ style:'thin', color:{ rgb:'D7E0EB' } },
+                    right:{ style:'thin', color:{ rgb:'D7E0EB' } }
+                }
+            };
+        }
+        function buildChartExportDataSheet(spec) {
+            var sheet = window.XLSX.utils.aoa_to_sheet([spec.headers].concat(spec.rows));
+            (spec.formulas || []).forEach(function(item) {
+                sheet[item.cell] = { t:'n', v:number(item.value), f:item.formula, z:'#,##0;[Red]-#,##0;-' };
+            });
+            var range = window.XLSX.utils.decode_range(sheet['!ref'] || 'A1:A1');
+            for (var column = range.s.c; column <= range.e.c; column += 1) {
+                var header = sheet[chartExportCell(1, column)];
+                applyChartExportCellStyle(header, '0F766E', 'FFFFFF');
+                if (header && header.s) {
+                    header.s.font.bold = true;
+                    header.s.alignment.horizontal = 'center';
+                }
+            }
+            (spec.inputCells || []).forEach(function(address) {
+                if (sheet[address]) applyChartExportCellStyle(sheet[address], 'FFF2CC', '1F2937');
+            });
+            (spec.formulaCells || []).forEach(function(address) {
+                if (sheet[address]) applyChartExportCellStyle(sheet[address], 'DDEBFF', '0B4F86');
+            });
+            for (var row = 2; row <= range.e.r + 1; row += 1) {
+                for (var col = 1; col <= range.e.c; col += 1) {
+                    var cell = sheet[chartExportCell(row, col)];
+                    if (cell && !cell.z) cell.z = '#,##0;[Red]-#,##0;-';
+                }
+            }
+            if (spec.nativeKind === 'scatter') {
+                sheet.F1 = { t:'s', v:'연결선 X' };
+                sheet.G1 = { t:'s', v:'연결선 Y' };
+                applyChartExportCellStyle(sheet.F1, 'DDEBFF', '0B4F86');
+                applyChartExportCellStyle(sheet.G1, 'DDEBFF', '0B4F86');
+                spec.rows.forEach(function(row, index) {
+                    var sourceRow = index + 2;
+                    var helperStart = index * 2 + 2;
+                    sheet['F' + helperStart] = { t:'n', v:number(row[1]), f:'B' + sourceRow, z:'#,##0;[Red]-#,##0;-' };
+                    sheet['F' + (helperStart + 1)] = { t:'n', v:number(row[2]), f:'C' + sourceRow, z:'#,##0;[Red]-#,##0;-' };
+                    sheet['G' + helperStart] = { t:'n', v:index + 1 };
+                    sheet['G' + (helperStart + 1)] = { t:'n', v:index + 1 };
+                    applyChartExportCellStyle(sheet['F' + helperStart], 'DDEBFF', '0B4F86');
+                    applyChartExportCellStyle(sheet['F' + (helperStart + 1)], 'DDEBFF', '0B4F86');
+                    applyChartExportCellStyle(sheet['G' + helperStart], 'DDEBFF', '0B4F86');
+                    applyChartExportCellStyle(sheet['G' + (helperStart + 1)], 'DDEBFF', '0B4F86');
+                });
+                sheet['!ref'] = 'A1:G' + Math.max(range.e.r + 1, spec.rows.length * 2 + 1);
+            }
+            sheet['!cols'] = spec.headers.map(function(header, index) {
+                if (index === 0) return { wch:Math.min(42, Math.max(16, String(header || '').length + 4)) };
+                return { wch:18 };
+            }).concat(spec.nativeKind === 'scatter' ? [{ wch:18 }, { wch:12 }] : []);
+            sheet['!autofilter'] = { ref:'A1:' + chartExportColumnName(spec.headers.length - 1) + (spec.rows.length + 1) };
+            return sheet;
+        }
+        function buildChartExportChartSheet(spec) {
+            if (spec.isTable) {
+                var rows = [
+                    [spec.title],
+                    [spec.subtitle],
+                    ['이 시트는 "연계 데이터" 시트와 수식으로 연동된 혼합형 표입니다.'],
+                    spec.headers
+                ];
+                spec.rows.forEach(function(row, rIdx) {
+                    var dataRow = rIdx + 2;
+                    var linkedRow = [];
+                    row.forEach(function(val, cIdx) {
+                        var colLetter = chartExportColumnName(cIdx + 1);
+                        linkedRow.push({ t: typeof val === 'number' ? 'n' : 's', f: "'연계 데이터'!" + colLetter + dataRow, v: val });
+                    });
+                    rows.push(linkedRow);
+                });
+                var sheet = window.XLSX.utils.aoa_to_sheet(rows);
+                sheet['!cols'] = spec.headers.map(function(h) { return { wch: Math.max(16, String(h).length * 2 + 4) }; });
+                sheet['A1'].s = { font:{ name:'맑은 고딕', sz:14, bold:true, color:{ rgb:'0F766E' } } };
+                sheet['A2'].s = { font:{ name:'맑은 고딕', sz:10, italic:true, color:{ rgb:'64748B' } } };
+                sheet['A3'].s = { font:{ name:'맑은 고딕', sz:9, color:{ rgb:'94A3B8' } } };
+                spec.headers.forEach(function(h, cIdx) {
+                    var cellAddr = chartExportColumnName(cIdx + 1) + '4';
+                    if (sheet[cellAddr]) {
+                        applyChartExportCellStyle(sheet[cellAddr], '0F766E', 'FFFFFF');
+                        sheet[cellAddr].s.font.bold = true;
+                        sheet[cellAddr].s.alignment.horizontal = 'center';
+                    }
+                });
+                spec.rows.forEach(function(row, rIdx) {
+                    var rowNum = rIdx + 5;
+                    row.forEach(function(val, cIdx) {
+                        var cellAddr = chartExportColumnName(cIdx + 1) + rowNum;
+                        if (sheet[cellAddr]) {
+                            var isNumber = typeof val === 'number';
+                            var isDelta = cIdx >= spec.headers.length - 2;
+                            var fill = 'FFFFFF';
+                            var fontCol = '1F2937';
+                            if (isDelta && isNumber) {
+                                if (val < -0.5) { fill = 'ECFDF5'; fontCol = '047857'; }
+                                else if (val > 0.5) { fill = 'FFF1F2'; fontCol = 'E11D48'; }
+                                else { fill = 'F8FAFC'; fontCol = '64748B'; }
+                            }
+                            applyChartExportCellStyle(sheet[cellAddr], fill, fontCol);
+                            if (isNumber) sheet[cellAddr].z = spec.dataLabelNumberFormat || spec.numberFormat || '#,##0;[Red]-#,##0;-';
+                        }
+                    });
+                });
+                return sheet;
+            }
+            if (spec.nativeKind !== 'heatmap') {
+                var chartSheet = window.XLSX.utils.aoa_to_sheet([[spec.title],[spec.subtitle],['노란색 셀을 수정하면 연결된 파란색 수식 셀과 차트가 자동 갱신됩니다.']]);
+                chartSheet['!cols'] = [{ wch:100 }];
+                return chartSheet;
+            }
+            var months = spec.rows.map(function(row) { return row[0]; });
+            var rows = [[spec.title],[spec.subtitle],[],['구분'].concat(months),[spec.headers[1]],[spec.headers[2]],['차이 (기준-비교)']];
+            var sheet = window.XLSX.utils.aoa_to_sheet(rows);
+            spec.rows.forEach(function(row, index) {
+                var column = chartExportColumnName(index + 1);
+                var sourceRow = index + 2;
+                sheet[column + '5'] = { t:'n', v:number(row[1]), f:chartExportSheetRef('연계 데이터') + '!B' + sourceRow, z:spec.numberFormat };
+                sheet[column + '6'] = { t:'n', v:number(row[2]), f:chartExportSheetRef('연계 데이터') + '!C' + sourceRow, z:spec.numberFormat };
+                sheet[column + '7'] = { t:'n', v:number(row[3]), f:chartExportSheetRef('연계 데이터') + '!D' + sourceRow, z:spec.numberFormat };
+                sheet[column + '10'] = { t:'n', v:Math.abs(number(row[1])), f:'ABS(' + column + '5)' };
+                sheet[column + '11'] = { t:'n', v:Math.abs(number(row[2])), f:'ABS(' + column + '6)' };
+                sheet[column + '12'] = { t:'n', v:Math.abs(number(row[3])), f:'ABS(' + column + '7)' };
+            });
+            var lastValueColumn = chartExportColumnName(spec.rows.length);
+            var helperColumnIndex = spec.rows.length + 2;
+            var helperColumn = chartExportColumnName(helperColumnIndex);
+            var maxAbs = spec.rows.reduce(function(maximum, row) {
+                return Math.max(maximum, Math.abs(number(row[1])), Math.abs(number(row[2])), Math.abs(number(row[3])));
+            }, 0);
+            sheet[helperColumn + '10'] = { t:'n', v:maxAbs, f:'MAX(B10:' + lastValueColumn + '12)' };
+            sheet['!ref'] = 'A1:' + helperColumn + '12';
+            sheet['!cols'] = [{ wch:24 }].concat(spec.rows.map(function() { return { wch:16 }; })).concat([{ wch:2 }, { hidden:true, wch:2 }]);
+            sheet['!rows'] = [{ hpt:28 }, { hpt:20 }, { hpt:8 }, { hpt:24 }, { hpt:52 }, { hpt:52 }, { hpt:52 }, {}, {}, { hidden:true }, { hidden:true }, { hidden:true }];
+            sheet['!freeze'] = { xSplit:1, ySplit:4, topLeftCell:'B5', activePane:'bottomRight', state:'frozen' };
+            return sheet;
+        }
+        function chartCaptureTransparent(color) {
+            var value = String(color || '').replace(/\s+/g, '').toLowerCase();
+            return !value || value === 'transparent' || value === 'rgba(0,0,0,0)';
+        }
+        function chartCaptureTextLimit(text, width, fontSize, style) {
+            var value = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+            var shouldEllipsize = style && style.textOverflow === 'ellipsis' && (style.overflow === 'hidden' || style.overflow === 'clip');
+            if (!shouldEllipsize) return value;
+            var limit = Math.max(1, Math.floor(Number(width || 0) / Math.max(5, Number(fontSize || 10) * .58)));
+            return value.length > limit ? value.slice(0, Math.max(1, limit - 1)) + '…' : value;
+        }
+        function buildChartCaptureSvg(source, width, height) {
+            var rootRect = source.getBoundingClientRect();
+            var paint = ['<rect x="0" y="0" width="' + width + '" height="' + height + '" fill="#ffffff"/>'];
+            function visit(node) {
+                if (!node || node.nodeType !== 1 || node.tagName === 'BUTTON') return;
+                var style = window.getComputedStyle(node);
+                if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return;
+                var rect = node.getBoundingClientRect();
+                if (rect.width <= 0 || rect.height <= 0) return;
+                var x = rect.left - rootRect.left;
+                var y = rect.top - rootRect.top;
+                if (x >= width || y >= height || x + rect.width <= 0 || y + rect.height <= 0) return;
+                if (node.tagName.toLowerCase() === 'svg') {
+                    var svgClone = node.cloneNode(true);
+                    svgClone.setAttribute('x', x.toFixed(2));
+                    svgClone.setAttribute('y', y.toFixed(2));
+                    svgClone.setAttribute('width', rect.width.toFixed(2));
+                    svgClone.setAttribute('height', rect.height.toFixed(2));
+                    svgClone.removeAttribute('class');
+                    svgClone.removeAttribute('style');
+                    paint.push(new XMLSerializer().serializeToString(svgClone));
+                    return;
+                }
+                var background = style.backgroundColor;
+                var borderWidth = Math.max(parseFloat(style.borderTopWidth) || 0, parseFloat(style.borderRightWidth) || 0, parseFloat(style.borderBottomWidth) || 0, parseFloat(style.borderLeftWidth) || 0);
+                var borderColor = style.borderTopColor || '#d7e0eb';
+                var radius = Math.min(rect.width / 2, rect.height / 2, parseFloat(style.borderRadius) || 0);
+                if (!chartCaptureTransparent(background) || borderWidth > 0) {
+                    paint.push('<rect x="' + x.toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + rect.width.toFixed(2) + '" height="' + rect.height.toFixed(2) + '" rx="' + radius.toFixed(2) + '" fill="' + (chartCaptureTransparent(background) ? 'none' : chartExportXml(background)) + '"' + (borderWidth > 0 ? ' stroke="' + chartExportXml(borderColor) + '" stroke-width="' + borderWidth.toFixed(2) + '"' : '') + '/>');
+                }
+                var directText = Array.prototype.map.call(node.childNodes || [], function(child) {
+                    return child.nodeType === 3 ? child.nodeValue : '';
+                }).join(' ').replace(/\s+/g, ' ').trim();
+                if (directText) {
+                    var fontSize = parseFloat(style.fontSize) || 10;
+                    var textAnchor = style.textAlign === 'right' || style.textAlign === 'end' ? 'end' : (style.textAlign === 'center' ? 'middle' : 'start');
+                    var textX = textAnchor === 'end' ? x + rect.width - 2 : (textAnchor === 'middle' ? x + rect.width / 2 : x + 2);
+                    var textY = y + rect.height / 2 + fontSize * .08;
+                    paint.push('<text x="' + textX.toFixed(2) + '" y="' + textY.toFixed(2) + '" text-anchor="' + textAnchor + '" dominant-baseline="middle" fill="' + chartExportXml(style.color || '#334155') + '" font-family="' + chartExportXml(style.fontFamily || 'sans-serif') + '" font-size="' + fontSize.toFixed(2) + '" font-weight="' + chartExportXml(style.fontWeight || '400') + '">' + chartExportXml(chartCaptureTextLimit(directText, rect.width - 4, fontSize, style)) + '</text>');
+                }
+                Array.prototype.forEach.call(node.children || [], visit);
+            }
+            visit(source);
+            return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '">' + paint.join('') + '</svg>';
+        }
+        async function captureChartExportPng(key, trigger) {
+            var source = trigger && trigger.closest ? trigger.closest('[data-cost-chart-card],[data-cost-chart-popout],[data-summary-character],[data-cost-compare-section],[data-summary-hero]') : null;
+            if (!source) source = document.querySelector('[data-cost-chart-card="' + String(key).replace(/"/g, '') + '"],[data-summary-character="' + String(key).replace(/^summary-character-/, '') + '"],[data-cost-compare-section="' + String(key).replace(/"/g, '') + '"]');
+            if (!source) throw new Error('화면 원본 차트를 찾을 수 없습니다.');
+            var rect = source.getBoundingClientRect();
+            var width = Math.max(320, Math.ceil(rect.width));
+            var height = Math.max(180, Math.ceil(rect.height));
+            var svg = buildChartCaptureSvg(source, width, height);
+            var svgUrl = URL.createObjectURL(new Blob([svg], { type:'image/svg+xml;charset=utf-8' }));
+            try {
+                var image = new Image();
+                image.decoding = 'sync';
+                image.src = svgUrl;
+                if (typeof image.decode === 'function') await image.decode();
+                else await new Promise(function(resolve, reject) { image.onload = resolve; image.onerror = reject; });
+                var scale = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+                var canvas = document.createElement('canvas');
+                canvas.width = Math.round(width * scale);
+                canvas.height = Math.round(height * scale);
+                var context = canvas.getContext('2d');
+                context.scale(scale, scale);
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, width, height);
+                context.drawImage(image, 0, 0, width, height);
+                var blob = await new Promise(function(resolve, reject) {
+                    canvas.toBlob(function(result) { result ? resolve(result) : reject(new Error('PNG 캡처 생성에 실패했습니다.')); }, 'image/png');
+                });
+                return { bytes:new Uint8Array(await blob.arrayBuffer()), width:canvas.width, height:canvas.height };
+            } finally {
+                URL.revokeObjectURL(svgUrl);
+            }
+        }
+        function chartExportStringCache(values) {
+            return '<c:strCache><c:ptCount val="' + values.length + '"/>' + values.map(function(value, index) {
+                return '<c:pt idx="' + index + '"><c:v>' + chartExportXml(value) + '</c:v></c:pt>';
+            }).join('') + '</c:strCache>';
+        }
+        function chartExportNumberCache(values, formatCode) {
+            return '<c:numCache><c:formatCode>' + chartExportXml(formatCode || '#,##0') + '</c:formatCode><c:ptCount val="' + values.length + '"/>' + values.map(function(value, index) {
+                return Number.isFinite(Number(value)) ? '<c:pt idx="' + index + '"><c:v>' + Number(value) + '</c:v></c:pt>' : '';
+            }).join('') + '</c:numCache>';
+        }
+        function chartExportCategories(spec) {
+            var end = spec.rows.length + 1;
+            var values = spec.rows.map(function(row) { return String(row[spec.categoryColumn] == null ? '' : row[spec.categoryColumn]); });
+            return '<c:cat><c:strRef><c:f>' + chartExportXml(chartExportSheetRef('연계 데이터') + '!$A$2:$A$' + end) + '</c:f>' + chartExportStringCache(values) + '</c:strRef></c:cat>';
+        }
+        function chartExportValues(spec, series) {
+            var end = spec.rows.length + 1;
+            var columnName = chartExportColumnName(series.column);
+            var values = spec.rows.map(function(row) { return number(row[series.column]); });
+            return '<c:val><c:numRef><c:f>' + chartExportXml(chartExportSheetRef('연계 데이터') + '!$' + columnName + '$2:$' + columnName + '$' + end) + '</c:f>' + chartExportNumberCache(values, spec.numberFormat) + '</c:numRef></c:val>';
+        }
+        function chartExportSignedColor(value) {
+            var numeric = number(value);
+            return numeric < 0 ? '#047857' : (numeric > 0 ? '#be123c' : '#64748b');
+        }
+        function chartExportShapeProperties(color) {
+            var hex = String(color || '#64748b').replace('#','').toUpperCase();
+            return '<c:spPr><a:solidFill><a:srgbClr val="' + hex + '"/></a:solidFill><a:ln><a:solidFill><a:srgbClr val="' + hex + '"/></a:solidFill></a:ln></c:spPr>';
+        }
+        function chartExportPointStyles(spec, series) {
+            if (!series.signed && !Array.isArray(series.pointColors)) return '';
+            return spec.rows.map(function(row, pointIndex) {
+                var color = Array.isArray(series.pointColors) && series.pointColors[pointIndex]
+                    ? series.pointColors[pointIndex]
+                    : chartExportSignedColor(row[series.column]);
+                return '<c:dPt><c:idx val="' + pointIndex + '"/><c:invertIfNegative val="0"/>' + chartExportShapeProperties(color) + '</c:dPt>';
+            }).join('');
+        }
+        function chartExportSeriesXml(spec, series, index) {
+            var headerCell = chartExportCell(1, series.column);
+            var invert = spec.nativeKind === 'doughnut' ? '' : '<c:invertIfNegative val="0"/>';
+            return '<c:ser><c:idx val="' + index + '"/><c:order val="' + index + '"/><c:tx><c:strRef><c:f>' + chartExportXml(chartExportSheetRef('연계 데이터') + '!$' + headerCell) + '</c:f>' + chartExportStringCache([series.name]) + '</c:strRef></c:tx>' + chartExportShapeProperties(series.color) + invert + chartExportPointStyles(spec, series) + chartExportCategories(spec) + chartExportValues(spec, series) + '</c:ser>';
+        }
+        function chartExportLineSeriesXml(spec, series, index) {
+            var headerCell = chartExportCell(1, series.column);
+            var color = String(series.color || '#0f766e').replace('#','').toUpperCase();
+            var marker = '<c:marker><c:symbol val="circle"/><c:size val="6"/><c:spPr><a:solidFill><a:srgbClr val="' + color + '"/></a:solidFill><a:ln><a:solidFill><a:srgbClr val="' + color + '"/></a:solidFill></a:ln></c:spPr></c:marker>';
+            return '<c:ser><c:idx val="' + index + '"/><c:order val="' + index + '"/><c:tx><c:strRef><c:f>' + chartExportXml(chartExportSheetRef('연계 데이터') + '!$' + headerCell) + '</c:f>' + chartExportStringCache([series.name]) + '</c:strRef></c:tx>' + chartExportShapeProperties(series.color) + marker + chartExportCategories(spec) + chartExportValues(spec, series) + '<c:smooth val="0"/></c:ser>';
+        }
+        function chartExportTitleXml(text, subtitle) {
+            var subtitleXml = subtitle ? '<a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="ko-KR" sz="900"><a:solidFill><a:srgbClr val="64748B"/></a:solidFill></a:rPr><a:t>' + chartExportXml(subtitle) + '</a:t></a:r><a:endParaRPr lang="ko-KR" sz="900"/></a:p>' : '';
+            return '<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="ko-KR" sz="1400" b="1"><a:solidFill><a:srgbClr val="0F172A"/></a:solidFill></a:rPr><a:t>' + chartExportXml(text) + '</a:t></a:r><a:endParaRPr lang="ko-KR" sz="1400"/></a:p>' + subtitleXml + '</c:rich></c:tx><c:layout/><c:overlay val="0"/></c:title>';
+        }
+        function chartExportAxesXml(horizontal, spec) {
+            var catPosition = horizontal ? 'l' : 'b';
+            var valuePosition = horizontal ? 'b' : 'l';
+            var catOrientation = horizontal ? 'maxMin' : 'minMax';
+            var numberFormat = chartExportXml(spec && spec.axisNumberFormat || '#,##0"원";[Red]-#,##0"원";-');
+            var tickLabelPosition = spec && spec.categoryTickLabelPosition || 'low';
+            var categoryCrosses = spec && spec.categoryCrosses || 'autoZero';
+            var crossBetween = spec && spec.crossBetween || 'between';
+            return '<c:catAx><c:axId val="48650112"/><c:scaling><c:orientation val="' + catOrientation + '"/></c:scaling><c:delete val="0"/><c:axPos val="' + catPosition + '"/><c:tickLblPos val="' + tickLabelPosition + '"/><c:crossAx val="48672768"/><c:crosses val="' + categoryCrosses + '"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx>' +
+                '<c:valAx><c:axId val="48672768"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="' + valuePosition + '"/><c:majorGridlines/><c:numFmt formatCode="' + numberFormat + '" sourceLinked="0"/><c:tickLblPos val="nextTo"/><c:crossAx val="48650112"/><c:crosses val="autoZero"/><c:crossBetween val="' + crossBetween + '"/></c:valAx>';
+        }
+        function chartExportScatterSeries(spec, series, index, valueColumn, yValues, lineOnly, startRow, endRow) {
+            var columnName = chartExportColumnName(valueColumn);
+            var values = lineOnly ? yValues.x : spec.rows.map(function(row) { return number(row[valueColumn]); });
+            var ys = lineOnly ? yValues.y : spec.rows.map(function(row, rowIndex) { return rowIndex + 1; });
+            var xFormula = chartExportSheetRef('연계 데이터') + '!$' + columnName + '$' + startRow + ':$' + columnName + '$' + endRow;
+            var yFormula = chartExportSheetRef('연계 데이터') + '!$' + (lineOnly ? 'G' : 'E') + '$' + startRow + ':$' + (lineOnly ? 'G' : 'E') + '$' + endRow;
+            var marker = lineOnly ? '<c:marker><c:symbol val="none"/></c:marker>' : '<c:marker><c:symbol val="circle"/><c:size val="7"/><c:spPr><a:solidFill><a:srgbClr val="' + String(series.color).replace('#','').toUpperCase() + '"/></a:solidFill></c:spPr></c:marker>';
+            var line = lineOnly ? '<a:solidFill><a:srgbClr val="A7B5C5"/></a:solidFill>' : '<a:noFill/>';
+            return '<c:ser><c:idx val="' + index + '"/><c:order val="' + index + '"/><c:tx><c:v>' + chartExportXml(series.name) + '</c:v></c:tx>' + marker + '<c:spPr><a:ln w="19050">' + line + '</a:ln></c:spPr><c:xVal><c:numRef><c:f>' + chartExportXml(xFormula) + '</c:f>' + chartExportNumberCache(values, spec.numberFormat) + '</c:numRef></c:xVal><c:yVal><c:numRef><c:f>' + chartExportXml(yFormula) + '</c:f>' + chartExportNumberCache(ys, '0') + '</c:numRef></c:yVal><c:smooth val="0"/></c:ser>';
+        }
+        function buildChartExportChartXml(spec) {
+            var chartBody = '';
+            var legendDeletes = '';
+            var dataLabelFormat = chartExportXml(spec.dataLabelNumberFormat || spec.numberFormat);
+            if (spec.nativeKind === 'doughnut') {
+                chartBody = '<c:doughnutChart><c:varyColors val="1"/>' + chartExportSeriesXml(spec, spec.series[0], 0) + '<c:dLbls><c:numFmt formatCode="' + dataLabelFormat + '" sourceLinked="0"/><c:showLegendKey val="0"/><c:showVal val="0"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showLeaderLines val="0"/></c:dLbls><c:firstSliceAng val="0"/><c:holeSize val="65"/></c:doughnutChart>';
+            } else if (spec.nativeKind === 'scatter') {
+                var scatterSeries = [];
+                spec.rows.forEach(function(row, index) {
+                    var helperStart = index * 2 + 2;
+                    scatterSeries.push(chartExportScatterSeries(spec, { name:row[0], color:'#A7B5C5' }, index, 5, { x:[number(row[1]),number(row[2])], y:[index + 1,index + 1] }, true, helperStart, helperStart + 1));
+                    legendDeletes += '<c:legendEntry><c:idx val="' + index + '"/><c:delete val="1"/></c:legendEntry>';
+                });
+                scatterSeries.push(chartExportScatterSeries(spec, spec.series[0], spec.rows.length, 1, null, false, 2, spec.rows.length + 1));
+                scatterSeries.push(chartExportScatterSeries(spec, spec.series[1], spec.rows.length + 1, 2, null, false, 2, spec.rows.length + 1));
+                chartBody = '<c:scatterChart><c:scatterStyle val="lineMarker"/><c:varyColors val="0"/>' + scatterSeries.join('') + '<c:dLbls><c:showLegendKey val="0"/><c:showVal val="0"/><c:showCatName val="0"/><c:showSerName val="0"/></c:dLbls><c:axId val="48672768"/><c:axId val="48650112"/></c:scatterChart>' +
+                    '<c:valAx><c:axId val="48672768"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:majorGridlines/><c:numFmt formatCode="' + chartExportXml(spec.axisNumberFormat) + '" sourceLinked="0"/><c:tickLblPos val="nextTo"/><c:crossAx val="48650112"/><c:crosses val="autoZero"/><c:crossBetween val="midCat"/></c:valAx>' +
+                    '<c:valAx><c:axId val="48650112"/><c:scaling><c:min val="0.5"/><c:max val="' + (spec.rows.length + .5) + '"/><c:orientation val="maxMin"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:majorUnit val="1"/><c:numFmt formatCode="0" sourceLinked="0"/><c:tickLblPos val="none"/><c:crossAx val="48672768"/><c:crosses val="autoZero"/><c:crossBetween val="midCat"/></c:valAx>';
+            } else if (spec.nativeKind === 'combo') {
+                var barSeries = spec.series.filter(function(series) { return series.role === 'bar'; });
+                var lineSeries = spec.series.filter(function(series) { return series.role === 'line'; });
+                chartBody = '<c:barChart><c:barDir val="col"/><c:grouping val="clustered"/><c:varyColors val="0"/>' + barSeries.map(function(series,index) { return chartExportSeriesXml(spec, series, lineSeries.length + index); }).join('') + '<c:dLbls><c:numFmt formatCode="' + dataLabelFormat + '" sourceLinked="0"/><c:showLegendKey val="0"/><c:showVal val="' + (spec.showDataLabels === false ? '0' : '1') + '"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/></c:dLbls><c:gapWidth val="100"/><c:axId val="48650112"/><c:axId val="48672768"/></c:barChart>' +
+                    '<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>' + lineSeries.map(function(series,index) { return chartExportLineSeriesXml(spec, series, index); }).join('') + '<c:marker val="1"/><c:smooth val="0"/><c:axId val="48650112"/><c:axId val="48672768"/></c:lineChart>' + chartExportAxesXml(false, spec);
+            } else {
+                var horizontal = spec.barDirection !== 'col';
+                var labelPos = horizontal ? '<c:dLblPos val="outEnd"/>' : '';
+                chartBody = '<c:barChart><c:barDir val="' + (horizontal ? 'bar' : 'col') + '"/><c:grouping val="clustered"/><c:varyColors val="0"/>' + spec.series.map(function(series,index) { return chartExportSeriesXml(spec, series, index); }).join('') + '<c:dLbls><c:numFmt formatCode="' + dataLabelFormat + '" sourceLinked="0"/>' + labelPos + '<c:showLegendKey val="0"/><c:showVal val="1"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/></c:dLbls><c:gapWidth val="100"/><c:axId val="48650112"/><c:axId val="48672768"/></c:barChart>' + chartExportAxesXml(horizontal, spec);
+            }
+            var legend = spec.series.length > 1 || spec.nativeKind === 'scatter' || spec.nativeKind === 'doughnut'
+                ? '<c:legend><c:legendPos val="' + (spec.legendPosition || 'b') + '"/>' + legendDeletes + '<c:layout/><c:overlay val="0"/></c:legend>'
+                : '<c:legend><c:delete val="1"/></c:legend>';
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><c:date1904 val="0"/><c:lang val="ko-KR"/><c:roundedCorners val="0"/><c:chart>' + chartExportTitleXml(spec.title, spec.subtitle) + '<c:autoTitleDeleted val="0"/><c:plotArea><c:layout/>' + chartBody + '</c:plotArea>' + legend + '<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/><c:showDLblsOverMax val="0"/></c:chart><c:printSettings><c:headerFooter/><c:pageMargins b="0.75" l="0.7" r="0.7" t="0.75" header="0.3" footer="0.3"/><c:pageSetup/></c:printSettings></c:chartSpace>';
+        }
+        function chartExportPackageText(packageFile, path) {
+            var entry = window.XLSX.CFB.find(packageFile, 'Root Entry/' + path);
+            if (!entry || !entry.content) throw new Error('XLSX 패키지 경로를 찾을 수 없습니다: ' + path);
+            return new TextDecoder('utf-8').decode(entry.content);
+        }
+        function chartExportSetPackageFile(packageFile, path, content) {
+            var fullPath = 'Root Entry/' + path;
+            var existing = window.XLSX.CFB.find(packageFile, fullPath);
+            if (existing) window.XLSX.CFB.utils.cfb_del(packageFile, fullPath);
+            var bytes = typeof content === 'string' ? new TextEncoder().encode(content) : content;
+            window.XLSX.CFB.utils.cfb_add(packageFile, fullPath, bytes);
+        }
+        function chartExportAppendBefore(xml, closingTag, addition) {
+            var index = xml.lastIndexOf(closingTag);
+            if (index < 0) throw new Error('OOXML 닫기 태그를 찾을 수 없습니다: ' + closingTag);
+            return xml.slice(0, index) + addition + xml.slice(index);
+        }
+        function chartExportSetCellStyle(sheetXml, address, styleIndex) {
+            var pattern = new RegExp('(<c\\b[^>]*\\br="' + String(address || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"[^>]*)(>)');
+            return sheetXml.replace(pattern, function(match, open, close) {
+                return open.replace(/\s+s="\d+"/, '') + ' s="' + styleIndex + '"' + close;
+            });
+        }
+        function buildChartExportStylesXml() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+                '<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0;[Red]-#,##0;-"/></numFmts>' +
+                '<fonts count="3"><font><sz val="10"/><color rgb="FF1F2937"/><name val="맑은 고딕"/><family val="3"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="맑은 고딕"/><family val="3"/></font><font><sz val="10"/><color rgb="FF0B4F86"/><name val="맑은 고딕"/><family val="3"/></font></fonts>' +
+                '<fills count="8"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0F766E"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBFF"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDF3EB"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFCE4F8"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE8EEF5"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+                '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFD7E0EB"/></left><right style="thin"><color rgb="FFD7E0EB"/></right><top style="thin"><color rgb="FFD7E0EB"/></top><bottom style="thin"><color rgb="FFD7E0EB"/></bottom><diagonal/></border></borders>' +
+                '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+                '<cellXfs count="10"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="164" fontId="0" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="164" fontId="2" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="2" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="6" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="7" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf></cellXfs>' +
+                '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+                '<dxfs count="7"><dxf><fill><patternFill><bgColor rgb="FF78CDB0"/></patternFill></fill></dxf><dxf><fill><patternFill><bgColor rgb="FFA7DFC9"/></patternFill></fill></dxf><dxf><fill><patternFill><bgColor rgb="FFD6F0E7"/></patternFill></fill></dxf><dxf><fill><patternFill><bgColor rgb="FFEEF2F6"/></patternFill></fill></dxf><dxf><fill><patternFill><bgColor rgb="FFFCE4E6"/></patternFill></fill></dxf><dxf><fill><patternFill><bgColor rgb="FFF7BEC4"/></patternFill></fill></dxf><dxf><fill><patternFill><bgColor rgb="FFF28B94"/></patternFill></fill></dxf></dxfs>' +
+                '<tableStyles count="0" defaultTableStyle="TableStyleMedium9" defaultPivotStyle="PivotStyleMedium4"/></styleSheet>';
+        }
+        function patchChartExportDataStyles(packageFile, spec) {
+            var sheetXml = chartExportPackageText(packageFile, 'xl/worksheets/sheet1.xml');
+            for (var column = 0; column < spec.headers.length; column += 1) sheetXml = chartExportSetCellStyle(sheetXml, chartExportCell(1, column), 2);
+            (spec.inputCells || []).forEach(function(address) { sheetXml = chartExportSetCellStyle(sheetXml, address, 3); });
+            (spec.formulaCells || []).forEach(function(address) { sheetXml = chartExportSetCellStyle(sheetXml, address, 4); });
+            if (spec.nativeKind === 'scatter') {
+                sheetXml = chartExportSetCellStyle(sheetXml, 'F1', 5);
+                sheetXml = chartExportSetCellStyle(sheetXml, 'G1', 5);
+                for (var helperRow = 2; helperRow <= spec.rows.length * 2 + 1; helperRow += 1) {
+                    sheetXml = chartExportSetCellStyle(sheetXml, 'F' + helperRow, 4);
+                    sheetXml = chartExportSetCellStyle(sheetXml, 'G' + helperRow, 4);
+                }
+            }
+            chartExportSetPackageFile(packageFile, 'xl/worksheets/sheet1.xml', sheetXml);
+            chartExportSetPackageFile(packageFile, 'xl/styles.xml', buildChartExportStylesXml());
+        }
+        function patchChartExportTableSheet(packageFile, spec) {
+            var sheetXml = chartExportPackageText(packageFile, 'xl/worksheets/sheet2.xml');
+            if (!sheetXml) return;
+            var lastColName = chartExportColumnName(spec.headers.length);
+            var firstDataRow = 5;
+            var lastDataRow = firstDataRow + spec.rows.length - 1;
+            var sqref = 'A' + firstDataRow + ':' + lastColName + lastDataRow;
+            var rules = [
+                'A' + firstDataRow + '&lt;0',
+                'A' + firstDataRow + '&gt;0',
+                'A' + firstDataRow + '=0'
+            ];
+            var conditionalFormatting = '<conditionalFormatting sqref="' + sqref + '">' + rules.map(function(formula, index) {
+                return '<cfRule type="expression" dxfId="' + index + '" priority="' + (index + 1) + '" stopIfTrue="0"><formula>' + formula + '</formula></cfRule>';
+            }).join('') + '</conditionalFormatting>';
+            var insertionPoints = ['<mergeCells','<dataValidations','<hyperlinks','<printOptions','<pageMargins','<pageSetup','<headerFooter','<ignoredErrors','<drawing','<legacyDrawing','<tableParts','<extLst','</worksheet>'];
+            var insertionIndex = -1;
+            insertionPoints.some(function(marker) {
+                var found = sheetXml.indexOf(marker);
+                if (found >= 0) { insertionIndex = found; return true; }
+                return false;
+            });
+            if (insertionIndex >= 0) {
+                sheetXml = sheetXml.slice(0, insertionIndex) + conditionalFormatting + sheetXml.slice(insertionIndex);
+                chartExportSetPackageFile(packageFile, 'xl/worksheets/sheet2.xml', sheetXml);
+            }
+        }
+        function patchChartExportHeatmapSheet(packageFile, spec) {
+            var sheetXml = chartExportPackageText(packageFile, 'xl/worksheets/sheet2.xml');
+            var lastColumn = chartExportColumnName(spec.rows.length);
+            var helperColumn = chartExportColumnName(spec.rows.length + 2);
+            sheetXml = chartExportSetCellStyle(sheetXml, 'A4', 2);
+            for (var monthColumn = 1; monthColumn <= spec.rows.length; monthColumn += 1) {
+                var columnName = chartExportColumnName(monthColumn);
+                sheetXml = chartExportSetCellStyle(sheetXml, columnName + '4', 2);
+                sheetXml = chartExportSetCellStyle(sheetXml, columnName + '5', 9);
+                sheetXml = chartExportSetCellStyle(sheetXml, columnName + '6', 9);
+                sheetXml = chartExportSetCellStyle(sheetXml, columnName + '7', 9);
+            }
+            sheetXml = chartExportSetCellStyle(sheetXml, 'A5', 6);
+            sheetXml = chartExportSetCellStyle(sheetXml, 'A6', 7);
+            sheetXml = chartExportSetCellStyle(sheetXml, 'A7', 8);
+            var maxRef = '$' + helperColumn + '$10';
+            var firstCell = 'B5';
+            var rules = [
+                firstCell + '&lt;=-' + maxRef + '*0.6666667',
+                'AND(' + firstCell + '&lt;0,' + firstCell + '&gt;-' + maxRef + '*0.6666667,' + firstCell + '&lt;=-' + maxRef + '*0.3333333)',
+                'AND(' + firstCell + '&lt;0,' + firstCell + '&gt;-' + maxRef + '*0.3333333)',
+                firstCell + '=0',
+                'AND(' + firstCell + '&gt;0,' + firstCell + '&lt;' + maxRef + '*0.3333333)',
+                'AND(' + firstCell + '&gt;=' + maxRef + '*0.3333333,' + firstCell + '&lt;' + maxRef + '*0.6666667)',
+                firstCell + '&gt;=' + maxRef + '*0.6666667'
+            ];
+            var conditionalFormatting = '<conditionalFormatting sqref="B5:' + lastColumn + '7">' + rules.map(function(formula, index) {
+                return '<cfRule type="expression" dxfId="' + index + '" priority="' + (index + 1) + '" stopIfTrue="1"><formula>' + formula + '</formula></cfRule>';
+            }).join('') + '</conditionalFormatting>';
+            var insertionPoints = ['<mergeCells','<dataValidations','<hyperlinks','<printOptions','<pageMargins','<pageSetup','<headerFooter','<ignoredErrors','<drawing','<legacyDrawing','<tableParts','<extLst','</worksheet>'];
+            var insertionIndex = -1;
+            insertionPoints.some(function(marker) {
+                var found = sheetXml.indexOf(marker);
+                if (found >= 0) { insertionIndex = found; return true; }
+                return false;
+            });
+            if (insertionIndex < 0) throw new Error('히트맵 조건부 서식 삽입 위치를 찾을 수 없습니다.');
+            sheetXml = sheetXml.slice(0, insertionIndex) + conditionalFormatting + sheetXml.slice(insertionIndex);
+            chartExportSetPackageFile(packageFile, 'xl/worksheets/sheet2.xml', sheetXml);
+        }
+        function buildChartDonutCenterShape(spec) {
+            if (!spec || spec.nativeKind !== 'doughnut' || !spec.centerLabel) return '';
+            return '<xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>1350000</xdr:colOff><xdr:row>6</xdr:row><xdr:rowOff>200000</xdr:rowOff></xdr:from><xdr:ext cx="1600000" cy="850000"/><xdr:sp macro="" textlink=""><xdr:nvSpPr><xdr:cNvPr id="3" name="도넛 중앙 실제 PO 라벨"/><xdr:cNvSpPr txBox="1"/></xdr:nvSpPr><xdr:spPr><a:xfrm><a:off x="1350000" y="1125000"/><a:ext cx="1600000" cy="850000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></xdr:spPr><xdr:txBody><a:bodyPr wrap="square" anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="ko-KR" sz="1000" b="1"><a:solidFill><a:srgbClr val="64748B"/></a:solidFill></a:rPr><a:t>' + chartExportXml(spec.centerLabel) + '</a:t></a:r><a:endParaRPr lang="ko-KR" sz="1000"/></a:p><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="ko-KR" sz="1400" b="1"><a:solidFill><a:srgbClr val="0F172A"/></a:solidFill></a:rPr><a:t>' + chartExportXml(spec.centerValueText || '') + '</a:t></a:r><a:endParaRPr lang="ko-KR" sz="1400"/></a:p></xdr:txBody></xdr:sp><xdr:clientData/></xdr:oneCellAnchor>';
+        }
+        function buildChartDrawingXml(spec) {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><xdr:twoCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>2</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>9</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>18</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="2" name="수장작업 비교 차트"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>' + buildChartDonutCenterShape(spec) + '</xdr:wsDr>';
+        }
+        function buildChartImageDrawingXml(png) {
+            var widthEmu = Math.max(1, png.width) * 9525;
+            var heightEmu = Math.max(1, png.height) * 9525;
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>2</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="' + widthEmu + '" cy="' + heightEmu + '"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="3" name="웹 브라우저 화면 원본"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + widthEmu + '" cy="' + heightEmu + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:ln><a:noFill/></a:ln></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor></xdr:wsDr>';
+        }
+        function patchChartExportPackage(baseBytes, spec, png) {
+            if (!window.XLSX.CFB || !window.XLSX.CFB.utils) throw new Error('XLSX ZIP 런타임을 사용할 수 없습니다.');
+            var packageFile = window.XLSX.CFB.read(baseBytes, { type:'array' });
+            var contentTypes = chartExportPackageText(packageFile, '[Content_Types].xml');
+            var additions = '';
+            if (contentTypes.indexOf('Extension="png"') < 0) additions += '<Default Extension="png" ContentType="image/png"/>';
+            additions += '<Override PartName="/xl/drawings/drawing2.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>';
+            additions += '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/><Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>';
+            contentTypes = chartExportAppendBefore(contentTypes, '</Types>', additions);
+            chartExportSetPackageFile(packageFile, '[Content_Types].xml', contentTypes);
+            patchChartExportDataStyles(packageFile, spec);
+            if (spec.isHeatmap || spec.nativeKind === 'heatmap') patchChartExportHeatmapSheet(packageFile, spec);
+            if (spec.isTable) patchChartExportTableSheet(packageFile, spec);
+            var workbookXml = chartExportPackageText(packageFile, 'xl/workbook.xml');
+            if (workbookXml.indexOf('<calcPr') < 0) workbookXml = chartExportAppendBefore(workbookXml, '</workbook>', '<calcPr calcId="191029" calcMode="auto" fullCalcOnLoad="1" forceFullCalc="1"/>');
+            chartExportSetPackageFile(packageFile, 'xl/workbook.xml', workbookXml);
+            var isTableOrHeatmap = !!(spec.isTable || spec.isHeatmap || spec.nativeKind === 'heatmap');
+            var chartSheet = chartExportPackageText(packageFile, 'xl/worksheets/sheet2.xml');
+            var imageSheet = chartExportPackageText(packageFile, 'xl/worksheets/sheet3.xml');
+            if (!isTableOrHeatmap) {
+                chartSheet = chartExportAppendBefore(chartSheet, '</worksheet>', '<drawing r:id="rId1"/>');
+                chartExportSetPackageFile(packageFile, 'xl/worksheets/sheet2.xml', chartSheet);
+            }
+            imageSheet = chartExportAppendBefore(imageSheet, '</worksheet>', '<drawing r:id="rId1"/>');
+            chartExportSetPackageFile(packageFile, 'xl/worksheets/sheet3.xml', imageSheet);
+            chartExportSetPackageFile(packageFile, 'xl/worksheets/_rels/sheet2.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>');
+            chartExportSetPackageFile(packageFile, 'xl/worksheets/_rels/sheet3.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing2.xml"/></Relationships>');
+            if (spec.nativeKind !== 'heatmap') chartExportSetPackageFile(packageFile, 'xl/drawings/drawing1.xml', buildChartDrawingXml(spec));
+            chartExportSetPackageFile(packageFile, 'xl/drawings/drawing2.xml', buildChartImageDrawingXml(png));
+            if (spec.nativeKind !== 'heatmap') chartExportSetPackageFile(packageFile, 'xl/drawings/_rels/drawing1.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/></Relationships>');
+            chartExportSetPackageFile(packageFile, 'xl/drawings/_rels/drawing2.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/></Relationships>');
+            if (spec.nativeKind !== 'heatmap') chartExportSetPackageFile(packageFile, 'xl/charts/chart1.xml', buildChartExportChartXml(spec));
+            chartExportSetPackageFile(packageFile, 'xl/media/image1.png', png.bytes);
+            return new Uint8Array(window.XLSX.CFB.write(packageFile, { type:'array', fileType:'zip', compression:true }));
+        }
+        async function exportLinkedChartWorkbook(key, trigger, options) {
+            options = options || {};
+            if (!compareState || !sourceModel) return { ok:false, reason:'closed' };
+            if (!window.XLSX || !window.XLSX.utils || !window.XLSX.CFB) throw new Error('Excel 내보내기 런타임을 확인하세요.');
+            var button = trigger && trigger.closest ? trigger.closest('[data-cost-chart-export]') : null;
+            var originalText = button ? button.textContent : '';
+            if (button) { button.disabled = true; button.textContent = '생성 중'; }
+            try {
+                var vm = buildViewModel();
+                var spec = buildChartExportSpec(vm, key);
+                if (!spec.rows.length) throw new Error('현재 선택 조건에 내보낼 차트 데이터가 없습니다.');
+                var png = await captureChartExportPng(key, button || trigger);
+                var workbook = window.XLSX.utils.book_new();
+                var dataSheet = buildChartExportDataSheet(spec);
+                var chartSheet = buildChartExportChartSheet(spec);
+                var imageSheet = window.XLSX.utils.aoa_to_sheet([[spec.title + ' · 웹 브라우저 화면 원본'],[spec.subtitle],['이 시트는 내보내기 시점의 브라우저 화면을 PNG로 보존합니다.']]);
+                imageSheet['!cols'] = [{ wch:100 }];
+                var sheet2Name = spec.isTable ? '표 (혼합형)' : '차트';
+                window.XLSX.utils.book_append_sheet(workbook, dataSheet, '연계 데이터');
+                window.XLSX.utils.book_append_sheet(workbook, chartSheet, sheet2Name);
+                window.XLSX.utils.book_append_sheet(workbook, imageSheet, '화면 원본');
+                workbook.Workbook = workbook.Workbook || {};
+                workbook.Workbook.CalcPr = { calcMode:'auto', fullCalcOnLoad:'1', forceFullCalc:'1', calcId:'191029' };
+                var baseBytes = new Uint8Array(window.XLSX.write(workbook, { bookType:'xlsx', type:'array', compression:true, cellStyles:true }));
+                var finalBytes = patchChartExportPackage(baseBytes, spec, png);
+                var result = { ok:true, key:key, spec:spec, bytes:finalBytes, png:png, filename:'수장작업_선택_비교_' + chartExportSafeFileName(spec.title) + '_' + (vm.years.join('_') || '연도미선택') + '.xlsx' };
+                window.__lastCostCompareChartExport = { ok:true, key:key, filename:result.filename, byteLength:finalBytes.length, pngWidth:png.width, pngHeight:png.height, rowCount:spec.rows.length, sheetNames:['연계 데이터','차트','화면 원본'] };
+                if (options.download === false) return result;
+                var url = URL.createObjectURL(new Blob([finalBytes], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+                var link = document.createElement('a');
+                link.href = url;
+                link.download = result.filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(function() { URL.revokeObjectURL(url); }, 1500);
+                return result;
+            } catch (error) {
+                window.__lastCostCompareChartExport = { ok:false, key:key, error:String(error && error.message || error) };
+                throw error;
+            } finally {
+                if (button) { button.disabled = false; button.textContent = originalText || '📊 xls'; }
+            }
         }
         async function exportWorkbook() {
             if (!compareState || !sourceModel) return;
@@ -145344,6 +146269,16 @@ window.openAddNewProjectModal = function(editProject) {
             if (target.closest('[data-cost-compare-close]')) { close(true); return; }
             if (target === modal) return;
             if (target.closest('[data-cost-chart-close]')) { closeChartPopout(true); return; }
+            var chartExport = target.closest('[data-cost-chart-export]');
+            if (chartExport) {
+                event.preventDefault();
+                event.stopPropagation();
+                exportLinkedChartWorkbook(chartExport.getAttribute('data-cost-chart-export') || '', chartExport).catch(function(error) {
+                    compareState.notice = '차트 Excel 생성 실패: ' + String(error && error.message || error);
+                    scheduleRender();
+                });
+                return;
+            }
             var chartOpen = target.closest('[data-cost-chart-open]');
             if (chartOpen) { openChartPopout(chartOpen.getAttribute('data-cost-chart-open') || ''); return; }
             if (target.closest('[data-cost-compare-filter-toggle]')) {
@@ -145404,10 +146339,11 @@ window.openAddNewProjectModal = function(editProject) {
         document.addEventListener('data:changed', refresh, { passive:true });
 
         window.CostYearCompare = {
-            version:'2026.07.28.5',
+            version:'2026.08.04.1',
             open:open,
             close:close,
             refresh:refresh,
+            exportChart:function(key, options) { return exportLinkedChartWorkbook(key, null, options || {}); },
             getState:function() {
                 return compareState ? {
                     years:compareState.years.slice(),
