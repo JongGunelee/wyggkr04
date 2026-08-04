@@ -2450,21 +2450,20 @@
 
         /* START: 이미지 확대 보기(Zoom) 관련 CSS */
         #imageZoomOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: rgba(0, 0, 0, 0.85);
-            z-index: 32000;
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background-color: rgba(0, 0, 0, 0.92) !important;
+            z-index: 50000 !important;
             display: none;
-            /* 평소에는 숨김 */
-            align-items: flex-start;
-            justify-content: center;
-            backdrop-filter: blur(2px);
-            padding-top: 20px;
-            overflow-y: auto;
-            box-sizing: border-box;
+            align-items: center !important;
+            justify-content: center !important;
+            backdrop-filter: blur(5px) !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
         }
 
         .zoom-editor-toolbar {
@@ -2473,19 +2472,34 @@
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 8px;
+            align-items: center;
+            gap: 6px;
             background-color: rgba(255, 255, 255, 0.98);
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 30px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            z-index: 32010;
+            z-index: 50010 !important;
             cursor: grab;
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
-            max-width: calc(100vw - 24px);
+            max-width: calc(100vw - 16px);
             flex-wrap: wrap;
             justify-content: center;
+        }
+
+        @media (max-width: 600px) {
+            .zoom-editor-toolbar {
+                bottom: 12px !important;
+                padding: 6px 10px !important;
+                gap: 4px !important;
+                max-width: 98vw !important;
+            }
+            .zoom-tool-btn {
+                padding: 5px 8px !important;
+                font-size: 12px !important;
+                gap: 3px !important;
+            }
         }
 
         .zoom-editor-toolbar.is-dragging {
@@ -2527,7 +2541,7 @@
             color: white;
             line-height: 1;
             text-shadow: 0 0 5px black;
-            z-index: 32003;
+            z-index: 50020 !important;
             user-select: none;
             background-color: rgba(0, 0, 0, 0.7);
             border-radius: 50%;
@@ -2550,20 +2564,39 @@
         }
 
         #imageZoomContent {
-            max-width: 95%;
-            max-height: calc(100vh - 40px);
-            position: relative;
-            z-index: 32001;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            position: relative !important;
+            z-index: 50001 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            transform-origin: center center;
+            will-change: transform;
+        }
+
+        #imageZoomOverlay, #imageZoomContent, #imageZoomImg, #zoomAnnotationCanvas, #zoomAnnotationsContainer {
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -webkit-user-drag: none !important;
+            touch-action: none !important;
         }
 
         #imageZoomImg {
-            max-width: 100%;
-            max-height: 100%;
-            display: block;
-            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+            max-width: 98vw !important;
+            max-height: 96vh !important;
+            width: auto !important;
+            height: auto !important;
+            object-fit: contain !important;
+            display: block !important;
+            margin: auto !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7) !important;
+            border-radius: 3px !important;
+            pointer-events: auto !important;
         }
 
         #zoomAnnotationCanvas {
@@ -3266,6 +3299,10 @@
         body.focused-editor-active .floating-panel,
         body.focused-editor-active #annotationSettingsPanel {
             z-index: 32002 !important;
+        }
+
+        body.image-zoom-active #imageZoomOverlay {
+            z-index: 50000 !important;
         }
 
         body.focused-editor-active #appContainer {
@@ -4627,6 +4664,12 @@
             <div id="zoomEditorToolbar" class="zoom-editor-toolbar" style="display: none;">
                 <button class="zoom-tool-btn" id="zoomDrawBtn" title="판서 (그리기)">🖊️ 펜</button>
                 <button class="zoom-tool-btn" id="zoomInsertTextBtn" title="텍스트 삽입">🔤 텍스트</button>
+                <div class="toolbar-divider" style="width: 1px; height: 18px; background-color: rgba(0,0,0,0.15); margin: 0 2px;"></div>
+                <button class="zoom-tool-btn" id="zoomInBtn" title="이미지 확대 (Zoom In)">🔍➕ 확대</button>
+                <button class="zoom-tool-btn" id="zoomOutBtn" title="이미지 축소 (Zoom Out)">🔍➖ 축소</button>
+                <button class="zoom-tool-btn" id="zoomResetBtn" title="원래 크기 맞춤 (100%)">🔄 100%</button>
+                <button class="zoom-tool-btn" id="zoomPanBtn" title="화면 이동 (PAN)">✋ 이동</button>
+                <div class="toolbar-divider" style="width: 1px; height: 18px; background-color: rgba(0,0,0,0.15); margin: 0 2px;"></div>
                 <button class="zoom-tool-btn" id="zoomCropBtn" title="이미지 자르기">✂️ 자르기</button>
                 <button class="zoom-tool-btn" id="zoomCloneBtn" title="이미지 복제">📋 복제</button>
                 <button class="zoom-tool-btn" id="zoomDeleteBtn" title="이미지 삭제">🗑️ 삭제</button>
@@ -6197,8 +6240,9 @@ let currentZoomingImageElement = null;
             const img = document.getElementById('imageZoomImg');
             const canvas = document.getElementById('zoomAnnotationCanvas');
             if (!img || !canvas) return;
-            const w = img.offsetWidth || img.naturalWidth || img.width || 0;
-            const h = img.offsetHeight || img.naturalHeight || img.height || 0;
+            const rect = img.getBoundingClientRect();
+            const w = rect.width || img.offsetWidth || img.clientWidth || 0;
+            const h = rect.height || img.offsetHeight || img.clientHeight || 0;
             
             const targetWidth = img.naturalWidth || img.width || w;
             const targetHeight = img.naturalHeight || img.height || h;
@@ -6235,18 +6279,83 @@ let currentZoomingImageElement = null;
             }
         }
 
+        
+        
+        let currentZoomScale = 1.0;
+        let currentPanX = 0;
+        let currentPanY = 0;
+        let isPanToolActive = false;
+        let isPanningState = false;
+        let panStartX = 0;
+        let panStartY = 0;
+        let initialPanX = 0;
+        let initialPanY = 0;
+
+        function updateImageZoomTransform(newScale = currentZoomScale, resetPan = false) {
+            if (resetPan) {
+                currentPanX = 0;
+                currentPanY = 0;
+            }
+            currentZoomScale = Math.min(Math.max(newScale, 0.3), 5.0);
+            const content = document.getElementById('imageZoomContent');
+            const overlay = document.getElementById('imageZoomOverlay');
+            if (content) {
+                content.style.transform = `translate3d(${currentPanX}px, ${currentPanY}px, 0px) scale(${currentZoomScale})`;
+                content.style.transformOrigin = 'center center';
+                content.style.transition = isPanningState ? 'none' : 'transform 0.12s cubic-bezier(0.1, 0.9, 0.2, 1.0)';
+            }
+            const resetBtn = document.getElementById('zoomResetBtn');
+            if (resetBtn) {
+                resetBtn.textContent = `🔄 ${Math.round(currentZoomScale * 100)}%`;
+            }
+            if (overlay) {
+                overlay.style.setProperty('overflow', 'hidden', 'important');
+            }
+        }
+
+        function updateImageZoomScale(newScale) {
+            updateImageZoomTransform(newScale, false);
+        }
+
+        function togglePanTool() {
+            isPanToolActive = !isPanToolActive;
+            const panBtn = document.getElementById('zoomPanBtn');
+            if (panBtn) panBtn.classList.toggle('active', isPanToolActive);
+            if (isPanToolActive && typeof isDrawingFeatureActive !== 'undefined' && isDrawingFeatureActive) {
+                if (typeof toggleDrawingFeature === 'function') toggleDrawingFeature();
+            }
+            const overlay = document.getElementById('imageZoomOverlay');
+            if (overlay) {
+                overlay.style.cursor = isPanToolActive ? 'grab' : 'default';
+            }
+        }
+
+
+
         function openImageZoom(targetImg) {
+            
             if (!targetImg || !targetImg.src) return;
             const src = targetImg.src;
             currentZoomingImageElement = targetImg;
             const overlay = document.getElementById('imageZoomOverlay');
             const img = document.getElementById('imageZoomImg');
+            if (img) {
+                img.style.width = 'auto';
+                img.style.height = 'auto';
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = 'min(80vh, calc(100vh - 110px))';
+                img.style.objectFit = 'contain';
+            }
             const zoomContainer = document.getElementById('zoomAnnotationsContainer');
             if (zoomContainer) {
                 zoomContainer.innerHTML = '';
             }
 
             if (overlay && img && src) {
+                isPanToolActive = false;
+                const panBtnEl = document.getElementById('zoomPanBtn');
+                if (panBtnEl) panBtnEl.classList.remove('active');
+                updateImageZoomTransform(1.0, true);
                 overlay.style.display = 'flex';
                 overlay.scrollTop = 0;
                 overlay.scrollLeft = 0;
@@ -6331,7 +6440,12 @@ let currentZoomingImageElement = null;
                 img.src = src;
             }
         }
+        window.openImageZoom = openImageZoom;
+        window.updateImageZoomScale = updateImageZoomScale;
+        window.updateImageZoomTransform = updateImageZoomTransform;
+        window.closeImageZoom = closeImageZoom;
         function closeImageZoom() {
+            window.closeImageZoom = closeImageZoom;
             const overlay = document.getElementById('imageZoomOverlay');
             const img = document.getElementById('imageZoomImg');
 
@@ -13486,6 +13600,83 @@ document.addEventListener('focusin', e => {
             
             const zoomDrawBtn = document.getElementById('zoomDrawBtn');
             if (zoomDrawBtn) zoomDrawBtn.addEventListener('click', toggleDrawingFeature);
+
+            const zoomInBtn = document.getElementById('zoomInBtn');
+            if (zoomInBtn) zoomInBtn.addEventListener('click', () => updateImageZoomScale(currentZoomScale + 0.25));
+
+            const zoomOutBtn = document.getElementById('zoomOutBtn');
+            if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => updateImageZoomScale(currentZoomScale - 0.25));
+
+            const zoomResetBtn = document.getElementById('zoomResetBtn');
+            if (zoomResetBtn) zoomResetBtn.addEventListener('click', () => updateImageZoomTransform(1.0, true));
+
+            const zoomPanBtn = document.getElementById('zoomPanBtn');
+            if (zoomPanBtn) zoomPanBtn.addEventListener('click', togglePanTool);
+
+            const zoomOverlayEl = document.getElementById('imageZoomOverlay');
+            if (zoomOverlayEl && !zoomOverlayEl.dataset.panBound) {
+                zoomOverlayEl.dataset.panBound = 'true';
+
+                zoomOverlayEl.addEventListener('wheel', (e) => {
+                    if (zoomOverlayEl.style.display === 'flex') {
+                        e.preventDefault();
+                        const delta = e.deltaY < 0 ? 0.15 : -0.15;
+                        updateImageZoomScale(currentZoomScale + delta);
+                    }
+                }, { passive: false });
+
+                const handlePanStart = (e) => {
+                    const target = e.target;
+                    if (target && (target.closest('#zoomEditorToolbar') || target.closest('.close-image-zoom-btn'))) return;
+                    // 확대 배율 과 관계 없이 (100% 미만/동일/이상 전 배율 ALL SCALE) ✋ 손 드래그 PAN 이동 100% 허용
+                    if (isPanToolActive || currentZoomScale > 0) {
+                        if (e.cancelable) e.preventDefault();
+                        isPanningState = true;
+                        const pt = AppLayers.ui.getClientPoint(e);
+                        panStartX = pt.x;
+                        panStartY = pt.y;
+                        initialPanX = currentPanX;
+                        initialPanY = currentPanY;
+                        zoomOverlayEl.style.cursor = 'grabbing';
+                        if (zoomOverlayEl.setPointerCapture && e.pointerId !== undefined) {
+                            try { zoomOverlayEl.setPointerCapture(e.pointerId); } catch(ex) {}
+                        }
+                    }
+                };
+
+                const handlePanMove = (e) => {
+                    if (!isPanningState) return;
+                    if (e.cancelable) e.preventDefault();
+                    const pt = AppLayers.ui.getClientPoint(e);
+                    const deltaX = pt.x - panStartX;
+                    const deltaY = pt.y - panStartY;
+                    currentPanX = initialPanX + deltaX;
+                    currentPanY = initialPanY + deltaY;
+                    updateImageZoomTransform(currentZoomScale, false);
+                };
+
+                const handlePanEnd = (e) => {
+                    if (!isPanningState) return;
+                    isPanningState = false;
+                    zoomOverlayEl.style.cursor = isPanToolActive ? 'grab' : 'default';
+                    if (e && zoomOverlayEl.releasePointerCapture && e.pointerId !== undefined) {
+                        try { zoomOverlayEl.releasePointerCapture(e.pointerId); } catch(ex) {}
+                    }
+                };
+
+                // 단일 통합 Pointer Events (마우스 + 터치)
+                zoomOverlayEl.addEventListener('pointerdown', handlePanStart, { passive: false });
+                zoomOverlayEl.addEventListener('pointermove', handlePanMove, { passive: false });
+                zoomOverlayEl.addEventListener('pointerup', handlePanEnd, { passive: false });
+                zoomOverlayEl.addEventListener('pointercancel', handlePanEnd, { passive: false });
+
+                // 이미지 드래그 예방
+                const zoomImgEl = document.getElementById('imageZoomImg');
+                if (zoomImgEl) {
+                    zoomImgEl.ondragstart = () => false;
+                }
+            }
+
             
             const zoomCropBtn = document.getElementById('zoomCropBtn');
             if (zoomCropBtn) zoomCropBtn.addEventListener('click', () => {
