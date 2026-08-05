@@ -1593,6 +1593,8 @@
         .zoom-editor-toolbar.collapsed .zoom-toolbar-head {
             width: 44px;
             height: 44px;
+            padding: 0;
+            margin: 0;
         }
 
         .zoom-toolbar-drag-handle {
@@ -1659,6 +1661,17 @@
         .zoom-tool-btn.active {
             background-color: #007bff;
             color: white;
+        }
+
+        .zoom-window-selection-box {
+            position: fixed;
+            display: none;
+            z-index: 50008;
+            border: 2px solid #38bdf8;
+            background: rgba(14, 165, 233, 0.18);
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.22), 0 0 14px rgba(56, 189, 248, 0.65);
+            pointer-events: none;
+            border-radius: 4px;
         }
 
         .close-image-zoom-btn {
@@ -2017,10 +2030,13 @@
         #annotationSettingsPanel.collapsed .anno-panel-header {
             width: 44px;
             height: 44px;
+            min-width: 44px;
+            min-height: 44px;
             padding: 0;
             margin: 0;
             border: 0;
             justify-content: center;
+            align-items: center;
         }
 
         #annotationSettingsPanel.collapsed > :not(.anno-panel-header),
@@ -3103,6 +3119,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: relative;
         }
 
         #focusedEditorHeader,
@@ -3116,10 +3133,63 @@
             flex-shrink: 0;
         }
 
+        #focusedEditorHeader {
+            padding-left: 50px;
+        }
+
         #focusedEditorFooter {
             border-top: 1px solid #d9e0ea;
             border-bottom: none;
             justify-content: flex-end;
+        }
+
+        #focusedEditorMasterToggle {
+            position: absolute;
+            top: 10px;
+            left: 12px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #0f172a;
+            color: #fff;
+            border: 2px solid #fff;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+            z-index: 32010;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+
+        #focusedEditorMasterToggle:hover {
+            background: #2563eb;
+            transform: scale(1.08);
+        }
+
+        #focusedEditorMasterToggle:active {
+            transform: scale(0.95);
+        }
+
+        #focusedEditorDialog.focused-editor-chrome-hidden #focusedEditorHeader,
+        #focusedEditorDialog.focused-editor-chrome-hidden #focusedEditorFooter {
+            display: none;
+        }
+
+        #focusedEditorDialog.focused-editor-chrome-hidden #focusedEditorBody {
+            padding: 0;
+        }
+
+        #focusedEditorDialog.focused-editor-chrome-hidden #focusedEditorSurface {
+            min-height: 100%;
+            height: 100%;
+            border: 0;
+            border-radius: 0;
+            padding: 24px;
         }
 
         .focused-editor-exit-notice {
@@ -5066,6 +5136,7 @@
         <div id="focusedEditorOverlay" aria-hidden="true">
             <div id="focusedEditorDialog" role="dialog" aria-modal="true" aria-labelledby="focusedEditorTitle"
                 aria-describedby="focusedEditorExitNotice">
+                <button type="button" id="focusedEditorMasterToggle" title="전체 헤더 숨기기 (-)">−</button>
                 <div id="focusedEditorHeader">
                     <span id="focusedEditorTitle">입력 내용 확대 편집</span>
                     <div style="flex-grow: 1; display: flex; justify-content: flex-end; margin-right: 15px; gap: 8px;">
@@ -5208,6 +5279,8 @@
                     <button class="zoom-tool-btn" id="zoomInBtn" title="확대">🔍➕ 확대</button>
                     <button class="zoom-tool-btn" id="zoomOutBtn" title="축소">🔍➖ 축소</button>
                     <button class="zoom-tool-btn" id="zoomResetBtn" title="원본 100%">🔄 100%</button>
+                    <button class="zoom-tool-btn" id="zoomWindowBtn" title="지정한 창 영역만 확대">▣ Window</button>
+                    <button class="zoom-tool-btn" id="zoomFitBtn" title="초기 화면으로 복원">⛶ Fit</button>
                     <button class="zoom-tool-btn" id="zoomPanBtn" title="화면 이동">✋ 이동</button>
                     <button class="zoom-tool-btn" id="zoomCropBtn" title="이미지 자르기">✂️ 자르기</button>
                     <button class="zoom-tool-btn" id="zoomCloneBtn" title="이미지 복제">📋 복제</button>
@@ -5219,6 +5292,7 @@
                 <canvas id="zoomAnnotationCanvas"></canvas>
                 <div id="zoomAnnotationsContainer"></div>
             </div>
+            <div id="zoomWindowSelectionBox" class="zoom-window-selection-box" aria-hidden="true"></div>
         </div>
         <!-- END: 이미지 확대 보기(Zoom)를 위한 HTML 구조 -->
 
@@ -5496,6 +5570,15 @@
                         focusedEditorButton.removeAttribute('style');
                         focusedEditorButton.removeAttribute('data-drag-initialized');
                         focusedEditorButton.classList.remove('is-dragging');
+                    }
+
+                    const focusedEditorDialog = clonedDoc.getElementById('focusedEditorDialog');
+                    if (focusedEditorDialog) focusedEditorDialog.classList.remove('focused-editor-chrome-hidden');
+                    const focusedEditorMasterToggle = clonedDoc.getElementById('focusedEditorMasterToggle');
+                    if (focusedEditorMasterToggle) {
+                        focusedEditorMasterToggle.textContent = '−';
+                        focusedEditorMasterToggle.setAttribute('title', '전체 헤더 숨기기 (-)');
+                        focusedEditorMasterToggle.setAttribute('aria-pressed', 'false');
                     }
 
                     // 이벤트 리스너 연결 여부는 런타임 상태이므로 저장 HTML에 직렬화하지 않는다.
@@ -8848,6 +8931,15 @@ function hideTextFormatToolbar() {
                 clonedFocusedEditorButton.classList.remove('is-dragging');
             }
 
+            const clonedFocusedEditorDialog = clonedDoc.getElementById('focusedEditorDialog');
+            if (clonedFocusedEditorDialog) clonedFocusedEditorDialog.classList.remove('focused-editor-chrome-hidden');
+            const clonedFocusedEditorMasterToggle = clonedDoc.getElementById('focusedEditorMasterToggle');
+            if (clonedFocusedEditorMasterToggle) {
+                clonedFocusedEditorMasterToggle.textContent = '−';
+                clonedFocusedEditorMasterToggle.setAttribute('title', '전체 헤더 숨기기 (-)');
+                clonedFocusedEditorMasterToggle.setAttribute('aria-pressed', 'false');
+            }
+
             // (11) 드래그 초기화 상태 제거 → 재로드 시 이벤트 리스너 정상 재적용
             clonedDoc.querySelectorAll('[data-draggable-initialized]').forEach(function(el) { el.removeAttribute('data-draggable-initialized'); });
 
@@ -11931,6 +12023,44 @@ function ensureImageWrapperStructure(wrapper) {
             container.querySelectorAll('script').forEach(el => el.remove());
         }
 
+        const FocusedEditorHeaderToggleFeature = (() => {
+            let isHeadersVisible = true;
+            let isBound = false;
+
+            function getElements() {
+                return {
+                    dialog: document.getElementById('focusedEditorDialog'),
+                    toggle: document.getElementById('focusedEditorMasterToggle'),
+                    surface: document.getElementById('focusedEditorSurface')
+                };
+            }
+
+            function render(nextVisible = isHeadersVisible) {
+                const { dialog, toggle, surface } = getElements();
+                isHeadersVisible = nextVisible;
+                if (dialog) dialog.classList.toggle('focused-editor-chrome-hidden', !isHeadersVisible);
+                if (toggle) {
+                    toggle.textContent = isHeadersVisible ? '−' : '+';
+                    toggle.setAttribute('title', isHeadersVisible ? '전체 헤더 숨기기 (-)' : '전체 헤더 보이기 (+)');
+                    toggle.setAttribute('aria-pressed', String(!isHeadersVisible));
+                }
+                if (surface) requestAnimationFrame(() => surface.focus());
+            }
+
+            function bind() {
+                const { toggle } = getElements();
+                if (!toggle || isBound) return;
+                toggle.addEventListener('click', () => render(!isHeadersVisible));
+                isBound = true;
+            }
+
+            function reset() {
+                render(true);
+            }
+
+            return Object.freeze({ bind, reset, render });
+        })();
+
         function openFocusedEditor(target = focusedEditorTarget) {
             cleanCurrentDocumentOfDuplicateToolbars();
 
@@ -11965,6 +12095,7 @@ function ensureImageWrapperStructure(wrapper) {
             overlay.classList.add('active');
             overlay.setAttribute('aria-hidden', 'false');
             document.body.classList.add('focused-editor-active');
+            FocusedEditorHeaderToggleFeature.reset();
             if (menuPanel && menuPanel.style.display === 'flex') {
                 menuPanel.style.zIndex = '32000';
             }
@@ -12016,6 +12147,7 @@ function ensureImageWrapperStructure(wrapper) {
                 menuPanel.style.zIndex = '';
             }
             surface.innerHTML = '';
+            FocusedEditorHeaderToggleFeature.reset();
             if (focusedEditorTarget && document.contains(focusedEditorTarget)) {
                 focusedEditorTarget.focus();
                 showFocusedEditorButton(focusedEditorTarget);
@@ -12054,6 +12186,7 @@ function ensureImageWrapperStructure(wrapper) {
             }
             closeBtn?.addEventListener('click', saveAndCloseFocusedEditor);
             applyBtn?.addEventListener('click', saveAndCloseFocusedEditor);
+            FocusedEditorHeaderToggleFeature.bind();
 
             // --- START: 확대 편집 창 이미지 삽입 로직 ---
             const focusedInsertImageBtn = document.getElementById('focusedInsertImageBtn');
@@ -12848,6 +12981,10 @@ function ensureImageWrapperStructure(wrapper) {
         let panStartY = 0;
         let initialPanX = 0;
         let initialPanY = 0;
+        let isZoomWindowModeActive = false;
+        let isZoomWindowSelecting = false;
+        let zoomWindowStartX = 0;
+        let zoomWindowStartY = 0;
 
         function updateImageZoomTransform(newScale = currentZoomScale, resetPan = false) {
             if (resetPan) {
@@ -12875,8 +13012,52 @@ function ensureImageWrapperStructure(wrapper) {
             updateImageZoomTransform(newScale, false);
         }
 
+        function setZoomWindowMode(active) {
+            isZoomWindowModeActive = !!active;
+            isZoomWindowSelecting = false;
+            const btn = document.getElementById('zoomWindowBtn');
+            const overlay = document.getElementById('imageZoomOverlay');
+            const box = document.getElementById('zoomWindowSelectionBox');
+            if (btn) btn.classList.toggle('active', isZoomWindowModeActive);
+            if (box) box.style.display = 'none';
+            if (isZoomWindowModeActive) {
+                deactivateZoomDrawingMode(true);
+                isPanToolActive = false;
+                document.getElementById('zoomPanBtn')?.classList.remove('active');
+            }
+            if (overlay) overlay.style.cursor = isZoomWindowModeActive ? 'crosshair' : (isPanToolActive ? 'grab' : 'default');
+        }
+
+        function zoomFitImage() {
+            setZoomWindowMode(false);
+            deactivateZoomDrawingMode(true);
+            isPanToolActive = false;
+            isPanningState = false;
+            document.getElementById('zoomPanBtn')?.classList.remove('active');
+            updateImageZoomTransform(1.0, true);
+        }
+
+        function applyZoomWindowToRect(rect) {
+            const overlay = document.getElementById('imageZoomOverlay');
+            const content = document.getElementById('imageZoomContent');
+            if (!overlay || !content || rect.width < 12 || rect.height < 12) return;
+            const overlayRect = overlay.getBoundingClientRect();
+            const contentRect = content.getBoundingClientRect();
+            const selectedCenterX = rect.left + rect.width / 2;
+            const selectedCenterY = rect.top + rect.height / 2;
+            const contentCenterX = contentRect.left + contentRect.width / 2;
+            const contentCenterY = contentRect.top + contentRect.height / 2;
+            const fitScale = Math.min((overlayRect.width * 0.92) / rect.width, (overlayRect.height * 0.88) / rect.height);
+            const nextScale = Math.min(Math.max(currentZoomScale * fitScale, 0.3), 5.0);
+            const ratio = nextScale / currentZoomScale;
+            currentPanX = -((selectedCenterX - contentCenterX) * ratio);
+            currentPanY = -((selectedCenterY - contentCenterY) * ratio);
+            updateImageZoomTransform(nextScale, false);
+        }
+
         function togglePanTool() {
             deactivateZoomDrawingMode(true);
+            setZoomWindowMode(false);
             isPanToolActive = !isPanToolActive;
             const panBtn = document.getElementById('zoomPanBtn');
             const overlayEl = document.getElementById('imageZoomOverlay');
@@ -12972,6 +13153,7 @@ function ensureImageWrapperStructure(wrapper) {
 
                 updateImageZoomTransform(1.0, true);
                 isPanToolActive = false;
+                setZoomWindowMode(false);
                 const panBtn = document.getElementById('zoomPanBtn');
                 if (panBtn) panBtn.classList.remove('active');
                 overlay.style.cursor = 'default';
@@ -13132,6 +13314,7 @@ function ensureImageWrapperStructure(wrapper) {
                 zoomToolbar.style.display = 'none';
                 setZoomToolbarCollapsed(false);
             }
+            setZoomWindowMode(false);
             if (img) img.removeAttribute('src');
             currentZoomingImageElement = null;
         }
@@ -13141,6 +13324,8 @@ function ensureImageWrapperStructure(wrapper) {
             const zoomInBtn = document.getElementById('zoomInBtn');
             const zoomOutBtn = document.getElementById('zoomOutBtn');
             const zoomResetBtn = document.getElementById('zoomResetBtn');
+            const zoomWindowBtn = document.getElementById('zoomWindowBtn');
+            const zoomFitBtn = document.getElementById('zoomFitBtn');
             const zoomPanBtn = document.getElementById('zoomPanBtn');
 
             if (zoomInBtn) zoomInBtn.addEventListener('click', () => {
@@ -13155,6 +13340,8 @@ function ensureImageWrapperStructure(wrapper) {
                 deactivateZoomDrawingMode(true);
                 updateImageZoomTransform(1.0, true);
             });
+            if (zoomWindowBtn) zoomWindowBtn.addEventListener('click', () => setZoomWindowMode(!isZoomWindowModeActive));
+            if (zoomFitBtn) zoomFitBtn.addEventListener('click', zoomFitImage);
             if (zoomPanBtn) zoomPanBtn.addEventListener('click', togglePanTool);
 
             function makeAnnoPanelDraggableAndResizable() {
@@ -13166,11 +13353,25 @@ function ensureImageWrapperStructure(wrapper) {
                 const header = document.getElementById('annoPanelHeader');
                 const collapseBtn = document.getElementById('annotationPanelCollapseToggle');
                 const resizeHandles = Array.from(panel.querySelectorAll('.anno-panel-resize-handle'));
+                let collapseHandledOnPointerUp = false;
 
                 if (collapseBtn) {
+                    const handleCollapseRelease = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (collapseHandledOnPointerUp) return;
+                        if (panel.dataset.dragMoved === 'true') return;
+                        collapseHandledOnPointerUp = true;
+                        setAnnotationPanelCollapsed(!panel.classList.contains('collapsed'));
+                        setTimeout(() => { collapseHandledOnPointerUp = false; }, 250);
+                    };
+                    collapseBtn.addEventListener('pointerup', handleCollapseRelease, { passive: false });
+                    collapseBtn.addEventListener('mouseup', handleCollapseRelease, { passive: false });
+                    collapseBtn.addEventListener('touchend', handleCollapseRelease, { passive: false });
                     collapseBtn.addEventListener('click', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        if (collapseHandledOnPointerUp) return;
                         if (panel.dataset.dragMoved === 'true') return;
                         setAnnotationPanelCollapsed(!panel.classList.contains('collapsed'));
                     });
@@ -13180,18 +13381,20 @@ function ensureImageWrapperStructure(wrapper) {
                 let startX = 0, startY = 0;
                 let initialLeft = 0, initialTop = 0;
                 let pointerId = null;
+                let dragStartedFromCollapse = false;
 
                 const onDragStart = (e) => {
                     const isBubble = e.target.closest('#annotationPanelCollapseToggle');
                     const isHeaderDrag = e.target.closest('#annoPanelDragHandle') || e.target.closest('#annoPanelHeader');
                     if (!isBubble && !isHeaderDrag) return;
                     if (!isBubble && (e.target.closest('button') || e.target.closest('input') || e.target.closest('label') || e.target.closest('#closeAnnotationSettingsBtn') || e.target.closest('.anno-panel-resize-handle'))) return;
-                    if (e.cancelable) e.preventDefault();
+                    if (!isBubble && e.cancelable) e.preventDefault();
                     e.stopPropagation();
                     AppLayers.ui.clearTextSelection();
 
                     isDragging = true;
                     panel.dataset.dragMoved = 'false';
+                    dragStartedFromCollapse = !!isBubble;
                     const rect = panel.getBoundingClientRect();
                     const pt = AppLayers.ui.getClientPoint(e);
 
@@ -13253,6 +13456,12 @@ function ensureImageWrapperStructure(wrapper) {
                     document.removeEventListener('touchend', onDragEnd, true);
                     window.removeEventListener('mouseup', onDragEnd, true);
                     window.removeEventListener('blur', onDragEnd);
+                    if (dragStartedFromCollapse && panel.dataset.dragMoved !== 'true') {
+                        collapseHandledOnPointerUp = true;
+                        setAnnotationPanelCollapsed(!panel.classList.contains('collapsed'));
+                        setTimeout(() => { collapseHandledOnPointerUp = false; }, 250);
+                    }
+                    dragStartedFromCollapse = false;
                     setTimeout(() => { panel.dataset.dragMoved = 'false'; }, 0);
                 };
 
@@ -13354,6 +13563,38 @@ function ensureImageWrapperStructure(wrapper) {
                 });
             }
 
+            function bindAnnotationCollapseToggleCapture() {
+                const collapseBtn = document.getElementById('annotationPanelCollapseToggle');
+                const panel = document.getElementById('annotationSettingsPanel');
+                if (!collapseBtn || !panel || collapseBtn.dataset.captureToggleBound === 'true') return;
+                collapseBtn.dataset.captureToggleBound = 'true';
+
+                const handleRelease = (event) => {
+                    if (!event.target.closest('#annotationPanelCollapseToggle')) return;
+                    if (event.cancelable) event.preventDefault();
+                    event.stopImmediatePropagation();
+                    if (panel.dataset.dragMoved === 'true') return;
+                    if (collapseBtn.dataset.releaseHandled === 'true') return;
+                    collapseBtn.dataset.releaseHandled = 'true';
+                    setAnnotationPanelCollapsed(!panel.classList.contains('collapsed'));
+                    setTimeout(() => { collapseBtn.dataset.releaseHandled = 'false'; }, 250);
+                };
+
+                const handleClick = (event) => {
+                    if (!event.target.closest('#annotationPanelCollapseToggle')) return;
+                    if (event.cancelable) event.preventDefault();
+                    event.stopImmediatePropagation();
+                    if (collapseBtn.dataset.releaseHandled === 'true') return;
+                    if (panel.dataset.dragMoved === 'true') return;
+                    setAnnotationPanelCollapsed(!panel.classList.contains('collapsed'));
+                };
+
+                document.addEventListener('pointerup', handleRelease, true);
+                document.addEventListener('mouseup', handleRelease, true);
+                document.addEventListener('touchend', handleRelease, true);
+                document.addEventListener('click', handleClick, true);
+            }
+
         function bindMobilePinchZoomEvents(zoomOverlayEl) {
             if (!zoomOverlayEl) zoomOverlayEl = document.getElementById('imageZoomOverlay');
             if (!zoomOverlayEl) return;
@@ -13420,9 +13661,36 @@ function ensureImageWrapperStructure(wrapper) {
                     return { x: src.clientX, y: src.clientY };
                 };
 
+                const drawZoomWindowSelection = (currentX, currentY) => {
+                    const box = document.getElementById('zoomWindowSelectionBox');
+                    if (!box) return;
+                    const left = Math.min(zoomWindowStartX, currentX);
+                    const top = Math.min(zoomWindowStartY, currentY);
+                    const width = Math.abs(currentX - zoomWindowStartX);
+                    const height = Math.abs(currentY - zoomWindowStartY);
+                    box.style.left = `${left}px`;
+                    box.style.top = `${top}px`;
+                    box.style.width = `${width}px`;
+                    box.style.height = `${height}px`;
+                    box.style.display = 'block';
+                };
+
                 const handlePanStart = (e) => {
                     const target = e.target;
                     if (target && (target.closest('#zoomEditorToolbar') || target.closest('.close-image-zoom-btn') || target.closest('#annotationSettingsPanel'))) return;
+                    if (isZoomWindowModeActive) {
+                        if (e.cancelable) e.preventDefault();
+                        e.stopPropagation();
+                        const pt = getClientPoint(e);
+                        zoomWindowStartX = pt.x;
+                        zoomWindowStartY = pt.y;
+                        isZoomWindowSelecting = true;
+                        drawZoomWindowSelection(pt.x, pt.y);
+                        if (zoomOverlayEl.setPointerCapture && e.pointerId !== undefined) {
+                            try { zoomOverlayEl.setPointerCapture(e.pointerId); } catch(ex) {}
+                        }
+                        return;
+                    }
                     // 판서(그리기) 모드 활성화 시 PAN 동작 차단 (판서 캔버스 그리기 우선)
                     if (typeof isDrawingFeatureActive !== 'undefined' && isDrawingFeatureActive) return;
 
@@ -13443,6 +13711,13 @@ function ensureImageWrapperStructure(wrapper) {
                 };
 
                 const handlePanMove = (e) => {
+                    if (isZoomWindowSelecting) {
+                        if (e.cancelable) e.preventDefault();
+                        e.stopPropagation();
+                        const pt = getClientPoint(e);
+                        drawZoomWindowSelection(pt.x, pt.y);
+                        return;
+                    }
                     if (!isPanningState) return;
                     if (e.cancelable) e.preventDefault();
                     const pt = getClientPoint(e);
@@ -13454,6 +13729,28 @@ function ensureImageWrapperStructure(wrapper) {
                 };
 
                 const handlePanEnd = (e) => {
+                    if (isZoomWindowSelecting) {
+                        if (e && e.cancelable) e.preventDefault();
+                        if (e) e.stopPropagation();
+                        const pt = e ? getClientPoint(e) : { x: zoomWindowStartX, y: zoomWindowStartY };
+                        const rect = {
+                            left: Math.min(zoomWindowStartX, pt.x),
+                            top: Math.min(zoomWindowStartY, pt.y),
+                            width: Math.abs(pt.x - zoomWindowStartX),
+                            height: Math.abs(pt.y - zoomWindowStartY)
+                        };
+                        isZoomWindowSelecting = false;
+                        const box = document.getElementById('zoomWindowSelectionBox');
+                        if (box) box.style.display = 'none';
+                        if (zoomOverlayEl.releasePointerCapture && e?.pointerId !== undefined) {
+                            try { zoomOverlayEl.releasePointerCapture(e.pointerId); } catch(ex) {}
+                        }
+                        if (rect.width >= 12 && rect.height >= 12) {
+                            applyZoomWindowToRect(rect);
+                            setZoomWindowMode(false);
+                        }
+                        return;
+                    }
                     if (!isPanningState) return;
                     isPanningState = false;
                     zoomOverlayEl.style.cursor = isPanToolActive ? 'grab' : 'default';
@@ -13466,6 +13763,12 @@ function ensureImageWrapperStructure(wrapper) {
                 zoomOverlayEl.addEventListener('pointermove', handlePanMove, { passive: false });
                 zoomOverlayEl.addEventListener('pointerup', handlePanEnd, { passive: false });
                 zoomOverlayEl.addEventListener('pointercancel', handlePanEnd, { passive: false });
+                if (!window.PointerEvent) {
+                    zoomOverlayEl.addEventListener('touchstart', handlePanStart, { passive: false });
+                    zoomOverlayEl.addEventListener('touchmove', handlePanMove, { passive: false });
+                    zoomOverlayEl.addEventListener('touchend', handlePanEnd, { passive: false });
+                    zoomOverlayEl.addEventListener('touchcancel', handlePanEnd, { passive: false });
+                }
 
                 const zoomImgEl = document.getElementById('imageZoomImg');
                 if (zoomImgEl) {
@@ -13475,6 +13778,7 @@ function ensureImageWrapperStructure(wrapper) {
             bindZoomOverlayPanEvents(document.getElementById('imageZoomOverlay'));
             bindMobilePinchZoomEvents(document.getElementById('imageZoomOverlay'));
             makeAnnoPanelDraggableAndResizable();
+            bindAnnotationCollapseToggleCapture();
 
             const zoomEditorToolbar = document.getElementById('zoomEditorToolbar');
             const zoomToolbarDragHandle = document.getElementById('zoomToolbarDragHandle');
@@ -13496,7 +13800,7 @@ function ensureImageWrapperStructure(wrapper) {
             function onZoomToolbarDragStart(e) {
                 if (!zoomEditorToolbar) return;
                 if (!e.target.closest('#zoomToolbarDragHandle') && !e.target.closest('#zoomToolbarCollapseToggle')) return;
-                e.preventDefault();
+                if (!e.target.closest('#zoomToolbarCollapseToggle')) e.preventDefault();
                 e.stopPropagation();
                 AppLayers.ui.clearTextSelection();
                 zoomToolbarSuppressOverlayClickUntil = Date.now() + 500;

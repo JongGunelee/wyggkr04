@@ -2708,6 +2708,17 @@
             color: white;
         }
 
+        .zoom-window-selection-box {
+            position: fixed;
+            display: none;
+            z-index: 50008;
+            border: 2px solid #38bdf8;
+            background: rgba(14, 165, 233, 0.18);
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.22), 0 0 14px rgba(56, 189, 248, 0.65);
+            pointer-events: none;
+            border-radius: 4px;
+        }
+
         .close-image-zoom-btn {
             position: fixed;
             top: 10px;
@@ -3533,6 +3544,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: relative;
         }
 
         #focusedEditorHeader,
@@ -3546,10 +3558,67 @@
             flex-shrink: 0;
         }
 
+        #focusedEditorHeader {
+            padding-left: 50px;
+        }
+
         #focusedEditorFooter {
             border-top: 1px solid #d9e0ea;
             border-bottom: none;
             justify-content: flex-end;
+        }
+
+        #focusedEditorMasterToggle {
+            position: absolute;
+            top: 10px;
+            left: 12px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #0f172a;
+            color: #fff;
+            border: 2px solid #fff;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+            z-index: 32010;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+
+        #focusedEditorMasterToggle:hover {
+            background: #2563eb;
+            transform: scale(1.08);
+        }
+
+        #focusedEditorMasterToggle:active {
+            transform: scale(0.95);
+        }
+
+        #focusedEditorDialog.focused-editor-chrome-hidden #focusedEditorHeader,
+        #focusedEditorDialog.focused-editor-chrome-hidden #focusedEditorFooter {
+            display: none;
+        }
+
+        #focusedEditorDialog.focused-editor-chrome-hidden #focusedEditorBody {
+            padding: 0;
+        }
+
+        #focusedEditorDialog.focused-editor-chrome-hidden #focusedEditorSurface {
+            min-height: 100% !important;
+            width: 100% !important;
+            min-width: 100% !important;
+            height: 100%;
+            border: 0 !important;
+            border-radius: 0 !important;
+            padding: 24px !important;
+            margin: 0 !important;
+            display: block !important;
         }
 
         #focusedEditorFlowActions {
@@ -4819,6 +4888,7 @@
 
         <div id="focusedEditorOverlay" aria-hidden="true">
             <div id="focusedEditorDialog" role="dialog" aria-modal="true" aria-labelledby="focusedEditorTitle" aria-describedby="focusedEditorExitNotice">
+                <button type="button" id="focusedEditorMasterToggle" title="전체 헤더 숨기기 (-)">−</button>
                 <div id="focusedEditorHeader">
                     <span id="focusedEditorTitle">입력 내용 확대 편집</span>
                     <button type="button" id="focusedEditorCloseBtn" title="편집 내용 저장 후 닫기">닫기</button>
@@ -4873,6 +4943,8 @@
                 <button class="zoom-tool-btn" id="zoomInBtn" title="이미지 확대 (Zoom In)">🔍➕ 확대</button>
                 <button class="zoom-tool-btn" id="zoomOutBtn" title="이미지 축소 (Zoom Out)">🔍➖ 축소</button>
                 <button class="zoom-tool-btn" id="zoomResetBtn" title="원래 크기 맞춤 (100%)">🔄 100%</button>
+                <button class="zoom-tool-btn" id="zoomWindowBtn" title="지정한 창 영역만 확대">▣ Window</button>
+                <button class="zoom-tool-btn" id="zoomFitBtn" title="초기 화면으로 복원">⛶ Fit</button>
                 <button class="zoom-tool-btn" id="zoomPanBtn" title="화면 이동 (PAN)">✋ 이동</button>
                 <div class="toolbar-divider" style="width: 1px; height: 18px; background-color: rgba(0,0,0,0.15); margin: 0 2px;"></div>
                 <button class="zoom-tool-btn" id="zoomCropBtn" title="이미지 자르기">✂️ 자르기</button>
@@ -4884,6 +4956,7 @@
                 <canvas id="zoomAnnotationCanvas"></canvas>
                 <div id="zoomAnnotationsContainer"></div>
             </div>
+            <div id="zoomWindowSelectionBox" class="zoom-window-selection-box" aria-hidden="true"></div>
         </div>
         <!-- END: 이미지 확대 보기(Zoom)를 위한 HTML 구조 (주간 코드에서 이식) -->
 
@@ -5466,6 +5539,15 @@
                     focusedEditorButton.removeAttribute('style');
                     focusedEditorButton.removeAttribute('data-drag-initialized');
                     focusedEditorButton.classList.remove('is-dragging');
+                }
+
+                const focusedEditorDialog = targetDoc.getElementById('focusedEditorDialog');
+                if (focusedEditorDialog) focusedEditorDialog.classList.remove('focused-editor-chrome-hidden');
+                const focusedEditorMasterToggle = targetDoc.getElementById('focusedEditorMasterToggle');
+                if (focusedEditorMasterToggle) {
+                    focusedEditorMasterToggle.textContent = '−';
+                    focusedEditorMasterToggle.setAttribute('title', '전체 헤더 숨기기 (-)');
+                    focusedEditorMasterToggle.setAttribute('aria-pressed', 'false');
                 }
 
                 const flowToolbar = targetDoc.getElementById('flowChipToolbar');
@@ -6515,6 +6597,10 @@ let currentZoomingImageElement = null;
         let panStartY = 0;
         let initialPanX = 0;
         let initialPanY = 0;
+        let isZoomWindowModeActive = false;
+        let isZoomWindowSelecting = false;
+        let zoomWindowStartX = 0;
+        let zoomWindowStartY = 0;
 
         function updateImageZoomTransform(newScale = currentZoomScale, resetPan = false) {
             if (resetPan) {
@@ -6542,7 +6628,55 @@ let currentZoomingImageElement = null;
             updateImageZoomTransform(newScale, false);
         }
 
+        function setZoomWindowMode(active) {
+            isZoomWindowModeActive = !!active;
+            isZoomWindowSelecting = false;
+            const btn = document.getElementById('zoomWindowBtn');
+            const overlay = document.getElementById('imageZoomOverlay');
+            const box = document.getElementById('zoomWindowSelectionBox');
+            if (btn) btn.classList.toggle('active', isZoomWindowModeActive);
+            if (box) box.style.display = 'none';
+            if (isZoomWindowModeActive) {
+                if (typeof isDrawingFeatureActive !== 'undefined' && isDrawingFeatureActive && typeof toggleDrawingFeature === 'function') {
+                    toggleDrawingFeature();
+                }
+                isPanToolActive = false;
+                document.getElementById('zoomPanBtn')?.classList.remove('active');
+            }
+            if (overlay) overlay.style.cursor = isZoomWindowModeActive ? 'crosshair' : (isPanToolActive ? 'grab' : 'default');
+        }
+
+        function zoomFitImage() {
+            setZoomWindowMode(false);
+            if (typeof isDrawingFeatureActive !== 'undefined' && isDrawingFeatureActive && typeof toggleDrawingFeature === 'function') {
+                toggleDrawingFeature();
+            }
+            isPanToolActive = false;
+            isPanningState = false;
+            document.getElementById('zoomPanBtn')?.classList.remove('active');
+            updateImageZoomTransform(1.0, true);
+        }
+
+        function applyZoomWindowToRect(rect) {
+            const overlay = document.getElementById('imageZoomOverlay');
+            const content = document.getElementById('imageZoomContent');
+            if (!overlay || !content || rect.width < 12 || rect.height < 12) return;
+            const overlayRect = overlay.getBoundingClientRect();
+            const contentRect = content.getBoundingClientRect();
+            const selectedCenterX = rect.left + rect.width / 2;
+            const selectedCenterY = rect.top + rect.height / 2;
+            const contentCenterX = contentRect.left + contentRect.width / 2;
+            const contentCenterY = contentRect.top + contentRect.height / 2;
+            const fitScale = Math.min((overlayRect.width * 0.92) / rect.width, (overlayRect.height * 0.88) / rect.height);
+            const nextScale = Math.min(Math.max(currentZoomScale * fitScale, 0.3), 5.0);
+            const ratio = nextScale / currentZoomScale;
+            currentPanX = -((selectedCenterX - contentCenterX) * ratio);
+            currentPanY = -((selectedCenterY - contentCenterY) * ratio);
+            updateImageZoomTransform(nextScale, false);
+        }
+
         function togglePanTool() {
+            setZoomWindowMode(false);
             isPanToolActive = !isPanToolActive;
             const panBtn = document.getElementById('zoomPanBtn');
             if (panBtn) panBtn.classList.toggle('active', isPanToolActive);
@@ -6662,6 +6796,7 @@ let currentZoomingImageElement = null;
                 isPanToolActive = false;
                 const panBtnEl = document.getElementById('zoomPanBtn');
                 if (panBtnEl) panBtnEl.classList.remove('active');
+                setZoomWindowMode(false);
                 updateImageZoomTransform(1.0, true);
                 overlay.style.display = 'flex';
                 overlay.scrollTop = 0;
@@ -6845,6 +6980,7 @@ let currentZoomingImageElement = null;
                 zoomToolbarEl.style.display = 'none';
                 setZoomToolbarCollapsed(false);
             }
+            setZoomWindowMode(false);
 
             if (overlay) {
                 overlay.style.display = 'none';
@@ -12199,6 +12335,44 @@ function clampImagesToContainers(scope = contentArea) {
                     container.querySelectorAll('script').forEach(el => el.remove());
                 }
 
+                const FocusedEditorHeaderToggleFeature = (() => {
+                    let isHeadersVisible = true;
+                    let isBound = false;
+
+                    function getElements() {
+                        return {
+                            dialog: document.getElementById('focusedEditorDialog'),
+                            toggle: document.getElementById('focusedEditorMasterToggle'),
+                            surface: document.getElementById('focusedEditorSurface')
+                        };
+                    }
+
+                    function render(nextVisible = isHeadersVisible) {
+                        const { dialog, toggle, surface } = getElements();
+                        isHeadersVisible = nextVisible;
+                        if (dialog) dialog.classList.toggle('focused-editor-chrome-hidden', !isHeadersVisible);
+                        if (toggle) {
+                            toggle.textContent = isHeadersVisible ? '−' : '+';
+                            toggle.setAttribute('title', isHeadersVisible ? '전체 헤더 숨기기 (-)' : '전체 헤더 보이기 (+)');
+                            toggle.setAttribute('aria-pressed', String(!isHeadersVisible));
+                        }
+                        if (surface) requestAnimationFrame(() => surface.focus());
+                    }
+
+                    function bind() {
+                        const { toggle } = getElements();
+                        if (!toggle || isBound) return;
+                        toggle.addEventListener('click', () => render(!isHeadersVisible));
+                        isBound = true;
+                    }
+
+                    function reset() {
+                        render(true);
+                    }
+
+                    return Object.freeze({ bind, reset, render });
+                })();
+
                 function resetFocusedEditorSurfacePresentation(surface) {
                     if (!surface) return;
                     surface.className = '';
@@ -12873,6 +13047,7 @@ function clampImagesToContainers(scope = contentArea) {
                     overlay.classList.add('active');
                     overlay.setAttribute('aria-hidden', 'false');
                     document.body.classList.add('focused-editor-active', 'focused-editor-multi-flow-mode');
+                    FocusedEditorHeaderToggleFeature.reset();
                     setFocusedFlowActionsVisible(true);
                     hideFlowChipToolbar(false);
                     lockFocusedFlowContainer(focusedEditorTarget);
@@ -13185,7 +13360,8 @@ function clampImagesToContainers(scope = contentArea) {
                     overlay.classList.add('active');
                     overlay.setAttribute('aria-hidden', 'false');
                     document.body.classList.add('focused-editor-active');
-                    
+                    FocusedEditorHeaderToggleFeature.reset();
+                     
                     // Defer clamping until the layout has fully settled to prevent incorrect clientWidth calculations
                     setTimeout(() => {
                         clampImagesToContainers(surface);
@@ -13250,6 +13426,7 @@ function finishFocusedEditorSession(overlay, surface) {
                     activeMultiFlowChipEditorItem = null;
                     releaseFocusedFlowContainer();
                     surface.innerHTML = '';
+                    FocusedEditorHeaderToggleFeature.reset();
                     resetFocusedEditorSurfacePresentation(surface);
                     if (menuPanel) {
                         menuPanel.style.zIndex = '';
@@ -13337,6 +13514,7 @@ function finishFocusedEditorSession(overlay, surface) {
                     }
                     closeBtn?.addEventListener('click', saveAndCloseFocusedEditor);
                     applyBtn?.addEventListener('click', saveAndCloseFocusedEditor);
+                    FocusedEditorHeaderToggleFeature.bind();
                     moveBeforeBtn?.addEventListener('click', () => isMultiFlowChipEditorActive() ? moveActiveMultiFlowChipEditorItem('before') : moveFocusedFlowSpan('before'));
                     moveAfterBtn?.addEventListener('click', () => isMultiFlowChipEditorActive() ? moveActiveMultiFlowChipEditorItem('after') : moveFocusedFlowSpan('after'));
                     addBeforeBtn?.addEventListener('click', () => isMultiFlowChipEditorActive() ? insertMultiFlowChipEditorItem('before') : insertFlowSpanRelative('before'));
@@ -14145,6 +14323,12 @@ document.addEventListener('focusin', e => {
             const zoomResetBtn = document.getElementById('zoomResetBtn');
             if (zoomResetBtn) zoomResetBtn.addEventListener('click', () => updateImageZoomTransform(1.0, true));
 
+            const zoomWindowBtn = document.getElementById('zoomWindowBtn');
+            if (zoomWindowBtn) zoomWindowBtn.addEventListener('click', () => setZoomWindowMode(!isZoomWindowModeActive));
+
+            const zoomFitBtn = document.getElementById('zoomFitBtn');
+            if (zoomFitBtn) zoomFitBtn.addEventListener('click', zoomFitImage);
+
             const zoomPanBtn = document.getElementById('zoomPanBtn');
             if (zoomPanBtn) zoomPanBtn.addEventListener('click', togglePanTool);
 
@@ -14384,9 +14568,40 @@ document.addEventListener('focusin', e => {
                     }
                 }, { passive: false });
 
+                const getClientPoint = (e) => (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint)
+                    ? AppLayers.ui.getClientPoint(e)
+                    : { x: e.clientX || e.touches?.[0]?.clientX || e.changedTouches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || e.changedTouches?.[0]?.clientY || 0 };
+
+                const drawZoomWindowSelection = (currentX, currentY) => {
+                    const box = document.getElementById('zoomWindowSelectionBox');
+                    if (!box) return;
+                    const left = Math.min(zoomWindowStartX, currentX);
+                    const top = Math.min(zoomWindowStartY, currentY);
+                    const width = Math.abs(currentX - zoomWindowStartX);
+                    const height = Math.abs(currentY - zoomWindowStartY);
+                    box.style.left = `${left}px`;
+                    box.style.top = `${top}px`;
+                    box.style.width = `${width}px`;
+                    box.style.height = `${height}px`;
+                    box.style.display = 'block';
+                };
+
                 const handlePanStart = (e) => {
                     const target = e.target;
                     if (target && (target.closest('#zoomEditorToolbar') || target.closest('.close-image-zoom-btn') || target.closest('#annotationSettingsPanel'))) return;
+                    if (isZoomWindowModeActive) {
+                        if (e.cancelable) e.preventDefault();
+                        e.stopPropagation();
+                        const pt = getClientPoint(e);
+                        zoomWindowStartX = pt.x;
+                        zoomWindowStartY = pt.y;
+                        isZoomWindowSelecting = true;
+                        drawZoomWindowSelection(pt.x, pt.y);
+                        if (zoomOverlayEl.setPointerCapture && e.pointerId !== undefined) {
+                            try { zoomOverlayEl.setPointerCapture(e.pointerId); } catch(ex) {}
+                        }
+                        return;
+                    }
                     // 판서(그리기) 모드 활성화 시 PAN 동작 차단 (판서 캔버스 그리기 우선)
                     if (typeof isDrawingFeatureActive !== 'undefined' && isDrawingFeatureActive) return;
 
@@ -14394,7 +14609,7 @@ document.addEventListener('focusin', e => {
                     if (isPanToolActive) {
                         if (e.cancelable) e.preventDefault();
                         isPanningState = true;
-                        const pt = AppLayers.ui.getClientPoint(e);
+                        const pt = getClientPoint(e);
                         panStartX = pt.x;
                         panStartY = pt.y;
                         initialPanX = currentPanX;
@@ -14407,9 +14622,16 @@ document.addEventListener('focusin', e => {
                 };
 
                 const handlePanMove = (e) => {
+                    if (isZoomWindowSelecting) {
+                        if (e.cancelable) e.preventDefault();
+                        e.stopPropagation();
+                        const pt = getClientPoint(e);
+                        drawZoomWindowSelection(pt.x, pt.y);
+                        return;
+                    }
                     if (!isPanningState) return;
                     if (e.cancelable) e.preventDefault();
-                    const pt = AppLayers.ui.getClientPoint(e);
+                    const pt = getClientPoint(e);
                     const deltaX = pt.x - panStartX;
                     const deltaY = pt.y - panStartY;
                     currentPanX = initialPanX + deltaX;
@@ -14418,6 +14640,28 @@ document.addEventListener('focusin', e => {
                 };
 
                 const handlePanEnd = (e) => {
+                    if (isZoomWindowSelecting) {
+                        if (e && e.cancelable) e.preventDefault();
+                        if (e) e.stopPropagation();
+                        const pt = e ? getClientPoint(e) : { x: zoomWindowStartX, y: zoomWindowStartY };
+                        const rect = {
+                            left: Math.min(zoomWindowStartX, pt.x),
+                            top: Math.min(zoomWindowStartY, pt.y),
+                            width: Math.abs(pt.x - zoomWindowStartX),
+                            height: Math.abs(pt.y - zoomWindowStartY)
+                        };
+                        isZoomWindowSelecting = false;
+                        const box = document.getElementById('zoomWindowSelectionBox');
+                        if (box) box.style.display = 'none';
+                        if (zoomOverlayEl.releasePointerCapture && e?.pointerId !== undefined) {
+                            try { zoomOverlayEl.releasePointerCapture(e.pointerId); } catch(ex) {}
+                        }
+                        if (rect.width >= 12 && rect.height >= 12) {
+                            applyZoomWindowToRect(rect);
+                            setZoomWindowMode(false);
+                        }
+                        return;
+                    }
                     if (!isPanningState) return;
                     isPanningState = false;
                     zoomOverlayEl.style.cursor = isPanToolActive ? 'grab' : 'default';
@@ -14431,6 +14675,12 @@ document.addEventListener('focusin', e => {
                 zoomOverlayEl.addEventListener('pointermove', handlePanMove, { passive: false });
                 zoomOverlayEl.addEventListener('pointerup', handlePanEnd, { passive: false });
                 zoomOverlayEl.addEventListener('pointercancel', handlePanEnd, { passive: false });
+                if (!window.PointerEvent) {
+                    zoomOverlayEl.addEventListener('touchstart', handlePanStart, { passive: false });
+                    zoomOverlayEl.addEventListener('touchmove', handlePanMove, { passive: false });
+                    zoomOverlayEl.addEventListener('touchend', handlePanEnd, { passive: false });
+                    zoomOverlayEl.addEventListener('touchcancel', handlePanEnd, { passive: false });
+                }
 
                 // 이미지 드래그 예방
                 const zoomImgEl = document.getElementById('imageZoomImg');
