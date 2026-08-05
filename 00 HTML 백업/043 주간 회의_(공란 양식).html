@@ -1513,6 +1513,62 @@
             flex-wrap: wrap;
         }
 
+        .floating-bubble-toggle {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            min-height: 36px;
+            border: 0;
+            border-radius: 999px;
+            background: #111827;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1;
+            cursor: grab;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
+
+        .floating-bubble-toggle:active {
+            cursor: grabbing;
+        }
+
+        .zoom-toolbar-head {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .zoom-editor-toolbar.collapsed {
+            width: 44px !important;
+            height: 44px !important;
+            min-width: 44px !important;
+            min-height: 44px !important;
+            padding: 4px !important;
+            border-radius: 999px !important;
+            overflow: visible;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .zoom-editor-toolbar.collapsed .zoom-toolbar-drag-handle,
+        .zoom-editor-toolbar.collapsed .zoom-toolbar-actions {
+            display: none !important;
+        }
+
+        .zoom-editor-toolbar.collapsed .zoom-toolbar-head {
+            width: 44px;
+            height: 44px;
+        }
+
         .zoom-toolbar-drag-handle {
             border: 0;
             background: rgba(0, 0, 0, 0.08);
@@ -1831,14 +1887,17 @@
             bottom: 200px;
             background-color: rgba(245, 245, 245, 0.97);
             padding: 10px;
-            padding-top: 30px;
             border-radius: 8px;
             box-shadow: -2px 0px 5px rgba(0, 0, 0, 0.2);
             z-index: 10004;
             display: none;
             flex-direction: column;
             gap: 8px;
-            width: 190px;
+            width: min(320px, calc(100vw - 24px));
+            max-width: calc(100vw - 24px);
+            max-height: min(520px, calc(100vh - 24px));
+            overflow: hidden;
+            box-sizing: border-box;
         }
 
         .anno-panel-header {
@@ -1861,6 +1920,37 @@
             gap: 4px;
             touch-action: none;
         }
+
+        .anno-panel-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: #222;
+        }
+
+        .anno-panel-body {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .anno-tool-row,
+        .anno-option-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .anno-option-row label {
+            font-size: 12px;
+        }
+
+        .anno-option-row input[type="range"] {
+            flex: 1 1 140px;
+            min-width: 110px;
+        }
         .anno-panel-header-actions {
             display: flex;
             align-items: center;
@@ -1882,7 +1972,34 @@
             display: none !important;
         }
         #annotationSettingsPanel.collapsed {
-            padding-bottom: 6px !important;
+            width: 44px !important;
+            height: 44px !important;
+            min-width: 44px !important;
+            min-height: 44px !important;
+            padding: 4px !important;
+            border-radius: 999px !important;
+            overflow: visible;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        #annotationSettingsPanel.collapsed .anno-panel-header {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            margin: 0;
+            border: 0;
+            justify-content: center;
+        }
+
+        #annotationSettingsPanel.collapsed .anno-panel-drag-handle,
+        #annotationSettingsPanel.collapsed .anno-panel-title,
+        #annotationSettingsPanel.collapsed .anno-panel-header-actions #closeAnnotationSettingsBtn {
+            display: none !important;
+        }
+
+        #annotationSettingsPanel.collapsed .anno-panel-header-actions {
+            gap: 0;
         }
         .anno-panel-resize-handle {
             position: absolute;
@@ -1898,9 +2015,6 @@
             display: none !important;
         }
         #closeAnnotationSettingsBtn {
-            position: absolute;
-            top: 5px;
-            right: 8px;
             font-size: 24px;
             color: #777;
             background-color: transparent;
@@ -3748,9 +3862,32 @@
                 gap: 6px;
             }
 
+            .floating-bubble-toggle {
+                width: 40px;
+                height: 40px;
+                min-width: 40px;
+                min-height: 40px;
+                font-size: 24px;
+            }
+
             .zoom-tool-btn {
                 padding: 8px 10px;
                 font-size: 13px;
+            }
+
+            #annotationSettingsPanel {
+                left: 8px;
+                right: 8px;
+                bottom: max(92px, calc(env(safe-area-inset-bottom) + 92px));
+                width: auto;
+                max-width: calc(100vw - 16px);
+                max-height: min(62vh, 520px);
+            }
+
+            #annotationSettingsPanel.collapsed {
+                left: auto;
+                right: max(10px, env(safe-area-inset-right));
+                bottom: max(76px, calc(env(safe-area-inset-bottom) + 76px));
             }
 
             .close-image-zoom-btn {
@@ -3853,6 +3990,11 @@
         body.focused-editor-active .floating-panel,
         body.focused-editor-active #annotationSettingsPanel {
             z-index: 32002 !important;
+        }
+
+        body.focused-editor-active.image-zoom-active #annotationSettingsPanel,
+        body.image-zoom-active #annotationSettingsPanel {
+            z-index: 55000 !important;
         }
 
         body.image-zoom-active #imageZoomOverlay {
@@ -4484,38 +4626,39 @@
 
         <div id="annotationSettingsPanel" style="display: none;">
             <div id="annoPanelHeader" class="anno-panel-header">
-                <span id="annoPanelDragHandle" class="anno-panel-drag-handle" title="손가락으로 드래그해서 위치 이동">⠿ 판서 설정</span>
+                <button type="button" id="annotationPanelCollapseToggle" class="floating-bubble-toggle" title="판서 설정 접기" aria-label="판서 설정 접기" aria-expanded="true">-</button>
+                <span id="annoPanelDragHandle" class="anno-panel-drag-handle" title="마우스 또는 손가락으로 드래그해서 위치 이동">⠿</span>
+                <span class="anno-panel-title">판서 설정</span>
                 <div class="anno-panel-header-actions">
-                    <button type="button" id="toggleCollapseAnnoPanelBtn" class="anno-panel-action-btn" title="접기/펴기">▼</button>
                     <span id="closeAnnotationSettingsBtn" title="설정 적용 및 닫기">×</span>
                 </div>
             </div>
             <div id="annoPanelBody" class="anno-panel-body">
-            <div>
+            <div class="anno-tool-row">
                 <button id="annoToolPen" data-tool="pen" title="펜">펜</button>
                 <button id="annoToolHighlighter" data-tool="highlighter" title="형광펜">형광펜</button>
                 <button id="annoToolCircle" data-tool="circle" title="원">○</button>
                 <button id="annoToolEllipse" data-tool="ellipse" title="타원">◌</button>
                 <button id="annoToolOrthoLine" data-tool="orthoLine" title="직각선">📐</button>
             </div>
-            <div>
+            <div class="anno-option-row">
                 <label for="annoColorPicker">색:</label>
                 <input type="color" id="annoColorPicker" title="색상 선택">
             </div>
-            <div>
+            <div class="anno-option-row">
                 <label for="annoLineWidth">굵기:</label>
                 <input type="range" id="annoLineWidth" min="1" max="20" title="선 굵기">
             </div>
-            <div id="annoHighlighterOpacityContainer" style="display: none;">
+            <div id="annoHighlighterOpacityContainer" class="anno-option-row" style="display: none;">
                 <label for="annoHighlighterOpacity">투명도:</label>
                 <input type="range" id="annoHighlighterOpacity" min="0.1" max="1" step="0.1" value="0.3"
                     title="형광펜 투명도">
             </div>
-            <div>
+            <div class="anno-tool-row">
                 <button id="annoToolEraser" data-tool="eraser" title="지우개">지우개</button>
                 <button id="annoClearCanvas" title="모두 지우기">전체삭제</button>
             </div>
-            <div>
+            <div class="anno-option-row">
                 <input type="checkbox" id="annoKeepDrawingsVisible" checked="">
                 <label for="annoKeepDrawingsVisible" style="font-size:11px; white-space: nowrap;">그림 유지(비활성시)</label>
             </div>
@@ -4953,10 +5096,13 @@
         <div id="imageZoomOverlay">
             <button type="button" class="close-image-zoom-btn" title="닫기" aria-label="확대 이미지 닫기">&times;</button>
             <div id="zoomEditorToolbar" class="zoom-editor-toolbar" style="display: none;">
-                <button type="button" class="zoom-toolbar-drag-handle" id="zoomToolbarDragHandle" title="툴바 이동" aria-label="판서 툴바 이동">
-                    <span class="zoom-toolbar-grip-icon">↕</span>
-                    <span>툴바 이동</span>
-                </button>
+                <div class="zoom-toolbar-head">
+                    <button type="button" id="zoomToolbarCollapseToggle" class="floating-bubble-toggle" title="판서 메뉴 접기" aria-label="판서 메뉴 접기" aria-expanded="true">-</button>
+                    <button type="button" class="zoom-toolbar-drag-handle" id="zoomToolbarDragHandle" title="툴바 이동" aria-label="판서 툴바 이동">
+                        <span class="zoom-toolbar-grip-icon">↕</span>
+                        <span>툴바 이동</span>
+                    </button>
+                </div>
                 <div class="zoom-toolbar-actions">
                     <button class="zoom-tool-btn" id="zoomDrawBtn" title="판서 (그리기)">🖊️ 펜</button>
                     <button class="zoom-tool-btn" id="zoomInsertTextBtn" title="텍스트 삽입">🔤 텍스트</button>
@@ -5146,6 +5292,35 @@
                 }
             };
 
+            const ui = {
+                getClientPoint(event) {
+                    const source = event?.touches?.[0] || event?.changedTouches?.[0] || event || {};
+                    return {
+                        x: Number.isFinite(source.clientX) ? source.clientX : 0,
+                        y: Number.isFinite(source.clientY) ? source.clientY : 0
+                    };
+                },
+                clampPosition(left, top, width, height, viewportWidth = window.innerWidth, viewportHeight = window.innerHeight, margin = 8) {
+                    const safeWidth = Number.isFinite(width) && width > 0 ? width : 44;
+                    const safeHeight = Number.isFinite(height) && height > 0 ? height : 44;
+                    const minLeft = margin;
+                    const minTop = margin;
+                    const maxLeft = Math.max(minLeft, viewportWidth - safeWidth - margin);
+                    const maxTop = Math.max(minTop, viewportHeight - safeHeight - margin);
+                    return {
+                        left: Math.min(maxLeft, Math.max(minLeft, left)),
+                        top: Math.min(maxTop, Math.max(minTop, top))
+                    };
+                },
+                clearTextSelection() {
+                    try {
+                        window.getSelection?.().removeAllRanges();
+                    } catch (error) {
+                        // Selection may be unavailable during interrupted pointer streams.
+                    }
+                }
+            };
+
             const persistence = {
                 resetRuntimeArtifacts(clonedDoc) {
                     if (!clonedDoc) return;
@@ -5181,7 +5356,15 @@
                         const element = clonedDoc.getElementById(id);
                         if (element) {
                             element.style.display = 'none';
-                            element.classList.remove('interacting', 'visible');
+                            element.classList.remove('interacting', 'visible', 'collapsed', 'is-dragging');
+                        }
+                    });
+
+                    ['zoomToolbarCollapseToggle', 'annotationPanelCollapseToggle'].forEach(id => {
+                        const toggle = clonedDoc.getElementById(id);
+                        if (toggle) {
+                            toggle.textContent = '-';
+                            toggle.setAttribute('aria-expanded', 'true');
                         }
                     });
 
@@ -5223,7 +5406,7 @@
                 }
             };
 
-            return Object.freeze({ dom, storage, persistence });
+            return Object.freeze({ dom, storage, ui, persistence });
         })();
 
         // 주간 컬럼 셔터: Domain -> Repository -> View -> Controller 단방향 의존성
@@ -8522,7 +8705,22 @@ function hideTextFormatToolbar() {
 
             // (8) 어노테이션 설정 패널 닫힌 상태로 저장
             const clonedAnnoPanelSave = clonedDoc.getElementById('annotationSettingsPanel');
-            if (clonedAnnoPanelSave) clonedAnnoPanelSave.style.display = 'none';
+            if (clonedAnnoPanelSave) {
+                clonedAnnoPanelSave.style.display = 'none';
+                clonedAnnoPanelSave.classList.remove('collapsed', 'is-dragging');
+            }
+            const clonedZoomToolbarSave = clonedDoc.getElementById('zoomEditorToolbar');
+            if (clonedZoomToolbarSave) {
+                clonedZoomToolbarSave.style.display = 'none';
+                clonedZoomToolbarSave.classList.remove('collapsed', 'is-dragging');
+            }
+            ['zoomToolbarCollapseToggle', 'annotationPanelCollapseToggle'].forEach(id => {
+                const toggle = clonedDoc.getElementById(id);
+                if (toggle) {
+                    toggle.textContent = '-';
+                    toggle.setAttribute('aria-expanded', 'true');
+                }
+            });
 
             // (9) 커스텀 메시지 박스 제거
             const clonedMsgBoxSave = clonedDoc.getElementById('customMessageBox');
@@ -8532,15 +8730,15 @@ function hideTextFormatToolbar() {
             clonedDoc.querySelectorAll(
                 '.controls-active, .multi-zoom-selected, .selectable-item, .is-selected, ' +
                 '.deletable-item, .is-selected-for-delete, .compare-selected, ' +
-                '.resizable-image-wrapper.active, .is-dragging, ' +
+                    '.resizable-image-wrapper.active, .is-dragging, .collapsed, ' +
                 '#focusedEditorOverlay.active, #openFocusedEditorBtn.visible'
             ).forEach(function(el) {
                 el.classList.remove(
                     'controls-active', 'multi-zoom-selected', 'selectable-item', 'is-selected',
                     'deletable-item', 'is-selected-for-delete', 'compare-selected',
-                    'active', 'is-dragging', 'visible'
-                );
-            });
+                        'active', 'is-dragging', 'visible', 'collapsed'
+                    );
+                });
 
             const clonedFocusedEditor = clonedDoc.getElementById('focusedEditorSurface');
             if (clonedFocusedEditor) clonedFocusedEditor.innerHTML = '';
@@ -9899,6 +10097,67 @@ function hideTextFormatToolbar() {
             }
         }
 
+        function setFloatingPanelCollapsed(panel, toggleBtn, collapsed, expandedLabel, collapsedLabel) {
+            if (!panel || !toggleBtn) return;
+            if (collapsed) {
+                const rect = panel.getBoundingClientRect();
+                panel.style.left = `${rect.left}px`;
+                panel.style.top = `${rect.top}px`;
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
+                panel.style.transform = 'none';
+            }
+            panel.classList.toggle('collapsed', collapsed);
+            toggleBtn.textContent = collapsed ? '+' : '-';
+            toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            toggleBtn.title = collapsed ? collapsedLabel : expandedLabel;
+            toggleBtn.setAttribute('aria-label', collapsed ? collapsedLabel : expandedLabel);
+        }
+
+        function clampFloatingPanelIntoViewport(panel) {
+            if (!panel || typeof AppLayers === 'undefined' || !AppLayers.ui) return;
+            const rect = panel.getBoundingClientRect();
+            const hasExplicitPosition = panel.style.left || panel.style.top;
+            if (!hasExplicitPosition) return;
+            const pos = AppLayers.ui.clampPosition(rect.left, rect.top, rect.width, rect.height, window.innerWidth, window.innerHeight, 8);
+            panel.style.left = `${pos.left}px`;
+            panel.style.top = `${pos.top}px`;
+            panel.style.right = 'auto';
+            panel.style.bottom = 'auto';
+            panel.style.transform = 'none';
+        }
+
+        function setAnnotationPanelCollapsed(collapsed) {
+            const panel = document.getElementById('annotationSettingsPanel');
+            const toggleBtn = document.getElementById('annotationPanelCollapseToggle');
+            setFloatingPanelCollapsed(panel, toggleBtn, collapsed, '판서 설정 접기', '판서 설정 펴기');
+            requestAnimationFrame(() => clampFloatingPanelIntoViewport(panel));
+        }
+
+        function openAnnotationSettingsPanel(options = {}) {
+            if (!annotationSettingsPanel) return;
+            isAnnotationPanelOpen = true;
+            annotationSettingsPanel.style.display = 'flex';
+            annotationSettingsToggleBtn?.classList.add('active');
+            if (menuAnnoSettingsPanelToggle) menuAnnoSettingsPanelToggle.classList.add('active');
+            panelUISettings = { ...drawingSettings };
+            loadPanelUIWithSettings(panelUISettings);
+            if (options.expand !== false) setAnnotationPanelCollapsed(false);
+            requestAnimationFrame(() => clampFloatingPanelIntoViewport(annotationSettingsPanel));
+        }
+
+        function closeAnnotationSettingsPanel(applySettings = true) {
+            if (!annotationSettingsPanel) return;
+            if (applySettings) {
+                drawingSettings = { ...panelUISettings };
+                applySettingsToContext(drawingSettings);
+            }
+            isAnnotationPanelOpen = false;
+            annotationSettingsPanel.style.display = 'none';
+            annotationSettingsToggleBtn?.classList.remove('active');
+            if (menuAnnoSettingsPanelToggle) menuAnnoSettingsPanelToggle.classList.remove('active');
+        }
+
         function toggleDrawingFeature() {
             if (isMemoModeActive) { toggleMemoMode(); }
             isDrawingFeatureActive = !isDrawingFeatureActive;
@@ -9933,21 +10192,13 @@ function hideTextFormatToolbar() {
 
             if (isDrawingFeatureActive) {
                   if (document.body.classList.contains('image-zoom-active')) {
-                      const annoPanel = document.getElementById('annotationSettingsPanel');
-                      if (annoPanel) {
-                          annoPanel.style.display = 'flex';
-                          isAnnotationPanelOpen = true;
-                          const annoToggleBtn = document.getElementById('annotationSettingsToggleBtn');
-                          if (annoToggleBtn) annoToggleBtn.classList.add('active');
-                          const menuToggle = document.getElementById('menuAnnoSettingsPanelToggle');
-                          if (menuToggle) menuToggle.classList.add('active');
-                      }
+                      openAnnotationSettingsPanel({ expand: true });
                   } else if (!isAnnotationPanelOpen) {
-                      toggleAnnotationSettingsPanel();
+                      openAnnotationSettingsPanel({ expand: true });
                   }
                   showMessage("주석 그리기 활성화됨.", "success", 1500);
             } else {
-                if (isAnnotationPanelOpen) { toggleAnnotationSettingsPanel(); }
+                if (isAnnotationPanelOpen) { closeAnnotationSettingsPanel(true); }
                 showMessage("주석 그리기 비활성화됨.", "success", 1500);
             }
         }
@@ -9956,17 +10207,10 @@ function hideTextFormatToolbar() {
             if (!isDrawingFeatureActive && !isAnnotationPanelOpen) {
                 showMessage("주석 그리기를 먼저 켜주세요 (👁️ 아이콘).", "warning"); return;
             }
-            isAnnotationPanelOpen = !isAnnotationPanelOpen;
-            annotationSettingsPanel.style.display = isAnnotationPanelOpen ? 'flex' : 'none';
-            annotationSettingsToggleBtn.classList.toggle('active', isAnnotationPanelOpen);
-            if (menuAnnoSettingsPanelToggle) menuAnnoSettingsPanelToggle.classList.toggle('active', isAnnotationPanelOpen);
-
             if (isAnnotationPanelOpen) {
-                panelUISettings = { ...drawingSettings };
-                loadPanelUIWithSettings(panelUISettings);
+                closeAnnotationSettingsPanel(true);
             } else {
-                drawingSettings = { ...panelUISettings };
-                applySettingsToContext(drawingSettings);
+                openAnnotationSettingsPanel({ expand: true });
             }
         }
 
@@ -9982,12 +10226,7 @@ function hideTextFormatToolbar() {
             applySettingsToContext(drawingSettings);
         }
         function handleCloseAnnotationSettings() {
-            drawingSettings = { ...panelUISettings };
-            applySettingsToContext(drawingSettings);
-            isAnnotationPanelOpen = false;
-            annotationSettingsPanel.style.display = 'none';
-            annotationSettingsToggleBtn.classList.remove('active');
-            if (menuAnnoSettingsPanelToggle) menuAnnoSettingsPanelToggle.classList.remove('active');
+            closeAnnotationSettingsPanel(true);
             showMessage("주석 설정 적용됨.", "success", 1500);
         }
 
@@ -12584,11 +12823,20 @@ function ensureImageWrapperStructure(wrapper) {
         function resetZoomEditorToolbarPosition(toolbar) {
             if (!toolbar) return;
             toolbar.style.display = 'flex';
+            setZoomToolbarCollapsed(false);
             toolbar.style.top = 'auto';
             toolbar.style.bottom = window.matchMedia('(max-width: 600px)').matches ? '12px' : '30px';
             toolbar.style.transform = window.matchMedia('(max-width: 600px)').matches ? 'none' : 'translateX(-50%)';
             toolbar.style.left = window.matchMedia('(max-width: 600px)').matches ? '8px' : '50%';
             toolbar.style.right = window.matchMedia('(max-width: 600px)').matches ? '8px' : 'auto';
+            requestAnimationFrame(() => clampFloatingPanelIntoViewport(toolbar));
+        }
+
+        function setZoomToolbarCollapsed(collapsed) {
+            const toolbar = document.getElementById('zoomEditorToolbar');
+            const toggleBtn = document.getElementById('zoomToolbarCollapseToggle');
+            setFloatingPanelCollapsed(toolbar, toggleBtn, collapsed, '판서 메뉴 접기', '판서 메뉴 펴기');
+            requestAnimationFrame(() => clampFloatingPanelIntoViewport(toolbar));
         }
 
         function openImageZoom(targetImg) {
@@ -12757,6 +13005,7 @@ function ensureImageWrapperStructure(wrapper) {
             const annoPanel = document.getElementById('annotationSettingsPanel');
             if (annoPanel) {
                 annoPanel.style.display = 'none';
+                setAnnotationPanelCollapsed(false);
             }
             const annoToggleBtn = document.getElementById('annotationSettingsToggleBtn');
             if (annoToggleBtn) annoToggleBtn.classList.remove('active');
@@ -12765,6 +13014,11 @@ function ensureImageWrapperStructure(wrapper) {
             if (overlay) {
                 overlay.style.display = 'none';
                 document.body.classList.remove('image-zoom-active');
+            }
+            const zoomToolbar = document.getElementById('zoomEditorToolbar');
+            if (zoomToolbar) {
+                zoomToolbar.style.display = 'none';
+                setZoomToolbarCollapsed(false);
             }
             if (img) img.removeAttribute('src');
             currentZoomingImageElement = null;
@@ -12783,133 +13037,158 @@ function ensureImageWrapperStructure(wrapper) {
             if (zoomPanBtn) zoomPanBtn.addEventListener('click', togglePanTool);
 
             function makeAnnoPanelDraggableAndResizable() {
-            const panel = document.getElementById('annotationSettingsPanel');
-            if (!panel || panel.dataset.dragInitialized === 'true') return;
-            panel.dataset.dragInitialized = 'true';
+                const panel = document.getElementById('annotationSettingsPanel');
+                if (!panel || panel.dataset.dragInitialized === 'true') return;
+                panel.dataset.dragInitialized = 'true';
 
-            const dragHandle = document.getElementById('annoPanelDragHandle');
-            const collapseBtn = document.getElementById('toggleCollapseAnnoPanelBtn');
-            const resizeHandle = document.getElementById('annoPanelResizeHandle');
+                const dragHandle = document.getElementById('annoPanelDragHandle');
+                const header = document.getElementById('annoPanelHeader');
+                const collapseBtn = document.getElementById('annotationPanelCollapseToggle');
+                const resizeHandle = document.getElementById('annoPanelResizeHandle');
 
-            if (collapseBtn) {
-                collapseBtn.addEventListener('click', (e) => {
+                if (collapseBtn) {
+                    collapseBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (panel.dataset.dragMoved === 'true') return;
+                        setAnnotationPanelCollapsed(!panel.classList.contains('collapsed'));
+                    });
+                }
+
+                let isDragging = false;
+                let startX = 0, startY = 0;
+                let initialLeft = 0, initialTop = 0;
+                let pointerId = null;
+
+                const onDragStart = (e) => {
+                    const isBubble = e.target.closest('#annotationPanelCollapseToggle');
+                    const isHeaderDrag = e.target.closest('#annoPanelDragHandle') || e.target.closest('#annoPanelHeader');
+                    if (!isBubble && !isHeaderDrag) return;
+                    if (!isBubble && (e.target.closest('button') || e.target.closest('input') || e.target.closest('label') || e.target.closest('#closeAnnotationSettingsBtn') || e.target.closest('#annoPanelResizeHandle'))) return;
+                    if (e.cancelable) e.preventDefault();
                     e.stopPropagation();
-                    const isCollapsed = panel.classList.toggle('collapsed');
-                    collapseBtn.textContent = isCollapsed ? '▲' : '▼';
-                });
-            }
+                    AppLayers.ui.clearTextSelection();
 
-            let isDragging = false;
-            let startX = 0, startY = 0;
-            let initialLeft = 0, initialTop = 0;
-            let pointerId = null;
+                    isDragging = true;
+                    panel.dataset.dragMoved = 'false';
+                    const rect = panel.getBoundingClientRect();
+                    const pt = AppLayers.ui.getClientPoint(e);
 
-            const onDragStart = (e) => {
-                if (e.target.closest('button') || e.target.closest('input') || e.target.closest('#closeAnnotationSettingsBtn') || e.target.closest('#annoPanelResizeHandle')) return;
-                if (e.cancelable) e.preventDefault();
-                e.stopPropagation();
+                    panel.style.right = 'auto';
+                    panel.style.bottom = 'auto';
+                    panel.style.left = `${rect.left}px`;
+                    panel.style.top = `${rect.top}px`;
 
-                isDragging = true;
-                const rect = panel.getBoundingClientRect();
-                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
+                    startX = pt.x;
+                    startY = pt.y;
+                    initialLeft = rect.left;
+                    initialTop = rect.top;
 
-                panel.style.right = 'auto';
-                panel.style.bottom = 'auto';
-                panel.style.left = `${rect.left}px`;
-                panel.style.top = `${rect.top}px`;
+                    if (e.pointerId !== undefined && panel.setPointerCapture) {
+                        pointerId = e.pointerId;
+                        try { panel.setPointerCapture(pointerId); } catch(ex) {}
+                    }
 
-                startX = pt.x;
-                startY = pt.y;
-                initialLeft = rect.left;
-                initialTop = rect.top;
+                    document.addEventListener('pointermove', onDragMove, { passive: false });
+                    document.addEventListener('pointerup', onDragEnd, true);
+                    document.addEventListener('pointercancel', onDragEnd, true);
+                    document.addEventListener('touchmove', onDragMove, { passive: false });
+                    document.addEventListener('touchend', onDragEnd, true);
+                    window.addEventListener('mouseup', onDragEnd, true);
+                    window.addEventListener('blur', onDragEnd);
+                };
 
-                if (e.pointerId !== undefined && dragHandle && dragHandle.setPointerCapture) {
-                    pointerId = e.pointerId;
-                    try { dragHandle.setPointerCapture(pointerId); } catch(ex) {}
-                }
-            };
+                const onDragMove = (e) => {
+                    if (!isDragging) return;
+                    if (!e.touches && typeof e.buttons === 'number' && e.buttons === 0) {
+                        onDragEnd(e);
+                        return;
+                    }
+                    if (e.cancelable) e.preventDefault();
+                    e.stopPropagation();
+                    const pt = AppLayers.ui.getClientPoint(e);
+                    const deltaX = pt.x - startX;
+                    const deltaY = pt.y - startY;
+                    if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) panel.dataset.dragMoved = 'true';
 
-            const onDragMove = (e) => {
-                if (!isDragging) return;
-                if (e.cancelable) e.preventDefault();
-                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
-                const deltaX = pt.x - startX;
-                const deltaY = pt.y - startY;
+                    const rect = panel.getBoundingClientRect();
+                    const pos = AppLayers.ui.clampPosition(initialLeft + deltaX, initialTop + deltaY, rect.width, rect.height);
+                    panel.style.left = `${pos.left}px`;
+                    panel.style.top = `${pos.top}px`;
+                };
 
-                const rect = panel.getBoundingClientRect();
-                const pos = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.clampPosition) ? AppLayers.ui.clampPosition(initialLeft + deltaX, initialTop + deltaY, rect.width, rect.height) : { left: Math.max(0, initialLeft + deltaX), top: Math.max(0, initialTop + deltaY) };
-
-                panel.style.left = `${pos.left}px`;
-                panel.style.top = `${pos.top}px`;
-            };
-
-            const onDragEnd = (e) => {
-                if (!isDragging) return;
-                isDragging = false;
-                if (pointerId !== null && dragHandle && dragHandle.releasePointerCapture) {
-                    try { dragHandle.releasePointerCapture(pointerId); } catch(ex) {}
+                const onDragEnd = (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    if (pointerId !== null && panel.releasePointerCapture) {
+                        try { panel.releasePointerCapture(pointerId); } catch(ex) {}
+                    }
                     pointerId = null;
-                }
-            };
+                    AppLayers.ui.clearTextSelection();
+                    document.removeEventListener('pointermove', onDragMove);
+                    document.removeEventListener('pointerup', onDragEnd, true);
+                    document.removeEventListener('pointercancel', onDragEnd, true);
+                    document.removeEventListener('touchmove', onDragMove);
+                    document.removeEventListener('touchend', onDragEnd, true);
+                    window.removeEventListener('mouseup', onDragEnd, true);
+                    window.removeEventListener('blur', onDragEnd);
+                    setTimeout(() => { panel.dataset.dragMoved = 'false'; }, 0);
+                };
 
-            if (dragHandle) {
-                dragHandle.addEventListener('pointerdown', onDragStart, { passive: false });
-                dragHandle.addEventListener('pointermove', onDragMove, { passive: false });
-                dragHandle.addEventListener('pointerup', onDragEnd, { passive: false });
-                dragHandle.addEventListener('pointercancel', onDragEnd, { passive: false });
+                [dragHandle, header, collapseBtn].forEach(handle => {
+                    if (!handle) return;
+                    handle.addEventListener('pointerdown', onDragStart, { passive: false });
+                    handle.addEventListener('touchstart', onDragStart, { passive: false });
+                });
 
-                dragHandle.addEventListener('touchstart', onDragStart, { passive: false });
-                dragHandle.addEventListener('touchmove', onDragMove, { passive: false });
-                dragHandle.addEventListener('touchend', onDragEnd, { passive: false });
-            }
+                let isResizing = false;
+                let resizeStartX = 0, resizeWidth = 0;
+                let resizePointerId = null;
 
-            let isResizing = false;
-            let resizeStartX = 0, resizeWidth = 0;
-            let resizePointerId = null;
+                const onResizeStart = (e) => {
+                    if (panel.classList.contains('collapsed')) return;
+                    if (e.cancelable) e.preventDefault();
+                    e.stopPropagation();
+                    isResizing = true;
+                    const pt = AppLayers.ui.getClientPoint(e);
+                    resizeStartX = pt.x;
+                    resizeWidth = panel.offsetWidth;
 
-            const onResizeStart = (e) => {
-                if (e.cancelable) e.preventDefault();
-                e.stopPropagation();
-                isResizing = true;
-                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
-                resizeStartX = pt.x;
-                resizeWidth = panel.offsetWidth;
+                    if (e.pointerId !== undefined && resizeHandle && resizeHandle.setPointerCapture) {
+                        resizePointerId = e.pointerId;
+                        try { resizeHandle.setPointerCapture(resizePointerId); } catch(ex) {}
+                    }
+                };
 
-                if (e.pointerId !== undefined && resizeHandle && resizeHandle.setPointerCapture) {
-                    resizePointerId = e.pointerId;
-                    try { resizeHandle.setPointerCapture(resizePointerId); } catch(ex) {}
-                }
-            };
+                const onResizeMove = (e) => {
+                    if (!isResizing) return;
+                    if (e.cancelable) e.preventDefault();
+                    const pt = AppLayers.ui.getClientPoint(e);
+                    const deltaX = pt.x - resizeStartX;
+                    const newWidth = Math.max(220, Math.min(window.innerWidth - 16, resizeWidth + deltaX));
+                    panel.style.width = `${newWidth}px`;
+                    clampFloatingPanelIntoViewport(panel);
+                };
 
-            const onResizeMove = (e) => {
-                if (!isResizing) return;
-                if (e.cancelable) e.preventDefault();
-                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
-                const deltaX = pt.x - resizeStartX;
-                const newWidth = Math.max(200, Math.min(window.innerWidth - 16, resizeWidth + deltaX));
-                panel.style.width = `${newWidth}px`;
-            };
-
-            const onResizeEnd = (e) => {
-                if (!isResizing) return;
-                isResizing = false;
-                if (resizePointerId !== null && resizeHandle && resizeHandle.releasePointerCapture) {
-                    try { resizeHandle.releasePointerCapture(resizePointerId); } catch(ex) {}
+                const onResizeEnd = () => {
+                    if (!isResizing) return;
+                    isResizing = false;
+                    if (resizePointerId !== null && resizeHandle && resizeHandle.releasePointerCapture) {
+                        try { resizeHandle.releasePointerCapture(resizePointerId); } catch(ex) {}
+                    }
                     resizePointerId = null;
+                };
+
+                if (resizeHandle) {
+                    resizeHandle.addEventListener('pointerdown', onResizeStart, { passive: false });
+                    resizeHandle.addEventListener('pointermove', onResizeMove, { passive: false });
+                    resizeHandle.addEventListener('pointerup', onResizeEnd, { passive: false });
+                    resizeHandle.addEventListener('pointercancel', onResizeEnd, { passive: false });
+                    resizeHandle.addEventListener('touchstart', onResizeStart, { passive: false });
+                    resizeHandle.addEventListener('touchmove', onResizeMove, { passive: false });
+                    resizeHandle.addEventListener('touchend', onResizeEnd, { passive: false });
                 }
-            };
-
-            if (resizeHandle) {
-                resizeHandle.addEventListener('pointerdown', onResizeStart, { passive: false });
-                resizeHandle.addEventListener('pointermove', onResizeMove, { passive: false });
-                resizeHandle.addEventListener('pointerup', onResizeEnd, { passive: false });
-                resizeHandle.addEventListener('pointercancel', onResizeEnd, { passive: false });
-
-                resizeHandle.addEventListener('touchstart', onResizeStart, { passive: false });
-                resizeHandle.addEventListener('touchmove', onResizeMove, { passive: false });
-                resizeHandle.addEventListener('touchend', onResizeEnd, { passive: false });
             }
-        }
 
         function bindMobilePinchZoomEvents(zoomOverlayEl) {
             if (!zoomOverlayEl) zoomOverlayEl = document.getElementById('imageZoomOverlay');
@@ -13035,6 +13314,7 @@ function ensureImageWrapperStructure(wrapper) {
 
             const zoomEditorToolbar = document.getElementById('zoomEditorToolbar');
             const zoomToolbarDragHandle = document.getElementById('zoomToolbarDragHandle');
+            const zoomToolbarCollapseToggle = document.getElementById('zoomToolbarCollapseToggle');
             
             // --- START: 줌 에디터 툴바 드래그 기능 ---
             let isZoomToolbarDragging = false;
@@ -13051,10 +13331,10 @@ function ensureImageWrapperStructure(wrapper) {
 
             function onZoomToolbarDragStart(e) {
                 if (!zoomEditorToolbar) return;
-                if (!e.target.closest('#zoomToolbarDragHandle')) return;
+                if (!e.target.closest('#zoomToolbarDragHandle') && !e.target.closest('#zoomToolbarCollapseToggle')) return;
                 e.preventDefault();
                 e.stopPropagation();
-                window.getSelection()?.removeAllRanges();
+                AppLayers.ui.clearTextSelection();
                 zoomToolbarSuppressOverlayClickUntil = Date.now() + 500;
                 
                 isZoomToolbarDragging = true;
@@ -13067,7 +13347,9 @@ function ensureImageWrapperStructure(wrapper) {
                 zoomEditorToolbar.style.left = rect.left + 'px';
                 zoomEditorToolbar.style.top = rect.top + 'px';
                 
-                const { clientX, clientY } = getZoomToolbarPointer(e);
+                const point = AppLayers.ui.getClientPoint(e);
+                const clientX = point.x;
+                const clientY = point.y;
                 zoomToolbarStartX = clientX;
                 zoomToolbarStartY = clientY;
                 zoomToolbarDidMove = false;
@@ -13092,21 +13374,27 @@ function ensureImageWrapperStructure(wrapper) {
                 }
                 e.preventDefault();
                 
-                const { clientX, clientY } = getZoomToolbarPointer(e);
+                const point = AppLayers.ui.getClientPoint(e);
+                const clientX = point.x;
+                const clientY = point.y;
                 if (Math.abs(clientX - zoomToolbarStartX) > 2 || Math.abs(clientY - zoomToolbarStartY) > 2) {
                     zoomToolbarDidMove = true;
                     zoomToolbarSuppressOverlayClickUntil = Date.now() + 600;
                 }
                 
-                let newX = clientX - zoomToolbarOffsetX;
-                let newY = clientY - zoomToolbarOffsetY;
-                
                 const rect = zoomEditorToolbar.getBoundingClientRect();
-                newX = Math.max(0, Math.min(window.innerWidth - rect.width, newX));
-                newY = Math.max(0, Math.min(window.innerHeight - rect.height, newY));
+                const pos = AppLayers.ui.clampPosition(
+                    clientX - zoomToolbarOffsetX,
+                    clientY - zoomToolbarOffsetY,
+                    rect.width,
+                    rect.height,
+                    window.innerWidth,
+                    window.innerHeight,
+                    8
+                );
                 
-                zoomEditorToolbar.style.left = newX + 'px';
-                zoomEditorToolbar.style.top = newY + 'px';
+                zoomEditorToolbar.style.left = pos.left + 'px';
+                zoomEditorToolbar.style.top = pos.top + 'px';
             }
             
             function onZoomToolbarDragEnd() {
@@ -13121,11 +13409,22 @@ function ensureImageWrapperStructure(wrapper) {
                 document.removeEventListener('touchcancel', onZoomToolbarDragEnd, true);
                 window.removeEventListener('mouseup', onZoomToolbarDragEnd, true);
                 window.removeEventListener('blur', onZoomToolbarDragEnd);
+                AppLayers.ui.clearTextSelection();
             }
             
             if (zoomToolbarDragHandle) {
                 zoomToolbarDragHandle.addEventListener('mousedown', onZoomToolbarDragStart);
                 zoomToolbarDragHandle.addEventListener('touchstart', onZoomToolbarDragStart, {passive: false});
+            }
+            if (zoomToolbarCollapseToggle) {
+                zoomToolbarCollapseToggle.addEventListener('mousedown', onZoomToolbarDragStart);
+                zoomToolbarCollapseToggle.addEventListener('touchstart', onZoomToolbarDragStart, {passive: false});
+                zoomToolbarCollapseToggle.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (zoomToolbarDidMove) return;
+                    setZoomToolbarCollapsed(!zoomEditorToolbar.classList.contains('collapsed'));
+                });
             }
             if (zoomEditorToolbar) {
                 ['mousedown', 'mouseup', 'click', 'dblclick', 'touchstart', 'touchend'].forEach(eventName => {
@@ -13140,7 +13439,15 @@ function ensureImageWrapperStructure(wrapper) {
             // --- END: 줌 에디터 툴바 드래그 기능 ---
             
             const zoomDrawBtn = document.getElementById('zoomDrawBtn');
-            if (zoomDrawBtn) zoomDrawBtn.addEventListener('click', toggleDrawingFeature);
+            if (zoomDrawBtn) zoomDrawBtn.addEventListener('click', () => {
+                if (!isDrawingFeatureActive) {
+                    toggleDrawingFeature();
+                } else if (document.body.classList.contains('image-zoom-active')) {
+                    openAnnotationSettingsPanel({ expand: true });
+                } else {
+                    toggleDrawingFeature();
+                }
+            });
             
             const zoomCropBtn = document.getElementById('zoomCropBtn');
             if (zoomCropBtn) zoomCropBtn.addEventListener('click', () => {
