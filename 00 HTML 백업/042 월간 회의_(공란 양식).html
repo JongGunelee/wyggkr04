@@ -866,8 +866,12 @@
             flex-direction: column;
             gap: 8px;
             width: min(260px, calc(100vw - 24px));
+            min-width: min(220px, calc(100vw - 24px));
+            min-height: 190px;
             max-width: calc(100vw - 24px);
+            max-height: calc(100vh - 24px);
             overflow: hidden;
+            resize: none;
             box-sizing: border-box;
         }
 
@@ -880,6 +884,7 @@
             margin-bottom: 6px;
             user-select: none;
             touch-action: none;
+            cursor: move;
         }
         .anno-panel-drag-handle {
             cursor: move;
@@ -971,13 +976,20 @@
         }
         .anno-panel-resize-handle {
             position: absolute;
-            right: 3px;
-            bottom: 3px;
-            font-size: 10px;
+            right: 0;
+            bottom: 0;
+            width: 28px;
+            height: 28px;
+            font-size: 14px;
             color: #888;
             cursor: nwse-resize;
             user-select: none;
             touch-action: none;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            padding: 0 4px 3px 0;
+            box-sizing: border-box;
         }
         #annotationSettingsPanel.collapsed .anno-panel-resize-handle {
             display: none !important;
@@ -2979,6 +2991,18 @@
             max-width: calc(100vw - 24px);
             overflow: hidden;
             box-sizing: border-box;
+        }
+
+        body.image-zoom-active #annotationSettingsPanel {
+            min-width: min(220px, calc(100vw - 16px)) !important;
+            min-height: 190px !important;
+            max-width: calc(100vw - 16px) !important;
+            max-height: calc(100vh - 16px) !important;
+        }
+
+        body.image-zoom-active #annotationSettingsPanel.collapsed {
+            min-width: 54px !important;
+            min-height: 54px !important;
         }
 
         #closeAnnotationSettingsBtn {
@@ -5399,6 +5423,15 @@
                         el.removeAttribute('data-pan-bound');
                     }
                 });
+                const resetFloatingPanelGeometry = (el) => {
+                    if (!el) return;
+                    ['left', 'top', 'right', 'bottom', 'width', 'height', 'transform'].forEach(prop => {
+                        el.style[prop] = '';
+                    });
+                    el.style.display = 'none';
+                };
+                resetFloatingPanelGeometry(targetDoc.getElementById('annotationSettingsPanel'));
+                resetFloatingPanelGeometry(targetDoc.getElementById('zoomEditorToolbar'));
                 targetDoc.querySelectorAll('[data-pan-bound]').forEach(el => { delete el.dataset.panBound; el.removeAttribute('data-pan-bound'); });
                 targetDoc.querySelectorAll('[data-listener-attached]').forEach(el => { delete el.dataset.listenerAttached; el.removeAttribute('data-listener-attached'); });
                 targetDoc.querySelectorAll('[data-drag-initialized]').forEach(el => { delete el.dataset.dragInitialized; el.removeAttribute('data-drag-initialized'); });
@@ -6578,9 +6611,10 @@ let currentZoomingImageElement = null;
             const height = annotationSettingsPanel.offsetHeight || 220;
             const inZoom = document.body.classList.contains('image-zoom-active');
             if (inZoom || options.reposition) {
+                const preferredLeft = Math.max(8, window.innerWidth - width - 88);
                 moveFloatingLayerIntoViewport(
                     annotationSettingsPanel,
-                    window.innerWidth - width - 18,
+                    preferredLeft,
                     Math.max(70, Math.min(window.innerHeight - height - 18, 92)),
                     8
                 );
@@ -10280,7 +10314,19 @@ function clampImagesToContainers(scope = contentArea) {
 
                 // (8) 어노테이션 설정 패널 닫힌 상태로 저장
                 const clonedAnnoPanelSave = clonedDoc.getElementById('annotationSettingsPanel');
-                if (clonedAnnoPanelSave) clonedAnnoPanelSave.style.display = 'none';
+                if (clonedAnnoPanelSave) {
+                    ['left', 'top', 'right', 'bottom', 'width', 'height', 'transform'].forEach(prop => {
+                        clonedAnnoPanelSave.style[prop] = '';
+                    });
+                    clonedAnnoPanelSave.style.display = 'none';
+                }
+                const clonedZoomToolbarSave = clonedDoc.getElementById('zoomEditorToolbar');
+                if (clonedZoomToolbarSave) {
+                    ['left', 'top', 'right', 'bottom', 'width', 'height', 'transform'].forEach(prop => {
+                        clonedZoomToolbarSave.style[prop] = '';
+                    });
+                    clonedZoomToolbarSave.style.display = 'none';
+                }
 
                 // (9) 커스텀 메시지 박스 제거
                 const clonedMsgBoxSave = clonedDoc.getElementById('customMessageBox');
@@ -14134,41 +14180,54 @@ document.addEventListener('focusin', e => {
             let startX = 0, startY = 0;
             let initialLeft = 0, initialTop = 0;
             let pointerId = null;
+            const getPanelPoint = (e) => (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint)
+                ? AppLayers.ui.getClientPoint(e)
+                : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
 
             const onDragStart = (e) => {
-                if (e.target.closest('button') || e.target.closest('input') || e.target.closest('#closeAnnotationSettingsBtn') || e.target.closest('#annoPanelResizeHandle')) return;
+                if (panel.classList.contains('collapsed')) return;
+                if (e.target.closest('button') || e.target.closest('input') || e.target.closest('label') || e.target.closest('#closeAnnotationSettingsBtn') || e.target.closest('#annoPanelResizeHandle')) return;
                 if (e.cancelable) e.preventDefault();
                 e.stopPropagation();
+                AppLayers.ui.clearTextSelection();
 
                 isDragging = true;
                 const rect = panel.getBoundingClientRect();
-                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
+                const pt = getPanelPoint(e);
 
                 panel.style.right = 'auto';
                 panel.style.bottom = 'auto';
                 panel.style.left = `${rect.left}px`;
                 panel.style.top = `${rect.top}px`;
+                panel.classList.add('is-dragging');
 
                 startX = pt.x;
                 startY = pt.y;
                 initialLeft = rect.left;
                 initialTop = rect.top;
 
-                if (e.pointerId !== undefined && dragHandle && dragHandle.setPointerCapture) {
+                if (e.pointerId !== undefined && panel.setPointerCapture) {
                     pointerId = e.pointerId;
-                    try { dragHandle.setPointerCapture(pointerId); } catch(ex) {}
+                    try { panel.setPointerCapture(pointerId); } catch(ex) {}
                 }
+                document.addEventListener('pointermove', onDragMove, { passive: false });
+                document.addEventListener('pointerup', onDragEnd);
+                document.addEventListener('pointercancel', onDragEnd);
             };
 
             const onDragMove = (e) => {
                 if (!isDragging) return;
+                if (pointerId !== null && e.pointerId !== pointerId) return;
                 if (e.cancelable) e.preventDefault();
-                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
+                e.stopPropagation();
+                const pt = getPanelPoint(e);
                 const deltaX = pt.x - startX;
                 const deltaY = pt.y - startY;
 
                 const rect = panel.getBoundingClientRect();
-                const pos = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.clampPosition) ? AppLayers.ui.clampPosition(initialLeft + deltaX, initialTop + deltaY, rect.width, rect.height) : { left: Math.max(0, initialLeft + deltaX), top: Math.max(0, initialTop + deltaY) };
+                const pos = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.clampPosition)
+                    ? AppLayers.ui.clampPosition(initialLeft + deltaX, initialTop + deltaY, rect.width, rect.height, window.innerWidth, window.innerHeight, 8)
+                    : { left: Math.max(8, initialLeft + deltaX), top: Math.max(8, initialTop + deltaY) };
 
                 panel.style.left = `${pos.left}px`;
                 panel.style.top = `${pos.top}px`;
@@ -14177,68 +14236,90 @@ document.addEventListener('focusin', e => {
             const onDragEnd = (e) => {
                 if (!isDragging) return;
                 isDragging = false;
-                if (pointerId !== null && dragHandle && dragHandle.releasePointerCapture) {
-                    try { dragHandle.releasePointerCapture(pointerId); } catch(ex) {}
+                if (pointerId !== null && panel.releasePointerCapture) {
+                    try { panel.releasePointerCapture(pointerId); } catch(ex) {}
                     pointerId = null;
                 }
+                panel.classList.remove('is-dragging');
+                AppLayers.ui.clearTextSelection();
+                document.removeEventListener('pointermove', onDragMove);
+                document.removeEventListener('pointerup', onDragEnd);
+                document.removeEventListener('pointercancel', onDragEnd);
             };
 
-            if (dragHandle) {
-                dragHandle.addEventListener('pointerdown', onDragStart, { passive: false });
-                dragHandle.addEventListener('pointermove', onDragMove, { passive: false });
-                dragHandle.addEventListener('pointerup', onDragEnd, { passive: false });
-                dragHandle.addEventListener('pointercancel', onDragEnd, { passive: false });
-
-                dragHandle.addEventListener('touchstart', onDragStart, { passive: false });
-                dragHandle.addEventListener('touchmove', onDragMove, { passive: false });
-                dragHandle.addEventListener('touchend', onDragEnd, { passive: false });
-            }
+            const panelHeader = document.getElementById('annoPanelHeader');
+            panel.addEventListener('pointerdown', onDragStart, { passive: false });
+            if (dragHandle) dragHandle.addEventListener('pointerdown', onDragStart, { passive: false });
+            if (panelHeader) panelHeader.addEventListener('pointerdown', onDragStart, { passive: false });
 
             let isResizing = false;
-            let resizeStartX = 0, resizeWidth = 0;
+            let resizeStartX = 0, resizeStartY = 0, resizeWidth = 0, resizeHeight = 0, resizeLeft = 0, resizeTop = 0;
             let resizePointerId = null;
 
             const onResizeStart = (e) => {
+                if (panel.classList.contains('collapsed')) return;
                 if (e.cancelable) e.preventDefault();
                 e.stopPropagation();
+                AppLayers.ui.clearTextSelection();
                 isResizing = true;
-                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
+                const pt = getPanelPoint(e);
+                const rect = panel.getBoundingClientRect();
                 resizeStartX = pt.x;
-                resizeWidth = panel.offsetWidth;
+                resizeStartY = pt.y;
+                resizeWidth = rect.width;
+                resizeHeight = rect.height;
+                resizeLeft = rect.left;
+                resizeTop = rect.top;
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
+                panel.style.left = `${resizeLeft}px`;
+                panel.style.top = `${resizeTop}px`;
+                panel.classList.add('is-dragging');
 
-                if (e.pointerId !== undefined && resizeHandle && resizeHandle.setPointerCapture) {
+                if (e.pointerId !== undefined && panel.setPointerCapture) {
                     resizePointerId = e.pointerId;
-                    try { resizeHandle.setPointerCapture(resizePointerId); } catch(ex) {}
+                    try { panel.setPointerCapture(resizePointerId); } catch(ex) {}
                 }
+                document.addEventListener('pointermove', onResizeMove, { passive: false });
+                document.addEventListener('pointerup', onResizeEnd);
+                document.addEventListener('pointercancel', onResizeEnd);
             };
 
             const onResizeMove = (e) => {
                 if (!isResizing) return;
+                if (resizePointerId !== null && e.pointerId !== resizePointerId) return;
                 if (e.cancelable) e.preventDefault();
-                const pt = (typeof AppLayers !== 'undefined' && AppLayers.ui && AppLayers.ui.getClientPoint) ? AppLayers.ui.getClientPoint(e) : { x: e.clientX || e.touches?.[0]?.clientX || 0, y: e.clientY || e.touches?.[0]?.clientY || 0 };
+                e.stopPropagation();
+                const pt = getPanelPoint(e);
                 const deltaX = pt.x - resizeStartX;
-                const newWidth = Math.max(200, Math.min(window.innerWidth - 16, resizeWidth + deltaX));
+                const deltaY = pt.y - resizeStartY;
+                const minWidth = Math.min(220, Math.max(160, window.innerWidth - 16));
+                const minHeight = 190;
+                const maxWidth = Math.max(minWidth, window.innerWidth - resizeLeft - 8);
+                const maxHeight = Math.max(minHeight, window.innerHeight - resizeTop - 8);
+                const newWidth = Math.max(minWidth, Math.min(maxWidth, resizeWidth + deltaX));
+                const newHeight = Math.max(minHeight, Math.min(maxHeight, resizeHeight + deltaY));
                 panel.style.width = `${newWidth}px`;
+                panel.style.height = `${newHeight}px`;
             };
 
             const onResizeEnd = (e) => {
                 if (!isResizing) return;
                 isResizing = false;
-                if (resizePointerId !== null && resizeHandle && resizeHandle.releasePointerCapture) {
-                    try { resizeHandle.releasePointerCapture(resizePointerId); } catch(ex) {}
+                if (resizePointerId !== null && panel.releasePointerCapture) {
+                    try { panel.releasePointerCapture(resizePointerId); } catch(ex) {}
                     resizePointerId = null;
                 }
+                moveFloatingLayerIntoViewport(panel);
+                panel.classList.remove('is-dragging');
+                AppLayers.ui.clearTextSelection();
+                document.removeEventListener('pointermove', onResizeMove);
+                document.removeEventListener('pointerup', onResizeEnd);
+                document.removeEventListener('pointercancel', onResizeEnd);
             };
 
             if (resizeHandle) {
                 resizeHandle.addEventListener('pointerdown', onResizeStart, { passive: false });
-                resizeHandle.addEventListener('pointermove', onResizeMove, { passive: false });
-                resizeHandle.addEventListener('pointerup', onResizeEnd, { passive: false });
-                resizeHandle.addEventListener('pointercancel', onResizeEnd, { passive: false });
-
-                resizeHandle.addEventListener('touchstart', onResizeStart, { passive: false });
-                resizeHandle.addEventListener('touchmove', onResizeMove, { passive: false });
-                resizeHandle.addEventListener('touchend', onResizeEnd, { passive: false });
             }
         }
 

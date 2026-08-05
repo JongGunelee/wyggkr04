@@ -1519,8 +1519,8 @@
             min-width: 36px;
             min-height: 36px;
             border: 0;
-            border-radius: 999px;
-            background: #111827;
+            border-radius: 50%;
+            background: transparent;
             color: #fff;
             display: inline-flex;
             align-items: center;
@@ -1532,7 +1532,33 @@
             user-select: none;
             -webkit-user-select: none;
             touch-action: none;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            position: relative;
+            z-index: 1;
+            isolation: isolate;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+        }
+
+        .floating-bubble-toggle::before {
+            content: "";
+            position: absolute;
+            inset: 1px;
+            border-radius: 68% 68% 68% 22%;
+            background: linear-gradient(145deg, #22d3ee 0%, #2563eb 58%, #1e3a8a 100%);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.34), inset 0 1px 3px rgba(255, 255, 255, 0.55);
+            transform: rotate(45deg);
+            z-index: -1;
+        }
+
+        .floating-bubble-toggle::after {
+            content: "";
+            position: absolute;
+            width: 9px;
+            height: 5px;
+            top: 8px;
+            left: 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.72);
+            transform: rotate(-25deg);
         }
 
         .floating-bubble-toggle:active {
@@ -1933,6 +1959,8 @@
             gap: 8px;
             overflow-y: auto;
             padding-right: 2px;
+            flex: 1 1 auto;
+            min-height: 0;
         }
 
         .anno-tool-row,
@@ -1976,11 +2004,14 @@
             height: 44px !important;
             min-width: 44px !important;
             min-height: 44px !important;
-            padding: 4px !important;
+            max-width: 44px !important;
+            max-height: 44px !important;
+            padding: 0 !important;
             border-radius: 999px !important;
             overflow: visible;
             background: transparent;
             box-shadow: none;
+            gap: 0 !important;
         }
 
         #annotationSettingsPanel.collapsed .anno-panel-header {
@@ -1990,6 +2021,19 @@
             margin: 0;
             border: 0;
             justify-content: center;
+        }
+
+        #annotationSettingsPanel.collapsed > :not(.anno-panel-header),
+        #annotationSettingsPanel.collapsed .anno-panel-header > :not(#annotationPanelCollapseToggle),
+        #annotationSettingsPanel.collapsed .anno-panel-header-actions {
+            display: none !important;
+        }
+
+        #annotationSettingsPanel.collapsed #annotationPanelCollapseToggle {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
         }
 
         #annotationSettingsPanel.collapsed .anno-panel-drag-handle,
@@ -2003,14 +2047,62 @@
         }
         .anno-panel-resize-handle {
             position: absolute;
-            right: 3px;
-            bottom: 3px;
-            font-size: 10px;
-            color: #888;
-            cursor: nwse-resize;
+            z-index: 2;
+            background: transparent;
             user-select: none;
             touch-action: none;
         }
+
+        .anno-panel-resize-handle::after {
+            content: "";
+            position: absolute;
+            inset: 3px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.32);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        #annotationSettingsPanel:hover .anno-panel-resize-handle::after,
+        .anno-panel-resize-handle:active::after {
+            opacity: 1;
+        }
+
+        .anno-panel-resize-handle.n,
+        .anno-panel-resize-handle.s {
+            left: 12px;
+            right: 12px;
+            height: 12px;
+            cursor: ns-resize;
+        }
+
+        .anno-panel-resize-handle.n { top: -6px; }
+        .anno-panel-resize-handle.s { bottom: -6px; }
+
+        .anno-panel-resize-handle.e,
+        .anno-panel-resize-handle.w {
+            top: 12px;
+            bottom: 12px;
+            width: 12px;
+            cursor: ew-resize;
+        }
+
+        .anno-panel-resize-handle.e { right: -6px; }
+        .anno-panel-resize-handle.w { left: -6px; }
+
+        .anno-panel-resize-handle.nw,
+        .anno-panel-resize-handle.ne,
+        .anno-panel-resize-handle.sw,
+        .anno-panel-resize-handle.se {
+            width: 18px;
+            height: 18px;
+        }
+
+        .anno-panel-resize-handle.nw { top: -8px; left: -8px; cursor: nwse-resize; }
+        .anno-panel-resize-handle.ne { top: -8px; right: -8px; cursor: nesw-resize; }
+        .anno-panel-resize-handle.sw { bottom: -8px; left: -8px; cursor: nesw-resize; }
+        .anno-panel-resize-handle.se { bottom: -8px; right: -8px; cursor: nwse-resize; }
+
         #annotationSettingsPanel.collapsed .anno-panel-resize-handle {
             display: none !important;
         }
@@ -4663,7 +4755,14 @@
                 <label for="annoKeepDrawingsVisible" style="font-size:11px; white-space: nowrap;">그림 유지(비활성시)</label>
             </div>
             </div>
-            <div id="annoPanelResizeHandle" class="anno-panel-resize-handle" title="손가락으로 드래그해서 크기 조절">◢</div>
+            <div class="anno-panel-resize-handle n" data-resize-direction="n" title="위쪽 외곽 드래그로 크기 조절"></div>
+            <div class="anno-panel-resize-handle s" data-resize-direction="s" title="아래쪽 외곽 드래그로 크기 조절"></div>
+            <div class="anno-panel-resize-handle w" data-resize-direction="w" title="왼쪽 외곽 드래그로 크기 조절"></div>
+            <div class="anno-panel-resize-handle e" data-resize-direction="e" title="오른쪽 외곽 드래그로 크기 조절"></div>
+            <div class="anno-panel-resize-handle nw" data-resize-direction="nw" title="좌상단 외곽 드래그로 크기 조절"></div>
+            <div class="anno-panel-resize-handle ne" data-resize-direction="ne" title="우상단 외곽 드래그로 크기 조절"></div>
+            <div class="anno-panel-resize-handle sw" data-resize-direction="sw" title="좌하단 외곽 드래그로 크기 조절"></div>
+            <div id="annoPanelResizeHandle" class="anno-panel-resize-handle se" data-resize-direction="se" title="우하단 외곽 드래그로 크기 조절"></div>
         </div>
         <div id="customMessageBox" class="custom-message-box success" style="display: none;">실행 취소됨</div>
 
@@ -10230,6 +10329,18 @@ function hideTextFormatToolbar() {
             showMessage("주석 설정 적용됨.", "success", 1500);
         }
 
+        function deactivateZoomDrawingMode(applySettings = true) {
+            if (!isDrawingFeatureActive) return;
+            isDrawingFeatureActive = false;
+            updateAnnotationDisplayToggleBtnStyle();
+            const zoomDrawBtn = document.getElementById('zoomDrawBtn');
+            if (zoomDrawBtn) zoomDrawBtn.classList.remove('active');
+            [getActiveCanvas(), annotationCanvas, zoomAnnotationCanvas].forEach(canvas => {
+                if (canvas) canvas.style.pointerEvents = 'none';
+            });
+            if (isAnnotationPanelOpen) closeAnnotationSettingsPanel(applySettings);
+        }
+
         function handleMenuKeepDrawingsToggle(isChecked) {
             keepDrawingsVisibleOnDeactivate = isChecked;
             if (annoKeepDrawingsVisibleCheckbox) annoKeepDrawingsVisibleCheckbox.checked = keepDrawingsVisibleOnDeactivate;
@@ -12765,6 +12876,7 @@ function ensureImageWrapperStructure(wrapper) {
         }
 
         function togglePanTool() {
+            deactivateZoomDrawingMode(true);
             isPanToolActive = !isPanToolActive;
             const panBtn = document.getElementById('zoomPanBtn');
             const overlayEl = document.getElementById('imageZoomOverlay');
@@ -13031,9 +13143,18 @@ function ensureImageWrapperStructure(wrapper) {
             const zoomResetBtn = document.getElementById('zoomResetBtn');
             const zoomPanBtn = document.getElementById('zoomPanBtn');
 
-            if (zoomInBtn) zoomInBtn.addEventListener('click', () => updateImageZoomScale(currentZoomScale + 0.25));
-            if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => updateImageZoomScale(currentZoomScale - 0.25));
-            if (zoomResetBtn) zoomResetBtn.addEventListener('click', () => updateImageZoomTransform(1.0, true));
+            if (zoomInBtn) zoomInBtn.addEventListener('click', () => {
+                deactivateZoomDrawingMode(true);
+                updateImageZoomScale(currentZoomScale + 0.25);
+            });
+            if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => {
+                deactivateZoomDrawingMode(true);
+                updateImageZoomScale(currentZoomScale - 0.25);
+            });
+            if (zoomResetBtn) zoomResetBtn.addEventListener('click', () => {
+                deactivateZoomDrawingMode(true);
+                updateImageZoomTransform(1.0, true);
+            });
             if (zoomPanBtn) zoomPanBtn.addEventListener('click', togglePanTool);
 
             function makeAnnoPanelDraggableAndResizable() {
@@ -13044,7 +13165,7 @@ function ensureImageWrapperStructure(wrapper) {
                 const dragHandle = document.getElementById('annoPanelDragHandle');
                 const header = document.getElementById('annoPanelHeader');
                 const collapseBtn = document.getElementById('annotationPanelCollapseToggle');
-                const resizeHandle = document.getElementById('annoPanelResizeHandle');
+                const resizeHandles = Array.from(panel.querySelectorAll('.anno-panel-resize-handle'));
 
                 if (collapseBtn) {
                     collapseBtn.addEventListener('click', (e) => {
@@ -13064,7 +13185,7 @@ function ensureImageWrapperStructure(wrapper) {
                     const isBubble = e.target.closest('#annotationPanelCollapseToggle');
                     const isHeaderDrag = e.target.closest('#annoPanelDragHandle') || e.target.closest('#annoPanelHeader');
                     if (!isBubble && !isHeaderDrag) return;
-                    if (!isBubble && (e.target.closest('button') || e.target.closest('input') || e.target.closest('label') || e.target.closest('#closeAnnotationSettingsBtn') || e.target.closest('#annoPanelResizeHandle'))) return;
+                    if (!isBubble && (e.target.closest('button') || e.target.closest('input') || e.target.closest('label') || e.target.closest('#closeAnnotationSettingsBtn') || e.target.closest('.anno-panel-resize-handle'))) return;
                     if (e.cancelable) e.preventDefault();
                     e.stopPropagation();
                     AppLayers.ui.clearTextSelection();
@@ -13143,6 +13264,9 @@ function ensureImageWrapperStructure(wrapper) {
 
                 let isResizing = false;
                 let resizeStartX = 0, resizeWidth = 0;
+                let resizeStartY = 0, resizeHeight = 0;
+                let resizeStartLeft = 0, resizeStartTop = 0;
+                let resizeDirection = '';
                 let resizePointerId = null;
 
                 const onResizeStart = (e) => {
@@ -13150,44 +13274,84 @@ function ensureImageWrapperStructure(wrapper) {
                     if (e.cancelable) e.preventDefault();
                     e.stopPropagation();
                     isResizing = true;
+                    panel.dataset.dragMoved = 'true';
+                    const handle = e.target.closest('.anno-panel-resize-handle');
+                    resizeDirection = handle?.dataset.resizeDirection || 'se';
+                    const rect = panel.getBoundingClientRect();
                     const pt = AppLayers.ui.getClientPoint(e);
                     resizeStartX = pt.x;
+                    resizeStartY = pt.y;
                     resizeWidth = panel.offsetWidth;
+                    resizeHeight = panel.offsetHeight;
+                    resizeStartLeft = rect.left;
+                    resizeStartTop = rect.top;
+                    panel.style.left = `${rect.left}px`;
+                    panel.style.top = `${rect.top}px`;
+                    panel.style.right = 'auto';
+                    panel.style.bottom = 'auto';
+                    panel.style.transform = 'none';
 
-                    if (e.pointerId !== undefined && resizeHandle && resizeHandle.setPointerCapture) {
+                    if (e.pointerId !== undefined && handle && handle.setPointerCapture) {
                         resizePointerId = e.pointerId;
-                        try { resizeHandle.setPointerCapture(resizePointerId); } catch(ex) {}
+                        try { handle.setPointerCapture(resizePointerId); } catch(ex) {}
                     }
                 };
 
                 const onResizeMove = (e) => {
                     if (!isResizing) return;
                     if (e.cancelable) e.preventDefault();
+                    e.stopPropagation();
                     const pt = AppLayers.ui.getClientPoint(e);
                     const deltaX = pt.x - resizeStartX;
-                    const newWidth = Math.max(220, Math.min(window.innerWidth - 16, resizeWidth + deltaX));
+                    const deltaY = pt.y - resizeStartY;
+                    const minWidth = window.innerWidth <= 600 ? 240 : 260;
+                    const minHeight = 160;
+                    const maxWidth = Math.max(minWidth, window.innerWidth - 16);
+                    const maxHeight = Math.max(minHeight, window.innerHeight - 16);
+                    let newLeft = resizeStartLeft;
+                    let newTop = resizeStartTop;
+                    let newWidth = resizeWidth;
+                    let newHeight = resizeHeight;
+
+                    if (resizeDirection.includes('e')) {
+                        newWidth = Math.min(maxWidth, Math.max(minWidth, resizeWidth + deltaX));
+                    }
+                    if (resizeDirection.includes('s')) {
+                        newHeight = Math.min(maxHeight, Math.max(minHeight, resizeHeight + deltaY));
+                    }
+                    if (resizeDirection.includes('w')) {
+                        newWidth = Math.min(maxWidth, Math.max(minWidth, resizeWidth - deltaX));
+                        newLeft = resizeStartLeft + (resizeWidth - newWidth);
+                    }
+                    if (resizeDirection.includes('n')) {
+                        newHeight = Math.min(maxHeight, Math.max(minHeight, resizeHeight - deltaY));
+                        newTop = resizeStartTop + (resizeHeight - newHeight);
+                    }
+
+                    const pos = AppLayers.ui.clampPosition(newLeft, newTop, newWidth, newHeight, window.innerWidth, window.innerHeight, 8);
                     panel.style.width = `${newWidth}px`;
-                    clampFloatingPanelIntoViewport(panel);
+                    panel.style.height = `${newHeight}px`;
+                    panel.style.left = `${pos.left}px`;
+                    panel.style.top = `${pos.top}px`;
                 };
 
                 const onResizeEnd = () => {
                     if (!isResizing) return;
                     isResizing = false;
-                    if (resizePointerId !== null && resizeHandle && resizeHandle.releasePointerCapture) {
-                        try { resizeHandle.releasePointerCapture(resizePointerId); } catch(ex) {}
-                    }
+                    resizeDirection = '';
                     resizePointerId = null;
+                    setTimeout(() => { panel.dataset.dragMoved = 'false'; }, 0);
                 };
 
-                if (resizeHandle) {
-                    resizeHandle.addEventListener('pointerdown', onResizeStart, { passive: false });
-                    resizeHandle.addEventListener('pointermove', onResizeMove, { passive: false });
-                    resizeHandle.addEventListener('pointerup', onResizeEnd, { passive: false });
-                    resizeHandle.addEventListener('pointercancel', onResizeEnd, { passive: false });
-                    resizeHandle.addEventListener('touchstart', onResizeStart, { passive: false });
-                    resizeHandle.addEventListener('touchmove', onResizeMove, { passive: false });
-                    resizeHandle.addEventListener('touchend', onResizeEnd, { passive: false });
-                }
+                resizeHandles.forEach(handle => {
+                    handle.addEventListener('pointerdown', onResizeStart, { passive: false });
+                    handle.addEventListener('pointermove', onResizeMove, { passive: false });
+                    handle.addEventListener('pointerup', onResizeEnd, { passive: false });
+                    handle.addEventListener('pointercancel', onResizeEnd, { passive: false });
+                    handle.addEventListener('touchstart', onResizeStart, { passive: false });
+                    handle.addEventListener('touchmove', onResizeMove, { passive: false });
+                    handle.addEventListener('touchend', onResizeEnd, { passive: false });
+                });
             }
 
         function bindMobilePinchZoomEvents(zoomOverlayEl) {
@@ -13451,6 +13615,7 @@ function ensureImageWrapperStructure(wrapper) {
             
             const zoomCropBtn = document.getElementById('zoomCropBtn');
             if (zoomCropBtn) zoomCropBtn.addEventListener('click', () => {
+                deactivateZoomDrawingMode(true);
                 if (!currentZoomingImageElement) return;
                 const wrapper = currentZoomingImageElement.closest('.resizable-image-wrapper');
                 closeImageZoom();
@@ -13459,6 +13624,7 @@ function ensureImageWrapperStructure(wrapper) {
             
             const zoomCloneBtn = document.getElementById('zoomCloneBtn');
             if (zoomCloneBtn) zoomCloneBtn.addEventListener('click', () => {
+                deactivateZoomDrawingMode(true);
                 if (!currentZoomingImageElement) return;
                 const wrapper = currentZoomingImageElement.closest('.resizable-image-wrapper');
                 if (wrapper) {
@@ -13470,6 +13636,7 @@ function ensureImageWrapperStructure(wrapper) {
             
             const zoomDeleteBtn = document.getElementById('zoomDeleteBtn');
             if (zoomDeleteBtn) zoomDeleteBtn.addEventListener('click', () => {
+                deactivateZoomDrawingMode(true);
                 if (!currentZoomingImageElement) return;
                 const wrapper = currentZoomingImageElement.closest('.resizable-image-wrapper');
                 if (wrapper) {
@@ -13481,6 +13648,7 @@ function ensureImageWrapperStructure(wrapper) {
 
             const zoomInsertTextBtn = document.getElementById('zoomInsertTextBtn');
             if (zoomInsertTextBtn) zoomInsertTextBtn.addEventListener('click', () => {
+                deactivateZoomDrawingMode(true);
                 const zoomContainer = document.getElementById('zoomAnnotationsContainer');
                 if (!zoomContainer) return;
                 
