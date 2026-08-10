@@ -88479,6 +88479,7 @@ function showPendingSettlementModal(periodType, projects) {
                         if (!evidence.length) return;
 
                         const isPeriodic = /^(\d{4})-Q(\d)$/i.test(currentModalKey) || /^(\d{4})$/.test(currentModalKey);
+                        const isQuarterlyEvidenceKey = /^(\d{4})-Q[1-4]$/i.test(currentModalKey);
                         const box = document.createElement('div');
                         box.className = 'settlement-evidence-buttons-container ml-2 mt-1 flex items-center gap-2 flex-wrap';
 
@@ -88513,7 +88514,7 @@ function showPendingSettlementModal(periodType, projects) {
                                     const isStripe = mVal > 8 || mVal === 0;
                                     ball.className = `billiard-ball ball-${mVal}${isStripe ? ' ball-stripe' : ''} settlement-doc-dynamic-btn`;
                                     const suffix = docs.length > 1 ? `-${idx + 1}` : '';
-                                    const ballLabel = mVal ? String(mVal).padStart(2, '0') + suffix : '?';
+                                    const ballLabel = mVal ? String(mVal).padStart(2, '0') + (isQuarterlyEvidenceKey ? '월' : '') + suffix : '?';
                                     const pocketCustomer = String(item.customer || '').trim() || '미지정';
                                     const pocketBallLabel = `${mVal ? String(mVal).padStart(2, '0') : '?'}-${String(idx + 1).padStart(2, '0')}-${pocketCustomer}`;
                                     const labelUnits = Math.max(1, Array.from(ballLabel).length * 0.62);
@@ -88543,7 +88544,7 @@ function showPendingSettlementModal(periodType, projects) {
                             // 연도 상세는 분기 공, 분기 상세는 월 공으로 묶되 실제 증빙 공 노드를 포켓에 옮긴다.
                             // 원본 공의 URL/클릭 핸들러는 복제하거나 재해석하지 않는다.
                             const yearlyEvidence = /^\d{4}$/.test(currentModalKey);
-                            const quarterlyEvidence = /^\d{4}-Q[1-4]$/i.test(currentModalKey);
+                            const quarterlyEvidence = isQuarterlyEvidenceKey;
                             const originalBalls = Array.from(box.querySelectorAll('.billiard-ball'));
                             const groupMode = yearlyEvidence ? 'quarter' : (quarterlyEvidence ? 'month' : '');
                             const shouldGroup = (yearlyEvidence && originalBalls.length > 4)
@@ -88615,7 +88616,7 @@ function showPendingSettlementModal(periodType, projects) {
                                     }
                                     const month = parseInt(groupKey, 10) || 0;
                                     return {
-                                        visual: month ? String(month).padStart(2, '0') : '?',
+                                        visual: month ? `${String(month).padStart(2, '0')}월` : '?',
                                         spoken: month ? `${month}월` : '월 미상'
                                     };
                                 };
@@ -120051,8 +120052,9 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                     '.codex-proj-actions button,.codex-proj-action-cell button{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:900;cursor:pointer;white-space:nowrap;}',
                     '.codex-proj-actions .primary{background:#0891b2;border-color:#0891b2;color:#fff;}',
                     '@keyframes codexProjApplyPendingPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.12);background:#0891b2}50%{box-shadow:0 0 0 6px rgba(239,68,68,.24);background:#dc2626}}',
+                    '@keyframes codexPendingReducedColorPulse{0%,100%{background:#0891b2}50%{background:#dc2626}}',
                     '.codex-proj-actions [data-proj-apply].has-pending-system-change{animation:codexProjApplyPendingPulse 1.15s ease-in-out infinite!important;border-color:#dc2626!important}',
-                    '@media(prefers-reduced-motion:reduce){.codex-proj-actions [data-proj-apply].has-pending-system-change{animation:none!important;background:#dc2626!important}}',
+                    '@media(prefers-reduced-motion:reduce){.codex-proj-actions [data-proj-apply].has-pending-system-change{animation:codexPendingReducedColorPulse 1.8s ease-in-out infinite!important;box-shadow:none!important;border-color:#dc2626!important}}',
                     '.codex-proj-actions .info{background:#0284c7;border-color:#0284c7;color:#fff;}',
                     '.codex-proj-actions .focus-finish{background:#0f766e;border-color:#0f766e;color:#fff;}',
                     '.codex-proj-actions .danger{border-color:#fecdd3;color:#be123c;background:#fff1f2;}',
@@ -128394,10 +128396,11 @@ window.openAddNewProjectModal = function(editProject) {
                     '.codex-websave-btn[data-websave-progress-active="1"] .codex-websave-state{display:inline!important;}',
                     '.codex-websave-btn:hover .codex-websave-state{border-left-color:rgba(255,255,255,.36)!important;}',
                     '@keyframes codexProjApplyPendingPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.12);background:#0891b2}50%{box-shadow:0 0 0 6px rgba(239,68,68,.24);background:#dc2626}}',
+                    '@keyframes codexPendingReducedColorPulse{0%,100%{background:#0891b2}50%{background:#dc2626}}',
                     '@keyframes codexPendingWebUploadPulse{0%,100%{background:#fff7ed!important;border-color:#fb923c!important;color:#9a3412!important;box-shadow:0 0 0 0 rgba(248,113,113,.20)!important}50%{background:#fee2e2!important;border-color:#ef4444!important;color:#991b1b!important;box-shadow:0 0 0 5px rgba(248,113,113,.15)!important}}',
                     '.codex-websave-btn.has-pending-web-save{animation:codexProjApplyPendingPulse 1.15s ease-in-out infinite!important;border-color:#dc2626!important;color:#fff!important;}',
                     '.codex-xlsb-upload-btn.has-pending-web-upload{animation:codexPendingWebUploadPulse 1.5s ease-in-out infinite!important;}',
-                    '@media(prefers-reduced-motion:reduce){.codex-websave-btn.has-pending-web-save{animation:none!important;background:#dc2626!important;border-color:#dc2626!important;color:#fff!important}.codex-xlsb-upload-btn.has-pending-web-upload{animation:none!important;background:#fee2e2!important;border-color:#ef4444!important;color:#991b1b!important}}',
+                    '@media(prefers-reduced-motion:reduce){.codex-websave-btn.has-pending-web-save{animation:codexPendingReducedColorPulse 1.8s ease-in-out infinite!important;box-shadow:none!important;border-color:#dc2626!important;color:#fff!important}.codex-xlsb-upload-btn.has-pending-web-upload{animation:none!important;background:#fee2e2!important;border-color:#ef4444!important;color:#991b1b!important}}',
                     '@media(max-width:520px){.codex-websave-btn{padding:6px 8px!important;gap:4px!important}.codex-websave-label{display:inline!important}.codex-websave-state{font-size:10px!important;padding-left:4px!important}}'
                 ].join('');
                 document.head.appendChild(style);
