@@ -117844,7 +117844,7 @@ function showPendingSettlementModal(periodType, projects) {
                 { key: 'note', label: '특이사항' }
             ];
             var PAGE_SIZE = 35;
-            var state = { rows: [], selected: {}, unique: {}, search: '', filters: {}, filterPanelOpen: false, filterField: 'taskType', page: 0, sortKey: '', sortDir: 'asc', addSeq: 0, addFocusMode: false, dirty: false, opened: false, fullscreenRect: null, focusedRowId: '', columnWidths: null };
+            var state = { rows: [], selected: {}, unique: {}, search: '', filters: {}, filterPanelOpen: false, filterField: 'taskType', page: 0, sortKey: '', sortDir: 'asc', addSeq: 0, addFocusMode: false, duplicateOnly: false, duplicateViewSnapshot: null, dirty: false, opened: false, fullscreenRect: null, focusedRowId: '', columnWidths: null };
             var ensurePending = false;
             var hitProxyInstalled = false;
             var rowSeq = 0;
@@ -118211,9 +118211,11 @@ function showPendingSettlementModal(periodType, projects) {
                 return stores;
             }
             function makeRow(project, idx) {
+                var originalMaintenanceCode = getProjectField(project, 'maintenanceCode');
                 var row = {
                     __rowId: 'p' + idx + '_' + nextRowId('src'),
                     __sourceId: getProjectId(project),
+                    __originalMaintenanceCode: originalMaintenanceCode,
                     __dirty: false,
                     __isNew: false,
                     __sessionNew: !!(project && project.__codexProjSessionNew),
@@ -118353,7 +118355,7 @@ function showPendingSettlementModal(periodType, projects) {
             } catch (idIntegrityExposeError) { }
             function blankRow() {
                 var rows = state.rows || [];
-                var row = { __rowId: 'new_' + Date.now().toString(36), __sourceId: '', __dirty: true, __isNew: true, __sessionNew: true, __delete: false, __changedFields: {} };
+                var row = { __rowId: 'new_' + Date.now().toString(36), __sourceId: '', __originalMaintenanceCode: '', __dirty: true, __isNew: true, __sessionNew: true, __delete: false, __changedFields: {} };
                 row.__rowId = nextRowId('new');
                 state.addSeq += 1;
                 row.__createdSeq = state.addSeq;
@@ -118439,9 +118441,31 @@ function showPendingSettlementModal(periodType, projects) {
                     active.textContent = parts.length ? parts.join(' · ') : '필터 없음';
                 }
             }
-            function filteredRows() {
+            function collectDuplicateMaintenanceCodes() {
+                var counts = Object.create(null);
+                (state.rows || []).forEach(function(row) {
+                    if (!row || row.__delete) return;
+                    var code = normalizeText(row.maintenanceCode);
+                    if (code) counts[code] = (counts[code] || 0) + 1;
+                });
+                var duplicates = Object.create(null);
+                Object.keys(counts).forEach(function(code) {
+                    if (counts[code] > 1) duplicates[code] = counts[code];
+                });
+                return duplicates;
+            }
+            function isDuplicateMaintenanceRow(row, duplicateCodes) {
+                if (!row || row.__delete) return false;
+                var code = normalizeText(row.maintenanceCode);
+                return !!(code && duplicateCodes && duplicateCodes[code] > 1);
+            }
+            function filteredRows(duplicateCodes) {
                 var q = normalizeText(state.search).toLowerCase();
                 var rows = (state.rows || []).filter(rowMatchesFilters);
+                if (state.duplicateOnly) {
+                    duplicateCodes = duplicateCodes || collectDuplicateMaintenanceCodes();
+                    rows = rows.filter(function(row) { return isDuplicateMaintenanceRow(row, duplicateCodes); });
+                }
                 if (!q) return rows;
                 return rows.filter(function(row) {
                     return FIELD_DEFS.some(function(def) { return String(row[def.key] || '').toLowerCase().indexOf(q) !== -1; });
@@ -118506,12 +118530,17 @@ function showPendingSettlementModal(periodType, projects) {
                 }
                 return '<input type="' + type + '" data-proj-field="' + def.key + '" data-row-id="' + row.__rowId + '" value="' + escapeHtml(value) + '"' + extra + '>';
             }
-            function renderCell(row, def) {
+            function renderCell(row, def, duplicateCodes) {
                 var changed = !!((row.__isNew || row.__sessionNew) && normalizeText(row[def.key])) || !!(row.__changedFields && row.__changedFields[def.key]);
-                return '<td data-proj-cell="' + def.key + '"' + (changed ? ' class="is-cell-changed"' : '') + '>' + (def.type === 'select' ? renderSelect(row, def) : renderInput(row, def)) + '</td>';
+                var duplicate = def.key === 'maintenanceCode' && isDuplicateMaintenanceRow(row, duplicateCodes);
+                var classes = (changed ? 'is-cell-changed ' : '') + (duplicate ? 'is-maintenance-duplicate' : '');
+                return '<td data-proj-cell="' + def.key + '"' + (classes ? ' class="' + classes.trim() + '"' : '') + (duplicate ? ' title="중복 유지관리번호: ' + escapeHtml(row.maintenanceCode) + '"' : '') + '>' + (def.type === 'select' ? renderSelect(row, def) : renderInput(row, def)) + '</td>';
             }
             function renderTable() {
-                var allRows = sortedRows(filteredRows());
+                var duplicateCodes = collectDuplicateMaintenanceCodes();
+                var duplicateCodeCount = Object.keys(duplicateCodes).length;
+                var duplicateRowCount = Object.keys(duplicateCodes).reduce(function(sum, code) { return sum + Number(duplicateCodes[code] || 0); }, 0);
+                var allRows = sortedRows(filteredRows(duplicateCodes));
                 var rows = pagedRows(allRows);
                 var modal = document.getElementById(MODAL_ID);
                 var body = document.querySelector('#' + MODAL_ID + ' .codex-proj-tbody');
@@ -118524,10 +118553,17 @@ function showPendingSettlementModal(periodType, projects) {
                 var nextBtn = document.querySelector('#' + MODAL_ID + ' [data-proj-page="next"]');
                 var lastBtn = document.querySelector('#' + MODAL_ID + ' [data-proj-page="last"]');
                 var finishAddBtn = document.querySelector('#' + MODAL_ID + ' [data-proj-add-finish]');
+                var duplicateBtn = document.querySelector('#' + MODAL_ID + ' [data-proj-duplicate-toggle]');
                 var maxPage = Math.max(0, Math.ceil(allRows.length / PAGE_SIZE) - 1);
                 var hasNewRows = (state.rows || []).some(function(row) { return row && !row.__delete && (row.__isNew || row.__sessionNew); });
                 if (modal) modal.classList.toggle('is-proj-add-focus', !!(state.addFocusMode && hasNewRows));
                 if (finishAddBtn) finishAddBtn.hidden = !(state.addFocusMode && hasNewRows);
+                if (duplicateBtn) {
+                    duplicateBtn.classList.toggle('is-active', !!state.duplicateOnly);
+                    duplicateBtn.setAttribute('aria-pressed', state.duplicateOnly ? 'true' : 'false');
+                    duplicateBtn.setAttribute('title', duplicateCodeCount ? ('중복 번호 ' + duplicateCodeCount + '개 · 대상 행 ' + duplicateRowCount + '건') : '중복된 유지관리번호가 없습니다.');
+                    duplicateBtn.innerHTML = '중복 점검 <span class="codex-proj-duplicate-count">' + duplicateRowCount + '</span>';
+                }
                 if (count) count.textContent = '표시 ' + allRows.length + '건 / 전체 ' + (state.rows || []).length + '건';
                 if (sums) sums.textContent = 'PO ' + formatAccounting(allRows.reduce(function(sum, row) { return sum + numberValue(row.poAmount); }, 0)) + '원 / PR ' + formatAccounting(allRows.reduce(function(sum, row) { return sum + numberValue(row.prAmount); }, 0)) + '원';
                 if (status) status.textContent = '변경 ' + changedCount() + '건';
@@ -118544,9 +118580,9 @@ function showPendingSettlementModal(periodType, projects) {
                     return '<tr data-row-id="' + row.__rowId + '" class="' + (row.__dirty ? 'is-dirty ' : '') + ((row.__isNew || row.__sessionNew) ? 'is-new ' : '') + (row.__delete ? 'is-delete ' : '') + (state.focusedRowId === row.__rowId ? 'codex-proj-row-focused' : '') + '">' +
                         '<td class="codex-proj-select-cell"><input type="checkbox" data-proj-select="' + row.__rowId + '"' + (state.selected[row.__rowId] ? ' checked' : '') + '></td>' +
                         '<td class="codex-proj-action-cell"><button type="button" data-proj-manage-row="' + row.__rowId + '">관리</button></td>' +
-                        FIELD_DEFS.map(function(def) { return renderCell(row, def); }).join('') +
+                        FIELD_DEFS.map(function(def) { return renderCell(row, def, duplicateCodes); }).join('') +
                         '</tr>';
-                }).join('') : '<tr><td colspan="' + (FIELD_DEFS.length + 2) + '" class="codex-proj-empty">표시할 프로젝트가 없습니다.</td></tr>';
+                }).join('') : '<tr><td colspan="' + (FIELD_DEFS.length + 2) + '" class="codex-proj-empty">' + (state.duplicateOnly ? '중복된 유지관리번호가 없습니다.' : '표시할 프로젝트가 없습니다.') + '</td></tr>';
                 applyProjectColumnWidths(modal);
                 if (modal && modal.classList.contains('is-proj-fullscreen')) {
                     requestAnimationFrame(function() { fitProjectManagerFullscreen(modal); });
@@ -118694,16 +118730,27 @@ function showPendingSettlementModal(periodType, projects) {
                 });
             }
             function validateRows() {
-                var seen = {};
                 var active = (state.rows || []).filter(function(row) { return !row.__delete; });
+                var maintenanceGroups = {};
                 for (var i = 0; i < active.length; i++) {
                     var row = active[i];
                     if (!normalizeText(row.maintenanceCode)) return { ok: false, message: '유지관리번호는 필수입니다.' };
                     if (!normalizeText(row.name)) return { ok: false, message: '유지관리명은 필수입니다.' };
                     var key = normalizeText(row.maintenanceCode);
-                    if (seen[key]) return { ok: false, message: '유지관리번호가 중복되었습니다: ' + key };
-                    seen[key] = true;
+                    (maintenanceGroups[key] = maintenanceGroups[key] || []).push(row);
                     if (row.startDate && row.endDate && row.startDate > row.endDate) return { ok: false, message: '시작일은 종료일보다 늦을 수 없습니다: ' + key };
+                }
+                var keys = Object.keys(maintenanceGroups);
+                for (var g = 0; g < keys.length; g++) {
+                    var duplicateKey = keys[g];
+                    var group = maintenanceGroups[duplicateKey];
+                    if (group.length < 2) continue;
+                    var introducedByCurrentEdit = group.some(function(row) {
+                        return !!row.__isNew || normalizeText(row.__originalMaintenanceCode) !== duplicateKey;
+                    });
+                    if (introducedByCurrentEdit) {
+                        return { ok: false, message: '유지관리번호가 중복되었습니다: ' + duplicateKey };
+                    }
                 }
                 return { ok: true };
             }
@@ -119147,10 +119194,12 @@ function showPendingSettlementModal(periodType, projects) {
                     }
                     if (wasNew) {
                         row.__sourceId = normalizeText(row.id || row.maintenanceCode || row.__sourceId);
+                        row.__originalMaintenanceCode = normalizeText(row.maintenanceCode);
                         row.__isNew = false;
                         row.__sessionNew = true;
                         row.__dirty = false;
                     } else if (wasDirty && !row.__delete) {
+                        row.__originalMaintenanceCode = normalizeText(row.maintenanceCode);
                         row.__dirty = false;
                     }
                 });
@@ -119307,7 +119356,7 @@ function showPendingSettlementModal(periodType, projects) {
                 modal.setAttribute('aria-modal', 'true');
                 modal.innerHTML =
                     '<div class="codex-proj-panel">' +
-                    '<div class="codex-proj-header" data-proj-drag-handle="1"><button type="button" data-proj-close="1" class="codex-proj-left-close" aria-label="닫기">×</button><div class="codex-proj-title"><h3>프로젝트 데이터 관리</h3><p>Project Data 워크시트 기준 신규 추가, 변경, 삭제를 적용합니다. 적용 후 웹 저장으로 GitHub 원본에 최종 저장하세요.</p></div><div class="codex-proj-actions"><button type="button" data-proj-add="1" class="primary">신규 추가</button><button type="button" data-proj-apply="1" class="primary">적용</button><button type="button" data-proj-add-finish="1" class="focus-finish" hidden>신규 추가 종료</button><button type="button" data-proj-delete-selected="1" class="danger">선택 삭제</button><button type="button" data-proj-restore-delete="1" class="undo">삭제 취소</button><button type="button" data-proj-fullscreen="1" class="fullscreen" aria-pressed="false" title="전체 화면 보기">전체 화면</button><button type="button" data-proj-close="1" class="close" aria-label="닫기">×</button></div></div>' +
+                    '<div class="codex-proj-header" data-proj-drag-handle="1"><button type="button" data-proj-close="1" class="codex-proj-left-close" aria-label="닫기">×</button><div class="codex-proj-title"><h3>프로젝트 데이터 관리</h3><p>Project Data 워크시트 기준 신규 추가, 변경, 삭제를 적용합니다. 적용 후 웹 저장으로 GitHub 원본에 최종 저장하세요.</p></div><div class="codex-proj-actions"><button type="button" data-proj-add="1" class="primary">신규 추가</button><button type="button" data-proj-duplicate-toggle="1" class="duplicate-audit" aria-pressed="false">중복 점검 <span class="codex-proj-duplicate-count">0</span></button><button type="button" data-proj-apply="1" class="primary">적용</button><button type="button" data-proj-add-finish="1" class="focus-finish" hidden>신규 추가 종료</button><button type="button" data-proj-delete-selected="1" class="danger">선택 삭제</button><button type="button" data-proj-restore-delete="1" class="undo">삭제 취소</button><button type="button" data-proj-fullscreen="1" class="fullscreen" aria-pressed="false" title="전체 화면 보기">전체 화면</button><button type="button" data-proj-close="1" class="close" aria-label="닫기">×</button></div></div>' +
                     '<div class="codex-proj-toolbar"><input type="search" data-proj-search="1" placeholder="유지관리번호, 명칭, 고객사, 작업유형 검색"><span class="codex-proj-sums"></span><span class="codex-proj-count"></span><span class="codex-proj-status"></span><button type="button" class="codex-proj-filter-toggle" data-proj-filter-toggle="1">필터링</button><button type="button" class="codex-proj-col-toggle" data-proj-col-toggle="1" style="border:1px solid #cbd5e1; background:#f8fafc; color:#334155; border-radius:10px; padding:7px 11px; font-size:12px; font-weight:700; cursor:pointer; margin-left:8px;">열 보이기/숨기기</button><span class="codex-proj-pager"><button type="button" data-proj-page="first">처음</button><button type="button" data-proj-page="prev">이전</button><b class="codex-proj-page-info">1 / 1</b><button type="button" data-proj-page="next">다음</button><button type="button" data-proj-page="last">마지막</button></span></div>' +
                     '<div class="codex-proj-filter-panel hidden"><div class="codex-proj-filter-fields"></div><select data-proj-filter-select="1" aria-label="프로젝트 필터 값"></select><button type="button" data-proj-filter-clear="1">해제</button><span class="codex-proj-filter-active">필터 없음</span></div>' +
                     '<div class="codex-proj-col-panel hidden">' +
@@ -119378,6 +119427,38 @@ function showPendingSettlementModal(periodType, projects) {
                         state.addFocusMode = false;
                         renderTable();
                         notify('신규 추가 집중 표시를 종료했습니다. 추가한 행은 유지됩니다.', 'info', 1800);
+                        return;
+                    }
+                    if (target.closest('[data-proj-duplicate-toggle]')) {
+                        event.preventDefault();
+                        harvestProjectManagerInputs(modal);
+                        if (!state.duplicateOnly) {
+                            state.duplicateViewSnapshot = {
+                                search: state.search,
+                                filters: Object.assign({}, state.filters || {}),
+                                filterPanelOpen: !!state.filterPanelOpen,
+                                page: state.page
+                            };
+                            state.duplicateOnly = true;
+                            state.search = '';
+                            state.filters = {};
+                            state.filterPanelOpen = false;
+                            state.addFocusMode = false;
+                            state.page = 0;
+                            var duplicateSearch = modal.querySelector('[data-proj-search]');
+                            if (duplicateSearch) duplicateSearch.value = '';
+                        } else {
+                            var duplicateSnapshot = state.duplicateViewSnapshot || {};
+                            state.duplicateOnly = false;
+                            state.search = normalizeText(duplicateSnapshot.search);
+                            state.filters = Object.assign({}, duplicateSnapshot.filters || {});
+                            state.filterPanelOpen = !!duplicateSnapshot.filterPanelOpen;
+                            state.page = Number(duplicateSnapshot.page) || 0;
+                            state.duplicateViewSnapshot = null;
+                            var restoredSearch = modal.querySelector('[data-proj-search]');
+                            if (restoredSearch) restoredSearch.value = state.search;
+                        }
+                        renderTable();
                         return;
                     }
                     var pageBtn = target.closest('[data-proj-page]');
@@ -119822,6 +119903,8 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                     state.filterPanelOpen = false;
                     state.filterField = 'taskType';
                     state.addFocusMode = false;
+                    state.duplicateOnly = false;
+                    state.duplicateViewSnapshot = null;
                     state.page = 0;
                 }
                 renderTable();
@@ -120056,6 +120139,9 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                     '.codex-proj-actions [data-proj-apply].has-pending-system-change{animation:codexProjApplyPendingPulse 1.15s ease-in-out infinite!important;border-color:#dc2626!important}',
                     '@media(prefers-reduced-motion:reduce){.codex-proj-actions [data-proj-apply].has-pending-system-change{animation:codexPendingReducedColorPulse 1.8s ease-in-out infinite!important;box-shadow:none!important;border-color:#dc2626!important}}',
                     '.codex-proj-actions .info{background:#0284c7;border-color:#0284c7;color:#fff;}',
+                    '.codex-proj-actions .duplicate-audit{border-color:#f59e0b;background:#fffbeb;color:#92400e;}',
+                    '.codex-proj-actions .duplicate-audit.is-active{border-color:#dc2626;background:#dc2626;color:#fff;box-shadow:0 0 0 3px rgba(220,38,38,.14);}',
+                    '.codex-proj-duplicate-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;margin-left:3px;border-radius:999px;background:rgba(255,255,255,.86);color:#b91c1c;font-size:11px;font-weight:900;line-height:1;}',
                     '.codex-proj-actions .focus-finish{background:#0f766e;border-color:#0f766e;color:#fff;}',
                     '.codex-proj-actions .danger{border-color:#fecdd3;color:#be123c;background:#fff1f2;}',
                     '.codex-proj-actions .undo{border-color:#fde68a;color:#92400e;background:#fffbeb;}',
@@ -120173,6 +120259,8 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                     '#codexProjectManagerModal .codex-proj-table tbody tr.codex-proj-row-focused td:first-child{box-shadow:inset 4px 0 0 #f97316,inset 0 2px 0 #fb923c,inset 0 -2px 0 #fb923c!important;}',
                     '#codexProjectManagerModal .codex-proj-table tbody tr.codex-proj-row-focused td.is-cell-changed{background:#fef08a!important;}',
                     '#codexProjectManagerModal .codex-proj-table tbody tr.codex-proj-row-focused input,#codexProjectManagerModal .codex-proj-table tbody tr.codex-proj-row-focused select,#codexProjectManagerModal .codex-proj-table tbody tr.codex-proj-row-focused textarea{border-color:#fb923c!important;}',
+                    '#codexProjectManagerModal .codex-proj-table td.is-maintenance-duplicate{background:#fff1f2!important;box-shadow:inset 0 0 0 2px #ef4444!important;color:#991b1b!important;}',
+                    '#codexProjectManagerModal .codex-proj-table td.is-maintenance-duplicate input{background:#fff7f7!important;border-color:#dc2626!important;color:#991b1b!important;box-shadow:0 0 0 2px rgba(220,38,38,.12)!important;}',
                     '@media(max-width:767px){.codex-proj-modal{padding:0;align-items:stretch;justify-content:stretch}.codex-proj-panel{width:100vw!important;max-height:100vh!important;height:100vh!important;border-radius:0!important;position:relative!important;left:auto!important;top:auto!important;margin:0!important}.codex-proj-header{padding:10px 8px;align-items:flex-start;cursor:default;touch-action:auto;gap:6px;flex-wrap:wrap}.codex-proj-header h3{font-size:14px;line-height:1.25}.codex-proj-header p{display:none}.codex-proj-actions{gap:4px;flex-wrap:wrap;justify-content:flex-end}.codex-proj-toolbar{padding:8px 10px;gap:6px}.codex-proj-toolbar input[data-proj-search]{min-width:100%;max-width:none;flex-basis:100%}.codex-proj-sums{max-width:100%;overflow:hidden;text-overflow:ellipsis}.codex-proj-actions button{padding:5px 7px;font-size:11px}.codex-proj-body{overflow:auto!important;-webkit-overflow-scrolling:touch!important}.codex-proj-table{min-width:var(--codex-proj-table-width,2280px)!important;width:var(--codex-proj-table-width,2280px)!important}.codex-proj-col-resizer{width:11px}.codex-proj-col-resizer.is-start{left:0}.codex-proj-col-resizer.is-end{right:0}.codex-proj-resize{display:none!important}.codex-proj-left-close{width:30px;height:30px;font-size:19px}.codex-proj-date-wrap{grid-template-columns:minmax(100px,1fr) 32px}.codex-proj-calendar-btn{width:32px;height:32px}}'
                 ].join('\n');
                 document.head.appendChild(style);
@@ -120644,6 +120732,31 @@ window.openAddNewProjectModal = function(editProject) {
                     function projectMaintenanceValue(p) {
                         return String(p && (p.maintenanceCode || p.maintenanceNumber || p.maintenanceId || p.maintenanceID || p.maintenanceNo || p['유지관리번호'] || p['관리번호'] || '') || '').trim();
                     }
+                    function findEditProjectIndex() {
+                        var directIndex = projects.indexOf(editProject);
+                        if (directIndex > -1) return directIndex;
+                        var editId = String(editProject && (editProject.id != null ? editProject.id : (editProject.ID != null ? editProject.ID : editProject.ProjectID)) || '').trim();
+                        if (editId) {
+                            var idIndex = projects.findIndex(function(p) {
+                                return String(p && (p.id != null ? p.id : (p.ID != null ? p.ID : p.ProjectID)) || '').trim() === editId;
+                            });
+                            if (idIndex > -1) return idIndex;
+                        }
+                        var editCode = projectMaintenanceValue(editProject);
+                        if (!editCode) return -1;
+                        var matchingIndexes = [];
+                        projects.forEach(function(p, index) {
+                            if (projectMaintenanceValue(p) === editCode) matchingIndexes.push(index);
+                        });
+                        return matchingIndexes.length === 1 ? matchingIndexes[0] : -1;
+                    }
+                    function hasMaintenanceCodeConflict(candidate, ignoredIndex) {
+                        candidate = String(candidate || '').trim();
+                        if (!candidate) return false;
+                        return projects.some(function(p, index) {
+                            return index !== ignoredIndex && projectMaintenanceValue(p) === candidate;
+                        });
+                    }
                     function nextInternalProjectIdForAdd() {
                         try {
                             if (window.CodexProjectIdIntegrity && typeof window.CodexProjectIdIntegrity.next === 'function') {
@@ -120660,11 +120773,18 @@ window.openAddNewProjectModal = function(editProject) {
                     }
 
                     if (isEdit) {
-                        var oldCode = projectMaintenanceValue(editProject) || String(editProject.id || '').trim();
-                        existIdx = projects.findIndex(function(p) { return projectMaintenanceValue(p) === oldCode || String(p && p.id || '').trim() === oldCode; });
+                        existIdx = findEditProjectIndex();
+                        if (existIdx < 0) {
+                            alert('수정할 프로젝트를 고유하게 찾지 못했습니다. 프로젝트 데이터 관리에서 다시 선택하세요.');
+                            return;
+                        }
+                        var originalMaintenanceCode = projectMaintenanceValue(projects[existIdx]);
+                        if (data.maintenanceCode !== originalMaintenanceCode && hasMaintenanceCodeConflict(data.maintenanceCode, existIdx)) {
+                            alert('이미 존재하는 유지관리번호입니다.');
+                            return;
+                        }
                     } else {
-                        var exist = projects.some(function(p) { return projectMaintenanceValue(p) === data.maintenanceCode; });
-                        if (exist) {
+                        if (hasMaintenanceCodeConflict(data.maintenanceCode, -1)) {
                             alert('이미 존재하는 유지관리번호입니다.');
                             return;
                         }
@@ -120799,8 +120919,22 @@ window.openAddNewProjectModal = function(editProject) {
                     deleteBtn.addEventListener('click', function() {
                         if (!confirm('정말 이 프로젝트를 삭제하시겠습니까?')) return;
                         var projects = window.projectData || [];
-                        var oldCode = editProject.maintenanceCode || editProject.id || '';
-                        var existIdx = projects.findIndex(function(p) { return (p.maintenanceCode || p.id) === oldCode; });
+                        var existIdx = projects.indexOf(editProject);
+                        var deleteId = String(editProject && (editProject.id != null ? editProject.id : (editProject.ID != null ? editProject.ID : editProject.ProjectID)) || '').trim();
+                        if (existIdx < 0 && deleteId) {
+                            existIdx = projects.findIndex(function(p) {
+                                return String(p && (p.id != null ? p.id : (p.ID != null ? p.ID : p.ProjectID)) || '').trim() === deleteId;
+                            });
+                        }
+                        if (existIdx < 0) {
+                            var deleteCode = String(editProject && (editProject.maintenanceCode || editProject.maintenanceNumber || editProject.maintenanceId || editProject.maintenanceID || editProject.maintenanceNo || editProject['유지관리번호'] || editProject['관리번호']) || '').trim();
+                            var deleteMatches = [];
+                            projects.forEach(function(p, index) {
+                                var code = String(p && (p.maintenanceCode || p.maintenanceNumber || p.maintenanceId || p.maintenanceID || p.maintenanceNo || p['유지관리번호'] || p['관리번호']) || '').trim();
+                                if (deleteCode && code === deleteCode) deleteMatches.push(index);
+                            });
+                            if (deleteMatches.length === 1) existIdx = deleteMatches[0];
+                        }
                         if (existIdx > -1) {
                             var deletedProjectForSha = projects[existIdx];
                             try {
