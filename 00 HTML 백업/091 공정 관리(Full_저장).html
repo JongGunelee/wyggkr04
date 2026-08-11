@@ -62227,6 +62227,41 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             const todayTime = today.getTime();
             const tomorrowTime = tomorrow.getTime();
 
+            // Index the Work fallback once; repeated scans make this path O(Project * Work * filters).
+            const summaryWorkItemDatesByProject = new Map();
+            if (Array.isArray(window.workItems)) {
+                for (let i = 0; i < window.workItems.length; i++) {
+                    const item = window.workItems[i];
+                    const projectId = String(item ? item.projectId : undefined).trim();
+                    const workDateText = String((item && item.workDate) || '').trim();
+                    if (!workDateText) continue;
+                    let projectDates = summaryWorkItemDatesByProject.get(projectId);
+                    if (!projectDates) {
+                        projectDates = new Set();
+                        summaryWorkItemDatesByProject.set(projectId, projectDates);
+                    }
+                    // Existing checks use startsWith(YYYY-MM-DD); keep the same date prefix semantics.
+                    projectDates.add(workDateText.slice(0, 10));
+                }
+            }
+
+            const summaryDateText = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            const summaryThisWeekDates = [];
+            const summaryNextWeekDates = [];
+            const summaryDay = today.getDay();
+            const summaryThisMonday = new Date(todayTime);
+            summaryThisMonday.setDate(summaryThisMonday.getDate() + (summaryDay === 0 ? -6 : 1 - summaryDay));
+            const summaryNextMonday = new Date(todayTime);
+            summaryNextMonday.setDate(summaryNextMonday.getDate() + (summaryDay === 0 ? 1 : 8 - summaryDay));
+            for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+                const thisWeekDate = new Date(summaryThisMonday);
+                thisWeekDate.setDate(summaryThisMonday.getDate() + dayOffset);
+                summaryThisWeekDates.push(summaryDateText(thisWeekDate));
+                const nextWeekDate = new Date(summaryNextMonday);
+                nextWeekDate.setDate(summaryNextMonday.getDate() + dayOffset);
+                summaryNextWeekDates.push(summaryDateText(nextWeekDate));
+            }
+
             // \ub2e8\uc77c \ub8e8\ud504\ub85c \ubaa8\ub4e0 \ud1b5\uacc4 \uacc4\uc0b0
             for (let i = 0; i < data.length; i++) {
                 const p = data[i];
@@ -62250,23 +62285,21 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
                 // \ub0a0\uc9dc \uae30\ubc18 \uce74\uc6b4\ud2b8
                 // [\uc624\ub298 \uc791\uc5c5/\ub0b4\uc77c \uc791\uc5c5] \uc5c4\uaca9\ud55c \uc791\uc5c5\uc77c \uae30\uc900 \uce74\uc6b4\ud2b8
-                let hasTodayWork = false;
-                let hasTomorrowWork = false;
                 const pid = String(p.id).trim();
-
+                const projectWorkDates = new Set(summaryWorkItemDatesByProject.get(pid) || []);
                 if (window.workDate && window.workDate.store && window.workDate.store.has(pid)) {
                     const stored = window.workDate.store.get(pid);
                     if (stored && stored.dates && Array.isArray(stored.dates)) {
-                        hasTodayWork = stored.dates.some(d => d && d.date && d.date.startsWith(todayStr));
-                        hasTomorrowWork = stored.dates.some(d => d && d.date && d.date.startsWith(tomorrowStr));
+                        for (let storedIndex = 0; storedIndex < stored.dates.length; storedIndex++) {
+                            const storedDate = stored.dates[storedIndex];
+                            if (storedDate && storedDate.date) {
+                                projectWorkDates.add(String(storedDate.date).slice(0, 10));
+                            }
+                        }
                     }
                 }
-                if (!hasTodayWork && Array.isArray(window.workItems)) {
-                    hasTodayWork = window.workItems.some(w => String(w.projectId).trim() === pid && String(w.workDate || '').trim().startsWith(todayStr));
-                }
-                if (!hasTomorrowWork && Array.isArray(window.workItems)) {
-                    hasTomorrowWork = window.workItems.some(w => String(w.projectId).trim() === pid && String(w.workDate || '').trim().startsWith(tomorrowStr));
-                }
+                const hasTodayWork = projectWorkDates.has(todayStr);
+                const hasTomorrowWork = projectWorkDates.has(tomorrowStr);
                 if (hasTodayWork) todayWorkCount++;
                 if (hasTomorrowWork) tomorrowWorkCount++;
 
@@ -62279,60 +62312,11 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 }
 
                 // [THIS-WEEK-COUNT] \uc774\ubc88\uc8fc \uc6d4~\uc77c(7\uc77c) \uc791\uc5c5 \ub9c8\ucee4 \ud655\uc778
-                let t_hasThisWeekWork = false;
-                {
-                    const t_pid = String(p.id).trim();
-                    const t_ref = new Date(todayTime);
-                    const t_day = t_ref.getDay();
-                    const t_diffToMonday = (t_day === 0 ? -6 : 1 - t_day);
-                    const t_monday = new Date(t_ref);
-                    t_monday.setDate(t_ref.getDate() + t_diffToMonday);
-                    for (let d = 0; d < 7 && !t_hasThisWeekWork; d++) {
-                        const t_checkDate = new Date(t_monday);
-                        t_checkDate.setDate(t_monday.getDate() + d);
-                        const t_str = `${t_checkDate.getFullYear()}-${String(t_checkDate.getMonth() + 1).padStart(2, '0')}-${String(t_checkDate.getDate()).padStart(2, '0')}`;
-                        if (window.workDate && window.workDate.store && window.workDate.store.has(t_pid)) {
-                            const stored = window.workDate.store.get(t_pid);
-                            if (stored && stored.dates && Array.isArray(stored.dates)) {
-                                if (stored.dates.some(dt => dt && dt.date && dt.date.startsWith(t_str))) {
-                                    t_hasThisWeekWork = true; break;
-                                }
-                            }
-                        }
-                        if (!t_hasThisWeekWork && Array.isArray(window.workItems)) {
-                            if (window.workItems.some(w => String(w.projectId).trim() === t_pid && String(w.workDate || '').trim().startsWith(t_str))) {
-                                t_hasThisWeekWork = true; break;
-                            }
-                        }
-                    }
-                }
+                const t_hasThisWeekWork = summaryThisWeekDates.some(dateText => projectWorkDates.has(dateText));
                 if (t_hasThisWeekWork) thisWeekWorkCount++;
 
                 // [NEXT-WEEK-COUNT] \ucc28\uc8fc \uc6d4~\uc77c \uc791\uc5c5 \ub9c8\ucee4 \ud655\uc778
-                let b_hasNextWeekWork = false;
-                const b_pid = String(p.id).trim();
-                const b_refDate = new Date(todayTime);
-                const b_day = b_refDate.getDay();
-                const b_diffToMonday = (b_day === 0 ? 1 : 8 - b_day);
-                
-                for (let d = 0; d < 7; d++) {
-                    const b_checkDate = new Date(b_refDate);
-                    b_checkDate.setDate(b_refDate.getDate() + b_diffToMonday + d);
-                    const b_targetStr = `${b_checkDate.getFullYear()}-${String(b_checkDate.getMonth() + 1).padStart(2, '0')}-${String(b_checkDate.getDate()).padStart(2, '0')}`;
-                    if (window.workDate && window.workDate.store && window.workDate.store.has(b_pid)) {
-                        const stored = window.workDate.store.get(b_pid);
-                        if (stored && stored.dates && Array.isArray(stored.dates)) {
-                            if (stored.dates.some(dt => dt && dt.date && dt.date.startsWith(b_targetStr))) {
-                                b_hasNextWeekWork = true; break;
-                            }
-                        }
-                    }
-                    if (!b_hasNextWeekWork && Array.isArray(window.workItems)) {
-                        if (window.workItems.some(w => String(w.projectId).trim() === b_pid && String(w.workDate || '').trim().startsWith(b_targetStr))) {
-                            b_hasNextWeekWork = true; break;
-                        }
-                    }
-                }
+                const b_hasNextWeekWork = summaryNextWeekDates.some(dateText => projectWorkDates.has(dateText));
                 if (b_hasNextWeekWork) nextWeekWorkCount++;
             }
 
@@ -145195,7 +145179,7 @@ window.openAddNewProjectModal = function(editProject) {
     <script id="codex-cost-year-compare-20260728">
     (function installCostYearCompare20260728() {
         'use strict';
-        if (window.CostYearCompare && window.CostYearCompare.version === '2026.08.09.1') return;
+        if (window.CostYearCompare && window.CostYearCompare.version === '2026.08.11.1') return;
 
         var PAGE_SIZE = 80;
         var STATUS_ORDER = ['saving', 'compliant', 'overrun', 'excluded', 'unmatched'];
@@ -145206,6 +145190,7 @@ window.openAddNewProjectModal = function(editProject) {
         var lastFocus = null;
         var chartLastFocus = null;
         var directHostOpened = false;
+        var lifecycleToken = 0;
 
         function escapeHtml(value) {
             return String(value == null ? '' : value).replace(/[&<>"']/g, function(ch) {
@@ -145281,6 +145266,7 @@ window.openAddNewProjectModal = function(editProject) {
                 months:model.months.slice(),
                 statuses:model.statuses.slice(),
                 buildings:model.buildings.slice(),
+                touched:{ year:false, month:false, status:false, building:false },
                 tab:'summary',
                 filtersCollapsed:false,
                 fullscreen:false,
@@ -145292,6 +145278,21 @@ window.openAddNewProjectModal = function(editProject) {
         function reconcileSelection(selected, available) {
             var allowed = new Set(available || []);
             return (selected || []).filter(function(value) { return allowed.has(value); });
+        }
+        function modelValues(model, kind) {
+            if (!model) return [];
+            return kind === 'year' ? model.years : (kind === 'month' ? model.months : (kind === 'status' ? model.statuses : model.buildings));
+        }
+        function syncSelectionsToSource(model) {
+            if (!compareState) return;
+            var touched = compareState.touched || (compareState.touched = { year:false, month:false, status:false, building:false });
+            ['year', 'month', 'status', 'building'].forEach(function(kind) {
+                var key = kind === 'year' ? 'years' : (kind === 'month' ? 'months' : (kind === 'status' ? 'statuses' : 'buildings'));
+                var available = modelValues(model, kind);
+                compareState[key] = touched[kind]
+                    ? reconcileSelection(compareState[key], available)
+                    : available.slice(0, kind === 'year' ? 2 : undefined);
+            });
         }
         function filteredRows() {
             if (!compareState || !sourceModel) return [];
@@ -146014,10 +146015,17 @@ window.openAddNewProjectModal = function(editProject) {
             host.appendChild(modal);
             return modal;
         }
+        function renderLoadingState(modal) {
+            var filters = modal && modal.querySelector('[data-cost-compare-filters]');
+            var body = modal && modal.querySelector('[data-cost-compare-body]');
+            if (filters) filters.textContent = '';
+            if (body) body.innerHTML = '<div class="cost-compare-empty" role="status" aria-live="polite">비교 데이터를 준비하는 중입니다.</div>';
+        }
         function open(options) {
             options = options || {};
             var modal = ensureModal();
             if (!modal) return;
+            var token = ++lifecycleToken;
             lastFocus = document.activeElement;
             var host = document.getElementById('costSavingAnalysisModal');
             directHostOpened = !!(options.direct && host && host.classList.contains('hidden'));
@@ -146026,30 +146034,40 @@ window.openAddNewProjectModal = function(editProject) {
                 host.classList.add('cost-compare-direct');
                 host.setAttribute('aria-hidden', 'false');
             }
-            sourceModel = readSourceModel();
-            compareState = makeDefaultState(sourceModel);
             var parentPanel = host && host.querySelector(':scope > .cost-analysis-panel');
             if (host) host.classList.add('cost-compare-open');
             if (parentPanel) { parentPanel.inert = true; parentPanel.setAttribute('aria-hidden', 'true'); }
             modal.classList.remove('hidden');
             modal.setAttribute('aria-hidden', 'false');
-            renderBody();
             var closeButton = modal.querySelector('[data-cost-compare-close]');
             if (closeButton) closeButton.focus({ preventScroll:true });
             if (options.direct) {
                 var api = window.CostEstimationAnalysis;
+                sourceModel = null;
+                compareState = null;
+                renderLoadingState(modal);
                 if (api && typeof api.prepareComparisonSource === 'function') {
                     Promise.resolve(api.prepareComparisonSource()).then(function() {
-                        if (compareState) refresh();
+                        if (token !== lifecycleToken || modal.classList.contains('hidden')) return;
+                        sourceModel = readSourceModel();
+                        compareState = makeDefaultState(sourceModel);
+                        renderBody();
                     }).catch(function(error) {
-                        if (!compareState) return;
+                        if (token !== lifecycleToken || modal.classList.contains('hidden')) return;
+                        sourceModel = readSourceModel();
+                        compareState = makeDefaultState(sourceModel);
                         compareState.notice = '\ube44\uad50 \ub370\uc774\ud130 \uac31\uc2e0 \uc2e4\ud328: ' + String(error && error.message || error);
-                        scheduleRender();
+                        renderBody();
                     });
+                    return;
                 }
             }
+            sourceModel = readSourceModel();
+            compareState = makeDefaultState(sourceModel);
+            renderBody();
         }
         function close(restoreFocus) {
+            lifecycleToken += 1;
             var closeDirectHost = directHostOpened;
             var modal = document.getElementById('costAnalysisCompareModal');
             if (renderRaf) { cancelAnimationFrame(renderRaf); renderRaf = 0; }
@@ -146084,10 +146102,7 @@ window.openAddNewProjectModal = function(editProject) {
             var modal = document.getElementById('costAnalysisCompareModal');
             if (!compareState || !modal || modal.classList.contains('hidden')) return;
             sourceModel = readSourceModel();
-            compareState.years = reconcileSelection(compareState.years, sourceModel.years).slice(0,2);
-            compareState.months = reconcileSelection(compareState.months, sourceModel.months);
-            compareState.statuses = reconcileSelection(compareState.statuses, sourceModel.statuses);
-            compareState.buildings = reconcileSelection(compareState.buildings, sourceModel.buildings);
+            syncSelectionsToSource(sourceModel);
             compareState.page = 0;
             scheduleRender();
         }
@@ -146101,6 +146116,7 @@ window.openAddNewProjectModal = function(editProject) {
         function setAll(kind, selected) {
             if (!compareState) return;
             var key = stateKeyForKind(kind);
+            compareState.touched[kind] = true;
             compareState[key] = selected ? valuesForKind(kind).slice(0, kind === 'year' ? 2 : undefined) : [];
             compareState.page = 0;
             compareState.notice = '';
@@ -147500,6 +147516,7 @@ window.openAddNewProjectModal = function(editProject) {
             var kind = input.getAttribute('data-cost-compare-filter');
             var key = stateKeyForKind(kind);
             var value = String(input.value || '');
+            compareState.touched[kind] = true;
             var selected = new Set(compareState[key]);
             if (input.checked) selected.add(value); else selected.delete(value);
             var next = Array.from(selected);
@@ -147533,7 +147550,7 @@ window.openAddNewProjectModal = function(editProject) {
         document.addEventListener('data:changed', refresh, { passive:true });
 
         window.CostYearCompare = {
-            version:'2026.08.09.1',
+            version:'2026.08.11.1',
             open:open,
             close:close,
             refresh:refresh,
