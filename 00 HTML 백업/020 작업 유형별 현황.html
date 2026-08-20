@@ -4768,10 +4768,11 @@
     position: fixed;
     bottom: 120px;
     right: 20px;
-    z-index: 1000;
+    z-index: 1800;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    isolation: isolate;
   }
 
   .droplet-bubble {
@@ -4831,15 +4832,31 @@
     position: absolute;
     bottom: 75px;
     right: 0;
-    width: 260px;
+    width: min(320px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 20px);
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(14, 165, 233, 0.2);
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
     transition: opacity 0.2s, transform 0.2s;
     transform-origin: bottom right;
+    box-sizing: border-box;
+    will-change: left, top, width, height;
+  }
+
+  .droplet-menu.has-user-geometry {
+    max-width: none;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .droplet-menu.is-geometry-interacting {
+    transition: none;
   }
   
   .droplet-menu.hidden {
@@ -4850,7 +4867,8 @@
 
   .droplet-menu-header {
     background: #f0f9ff;
-    padding: 10px 12px;
+    min-height: 48px;
+    padding: 8px 8px 8px 12px;
     font-size: 0.85rem;
     font-weight: bold;
     color: #0369a1;
@@ -4858,6 +4876,62 @@
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #e0f2fe;
+    cursor: move;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .droplet-menu.is-panel-dragging .droplet-menu-header {
+    cursor: grabbing;
+  }
+
+  .droplet-menu-header:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: -3px;
+  }
+
+  .droplet-menu.is-manual-mode .droplet-menu-header {
+    background: #ecfdf5;
+    border-bottom-color: #d1fae5;
+    color: #047857;
+  }
+
+  .droplet-menu-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .droplet-menu-title-wrap {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .droplet-menu-move-grip {
+    flex: 0 0 auto;
+    color: #7dd3fc;
+    font-size: 15px;
+    line-height: 1;
+    letter-spacing: -2px;
+  }
+
+  .droplet-menu-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .droplet-quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .droplet-menu-header button {
@@ -4865,6 +4939,7 @@
     font-size: 1rem;
     background: none;
     border: none;
+    touch-action: manipulation;
   }
 
   .droplet-header-btn {
@@ -4882,13 +4957,291 @@
     background-color: #0369a1 !important;
   }
 
+  .droplet-menu-close-btn {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(14, 116, 144, 0.22) !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: #475569 !important;
+    font-size: 20px !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+      color 0.15s ease, transform 0.15s ease;
+  }
+
+  .droplet-menu-close-btn:hover {
+    background: #ffffff !important;
+    border-color: rgba(2, 132, 199, 0.45) !important;
+    color: #0f172a !important;
+    transform: scale(1.04);
+  }
+
+  .droplet-menu-close-btn:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+  }
+
+  .droplet-menu.is-manual-mode .droplet-quick-actions {
+    display: none;
+  }
+
   .droplet-options-list {
-    padding: 8px;
+    padding: 8px 8px 30px;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: 280px;
+    min-height: 0;
+    max-height: min(390px, calc(100vh - 218px));
+    flex: 1 1 auto;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+
+  .droplet-menu.has-user-geometry .droplet-options-list {
+    max-height: none;
+  }
+
+  .droplet-menu-resize-handle {
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    z-index: 3;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    background:
+      linear-gradient(135deg, transparent 0 45%, rgba(3, 105, 161, 0.2) 46% 53%, transparent 54%),
+      linear-gradient(135deg, transparent 0 62%, rgba(3, 105, 161, 0.42) 63% 70%, transparent 71%);
+    color: #0369a1;
+    cursor: nwse-resize;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    opacity: 0.82;
+  }
+
+  .droplet-menu-resize-handle:hover,
+  .droplet-menu-resize-handle:focus-visible {
+    background-color: rgba(224, 242, 254, 0.9);
+    opacity: 1;
+  }
+
+  .droplet-menu-resize-handle:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: -2px;
+  }
+
+  .droplet-menu.is-panel-resizing .droplet-menu-resize-handle {
+    background-color: rgba(186, 230, 253, 0.95);
+    opacity: 1;
+  }
+
+  #dropletOrdererSelectorContainer {
+    flex: 0 0 auto;
+  }
+
+  .droplet-menu.has-user-geometry #dropletOrdererSelectorContainer {
+    min-height: 0;
+    flex: 0 1 auto;
+    max-height: 45%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .droplet-menu .scenario-orderer-dropdown-list {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .droplet-manual-intro {
+    margin: 0 0 2px;
+    padding: 7px 8px;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    background: #f0fdf4;
+    color: #166534;
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.4;
+  }
+
+  .droplet-manual-filter-item {
+    border: 1px solid #dbe5ee;
+    border-radius: 9px;
+    background: #f8fafc;
+    overflow: hidden;
+  }
+
+  .droplet-manual-filter-toggle {
+    width: 100%;
+    min-height: 40px;
+    padding: 7px 8px;
+    display: grid;
+    grid-template-columns: minmax(86px, auto) minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 6px;
+    color: #334155;
+    text-align: left;
+    background: #f8fafc;
+    border: 0;
+  }
+
+  .droplet-manual-filter-toggle:hover,
+  .droplet-manual-filter-toggle[aria-expanded="true"] {
+    background: #eff6ff;
+    color: #075985;
+  }
+
+  .droplet-manual-filter-name {
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .droplet-manual-filter-summary {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #0284c7;
+    font-size: 10px;
+    font-weight: 750;
+    text-align: right;
+  }
+
+  .droplet-manual-filter-arrow {
+    color: #94a3b8;
+    font-size: 10px;
+    text-align: center;
+    transition: transform 0.15s ease;
+  }
+
+  .droplet-manual-filter-toggle[aria-expanded="true"]
+    .droplet-manual-filter-arrow {
+    transform: rotate(180deg);
+  }
+
+  .droplet-manual-filter-panel {
+    padding: 7px;
+    border-top: 1px solid #dbeafe;
+    background: #ffffff;
+  }
+
+  .droplet-manual-filter-panel.hidden {
+    display: none;
+  }
+
+  .droplet-manual-filter-tools {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .droplet-manual-filter-search {
+    width: 100%;
+    min-width: 0;
+    height: 30px;
+    padding: 4px 7px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    color: #334155;
+    background: #ffffff;
+    font-size: 10px;
+  }
+
+  .droplet-manual-filter-search:focus {
+    outline: 2px solid rgba(56, 189, 248, 0.35);
+    border-color: #38bdf8;
+  }
+
+  .droplet-manual-filter-all-btn,
+  .droplet-manual-filter-apply-btn {
+    min-height: 30px;
+    padding: 4px 9px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  .droplet-manual-filter-all-btn {
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    background: #f8fafc;
+  }
+
+  .droplet-manual-filter-choices {
+    max-height: 145px;
+    overflow-y: auto;
+    padding: 2px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #f8fafc;
+    overscroll-behavior: contain;
+  }
+
+  .droplet-manual-filter-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+    padding: 5px 4px;
+    color: #475569;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.25;
+    cursor: pointer;
+  }
+
+  .droplet-manual-filter-choice input {
+    flex: 0 0 auto;
+    margin-top: 1px;
+  }
+
+  .droplet-manual-filter-choice.is-search-hidden {
+    display: none;
+  }
+
+  .droplet-manual-filter-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .droplet-manual-filter-hint {
+    color: #64748b;
+    font-size: 9px;
+    line-height: 1.25;
+  }
+
+  .droplet-manual-filter-apply-btn {
+    min-width: 54px;
+    border: 1px solid #0284c7;
+    color: #ffffff;
+    background: #0284c7;
+  }
+
+  .droplet-manual-filter-apply-btn:disabled {
+    cursor: wait;
+    opacity: 0.65;
   }
 
   /* [v5.25] 모든 시나리오 표면이 공유하는 완전 수동모드 진입 UI */
@@ -4966,6 +5319,32 @@
     }
 
     .scenario-manual-mode-btn {
+      min-height: 44px;
+    }
+
+    .droplet-menu-close-btn {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+    }
+
+    .droplet-menu-header {
+      min-height: 52px;
+    }
+
+    .droplet-menu-resize-handle {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      right: 1px;
+      bottom: 1px;
+    }
+
+    .droplet-options-list {
+      padding-bottom: 44px;
+    }
+
+    .droplet-manual-filter-toggle {
       min-height: 44px;
     }
   }
@@ -9344,7 +9723,8 @@
     }
 
     // --- 전역 변수 선언 ---
-    let initialMasterRawEntries = [
+    // 과거 데모 저장본 판별 전용. 런타임 원천 데이터로 사용하지 않는다.
+    const legacyBuiltInDemoRawEntries = [
       // Default initial data, can be overridden by saved settings or CSV upload
       {
         "회계 연도": "17년",
@@ -9545,6 +9925,30 @@
         "전체 세대수": "30",
       },
     ];
+
+    function isLegacyBuiltInDemoDataset(entries) {
+      if (
+        !Array.isArray(entries) ||
+        entries.length !== legacyBuiltInDemoRawEntries.length
+      ) {
+        return false;
+      }
+      const signatureOf = (entry) =>
+        [
+          entry?.["계약명"],
+          entry?.["PO번호"],
+          entry?.["PR번호"],
+          entry?.["PO금액"],
+        ]
+          .map((value) => String(value ?? "").trim())
+          .join("\u241f");
+      const legacySignatures = new Set(
+        legacyBuiltInDemoRawEntries.map(signatureOf),
+      );
+      return entries.every((entry) => legacySignatures.has(signatureOf(entry)));
+    }
+
+    let initialMasterRawEntries = [];
     let initialMasterCsvHeaders = [
       {
         name: "회계 연도",
@@ -9584,7 +9988,9 @@
       },
       {
         name: "PO번호",
-        originalName: "PO번호,발주번호,PO Number,NO.",
+        // `NO.`는 원천 행 번호이며 PO번호의 별칭이 아니다. 두 열을 섞으면
+        // PO가 비어 있는 행에 원천 순번이 PO번호로 오인 매핑된다.
+        originalName: "PO번호,발주번호,PO Number",
         required: true,
         type: "text",
       },
@@ -9647,11 +10053,48 @@
       },
     ];
 
-    let initialTotalUnitsPerDongStatic = {
+    // GitHub XLSB의 `전체 세대수` 열이 전 행 공란이어도 동일 저장소의
+    // `RawData/26년 예산분석-예측.html`에 2026-02-05 검증값으로 명시된
+    // 사택 기준을 잃지 않는다. XLSB에 양의 정수가 들어오면 아래 기준보다
+    // 우선하며, 두 출처에 값이 없는 동은 추정하지 않고 N/A로 남긴다.
+    const BUILT_IN_TOTAL_UNITS_REFERENCE_VERSION = 2;
+    const BUILT_IN_TOTAL_UNITS_REFERENCE_SOURCE =
+      "GitHub RawData/26년 예산분석-예측.html (Verified: 2026-02-05)";
+    const BUILT_IN_TOTAL_UNITS_REFERENCE = Object.freeze({
+      "1동": 32,
+      "2동": 32,
+      "5동": 30,
+      "6동": 24,
+      "7동": 40,
+      "8동": 44,
+      "9동": 30,
       "101동": 16,
       "102동": 24,
       "103동": 24,
-      "7동": 40,
+      "104동": 12,
+    });
+    function mergeBuiltInTotalUnitsReference(
+      candidateMap,
+      options = {},
+    ) {
+      const candidate =
+        candidateMap && typeof candidateMap === "object"
+          ? cloneSerializableData(candidateMap)
+          : {};
+      const migrateOlderCatalog = options.migrateOlderCatalog === true;
+      Object.entries(BUILT_IN_TOTAL_UNITS_REFERENCE).forEach(([dong, units]) => {
+        const hasCandidate = Object.prototype.hasOwnProperty.call(candidate, dong);
+        if (
+          !hasCandidate ||
+          (migrateOlderCatalog && parsePositiveWholeNumber(candidate[dong]) === null)
+        ) {
+          candidate[dong] = units;
+        }
+      });
+      return candidate;
+    }
+    let initialTotalUnitsPerDongStatic = {
+      ...BUILT_IN_TOTAL_UNITS_REFERENCE,
     };
     // [v4.94] 건물동별 외벽 세대수 초기값 기입 (7동: 10세대 기본값 지정)
     let initialOuterUnitsPerDongStatic = {
@@ -10083,6 +10526,8 @@
     let activeScenarioShortName = null;
     let isCompleteManualModeActive = false;
     let completeManualModeTransitionPromise = null;
+    let completeManualModePreviousAutomaticState = null;
+    let scenarioOrdererApplyPromise = null;
     window.isCompleteManualModeActive = false;
     
     // [v5.17] 시나리오 연계 발주처 목록 (기본값: 엘지에너지솔루션)
@@ -10194,17 +10639,45 @@
         }
         if (description) {
           description.textContent = isCompleteManual
-            ? "자동 기준·예외 해제 · 모든 필터 직접 조합"
+            ? "클릭하여 이전 자동모드로 복원"
             : "모든 자동 기준·예외를 해제하고 직접 조합";
         }
+        manualModeBtn.title = isCompleteManual
+          ? "완전 수동모드를 종료하고 진입 직전의 자동 필터 상태로 복원"
+          : "모든 자동 기준·예외를 해제하고 직접 조합";
+        manualModeBtn.setAttribute(
+          "aria-label",
+          isCompleteManual
+            ? "완전 수동모드 적용됨. 클릭하면 이전 자동모드로 복원"
+            : "완전 수동모드 적용",
+        );
         manualModeBtn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
           if (completeManualModeTransitionPromise) return;
+          if (window.isCompleteManualModeActive) {
+            document.querySelectorAll(".scenario-manual-mode-btn").forEach((el) => {
+              el.disabled = true;
+              el.setAttribute("aria-busy", "true");
+            });
+            await restorePreviousAutomaticMode(typeSuffix || "scenario");
+            return;
+          }
           document.querySelectorAll(".scenario-manual-mode-btn").forEach((el) => {
             el.disabled = true;
             el.setAttribute("aria-busy", "true");
           });
+          const dropletMenu = document.getElementById("dropletMenu");
+          if (dropletMenu) {
+            dropletMenu.setAttribute("aria-busy", "true");
+            dropletMenu
+              .querySelectorAll(
+                ".droplet-apply-btn, .droplet-header-btn, .scenario-orderer-btn, .scenario-orderer-apply-btn",
+              )
+              .forEach((button) => {
+                button.disabled = true;
+              });
+          }
           await enterCompleteManualMode(typeSuffix || "scenario");
         });
       }
@@ -10233,8 +10706,9 @@
         });
         const applyBtn = list.querySelector(".scenario-orderer-apply-btn");
         if (applyBtn) {
-          applyBtn.addEventListener("click", (e) => {
+          applyBtn.addEventListener("click", async (e) => {
             e.stopPropagation();
+            if (scenarioOrdererApplyPromise) return;
             const checkboxes = list.querySelectorAll(".scenario-orderer-checkbox");
             const checkedValues = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
             
@@ -10243,10 +10717,27 @@
               return;
             }
             
-            window.scenarioTargetOrderers = checkedValues;
-            list.classList.add("hidden");
-            syncScenarioOrdererSelectors();
-            handleScenarioOrdererChange();
+            applyBtn.disabled = true;
+            applyBtn.setAttribute("aria-busy", "true");
+            scenarioOrdererApplyPromise = (async () => {
+              window.scenarioTargetOrderers = checkedValues;
+              list.classList.add("hidden");
+              await handleScenarioOrdererChange();
+              syncScenarioOrdererSelectors();
+              if (typeof populateDropletMenu === "function") {
+                populateDropletMenu();
+              }
+              if (typeof scheduleScenarioDropletVisibilityCheck === "function") {
+                scheduleScenarioDropletVisibilityCheck();
+              }
+            })();
+            try {
+              await scenarioOrdererApplyPromise;
+            } catch (error) {
+              console.error("[발주처 선택] 적용 실패:", error);
+            } finally {
+              scenarioOrdererApplyPromise = null;
+            }
           });
         }
       }
@@ -10327,8 +10818,19 @@
         (config) => config.headerName === ordererHeaderName,
       );
       if (ordererConfig) {
-        ordererConfig.selectedValues = [...window.scenarioTargetOrderers];
-        ordererConfig.selectionOrder = [...window.scenarioTargetOrderers];
+        const selectedOrderers = Array.isArray(window.scenarioTargetOrderers)
+          ? [...new Set(window.scenarioTargetOrderers.map((value) => String(value).trim()).filter(Boolean))]
+          : [];
+        const allOrderers = getScenarioOrderers();
+        const isWholeManualDomain =
+          isCompleteManualModeActive &&
+          allOrderers.length > 0 &&
+          selectedOrderers.length === allOrderers.length &&
+          allOrderers.every((value) => selectedOrderers.includes(value));
+        ordererConfig.selectedValues = isWholeManualDomain
+          ? []
+          : selectedOrderers;
+        ordererConfig.selectionOrder = [...ordererConfig.selectedValues];
       }
       invalidateFilteredEntriesCache();
 
@@ -10983,9 +11485,18 @@
         }
         if (description) {
           description.textContent = isActive
-            ? "자동 기준·예외 해제 · 모든 필터 직접 조합"
+            ? "클릭하여 이전 자동모드로 복원"
             : "모든 자동 기준·예외를 해제하고 직접 조합";
         }
+        button.title = isActive
+          ? "완전 수동모드를 종료하고 진입 직전의 자동 필터 상태로 복원"
+          : "모든 자동 기준·예외를 해제하고 직접 조합";
+        button.setAttribute(
+          "aria-label",
+          isActive
+            ? "완전 수동모드 적용됨. 클릭하면 이전 자동모드로 복원"
+            : "완전 수동모드 적용",
+        );
       });
 
       const pivotOverrideCheckbox = document.getElementById(
@@ -11001,6 +11512,7 @@
       options = {},
     ) {
       const nextState = !!active;
+      const previousState = !!window.isCompleteManualModeActive;
       isCompleteManualModeActive = nextState;
       window.isCompleteManualModeActive = nextState;
 
@@ -11034,6 +11546,18 @@
           : "";
       }
       refreshCompleteManualModeIndicators();
+      if (
+        previousState !== nextState &&
+        options.deferDropletSurface !== true &&
+        document.getElementById("dropletOptionsContainer")
+      ) {
+        queueMicrotask(() => {
+          try {
+            populateDropletMenu();
+            scheduleScenarioDropletVisibilityCheck();
+          } catch (_) { }
+        });
+      }
     }
 
     function activateAutomaticFilteringMode() {
@@ -12165,6 +12689,7 @@
 
     let detailModalCurrentData = [];
     let detailModalSortConfig = { key: "PO금액", direction: "desc" };
+    const DETAIL_MODAL_ROW_NUMBER_KEY = "__detailModalRowNumber";
 
     const specificDongColors = {
       "2동": "#672D93",
@@ -13518,7 +14043,8 @@
     // --- [v5.00] IndexedDB 기반 XLSB 완전 스냅샷 캐싱 (v2 아키텍처) ---
     const WYGGKR_DB_NAME = "WyggkrCacheDB";
     const WYGGKR_STORE_NAME = "xlsbDataStore";
-    const WYGGKR_DB_VERSION = 2;
+    // v6: 1·6·104동을 포함한 검증 기준 카탈로그 이전 캐시는 폐기한다.
+    const WYGGKR_DB_VERSION = 6;
 
     function initWyggkrCacheDB() {
       return new Promise((resolve, reject) => {
@@ -13550,7 +14076,7 @@
     function captureFullSnapshot() {
       try {
         return {
-          _snapshotVersion: 2,
+          _snapshotVersion: 6,
           masterRawEntries: cloneSerializableData(masterRawEntries),
           masterCsvHeaders: cloneSerializableData(masterCsvHeaders),
           allYearsGlobal: [...allYearsGlobal],
@@ -13570,6 +14096,15 @@
           summaryCache: summaryCache ? cloneSerializableData(summaryCache) : null,
           dashboardFilterCache: dashboardFilterCache ? cloneSerializableData(dashboardFilterCache) : null,
           lastDashboardRenderStateKey: lastDashboardRenderStateKey,
+          mappingIntegrityReport: cloneSerializableData(
+            window.__lastMappingIntegrityReport || null,
+          ),
+          totalUnitsIntegrityReport: cloneSerializableData(
+            window.__lastTotalUnitsIntegrityReport || null,
+          ),
+          runtimeHydrationReport: cloneSerializableData(
+            window.__lastRuntimeHydrationReport || null,
+          ),
         };
       } catch (e) {
         console.warn("[v5.00] 스냅샷 캡처 실패:", e);
@@ -13585,6 +14120,22 @@
       }
       masterRawEntries = snapshot.masterRawEntries;
       masterCsvHeaders = snapshot.masterCsvHeaders;
+      invalidateHeaderNameCache();
+      const cachedAccountingClosingHeader = masterCsvHeaders.find(
+        (headerConfig) => isAccountingClosingHeaderConfig(headerConfig),
+      )?.name || null;
+      const restoredRuntimeHydrationReport = hydrateRawEntriesRuntimeFields(
+        masterRawEntries,
+        {
+          poAmount: getHeaderName("PO금액"),
+          month: getHeaderName("매입 마감 (월)"),
+          accountingClosing: cachedAccountingClosingHeader,
+          year: getHeaderName("회계 연도"),
+        },
+      );
+      window.__lastRuntimeHydrationReport = cloneSerializableData(
+        restoredRuntimeHydrationReport,
+      );
       allYearsGlobal = snapshot.allYearsGlobal;
       allDongsGlobal = snapshot.allDongsGlobal;
       allWorkTypesGlobal = snapshot.allWorkTypesGlobal;
@@ -13604,6 +14155,17 @@
       summaryCache = snapshot.summaryCache || null;
       dashboardFilterCache = snapshot.dashboardFilterCache || null;
       lastDashboardRenderStateKey = snapshot.lastDashboardRenderStateKey || null;
+      if (restoredRuntimeHydrationReport.repairedEntryCount > 0) {
+        summaryCache = null;
+        dashboardFilterCache = null;
+        lastDashboardRenderStateKey = null;
+      }
+      window.__lastMappingIntegrityReport = cloneSerializableData(
+        snapshot.mappingIntegrityReport || null,
+      );
+      window.__lastTotalUnitsIntegrityReport = cloneSerializableData(
+        snapshot.totalUnitsIntegrityReport || null,
+      );
 
       // 런타임 인덱스 및 필터 캐시 무효화
       rawEntryRuntimeIndexes = null;
@@ -13699,7 +14261,10 @@
         const isCached = await processXlsbArrayBuffer(arrayBuffer, updateProgress, "GitHub");
         
         if (uploadStatusEl && !isCached) {
-          uploadStatusEl.textContent = "GitHub XLSB 로드 및 매핑 완료.";
+          const integrityReport = window.__lastMappingIntegrityReport;
+          uploadStatusEl.textContent = integrityReport?.status === "verified"
+            ? `GitHub XLSB 로드·원천 대조 완료 (${integrityReport.mappedEntryCount.toLocaleString()}행, 불일치 0건).`
+            : "GitHub XLSB 로드 및 매핑 완료.";
           uploadStatusEl.style.color = "green";
         }
         
@@ -13773,7 +14338,21 @@
           });
           // v2 스냅샷 형식인지 검증 및 다르면 비우기
           if (cached) {
-            if (cached._snapshotVersion === 2 && Array.isArray(cached.masterRawEntries)) {
+            if (
+              cached._snapshotVersion === 6 &&
+              Array.isArray(cached.masterRawEntries) &&
+              cached.mappingIntegrityReport?.status === "verified" &&
+              cached.mappingIntegrityReport?.mismatchCount === 0 &&
+              cached.totalUnitsIntegrityReport?.status === "verified" &&
+              cached.runtimeHydrationReport?.entryCount ===
+                cached.masterRawEntries.length &&
+              cached.runtimeHydrationReport?.invalidParsedPoAmountCount === 0 &&
+              cached.runtimeHydrationReport?.invalidParsedMonthCount === 0 &&
+              cached.runtimeHydrationReport?.parsedPoAmountTotal ===
+                cached.mappingIntegrityReport?.poAmountMappedTotal &&
+              cached.mappingIntegrityReport?.sourceEntryCount ===
+                cached.masterRawEntries.length
+            ) {
               cachedSnapshot = cached;
             } else {
               console.log('%c[v5.00] 캐시 버전이 다르거나 손상되었습니다. 기존 캐시를 비웁니다.', 'color: #ef4444;');
@@ -13814,7 +14393,10 @@
 
         setProgress(100);
         if (uploadStatusEl) {
-          uploadStatusEl.textContent = `⚡ 캐시에서 즉시 로드 완료. (${sourceLabel})`;
+          const integrityReport = window.__lastMappingIntegrityReport;
+          uploadStatusEl.textContent = integrityReport?.status === "verified"
+            ? `⚡ 검증 캐시 로드 완료. (${sourceLabel}, ${integrityReport.mappedEntryCount.toLocaleString()}행, 불일치 0건)`
+            : `⚡ 캐시에서 즉시 로드 완료. (${sourceLabel})`;
           uploadStatusEl.style.color = "#16a34a";
         }
         try {
@@ -13861,7 +14443,13 @@
           console.log('[v4.76] 최초 로드 시작. 대시보드 렌더링 후 스냅샷 저장을 대기합니다.');
         }
 
+        window.__pendingXlsbIntegritySource = {
+          sourceLabel,
+          fileHash: fileHash || "",
+          byteLength: data.byteLength,
+        };
         const uploadResult = await processUploadedData(json, true);
+        window.__pendingXlsbIntegritySource = null;
         if (uploadResult === false) {
           window.__firstXlsbLoadPendingSave__ = null; // 실패 시 초기화
           throw new Error("데이터 매핑/처리 중 오류가 발생하여 롤백되었습니다. 콘솔을 확인하세요.");
@@ -14036,7 +14624,977 @@
       }
     }
 
-    function populateDropletMenu() {
+    const DROPLET_MANUAL_FILTER_CONCEPTS = [
+      "회계 연도",
+      "작업유형",
+      "건물동",
+      "부서",
+      "매입 마감 (월)",
+    ];
+    let dropletManualFilterApplyPromise = null;
+
+    function normalizeDropletManualFilterValue(entry, headerName) {
+      let value = entry && typeof entry === "object" ? entry[headerName] : entry;
+      if (value === null || value === undefined) return "";
+      if (headerName === getHeaderName("건물동")) {
+        return String(value).replace(/^사택\s+/, "").trim();
+      }
+      if (headerName === getHeaderName("매입 마감 (월)")) {
+        const match = String(value).match(/(\d{1,2}월)/);
+        return match ? match[1] : "";
+      }
+      return String(value).trim();
+    }
+
+    function getDropletManualFilterMeta(headerName) {
+      if (headerName === getHeaderName("회계 연도")) {
+        return { icon: "📅", label: "연도" };
+      }
+      if (headerName === getHeaderName("작업유형")) {
+        return { icon: "🧰", label: "작업유형" };
+      }
+      if (headerName === getHeaderName("건물동")) {
+        return { icon: "🏢", label: "건물동" };
+      }
+      if (headerName === getHeaderName("부서")) {
+        return { icon: "🏷️", label: "부서" };
+      }
+      return { icon: "🗓️", label: "마감월" };
+    }
+
+    function getDropletManualFilterOptions(filterConfig) {
+      if (!filterConfig || !Array.isArray(masterRawEntries)) return [];
+      const headerName = filterConfig.headerName;
+      const values = [
+        ...new Set(
+          masterRawEntries
+            .map((entry) => normalizeDropletManualFilterValue(entry, headerName))
+            .filter(Boolean),
+        ),
+      ];
+      const direction = filterConfig.sort === "desc" ? -1 : 1;
+      values.sort((a, b) => {
+        if (headerName === getHeaderName("매입 마감 (월)")) {
+          return (parseInt(a, 10) - parseInt(b, 10)) * direction;
+        }
+        return (
+          String(a).localeCompare(String(b), "ko-KR", {
+            numeric: true,
+            sensitivity: "base",
+          }) * direction
+        );
+      });
+      return values;
+    }
+
+    function getDropletManualFilterSummary(filterConfig) {
+      const selected = Array.isArray(filterConfig?.selectedValues)
+        ? filterConfig.selectedValues
+        : [];
+      if (selected.length === 0) return "전체";
+      if (selected.length === 1) {
+        const value = String(selected[0]);
+        return filterConfig.headerName === getHeaderName("작업유형")
+          ? simplifyWorkTypeName(value)
+          : value;
+      }
+      return selected.length.toLocaleString("ko-KR") + "개 선택";
+    }
+
+    function setDropletStatus(message, color = "#047857") {
+      const uploadStatusEl = document.getElementById("uploadStatus");
+      if (!uploadStatusEl) return;
+      uploadStatusEl.textContent = message;
+      uploadStatusEl.style.color = color;
+    }
+
+    async function applyDropletManualFilterSelection(headerName, requestedValues) {
+      if (!window.isCompleteManualModeActive) return false;
+      if (dropletManualFilterApplyPromise) {
+        return dropletManualFilterApplyPromise;
+      }
+
+      dropletManualFilterApplyPromise = (async () => {
+        const previousState = {
+          activeFilterConfigs: cloneSerializableData(activeFilterConfigs),
+          selectedWorkTypesForComparison: [
+            ...(Array.isArray(selectedWorkTypesForComparison)
+              ? selectedWorkTypesForComparison
+              : []),
+          ],
+          scenarioTargetOrderers: [
+            ...(Array.isArray(window.scenarioTargetOrderers)
+              ? window.scenarioTargetOrderers
+              : []),
+          ],
+          manualFilterStateBeforeLoad: cloneSerializableData(
+            manualFilterStateBeforeLoad,
+          ),
+        };
+
+        try {
+          const config = activeFilterConfigs.find(
+            (item) => item.headerName === headerName,
+          );
+          if (!config) {
+            throw new Error("수동 필터 구성을 찾을 수 없습니다: " + headerName);
+          }
+
+          const domain = getDropletManualFilterOptions(config);
+          const domainSet = new Set(domain);
+          const normalizedValues = [
+            ...new Set(
+              (Array.isArray(requestedValues) ? requestedValues : [])
+                .map((value) =>
+                  normalizeDropletManualFilterValue(value, headerName),
+                )
+                .filter((value) => value && domainSet.has(value)),
+            ),
+          ];
+
+          // 모든 비공란 옵션을 명시 배열로 저장하면 원천의 빈 셀 행이 빠집니다.
+          // 전체 도메인을 선택한 경우에도 엔진의 진짜 중립값 []로 정규화합니다.
+          const isWholeDomain =
+            domain.length > 0 &&
+            normalizedValues.length === domain.length &&
+            domain.every((value) => normalizedValues.includes(value));
+          config.selectedValues = isWholeDomain ? [] : normalizedValues;
+          config.selectionOrder =
+            headerName === getHeaderName("회계 연도")
+              ? [...config.selectedValues]
+              : Array.isArray(config.selectionOrder)
+                ? config.selectionOrder.filter((value) =>
+                    config.selectedValues.includes(String(value)),
+                  )
+                : [];
+
+          projectCompleteManualFilterToConsumers(config);
+          invalidateFilteredEntriesCache();
+          invalidatePivotViewCache();
+          populateDynamicFilterOptions();
+          updateFilterSummaryBars();
+          updateFilterInteractivity();
+          updateQuickYearFilterButtonText();
+          updateYearFilterTexts();
+
+          const renderResult = await updateDashboard({ force: true });
+          if (renderResult === false) {
+            throw new Error("대시보드 갱신이 완료되지 않았습니다.");
+          }
+
+          const filteredEntries = ensureCurrentFilteredEntries();
+          manualFilterStateBeforeLoad = cloneSerializableData(
+            activeFilterConfigs,
+          );
+          window.__lastDropletManualFilterResult = {
+            status: "applied",
+            headerName,
+            selectedValues: [...config.selectedValues],
+            rowCount: filteredEntries.length,
+          };
+          setDropletStatus(
+            "완전 수동 필터 적용: " +
+              getDropletManualFilterMeta(headerName).label +
+              " · " +
+              getDropletManualFilterSummary(config) +
+              " · " +
+              filteredEntries.length.toLocaleString("ko-KR") +
+              "행",
+          );
+          populateDropletMenu({ expandedManualHeader: headerName });
+          adjustDropletMenuPosition();
+          window.dispatchEvent(
+            new CustomEvent("completeManualFilterChanged", {
+              detail: window.__lastDropletManualFilterResult,
+            }),
+          );
+          return true;
+        } catch (error) {
+          activeFilterConfigs = cloneSerializableData(
+            previousState.activeFilterConfigs,
+          );
+          selectedWorkTypesForComparison = [
+            ...previousState.selectedWorkTypesForComparison,
+          ];
+          window.scenarioTargetOrderers = [
+            ...previousState.scenarioTargetOrderers,
+          ];
+          manualFilterStateBeforeLoad = cloneSerializableData(
+            previousState.manualFilterStateBeforeLoad,
+          );
+          invalidateFilteredEntriesCache();
+          invalidatePivotViewCache();
+          try {
+            initializeDynamicFiltersUI();
+            await updateDashboard({ force: true });
+          } catch (rollbackError) {
+            console.error("[물방울 수동필터] 롤백 렌더 실패:", rollbackError);
+          }
+          syncScenarioOrdererSelectors();
+          updateFilterSummaryBars();
+          updateFilterInteractivity();
+          populateDropletMenu({ expandedManualHeader: headerName });
+          window.__lastDropletManualFilterResult = {
+            status: "rolled-back",
+            headerName,
+            error: error && error.message ? error.message : String(error),
+          };
+          setDropletStatus(
+            "수동 필터 적용 실패 · 이전 선택으로 복원했습니다: " +
+              window.__lastDropletManualFilterResult.error,
+            "#dc2626",
+          );
+          console.error("[물방울 수동필터] 적용 실패:", error);
+          return false;
+        }
+      })();
+
+      try {
+        return await dropletManualFilterApplyPromise;
+      } finally {
+        dropletManualFilterApplyPromise = null;
+        document
+          .querySelectorAll(".droplet-manual-filter-apply-btn")
+          .forEach((button) => {
+            button.disabled = false;
+            button.removeAttribute("aria-busy");
+          });
+      }
+    }
+
+    function renderDropletManualFilters(container, expandedHeaderName = "") {
+      if (!container) return;
+      const intro = document.createElement("p");
+      intro.className = "droplet-manual-intro";
+      intro.textContent =
+        "자동 시나리오는 중지되었습니다. 각 항목을 직접 조합하세요. 선택 없음은 결측값을 포함한 전체입니다.";
+      container.appendChild(intro);
+
+      const orderedHeaders = DROPLET_MANUAL_FILTER_CONCEPTS.map((concept) =>
+        getHeaderName(concept),
+      );
+      orderedHeaders.forEach((headerName, index) => {
+        const config = activeFilterConfigs.find(
+          (item) => item.headerName === headerName,
+        );
+        if (!config) return;
+
+        const meta = getDropletManualFilterMeta(headerName);
+        const options = getDropletManualFilterOptions(config);
+        const selectedSet = new Set(
+          (Array.isArray(config.selectedValues) ? config.selectedValues : []).map(
+            (value) => String(value),
+          ),
+        );
+        const item = document.createElement("section");
+        item.className = "droplet-manual-filter-item";
+        item.dataset.filterHeader = headerName;
+
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "droplet-manual-filter-toggle";
+        toggle.setAttribute("aria-expanded", "false");
+        const panelId = "droplet-manual-filter-panel-" + index;
+        toggle.setAttribute("aria-controls", panelId);
+
+        const name = document.createElement("span");
+        name.className = "droplet-manual-filter-name";
+        name.textContent = meta.icon + " " + meta.label;
+        const summary = document.createElement("span");
+        summary.className = "droplet-manual-filter-summary";
+        summary.textContent = getDropletManualFilterSummary(config);
+        const arrow = document.createElement("span");
+        arrow.className = "droplet-manual-filter-arrow";
+        arrow.setAttribute("aria-hidden", "true");
+        arrow.textContent = "▼";
+        toggle.append(name, summary, arrow);
+
+        const panel = document.createElement("div");
+        panel.id = panelId;
+        panel.className = "droplet-manual-filter-panel hidden";
+
+        const tools = document.createElement("div");
+        tools.className = "droplet-manual-filter-tools";
+        const search = document.createElement("input");
+        search.type = "search";
+        search.className = "droplet-manual-filter-search";
+        search.placeholder = meta.label + " 검색";
+        search.setAttribute("aria-label", meta.label + " 필터 검색");
+        const allButton = document.createElement("button");
+        allButton.type = "button";
+        allButton.className = "droplet-manual-filter-all-btn";
+        allButton.textContent = "전체";
+        allButton.title = "선택을 비워 전체 원본 범위로 설정";
+        tools.append(search, allButton);
+
+        const choices = document.createElement("div");
+        choices.className = "droplet-manual-filter-choices";
+        options.forEach((optionValue) => {
+          const label = document.createElement("label");
+          label.className = "droplet-manual-filter-choice";
+          label.dataset.searchText = String(optionValue).toLocaleLowerCase("ko-KR");
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.value = optionValue;
+          checkbox.checked = selectedSet.has(String(optionValue));
+          const labelText = document.createElement("span");
+          labelText.textContent =
+            headerName === getHeaderName("작업유형")
+              ? simplifyWorkTypeName(optionValue)
+              : optionValue;
+          label.append(checkbox, labelText);
+          choices.appendChild(label);
+        });
+        if (options.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "droplet-manual-filter-hint";
+          empty.textContent = "현재 원본 데이터에 선택 가능한 값이 없습니다.";
+          choices.appendChild(empty);
+        }
+
+        const footer = document.createElement("div");
+        footer.className = "droplet-manual-filter-footer";
+        const hint = document.createElement("span");
+        hint.className = "droplet-manual-filter-hint";
+        hint.textContent = "선택 없음 = 전체";
+        const applyButton = document.createElement("button");
+        applyButton.type = "button";
+        applyButton.className = "droplet-manual-filter-apply-btn";
+        applyButton.textContent = "적용";
+        footer.append(hint, applyButton);
+        panel.append(tools, choices, footer);
+        item.append(toggle, panel);
+        container.appendChild(item);
+
+        const setExpanded = (expanded) => {
+          toggle.setAttribute("aria-expanded", String(expanded));
+          panel.classList.toggle("hidden", !expanded);
+          if (expanded) {
+            requestAnimationFrame(() => adjustDropletMenuPosition());
+          }
+        };
+        toggle.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const shouldOpen = toggle.getAttribute("aria-expanded") !== "true";
+          container
+            .querySelectorAll(".droplet-manual-filter-toggle")
+            .forEach((otherToggle) => {
+              if (otherToggle === toggle) return;
+              otherToggle.setAttribute("aria-expanded", "false");
+              const controlled = document.getElementById(
+                otherToggle.getAttribute("aria-controls"),
+              );
+              if (controlled) controlled.classList.add("hidden");
+            });
+          setExpanded(shouldOpen);
+        });
+        panel.addEventListener("click", (event) => event.stopPropagation());
+        search.addEventListener("input", () => {
+          const query = search.value.trim().toLocaleLowerCase("ko-KR");
+          choices
+            .querySelectorAll(".droplet-manual-filter-choice")
+            .forEach((label) => {
+              label.classList.toggle(
+                "is-search-hidden",
+                !!query && !label.dataset.searchText.includes(query),
+              );
+            });
+        });
+        allButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          choices
+            .querySelectorAll('input[type="checkbox"]')
+            .forEach((checkbox) => {
+              checkbox.checked = false;
+            });
+        });
+        applyButton.addEventListener("click", async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (dropletManualFilterApplyPromise) return;
+          applyButton.disabled = true;
+          applyButton.setAttribute("aria-busy", "true");
+          const checkedValues = Array.from(
+            choices.querySelectorAll('input[type="checkbox"]:checked'),
+          ).map((checkbox) => checkbox.value);
+          await applyDropletManualFilterSelection(headerName, checkedValues);
+        });
+
+        if (expandedHeaderName === headerName) {
+          setExpanded(true);
+        }
+      });
+    }
+
+    const DROPLET_MENU_GEOMETRY_STORAGE_KEY = "dropletMenuGeometryV1";
+    const DROPLET_MENU_GEOMETRY_STORAGE_VERSION = 1;
+    const dropletMenuGeometryMemoryProfiles = Object.create(null);
+
+    function getDropletMenuGeometryProfile() {
+      const isPortraitMobile = window.matchMedia(
+        "(max-width: 767px) and (orientation: portrait)",
+      ).matches;
+      if (isPortraitMobile) return "mobilePortrait";
+      const isLandscapeMobile = window.matchMedia(
+        "(max-height: 767px) and (orientation: landscape) and (pointer: coarse)",
+      ).matches;
+      return isLandscapeMobile ? "mobileLandscape" : "desktop";
+    }
+
+    function getDropletMenuViewport() {
+      const visualViewport = window.visualViewport;
+      const left = visualViewport ? visualViewport.offsetLeft : 0;
+      const top = visualViewport ? visualViewport.offsetTop : 0;
+      const width = Math.max(
+        1,
+        visualViewport ? visualViewport.width : window.innerWidth,
+      );
+      const height = Math.max(
+        1,
+        visualViewport ? visualViewport.height : window.innerHeight,
+      );
+      return { left, top, width, height, edge: 8 };
+    }
+
+    function getDropletMenuGeometryLimits(viewport = getDropletMenuViewport()) {
+      const maxWidth = Math.max(1, viewport.width - viewport.edge * 2);
+      const maxHeight = Math.max(1, viewport.height - viewport.edge * 2);
+      return {
+        minWidth: Math.min(260, maxWidth),
+        minHeight: Math.min(260, maxHeight),
+        maxWidth,
+        maxHeight,
+      };
+    }
+
+    function sanitizeDropletMenuGeometry(geometry) {
+      if (!geometry || typeof geometry !== "object") return null;
+      const values = ["left", "top", "width", "height"].map(
+        (key) => geometry[key],
+      );
+      if (values.some((value) => typeof value !== "number")) return null;
+      if (!values.every(Number.isFinite) || values[2] <= 0 || values[3] <= 0) {
+        return null;
+      }
+      return {
+        left: values[0],
+        top: values[1],
+        width: values[2],
+        height: values[3],
+      };
+    }
+
+    function readDropletMenuGeometryStore() {
+      const emptyStore = {
+        version: DROPLET_MENU_GEOMETRY_STORAGE_VERSION,
+        profiles: {},
+      };
+      try {
+        const raw = localStorage.getItem(DROPLET_MENU_GEOMETRY_STORAGE_KEY);
+        if (!raw) return emptyStore;
+        const parsed = JSON.parse(raw);
+        if (
+          !parsed ||
+          parsed.version !== DROPLET_MENU_GEOMETRY_STORAGE_VERSION ||
+          !parsed.profiles ||
+          typeof parsed.profiles !== "object" ||
+          Array.isArray(parsed.profiles)
+        ) {
+          localStorage.removeItem(DROPLET_MENU_GEOMETRY_STORAGE_KEY);
+          return emptyStore;
+        }
+        return parsed;
+      } catch (_) {
+        try {
+          localStorage.removeItem(DROPLET_MENU_GEOMETRY_STORAGE_KEY);
+        } catch (_) { }
+        return emptyStore;
+      }
+    }
+
+    function getStoredDropletMenuGeometry(profile) {
+      const store = readDropletMenuGeometryStore();
+      const geometry = sanitizeDropletMenuGeometry(store.profiles[profile]);
+      if (geometry) {
+        dropletMenuGeometryMemoryProfiles[profile] = geometry;
+        return geometry;
+      }
+      if (Object.prototype.hasOwnProperty.call(store.profiles, profile)) {
+        delete store.profiles[profile];
+        try {
+          localStorage.setItem(
+            DROPLET_MENU_GEOMETRY_STORAGE_KEY,
+            JSON.stringify(store),
+          );
+        } catch (_) { }
+      }
+      return sanitizeDropletMenuGeometry(
+        dropletMenuGeometryMemoryProfiles[profile],
+      );
+    }
+
+    function saveDropletMenuGeometry(profile, geometry) {
+      const validGeometry = sanitizeDropletMenuGeometry(geometry);
+      if (!validGeometry) return false;
+      dropletMenuGeometryMemoryProfiles[profile] = validGeometry;
+      const store = readDropletMenuGeometryStore();
+      store.profiles[profile] = validGeometry;
+      try {
+        localStorage.setItem(
+          DROPLET_MENU_GEOMETRY_STORAGE_KEY,
+          JSON.stringify(store),
+        );
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function clearStoredDropletMenuGeometry(profile) {
+      const store = readDropletMenuGeometryStore();
+      delete dropletMenuGeometryMemoryProfiles[profile];
+      if (!Object.prototype.hasOwnProperty.call(store.profiles, profile)) return;
+      delete store.profiles[profile];
+      try {
+        localStorage.setItem(
+          DROPLET_MENU_GEOMETRY_STORAGE_KEY,
+          JSON.stringify(store),
+        );
+      } catch (_) { }
+    }
+
+    function clampDropletMenuGeometry(
+      geometry,
+      viewport = getDropletMenuViewport(),
+    ) {
+      const limits = getDropletMenuGeometryLimits(viewport);
+      const width = Math.max(
+        limits.minWidth,
+        Math.min(Number(geometry.width) || limits.minWidth, limits.maxWidth),
+      );
+      const height = Math.max(
+        limits.minHeight,
+        Math.min(Number(geometry.height) || limits.minHeight, limits.maxHeight),
+      );
+      const minLeft = viewport.left + viewport.edge;
+      const minTop = viewport.top + viewport.edge;
+      const maxLeft = Math.max(
+        minLeft,
+        viewport.left + viewport.width - width - viewport.edge,
+      );
+      const maxTop = Math.max(
+        minTop,
+        viewport.top + viewport.height - height - viewport.edge,
+      );
+      return {
+        left: Math.max(
+          minLeft,
+          Math.min(Number(geometry.left) || minLeft, maxLeft),
+        ),
+        top: Math.max(
+          minTop,
+          Math.min(Number(geometry.top) || minTop, maxTop),
+        ),
+        width,
+        height,
+      };
+    }
+
+    function applyDropletMenuUserGeometry(menu, geometry, options = {}) {
+      if (!menu) return null;
+      const profile = options.profile || getDropletMenuGeometryProfile();
+      const clamped = clampDropletMenuGeometry(geometry);
+      menu.classList.add("has-user-geometry");
+      menu.dataset.geometryProfile = profile;
+      menu.style.position = "fixed";
+      menu.style.left = clamped.left + "px";
+      menu.style.top = clamped.top + "px";
+      menu.style.width = clamped.width + "px";
+      menu.style.height = clamped.height + "px";
+      menu.style.maxHeight = clamped.height + "px";
+      menu.style.right = "auto";
+      menu.style.bottom = "auto";
+      menu.style.transformOrigin = "center";
+      const resizeHandle = document.getElementById("dropletMenuResizeHandle");
+      if (resizeHandle) {
+        resizeHandle.setAttribute(
+          "aria-label",
+          `시나리오 선택 패널 크기 조절, 현재 ${Math.round(clamped.width)} × ${Math.round(clamped.height)} 픽셀`,
+        );
+      }
+      if (options.persist) {
+        saveDropletMenuGeometry(profile, clamped);
+      }
+      return clamped;
+    }
+
+    function resetDropletMenuAutomaticGeometry(menu) {
+      if (!menu) return;
+      menu.classList.remove(
+        "has-user-geometry",
+        "is-geometry-interacting",
+        "is-panel-dragging",
+        "is-panel-resizing",
+      );
+      delete menu.dataset.geometryProfile;
+      menu.style.height = "";
+      menu.style.width = "";
+      menu.style.maxHeight = "";
+      menu.style.transformOrigin = "";
+      const resizeHandle = document.getElementById("dropletMenuResizeHandle");
+      if (resizeHandle) {
+        resizeHandle.setAttribute(
+          "aria-label",
+          "시나리오 선택 패널 크기 조절, 현재 자동 크기",
+        );
+      }
+    }
+
+    function restoreStoredDropletMenuGeometry(menu) {
+      const profile = getDropletMenuGeometryProfile();
+      const stored = getStoredDropletMenuGeometry(profile);
+      if (!stored) {
+        if (
+          menu.classList.contains("has-user-geometry") ||
+          menu.dataset.geometryProfile !== profile
+        ) {
+          resetDropletMenuAutomaticGeometry(menu);
+        }
+        return false;
+      }
+      applyDropletMenuUserGeometry(menu, stored, {
+        profile,
+        // visualViewport 축소(예: 모바일 키보드)는 일시적일 수 있으므로
+        // 수동 조작이 아닌 복원/클램프 단계에서는 원본 저장값을 덮지 않습니다.
+        persist: false,
+      });
+      return true;
+    }
+
+    function persistCurrentDropletMenuGeometry(menu) {
+      if (!menu || menu.classList.contains("hidden")) return null;
+      const rect = menu.getBoundingClientRect();
+      return applyDropletMenuUserGeometry(
+        menu,
+        {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        },
+        { persist: true },
+      );
+    }
+
+    function setupDropletMenuGeometryInteractions() {
+      const menu = document.getElementById("dropletMenu");
+      const header = menu && menu.querySelector(".droplet-menu-header");
+      const resizeHandle = document.getElementById("dropletMenuResizeHandle");
+      if (!menu || !header || !resizeHandle) return;
+      if (menu.dataset.geometryInteractionsInitialized === "true") return;
+      menu.dataset.geometryInteractionsInitialized = "true";
+
+      let interaction = null;
+      const interactiveSelector =
+        "button, input, select, textarea, a, label, [role='button'], [contenteditable='true']";
+
+      const beginInteraction = (type, event, captureTarget) => {
+        if (interaction) return;
+        if (event.isPrimary === false) return;
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        if (
+          type === "drag" &&
+          (event.target.closest(interactiveSelector) ||
+            event.target.closest(".droplet-menu-header-actions"))
+        ) {
+          return;
+        }
+        if (menu.classList.contains("hidden")) return;
+        const rect = menu.getBoundingClientRect();
+        interaction = {
+          type,
+          pointerId: event.pointerId,
+          captureTarget,
+          startX: event.clientX,
+          startY: event.clientY,
+          initial: {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+          },
+          started: false,
+        };
+        if (captureTarget.setPointerCapture) {
+          try {
+            captureTarget.setPointerCapture(event.pointerId);
+          } catch (_) { }
+        }
+        if (
+          type === "resize" &&
+          typeof captureTarget.focus === "function"
+        ) {
+          captureTarget.focus({ preventScroll: true });
+        } else if (
+          type === "drag" &&
+          typeof header.focus === "function"
+        ) {
+          header.focus({ preventScroll: true });
+        }
+        event.preventDefault();
+        event.stopPropagation();
+      };
+
+      const moveInteraction = (event) => {
+        if (!interaction || event.pointerId !== interaction.pointerId) return;
+        const dx = event.clientX - interaction.startX;
+        const dy = event.clientY - interaction.startY;
+        if (!interaction.started && Math.hypot(dx, dy) < 3) return;
+        if (!interaction.started) {
+          interaction.started = true;
+          menu.classList.add(
+            "is-geometry-interacting",
+            interaction.type === "drag"
+              ? "is-panel-dragging"
+              : "is-panel-resizing",
+          );
+          applyDropletMenuUserGeometry(menu, interaction.initial);
+        }
+
+        let nextGeometry;
+        if (interaction.type === "drag") {
+          nextGeometry = {
+            ...interaction.initial,
+            left: interaction.initial.left + dx,
+            top: interaction.initial.top + dy,
+          };
+        } else {
+          const viewport = getDropletMenuViewport();
+          const limits = getDropletMenuGeometryLimits(viewport);
+          const availableWidth = Math.max(
+            limits.minWidth,
+            viewport.left + viewport.width - viewport.edge - interaction.initial.left,
+          );
+          const availableHeight = Math.max(
+            limits.minHeight,
+            viewport.top + viewport.height - viewport.edge - interaction.initial.top,
+          );
+          nextGeometry = {
+            left: interaction.initial.left,
+            top: interaction.initial.top,
+            width: Math.max(
+              limits.minWidth,
+              Math.min(interaction.initial.width + dx, availableWidth),
+            ),
+            height: Math.max(
+              limits.minHeight,
+              Math.min(interaction.initial.height + dy, availableHeight),
+            ),
+          };
+        }
+        applyDropletMenuUserGeometry(menu, nextGeometry);
+        if (event.cancelable) event.preventDefault();
+      };
+
+      const finishInteraction = (event, cancelled = false) => {
+        if (!interaction || event.pointerId !== interaction.pointerId) return;
+        const finished = interaction;
+        interaction = null;
+        if (
+          finished.captureTarget.releasePointerCapture &&
+          finished.captureTarget.hasPointerCapture &&
+          finished.captureTarget.hasPointerCapture(event.pointerId)
+        ) {
+          try {
+            finished.captureTarget.releasePointerCapture(event.pointerId);
+          } catch (_) { }
+        }
+        menu.classList.remove(
+          "is-geometry-interacting",
+          "is-panel-dragging",
+          "is-panel-resizing",
+        );
+        if (finished.started) {
+          if (cancelled) {
+            adjustDropletMenuPosition();
+          } else {
+            persistCurrentDropletMenuGeometry(menu);
+          }
+        }
+      };
+
+      const bindPointerSurface = (element, type) => {
+        element.addEventListener("pointerdown", (event) => {
+          beginInteraction(type, event, element);
+        });
+        element.addEventListener("pointermove", moveInteraction);
+        element.addEventListener("pointerup", (event) => {
+          finishInteraction(event, false);
+        });
+        element.addEventListener("pointercancel", (event) => {
+          finishInteraction(event, true);
+        });
+        element.addEventListener("lostpointercapture", (event) => {
+          if (interaction && interaction.pointerId === event.pointerId) {
+            finishInteraction(event, false);
+          }
+        });
+      };
+
+      bindPointerSurface(header, "drag");
+      bindPointerSurface(resizeHandle, "resize");
+
+      header.addEventListener("keydown", (event) => {
+        if (event.target !== header) return;
+        const directionKeys = [
+          "ArrowLeft",
+          "ArrowRight",
+          "ArrowUp",
+          "ArrowDown",
+        ];
+        if (!directionKeys.includes(event.key)) return;
+        if (menu.classList.contains("hidden")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const step = event.shiftKey ? 32 : 16;
+        const rect = menu.getBoundingClientRect();
+        applyDropletMenuUserGeometry(
+          menu,
+          {
+            left:
+              rect.left +
+              (event.key === "ArrowRight"
+                ? step
+                : event.key === "ArrowLeft"
+                  ? -step
+                  : 0),
+            top:
+              rect.top +
+              (event.key === "ArrowDown"
+                ? step
+                : event.key === "ArrowUp"
+                  ? -step
+                  : 0),
+            width: rect.width,
+            height: rect.height,
+          },
+          { persist: true },
+        );
+      });
+
+      resizeHandle.addEventListener("keydown", (event) => {
+        if (event.key === "Home") {
+          event.preventDefault();
+          event.stopPropagation();
+          clearStoredDropletMenuGeometry(getDropletMenuGeometryProfile());
+          resetDropletMenuAutomaticGeometry(menu);
+          adjustDropletMenuPosition();
+          return;
+        }
+        const directionKeys = [
+          "ArrowLeft",
+          "ArrowRight",
+          "ArrowUp",
+          "ArrowDown",
+        ];
+        if (!directionKeys.includes(event.key)) return;
+        if (menu.classList.contains("hidden")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const step = event.shiftKey ? 32 : 16;
+        const rect = menu.getBoundingClientRect();
+        const viewport = getDropletMenuViewport();
+        const limits = getDropletMenuGeometryLimits(viewport);
+        const availableWidth = Math.max(
+          limits.minWidth,
+          viewport.left + viewport.width - viewport.edge - rect.left,
+        );
+        const availableHeight = Math.max(
+          limits.minHeight,
+          viewport.top + viewport.height - viewport.edge - rect.top,
+        );
+        applyDropletMenuUserGeometry(
+          menu,
+          {
+            left: rect.left,
+            top: rect.top,
+            width: Math.max(
+              limits.minWidth,
+              Math.min(
+                rect.width +
+                  (event.key === "ArrowRight"
+                    ? step
+                    : event.key === "ArrowLeft"
+                      ? -step
+                      : 0),
+                availableWidth,
+              ),
+            ),
+            height: Math.max(
+              limits.minHeight,
+              Math.min(
+                rect.height +
+                  (event.key === "ArrowDown"
+                    ? step
+                    : event.key === "ArrowUp"
+                      ? -step
+                      : 0),
+                availableHeight,
+              ),
+            ),
+          },
+          { persist: true },
+        );
+      });
+
+      resizeHandle.addEventListener("dblclick", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        clearStoredDropletMenuGeometry(getDropletMenuGeometryProfile());
+        resetDropletMenuAutomaticGeometry(menu);
+        adjustDropletMenuPosition();
+      });
+
+      window.addEventListener("blur", () => {
+        if (!interaction) return;
+        interaction = null;
+        menu.classList.remove(
+          "is-geometry-interacting",
+          "is-panel-dragging",
+          "is-panel-resizing",
+        );
+        adjustDropletMenuPosition();
+      });
+    }
+
+    function setDropletMenuOpen(open, options = {}) {
+      const menu = document.getElementById("dropletMenu");
+      const handle = document.getElementById("dropletHandle");
+      if (!menu || !handle) return;
+      const shouldOpen = !!open;
+      if (shouldOpen) {
+        populateDropletMenu();
+        menu.classList.remove("hidden");
+        requestAnimationFrame(() => adjustDropletMenuPosition());
+      } else {
+        menu.classList.add("hidden");
+      }
+      menu.setAttribute("aria-hidden", String(!shouldOpen));
+      handle.setAttribute("aria-expanded", String(shouldOpen));
+      handle.setAttribute(
+        "aria-label",
+        shouldOpen
+          ? "시나리오 간편 선택 패널 닫기"
+          : "시나리오 간편 선택 패널 열기",
+      );
+      if (!shouldOpen && options.restoreFocus && typeof handle.focus === "function") {
+        handle.focus({ preventScroll: true });
+      }
+    }
+
+    function populateDropletMenu(options = {}) {
       const container = document.getElementById("dropletOptionsContainer");
       if (!container) return;
       container.innerHTML = "";
@@ -14057,6 +15615,24 @@
           }
         }
         renderScenarioOrdererSelector("dropletOrdererSelectorContainer", "mobile");
+      }
+
+      const isManualMode = !!window.isCompleteManualModeActive;
+      const title = document.getElementById("dropletMenuTitle");
+      if (dropletMenu) {
+        dropletMenu.classList.toggle("is-manual-mode", isManualMode);
+      }
+      if (title) {
+        title.textContent = isManualMode
+          ? "🧭 수동 필터 선택"
+          : "🎯 시나리오 선택";
+      }
+      if (isManualMode) {
+        renderDropletManualFilters(
+          container,
+          options.expandedManualHeader || "",
+        );
+        return;
       }
 
       const emojis = {
@@ -14163,8 +15739,7 @@
             }
           }
           
-          const menu = document.getElementById("dropletMenu");
-          if (menu) menu.classList.add("hidden");
+          setDropletMenuOpen(false);
           
           populateDropletMenu();
         });
@@ -14181,8 +15756,7 @@
           resetScenarioButton();
           await applyYearFilter(2);
           updateDropletState();
-          const menu = document.getElementById("dropletMenu");
-          if (menu) menu.classList.add("hidden");
+          setDropletMenuOpen(false);
           populateDropletMenu();
         };
       }
@@ -14196,8 +15770,7 @@
           resetScenarioButton();
           await applyYearFilter(3);
           updateDropletState();
-          const menu = document.getElementById("dropletMenu");
-          if (menu) menu.classList.add("hidden");
+          setDropletMenuOpen(false);
           populateDropletMenu();
         };
       }
@@ -14209,8 +15782,38 @@
       const menu = document.getElementById("dropletMenu");
       if (!droplet || !menu) return;
 
+      // 사용자 조작 중에는 현재 geometry만 안전영역 안으로 제한하고,
+      // 저장된 이전 값이나 물방울 기준 자동 배치로 되돌리지 않습니다.
+      if (menu.classList.contains("is-geometry-interacting")) {
+        const activeRect = menu.getBoundingClientRect();
+        applyDropletMenuUserGeometry(menu, {
+          left: activeRect.left,
+          top: activeRect.top,
+          width: activeRect.width,
+          height: activeRect.height,
+        });
+        return;
+      }
+
+      // 현재 뷰포트 프로필에 사용자가 저장한 패널 위치/크기가 있으면
+      // 자동 앵커보다 우선합니다. 복원 시 화면 축소분은 저장하지 않습니다.
+      if (restoreStoredDropletMenuGeometry(menu)) return;
+
       const rect = droplet.getBoundingClientRect();
-      const menuWidth = 260; // .droplet-menu 고정 가로폭
+      const visualViewport = window.visualViewport;
+      const viewportLeft = visualViewport ? visualViewport.offsetLeft : 0;
+      const viewportTop = visualViewport ? visualViewport.offsetTop : 0;
+      const viewportWidth = visualViewport
+        ? visualViewport.width
+        : window.innerWidth;
+      const viewportHeight = visualViewport
+        ? visualViewport.height
+        : window.innerHeight;
+      const edge = 8;
+      const menuWidth = Math.max(0, Math.min(320, viewportWidth - edge * 2));
+      menu.style.position = "fixed";
+      menu.style.width = menuWidth + "px";
+      menu.style.maxHeight = Math.max(1, viewportHeight - edge * 2) + "px";
 
       // 팝업 메뉴의 높이를 미리 계산하기 위해 visibility를 가리고 임시 표출
       const wasHidden = menu.classList.contains("hidden");
@@ -14224,30 +15827,35 @@
         menu.style.visibility = "";
       }
 
-      // 절대 좌표계 복잡성을 피하기 위해 fixed 포지셔닝으로 전환
-      menu.style.position = "fixed";
-      menu.style.width = menuWidth + "px";
-
       // 1. 가로축 위치 계산 (우측 정렬 기본, 좌측 경계 충돌 시 우측으로 전개)
       let targetLeft = rect.right - menuWidth;
-      if (targetLeft < 10) {
+      if (targetLeft < viewportLeft + edge) {
         targetLeft = rect.left; // 물방울 기준 좌측 정렬로 꺾음
       }
       // 브라우저 뷰포트 범위 내 최종 클램핑
-      targetLeft = Math.max(10, Math.min(targetLeft, window.innerWidth - menuWidth - 10));
+      targetLeft = Math.max(
+        viewportLeft + edge,
+        Math.min(
+          targetLeft,
+          viewportLeft + viewportWidth - menuWidth - edge,
+        ),
+      );
 
       // 2. 세로축 위치 계산 (상단 노출 기본, 상단 경계 충돌 시 하단으로 전개)
-      let targetTop = rect.top - menuHeight - 10;
+      let targetTop = rect.top - menuHeight - edge;
       let transformOriginY = "bottom";
 
-      if (targetTop < 10) {
-        targetTop = rect.bottom + 10; // 물방울 하단으로 꺾어서 노출
+      if (targetTop < viewportTop + edge) {
+        targetTop = rect.bottom + edge; // 물방울 하단으로 꺾어서 노출
         transformOriginY = "top";
       }
 
       // 하단도 초과하는 극단적 케이스의 클램핑
-      if (targetTop + menuHeight > window.innerHeight - 10) {
-        targetTop = Math.max(10, window.innerHeight - menuHeight - 10);
+      if (targetTop + menuHeight > viewportTop + viewportHeight - edge) {
+        targetTop = Math.max(
+          viewportTop + edge,
+          viewportTop + viewportHeight - menuHeight - edge,
+        );
       }
 
       // 3. 인라인 스타일 주입 및 배치
@@ -14258,13 +15866,87 @@
 
       // 부드러운 스케일 업 애니메이션을 위해 꺾인 방향에 맞춰 transform-origin 동적 설정
       const transformOriginX = (targetLeft + (menuWidth / 2) < rect.left + (rect.width / 2)) ? "left" : "right";
-      menu.style.transformOrigin = `${transformOriginY} ${transformOriginX}`;
+      menu.style.transformOrigin = `${transformOriginX} ${transformOriginY}`;
     }
+
+    let dropletVisibilityTimers = [];
+    function ensureScenarioDropletVisible(options = {}) {
+      const droplet = document.getElementById("floatingScenarioDroplet");
+      const handle = document.getElementById("dropletHandle");
+      if (!droplet || !handle) return false;
+
+      droplet.style.display = "flex";
+      const visualViewport = window.visualViewport;
+      const viewportLeft = visualViewport ? visualViewport.offsetLeft : 0;
+      const viewportTop = visualViewport ? visualViewport.offsetTop : 0;
+      const viewportWidth = visualViewport
+        ? visualViewport.width
+        : window.innerWidth;
+      const viewportHeight = visualViewport
+        ? visualViewport.height
+        : window.innerHeight;
+      const edge = 8;
+      const rect = handle.getBoundingClientRect();
+      const width = rect.width || handle.offsetWidth || 74;
+      const height = rect.height || handle.offsetHeight || 74;
+      const maxLeft = Math.max(
+        viewportLeft + edge,
+        viewportLeft + viewportWidth - width - edge,
+      );
+      const maxTop = Math.max(
+        viewportTop + edge,
+        viewportTop + viewportHeight - height - edge,
+      );
+      const safeLeft = Math.max(
+        viewportLeft + edge,
+        Math.min(Number.isFinite(rect.left) ? rect.left : maxLeft, maxLeft),
+      );
+      const safeTop = Math.max(
+        viewportTop + edge,
+        Math.min(Number.isFinite(rect.top) ? rect.top : maxTop, maxTop),
+      );
+      const moved =
+        Math.abs(safeLeft - rect.left) > 0.5 ||
+        Math.abs(safeTop - rect.top) > 0.5;
+
+      if (moved || options.forceCoordinates) {
+        droplet.style.right = "auto";
+        droplet.style.bottom = "auto";
+        droplet.style.left = safeLeft + "px";
+        droplet.style.top = safeTop + "px";
+      }
+      if (moved || options.persist) {
+        try {
+          localStorage.setItem(
+            "dropletPosition",
+            JSON.stringify({ left: safeLeft, top: safeTop }),
+          );
+        } catch (_) { }
+      }
+      const menu = document.getElementById("dropletMenu");
+      if (menu && !menu.classList.contains("hidden")) {
+        adjustDropletMenuPosition();
+      }
+      return true;
+    }
+
+    function scheduleScenarioDropletVisibilityCheck() {
+      dropletVisibilityTimers.forEach((timer) => clearTimeout(timer));
+      dropletVisibilityTimers = [0, 180, 420].map((delay) =>
+        setTimeout(() => ensureScenarioDropletVisible(), delay),
+      );
+    }
+
+    window.ensureScenarioDropletVisible = ensureScenarioDropletVisible;
+    window.scheduleScenarioDropletVisibilityCheck =
+      scheduleScenarioDropletVisibilityCheck;
 
     function setupDropletDragAndDrop() {
       const droplet = document.getElementById("floatingScenarioDroplet");
       const handle = document.getElementById("dropletHandle");
       if (!droplet || !handle) return;
+      if (droplet.dataset.dragInitialized === "true") return;
+      droplet.dataset.dragInitialized = "true";
 
       let isDragging = false;
       let startX, startY, initialLeft, initialTop;
@@ -14296,20 +15978,30 @@
           if (!dragMoved) {
             dragMoved = true;
             // 드래그가 확실시되는 순간에만 메뉴를 닫습니다.
-            const menu = document.getElementById("dropletMenu");
-            if (menu) {
-              menu.classList.add("hidden");
-            }
+            setDropletMenuOpen(false);
           }
         }
 
         let newLeft = initialLeft + dx;
         let newTop = initialTop + dy;
         
-        const maxLeft = window.innerWidth - 70;
-        const maxTop = window.innerHeight - 70;
-        newLeft = Math.max(10, Math.min(newLeft, maxLeft));
-        newTop = Math.max(10, Math.min(newTop, maxTop));
+        const visualViewport = window.visualViewport;
+        const viewportLeft = visualViewport ? visualViewport.offsetLeft : 0;
+        const viewportTop = visualViewport ? visualViewport.offsetTop : 0;
+        const viewportWidth = visualViewport
+          ? visualViewport.width
+          : window.innerWidth;
+        const viewportHeight = visualViewport
+          ? visualViewport.height
+          : window.innerHeight;
+        const handleRect = handle.getBoundingClientRect();
+        const edge = 8;
+        const maxLeft =
+          viewportLeft + viewportWidth - (handleRect.width || 74) - edge;
+        const maxTop =
+          viewportTop + viewportHeight - (handleRect.height || 74) - edge;
+        newLeft = Math.max(viewportLeft + edge, Math.min(newLeft, maxLeft));
+        newTop = Math.max(viewportTop + edge, Math.min(newTop, maxTop));
         
         droplet.style.left = newLeft + "px";
         droplet.style.top = newTop + "px";
@@ -14321,22 +16013,12 @@
         if (isDragging) {
           isDragging = false;
           if (dragMoved) {
-            const rect = droplet.getBoundingClientRect();
-            localStorage.setItem("dropletPosition", JSON.stringify({
-              left: rect.left,
-              top: rect.top
-            }));
+            ensureScenarioDropletVisible({ persist: true });
           } else {
             // 드래그가 발생하지 않은 탭/클릭의 경우 정밀 토글 수행
             const menu = document.getElementById("dropletMenu");
             if (menu) {
-              if (menu.classList.contains("hidden")) {
-                populateDropletMenu();
-                adjustDropletMenuPosition();
-                menu.classList.remove("hidden");
-              } else {
-                menu.classList.add("hidden");
-              }
+              setDropletMenuOpen(menu.classList.contains("hidden"));
             }
           }
         }
@@ -14388,32 +16070,103 @@
       const droplet = document.getElementById("floatingScenarioDroplet");
       if (!droplet) return;
 
-      const savedPos = localStorage.getItem("dropletPosition");
-      if (savedPos) {
-        try {
-          const pos = JSON.parse(savedPos);
-          droplet.style.bottom = "auto";
-          droplet.style.right = "auto";
-          droplet.style.left = pos.left + "px";
-          droplet.style.top = pos.top + "px";
-        } catch (e) {
-          console.warn("[Droplet] Failed to restore position:", e);
+      if (droplet.dataset.initialized !== "true") {
+        const savedPos = localStorage.getItem("dropletPosition");
+        if (savedPos) {
+          try {
+            const pos = JSON.parse(savedPos);
+            if (Number.isFinite(pos.left) && Number.isFinite(pos.top)) {
+              droplet.style.bottom = "auto";
+              droplet.style.right = "auto";
+              droplet.style.left = pos.left + "px";
+              droplet.style.top = pos.top + "px";
+            } else {
+              localStorage.removeItem("dropletPosition");
+            }
+          } catch (e) {
+            localStorage.removeItem("dropletPosition");
+            console.warn("[Droplet] Failed to restore position:", e);
+          }
         }
+        droplet.dataset.initialized = "true";
+
+        const handle = document.getElementById("dropletHandle");
+        const menu = document.getElementById("dropletMenu");
+        const closeButton = document.getElementById("dropletMenuCloseButton");
+        if (closeButton) {
+          closeButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setDropletMenuOpen(false, { restoreFocus: true });
+          });
+        }
+        if (handle) {
+          handle.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setDropletMenuOpen(
+                !menu || menu.classList.contains("hidden"),
+              );
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              setDropletMenuOpen(false, { restoreFocus: true });
+            }
+          });
+        }
+        document.addEventListener("keydown", (event) => {
+          if (
+            event.key === "Escape" &&
+            menu &&
+            !menu.classList.contains("hidden")
+          ) {
+            event.preventDefault();
+            setDropletMenuOpen(false, { restoreFocus: true });
+          }
+        });
+        document.addEventListener(
+          "click",
+          (event) => {
+            if (
+              event.target.closest(
+                ".section-accordion-header, .filter-accordion-header, .layout-control-button, #sidebarPinButton, #sidebarCloseButton, #mobileSidebarToggle",
+              )
+            ) {
+              scheduleScenarioDropletVisibilityCheck();
+            }
+          },
+          true,
+        );
+        window.addEventListener("resize", scheduleScenarioDropletVisibilityCheck);
+        window.addEventListener(
+          "orientationchange",
+          scheduleScenarioDropletVisibilityCheck,
+        );
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener(
+            "resize",
+            scheduleScenarioDropletVisibilityCheck,
+          );
+          window.visualViewport.addEventListener(
+            "scroll",
+            scheduleScenarioDropletVisibilityCheck,
+          );
+        }
+        window.addEventListener("completeManualModeChanged", () => {
+          const wasOpen = menu && !menu.classList.contains("hidden");
+          populateDropletMenu();
+          if (wasOpen) setDropletMenuOpen(true);
+          scheduleScenarioDropletVisibilityCheck();
+        });
       }
 
       droplet.style.display = "flex";
       populateDropletMenu();
       updateDropletState();
       setupDropletDragAndDrop();
+      setupDropletMenuGeometryInteractions();
       syncScenarioOrdererSelectors();
-
-      // [v4.92] 창 크기 조절 시 열려 있는 팝업 위치 실시간 보정
-      window.addEventListener("resize", () => {
-        const menu = document.getElementById("dropletMenu");
-        if (menu && !menu.classList.contains("hidden")) {
-          adjustDropletMenuPosition();
-        }
-      });
+      ensureScenarioDropletVisible({ forceCoordinates: true, persist: true });
+      scheduleScenarioDropletVisibilityCheck();
     }
 
     function setupMobilePortraitLayout() {
@@ -14466,6 +16219,7 @@
             }
           });
         }
+        scheduleScenarioDropletVisibilityCheck();
       }
 
       if (typeof mql.addEventListener === "function") {
@@ -14947,9 +16701,9 @@
       }
       const headerConfig = masterCsvHeaders.find((h) =>
         (h.originalName || h.name)
-          .split(",")
-          .map((n) => n.trim())
-          .includes(originalConceptName),
+              .split(",")
+              .map((n) => n.trim())
+              .includes(originalConceptName),
       );
       const resolvedName = headerConfig
         ? headerConfig.name
@@ -17836,6 +19590,69 @@
         topCostWorkTypesInsightTextEl.innerHTML = topCostWorkTypeInsightText;
     }
 
+    function getDetailDerivedColumnValue(item, columnKey) {
+      if (columnKey !== "전체 세대수" && columnKey !== "외벽 세대수") {
+        return item?.[columnKey];
+      }
+      const dongHeaderName = getHeaderName("건물동");
+      const rawDong = item?.[dongHeaderName];
+      const dongKey = rawDong === null || rawDong === undefined
+        ? ""
+        : String(rawDong).replace("사택 ", "").trim();
+      return columnKey === "전체 세대수"
+        ? totalUnitsPerDongStatic[dongKey]
+        : outerUnitsPerDongStatic[dongKey];
+    }
+
+    function isMeaningfulDetailValue(value, headerConfig = null) {
+      if (value === null || value === undefined) return false;
+      if (value instanceof Date) return !Number.isNaN(value.getTime());
+      const text = String(value).trim();
+      if (!text || text === "N/A" || text === "-") return false;
+      if (
+        headerConfig?.type === "number" &&
+        Number(String(value).replace(/,/g, "")) === 0
+      ) {
+        return false;
+      }
+      return true;
+    }
+
+    function getDetailModalHeaders(data) {
+      const rows = Array.isArray(data) ? data : [];
+      const headers = [];
+      masterCsvHeaders
+        .filter(
+          (headerConfig) =>
+            headerConfig.name !== "견적비교" &&
+            !isSourceRowNumberHeader(headerConfig.name),
+        )
+        .forEach((headerConfig) => {
+          const key = headerConfig.name;
+          const hasValue = rows.some((item) =>
+            isMeaningfulDetailValue(
+              getDetailDerivedColumnValue(item, key),
+              headerConfig,
+            ),
+          );
+          // 필수 열은 공란 자체가 검증 정보이므로 유지한다. 선택 열은 현재
+          // 상세 결과 전체가 공란일 때만 감춰 가짜 데이터로 채우지 않는다.
+          if (headerConfig.required || hasValue) {
+            headers.push(key);
+          }
+          if (key === "전체 세대수") {
+            const hasOuterUnits = rows.some((item) =>
+              isMeaningfulDetailValue(
+                getDetailDerivedColumnValue(item, "외벽 세대수"),
+                { type: "number" },
+              ),
+            );
+            if (hasOuterUnits) headers.push("외벽 세대수");
+          }
+        });
+      return headers;
+    }
+
     function populateTable(
       tableId,
       data,
@@ -17864,21 +19681,7 @@
         tableHead.innerHTML = "";
         const headerRow = tableHead.insertRow();
 
-        const noTh = document.createElement("th");
-        noTh.textContent = "No.";
-        headerRow.appendChild(noTh);
-
-        const modalHeaders = [];
-        masterCsvHeaders
-          .map((h) => h.name)
-          .filter((h) => h !== "견적비교")
-          .forEach((key) => {
-            modalHeaders.push(key);
-            if (key === "전체 세대수") {
-              modalHeaders.push("외벽 세대수");
-            }
-          });
-        modalHeaders.forEach((key) => {
+        const appendDetailSortableHeader = (key, labelText = key) => {
           const th = document.createElement("th");
           th.dataset.sortKey = key;
 
@@ -17886,16 +19689,18 @@
           wrapper.className = "th-content-wrapper";
 
           const titleSpan = document.createElement("span");
-          titleSpan.textContent = key;
+          titleSpan.textContent = labelText;
           wrapper.appendChild(titleSpan);
 
           const controls = document.createElement("div");
           controls.className = "th-sort-controls";
 
           const ascBtn = document.createElement("button");
+          ascBtn.type = "button";
           ascBtn.className = "th-sort-button";
-          ascBtn.innerHTML = "▲";
+          ascBtn.textContent = "▲";
           ascBtn.title = "오름차순 정렬";
+          ascBtn.setAttribute("aria-label", `${labelText} 오름차순 정렬`);
           ascBtn.onclick = (e) => {
             e.stopPropagation();
             setDetailModalSort(key, "asc");
@@ -17903,9 +19708,11 @@
           controls.appendChild(ascBtn);
 
           const descBtn = document.createElement("button");
+          descBtn.type = "button";
           descBtn.className = "th-sort-button";
-          descBtn.innerHTML = "▼";
+          descBtn.textContent = "▼";
           descBtn.title = "내림차순 정렬";
+          descBtn.setAttribute("aria-label", `${labelText} 내림차순 정렬`);
           descBtn.onclick = (e) => {
             e.stopPropagation();
             setDetailModalSort(key, "desc");
@@ -17927,13 +19734,18 @@
           };
 
           headerRow.appendChild(th);
-        });
+        };
+
+        appendDetailSortableHeader("No.");
+        const modalHeaders = getDetailModalHeaders(data);
+        modalHeaders.forEach((key) => appendDetailSortableHeader(key));
         columns = ["No.", ...modalHeaders];
       }
 
       let lastYear = null;
       let yearGroupCounter = 0;
       const yearHeaderName = getHeaderName("회계 연도");
+      const monthHeaderName = getHeaderName("매입 마감 (월)");
 
       data.forEach((item, index) => {
         const row = document.createElement("tr");
@@ -17988,8 +19800,21 @@
           let value;
 
           if (isModal && colKey === "No.") {
-            value = String(index + 1).padStart(2, "0");
+            // 상세 화면의 No.는 원천 NO.가 아니라 현재 정렬 결과 안에서의
+            // 연속 행 번호다. No. 자체를 정렬할 때는 직전 표 순번을 유지하여
+            // 내림차순에서 N..1이 보이도록 하고, 다른 열 정렬 시 다시 1..N으로 갱신한다.
+            const rowNumber =
+              detailModalSortConfig.key === "No."
+                ? Number(item?.[DETAIL_MODAL_ROW_NUMBER_KEY]) || index + 1
+                : index + 1;
+            value = String(rowNumber);
             cell.textContent = value;
+            cell.dataset.sourceRowNumber = String(
+              item?._sourceRowNumber ?? "",
+            );
+            cell.dataset.sourceWorksheetRow = String(
+              item?._sourceWorksheetRow || "",
+            );
             cell.style.textAlign = "center";
             cell.style.fontWeight = "bold";
             cell.style.color = "#6b7280";
@@ -17997,10 +19822,7 @@
           }
 
           if (isModal && colKey === "전체 세대수") {
-            const dongHeaderName = getHeaderName("건물동");
-            const rawDong = item[dongHeaderName];
-            const dongKey = rawDong ? (typeof rawDong === "string" ? rawDong.replace("사택 ", "").trim() : String(rawDong).trim()) : "";
-            const totalU = totalUnitsPerDongStatic[dongKey];
+            const totalU = getDetailDerivedColumnValue(item, colKey);
             if (totalU === null || totalU === undefined || totalU === "" || isNaN(totalU)) {
               cell.textContent = "N/A";
               cell.classList.add("text-na");
@@ -18012,10 +19834,7 @@
           }
 
           if (isModal && colKey === "외벽 세대수") {
-            const dongHeaderName = getHeaderName("건물동");
-            const rawDong = item[dongHeaderName];
-            const dongKey = rawDong ? rawDong.replace("사택 ", "").trim() : "";
-            const outerU = outerUnitsPerDongStatic[dongKey];
+            const outerU = getDetailDerivedColumnValue(item, colKey);
             if (outerU === null || outerU === undefined || outerU === "" || isNaN(outerU)) {
               cell.textContent = "N/A";
               cell.classList.add("text-na");
@@ -18027,6 +19846,16 @@
           }
 
           value = item[colKey];
+          if (isModal && colKey === monthHeaderName) {
+            value = normalizeMonthClosingValue(value);
+          } else if (isModal) {
+            const valueHeaderConfig = masterCsvHeaders.find(
+              (header) => header.name === colKey,
+            );
+            if (isAccountingClosingHeaderConfig(valueHeaderConfig)) {
+              value = normalizeAccountingClosingValue(value);
+            }
+          }
           cell.className = "";
 
           if (tableId === "tableBuildingSummary" && colKey === "dong") {
@@ -18171,7 +20000,7 @@
                 headerConfigForModal?.name === getHeaderName("계약명") ||
                 headerConfigForModal?.name === getHeaderName("PO번호") ||
                 headerConfigForModal?.name === getHeaderName("PR번호") ||
-                headerConfigForModal?.name === getHeaderName("매입 마감 (월)")
+                headerConfigForModal?.name === monthHeaderName
               ) {
                 cell.classList.add("text-left");
               } else {
@@ -22145,41 +23974,186 @@
       setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
     }
 
-    function extractTableDataForExcel(tableElement) {
-      const data = [];
-      if (!tableElement) return data;
-      const headerRow = tableElement.querySelector("thead tr");
-      if (headerRow) {
-        const headers = Array.from(headerRow.querySelectorAll("th")).map(
-          (th) => th.textContent.trim(),
-        );
-        data.push(headers);
+    function getExcelCellText(cell) {
+      if (!cell) return "";
+      const clone = cell.cloneNode(true);
+      clone
+        .querySelectorAll(
+          ".th-sort-controls, .pivot-sort-glyph, .column-resizer, .row-resizer, .resize-handle",
+        )
+        .forEach((control) => control.remove());
+      return String(clone.textContent || "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function getExcelColumnType(headerCell, headerLabel) {
+      const columnKey = headerCell?.dataset?.sortKey || headerLabel;
+      const configuredHeader = masterCsvHeaders.find(
+        (header) => header.name === columnKey || header.name === headerLabel,
+      );
+      if (configuredHeader) {
+        if (configuredHeader.type !== "number") return "text";
+        return /금액|비용|집행|cost|amount/i.test(
+          `${columnKey || ""} ${headerLabel || ""}`,
+        )
+          ? "currency"
+          : "number";
       }
-      const bodyRows = tableElement.querySelectorAll("tbody tr");
-      bodyRows.forEach((tr) => {
-        const rowData = Array.from(tr.querySelectorAll("td")).map((td) => {
-          const text = td.textContent.trim();
-          if (text === "N/A" || text === "-") return text;
 
-          // 우선 통화 단위를 원 단위 숫자로 역변환 시도
-          const parsedCurrency = parseFormattedCurrencyToNumber(text);
-          if (!isNaN(parsedCurrency)) return parsedCurrency;
+      const semanticName = `${columnKey || ""} ${headerLabel || ""}`;
+      if (/진행률|증감률|비율|퍼센트|%|rate/i.test(semanticName))
+        return "percent";
+      if (/금액|비용|집행|cost|amount/i.test(semanticName))
+        return "currency";
+      if (/^\s*No\.?\s*$/i.test(headerLabel) || /건수|세대수|수량|count/i.test(semanticName))
+        return "number";
+      return "text";
+    }
 
-          // 퍼센트 처리 (표시값을 소수로 저장)
-          if (/^[-+]?\d*[\.,]?\d+%$/.test(text)) {
-            const num = parseFloat(text.replace("%", ""));
-            return !isNaN(num) ? num / 100 : text;
+    function convertExcelCellValue(cell, exportType = "text") {
+      const text = getExcelCellText(cell);
+      if (text === "" || text === "N/A" || text === "-") return text;
+      if (exportType === "text") return text;
+
+      const explicitNumericValue = cell?.dataset?.sortValue;
+      if (explicitNumericValue !== undefined && explicitNumericValue !== "") {
+        const numericValue = Number(String(explicitNumericValue).replace(/,/g, ""));
+        if (Number.isFinite(numericValue)) {
+          return exportType === "percent" ? numericValue / 100 : numericValue;
+        }
+      }
+
+      if (exportType === "currency") {
+        const parsedCurrency = parseFormattedCurrencyToNumber(text);
+        return Number.isFinite(parsedCurrency) ? parsedCurrency : text;
+      }
+      if (exportType === "percent") {
+        const percentMatch = text.match(/^([-+]?(?:\d+(?:\.\d+)?|\.\d+))%$/);
+        return percentMatch ? Number(percentMatch[1]) / 100 : text;
+      }
+
+      const normalizedNumber = text.replace(/,/g, "");
+      return /^[-+]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(normalizedNumber)
+        ? Number(normalizedNumber)
+        : text;
+    }
+
+    function convertConfiguredExcelValue(value, headerConfig) {
+      if (value === null || value === undefined) return "";
+      if (isMonthClosingHeaderConfig(headerConfig)) {
+        return normalizeMonthClosingValue(value);
+      }
+      if (isAccountingClosingHeaderConfig(headerConfig)) {
+        return normalizeAccountingClosingValue(value);
+      }
+      if (value instanceof Date) return value;
+      if (headerConfig?.type !== "number")
+        return typeof value === "string" ? value : String(value);
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      const normalizedNumber = String(value).replace(/,/g, "").trim();
+      return /^[-+]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(normalizedNumber)
+        ? Number(normalizedNumber)
+        : value;
+    }
+
+    function buildDetailModalExcelData(data) {
+      const rows = Array.isArray(data) ? data : [];
+      const detailHeaders = getDetailModalHeaders(rows);
+      if (rows.length === 0 || detailHeaders.length === 0) return [];
+      const headerConfigByName = new Map(
+        masterCsvHeaders.map((headerConfig) => [
+          headerConfig.name,
+          headerConfig,
+        ]),
+      );
+      const excelRows = [["No.", ...detailHeaders]];
+
+      rows.forEach((item, index) => {
+        const rowNumber =
+          detailModalSortConfig.key === "No."
+            ? Number(item?.[DETAIL_MODAL_ROW_NUMBER_KEY]) || index + 1
+            : index + 1;
+        const row = [rowNumber];
+        detailHeaders.forEach((headerName) => {
+          if (headerName === "전체 세대수" || headerName === "외벽 세대수") {
+            const derivedValue = getDetailDerivedColumnValue(item, headerName);
+            row.push(
+              parsePositiveWholeNumber(derivedValue) === null
+                ? "N/A"
+                : Number(derivedValue),
+            );
+            return;
           }
-
-          // 숫자 형태(콤마 포함) 처리
-          const numeric = parseFloat(String(text).replace(/,/g, ""));
-          if (!isNaN(numeric) && /[0-9]/.test(text)) return numeric;
-
-          return text;
+          const headerConfig = headerConfigByName.get(headerName) || null;
+          row.push(convertConfiguredExcelValue(item?.[headerName], headerConfig));
         });
+        excelRows.push(row);
+      });
+      return excelRows;
+    }
+
+    function extractTableDataForExcel(tableElement) {
+      if (!tableElement) return [];
+      const headerRow = tableElement.querySelector("thead tr");
+      const headerCells = headerRow
+        ? Array.from(headerRow.querySelectorAll("th"))
+        : [];
+      const headers = headerCells.map((th) => getExcelCellText(th));
+      const columnTypes = headerCells.map((th, index) =>
+        getExcelColumnType(th, headers[index]),
+      );
+      const data = headers.length > 0 ? [headers] : [];
+
+      tableElement.querySelectorAll("tbody tr").forEach((tr) => {
+        const rowData = Array.from(tr.querySelectorAll("td")).map((td, index) =>
+          convertExcelCellValue(td, columnTypes[index] || "text"),
+        );
         data.push(rowData);
       });
       return data;
+    }
+
+    function extractPivotTableDataForExcel(tableElement) {
+      if (!tableElement) return { data: [], merges: [] };
+      const data = [];
+      const merges = [];
+      const occupiedCells = new Set();
+
+      Array.from(tableElement.rows).forEach((row, rowIndex) => {
+        const rowData = [];
+        let columnIndex = 0;
+        Array.from(row.cells).forEach((cell) => {
+          while (occupiedCells.has(`${rowIndex}:${columnIndex}`)) columnIndex++;
+          const exportType =
+            cell.tagName === "TH"
+              ? "text"
+              : cell.classList.contains("metric-work-count")
+                ? "number"
+                : cell.classList.contains("number-cell")
+                  ? "currency"
+                  : "text";
+          rowData[columnIndex] = convertExcelCellValue(cell, exportType);
+
+          const rowSpan = cell.rowSpan || 1;
+          const colSpan = cell.colSpan || 1;
+          if (rowSpan > 1 || colSpan > 1) {
+            merges.push({
+              s: { r: rowIndex, c: columnIndex },
+              e: { r: rowIndex + rowSpan - 1, c: columnIndex + colSpan - 1 },
+            });
+          }
+          for (let r = rowIndex; r < rowIndex + rowSpan; r++) {
+            for (let c = columnIndex; c < columnIndex + colSpan; c++) {
+              if (r !== rowIndex || c !== columnIndex)
+                occupiedCells.add(`${r}:${c}`);
+            }
+          }
+          columnIndex += colSpan;
+        });
+        data.push(rowData);
+      });
+      return { data, merges };
     }
     function extractChartDataForExcel(chartInstance) {
       if (
@@ -22231,12 +24205,134 @@
       return excelData.length > 1 ? excelData : null;
     }
 
+    function assertExportDatasetIntegrity() {
+      if (isLegacyBuiltInDemoDataset(masterRawEntries)) {
+        throw new Error("과거 데모 데이터는 Excel로 내보낼 수 없습니다.");
+      }
+      const report = window.__lastMappingIntegrityReport;
+      if (!report) return;
+      if (
+        report.status !== "verified" ||
+        report.mismatchCount !== 0 ||
+        report.mappedEntryCount !== masterRawEntries.length
+      ) {
+        throw new Error(
+          "원천-매핑 무결성 검증 상태가 유효하지 않아 내보내기를 중단했습니다.",
+        );
+      }
+      const runtimeReport = window.__lastRuntimeHydrationReport ||
+        report.runtimeFields || null;
+      if (
+        !runtimeReport ||
+        runtimeReport.entryCount !== masterRawEntries.length ||
+        runtimeReport.invalidParsedPoAmountCount !== 0 ||
+        runtimeReport.invalidParsedMonthCount !== 0 ||
+        runtimeReport.parsedPoAmountTotal !== report.poAmountMappedTotal
+      ) {
+        throw new Error(
+          "금액/월 런타임 파생 필드 검증 상태가 유효하지 않아 내보내기를 중단했습니다.",
+        );
+      }
+    }
+
+    function appendMappingIntegritySheet(workbook) {
+      const report = window.__lastMappingIntegrityReport;
+      if (!report || report.status !== "verified") return false;
+      const auditRows = [
+        ["검증 항목", "검증값"],
+        ["검증 상태", "원천-매핑 일치"],
+        ["원천", report.source || "Excel"],
+        ["원천 SHA-256", report.sourceSha256 || ""],
+        ["원천 파일 크기(bytes)", report.sourceByteLength || 0],
+        ["원천 행 수", report.sourceEntryCount],
+        ["매핑 행 수", report.mappedEntryCount],
+        ["비교 헤더 수", report.comparedHeaderCount],
+        ["비교 셀 수", report.comparedCellCount],
+        ["불일치 수", report.mismatchCount],
+        ["원천 PO번호 공란 행", report.blankPoSourceCount],
+        ["매핑 PO번호 공란 행", report.blankPoMappedCount],
+        ["원천 PR번호 공란 행", report.blankPrSourceCount],
+        ["매핑 PR번호 공란 행", report.blankPrMappedCount],
+        ["원천 PO금액 합계", report.poAmountSourceTotal],
+        ["매핑 PO금액 합계", report.poAmountMappedTotal],
+        ["검증 시각(UTC)", report.verifiedAt || ""],
+      ];
+      auditRows.push([]);
+      auditRows.push([
+        "열별 원천 대조",
+        "원천 헤더",
+        "비교 셀",
+        "원천 공란",
+        "매핑 공란 동등값",
+        "불일치",
+      ]);
+      (report.columnAudits || []).forEach((columnAudit) => {
+        auditRows.push([
+          columnAudit.header,
+          columnAudit.sourceHeader,
+          columnAudit.comparedCellCount,
+          columnAudit.sourceBlankCount,
+          columnAudit.mappedBlankEquivalentCount,
+          columnAudit.mismatchCount,
+        ]);
+      });
+      const unitsReport = report.totalUnits ||
+        window.__lastTotalUnitsIntegrityReport || null;
+      if (unitsReport) {
+        auditRows.push([]);
+        auditRows.push(["전체 세대수 파이프라인", "검증값"]);
+        auditRows.push(["세대수 검증 상태", unitsReport.status]);
+        auditRows.push(["검증 기준 출처", unitsReport.referenceSource || ""]);
+        auditRows.push([
+          "검증 기준 카탈로그 동",
+          unitsReport.referenceCatalogDongCount || 0,
+        ]);
+        auditRows.push([
+          "주거동 기준표 적용 범위",
+          `${unitsReport.residentialMappedDongCount || 0}/${unitsReport.residentialDongCount || 0}`,
+        ]);
+        auditRows.push([
+          "주거동 기준 누락",
+          (unitsReport.residentialMissingDongs || []).join(", ") || "없음",
+        ]);
+        auditRows.push(["XLSB 제공 동", unitsReport.sourceProvidedDongCount]);
+        auditRows.push(["검증 기준값 적용 동", unitsReport.referenceFallbackDongCount]);
+        auditRows.push(["원천·기준값 모두 누락 동", unitsReport.missingDongCount]);
+        auditRows.push(["상충 동", unitsReport.conflictDongCount]);
+        auditRows.push(["잘못된 비공란 값", unitsReport.invalidValueCount]);
+      }
+      const runtimeReport = report.runtimeFields ||
+        window.__lastRuntimeHydrationReport || null;
+      if (runtimeReport) {
+        auditRows.push([]);
+        auditRows.push(["금액/월 런타임 파생 필드", "검증값"]);
+        auditRows.push(["런타임 행 수", runtimeReport.entryCount]);
+        auditRows.push(["parsedPoAmount 합계", runtimeReport.parsedPoAmountTotal]);
+        auditRows.push(["PO금액 보정 행", runtimeReport.poAmountCorrectionCount]);
+        auditRows.push(["월 보정 행", runtimeReport.monthCorrectionCount]);
+        auditRows.push(["잘못된 parsedPoAmount", runtimeReport.invalidParsedPoAmountCount]);
+        auditRows.push(["잘못된 parsedMonthInt", runtimeReport.invalidParsedMonthCount]);
+      }
+      const auditSheet = XLSX.utils.aoa_to_sheet(auditRows);
+      auditSheet["!cols"] = [
+        { wch: 26 },
+        { wch: 42 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 18 },
+        { wch: 12 },
+      ];
+      XLSX.utils.book_append_sheet(workbook, auditSheet, "원천 검증");
+      return true;
+    }
+
     async function exportAllDataToExcel() {
       if (!(await window.ensureXlsxRuntime())) {
         alert("Excel 기능을 준비하지 못했습니다.");
         return;
       }
       try {
+        assertExportDatasetIntegrity();
         const wb = XLSX.utils.book_new();
         let sheetAdded = false;
 
@@ -22335,10 +24431,10 @@
           detailModalEl.classList.contains("active") &&
           detailModalTableEl
         ) {
-          const detailTableBodyRows =
-            detailModalTableEl.querySelectorAll("tbody tr");
-          if (detailTableBodyRows.length > 0) {
-            const detailData = extractTableDataForExcel(detailModalTableEl);
+          if (detailModalCurrentData.length > 0) {
+            const detailData = buildDetailModalExcelData(
+              detailModalCurrentData,
+            );
             if (detailData.length > 1) {
               const modalTitleEl =
                 document.getElementById("detailModalTitle");
@@ -22372,15 +24468,6 @@
           if (pivotTable) {
             const pivotData = extractPivotTableDataForExcel(pivotTable);
             if (pivotData.data.length > 1) {
-              // 금액 표시는 원 단위 숫자로 일괄 변환
-              try {
-                pivotData.data = pivotData.data.map((row) =>
-                  row.map((cell) => {
-                    const parsed = parseFormattedCurrencyToNumber(cell);
-                    return !isNaN(parsed) ? parsed : cell;
-                  }),
-                );
-              } catch (_) { }
               const wsPivot = XLSX.utils.aoa_to_sheet(pivotData.data, {
                 skipHeader: true,
               });
@@ -22436,6 +24523,8 @@
         const dateSuffix = getFormattedDateSuffix();
         const finalFileName = `dashboard_export${dateSuffix}.xlsx`;
 
+        if (appendMappingIntegritySheet(wb)) sheetAdded = true;
+
         if (sheetAdded) {
           XLSX.writeFile(wb, finalFileName);
           if (document.getElementById("uploadStatus"))
@@ -22476,7 +24565,8 @@
       }
 
       try {
-        const detailData = extractTableDataForExcel(detailModalTableEl);
+        assertExportDatasetIntegrity();
+        const detailData = buildDetailModalExcelData(detailModalCurrentData);
         if (detailData.length <= 1) {
           alert("테이블에 내보낼 데이터가 없습니다.");
           return;
@@ -22495,6 +24585,7 @@
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(detailData);
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        appendMappingIntegritySheet(wb);
 
         const dateSuffix = getFormattedDateSuffix();
         const finalFileName = `${sheetName}${dateSuffix}.xlsx`;
@@ -22596,6 +24687,12 @@
       const totalUnitsHeaderName = getHeaderName("전체 세대수");
       const poNumeroHeader = getHeaderName("PO번호");
       const monthHeaderName = getHeaderName("매입 마감 (월)");
+      const accountingClosingHeaderConfig = csvHeaderConfig.find(
+        (header) => isAccountingClosingHeaderConfig(header),
+      );
+      const accountingClosingHeaderName = accountingClosingHeaderConfig
+        ? accountingClosingHeaderConfig.name
+        : null;
 
       if (rawEntries.length === 0) {
         allYearsGlobal = [];
@@ -22640,55 +24737,30 @@
       const yearDongAmountMap = new Map();
       const tempDongYearMap = new Map();
       const newUnitsFromCsv = {};
+      const totalUnitsIntegrityState = createRawEntriesAggregationState(
+        csvHeaderConfig,
+        createUploadProcessingContextOptions(),
+      );
       const yearsSet = new Set();
       const dongsSet = new Set(Object.keys(totalUnitsPerDongStatic));
       const workTypesSet = new Set();
       const dongEntriesMap = new Map();
       const workTypeEntriesMap = new Map();
       const yearEntriesMap = new Map();
-      const poAmountHeaderNameLocal = poAmountHeaderName;
       const regexCommaLocal = /,/g;
       let lastAggregationYieldAt = performance.now();
       let lastAggregationProgressAt = lastAggregationYieldAt;
 
       for (let i = 0; i < rawEntries.length; i++) {
         const entry = rawEntries[i];
-        
-        // [v5.01] XLSB 숫자 셀 타입 최적화 (불필요한 문자열 변환 및 정규식 제거)
-        const poAmountVal = entry[poAmountHeaderNameLocal];
-        const poAmount = typeof poAmountVal === "number"
-          ? poAmountVal
-          : (poAmountVal ? parseFloat(String(poAmountVal).replace(regexCommaLocal, "")) || 0 : 0);
-        
-        entry.parsedPoAmount = poAmount;
-        
-        const monthValRaw = entry[monthHeaderName];
-        let parsedMonthInt = 0;
-        if (monthValRaw) {
-          const monthStr = String(monthValRaw).trim();
-          let m = monthStr.match(/(\d{1,2})월/);
-          if (m) {
-            parsedMonthInt = parseInt(m[1], 10);
-          } else {
-            m = monthStr.match(/-(\d{2})-/) || monthStr.match(/\/(\d{1,2})\//) || monthStr.match(/^(\d{4})[.\/-](\d{1,2})/);
-            if (m) {
-              parsedMonthInt = parseInt(m[1] || m[2], 10);
-            } else {
-              m = monthStr.match(/^(\d{4})(\d{2})(?:\d{2})?$/);
-              if (m) {
-                parsedMonthInt = parseInt(m[2], 10);
-              } else {
-                const d = new Date(monthStr);
-                if (!isNaN(d.getTime())) {
-                  parsedMonthInt = d.getMonth() + 1;
-                } else {
-                  parsedMonthInt = parseInt(monthStr, 10) || 0;
-                }
-              }
-            }
-          }
-        }
-        entry.parsedMonthInt = parsedMonthInt;
+        hydrateRawEntryRuntimeFields(entry, {
+          poAmount: poAmountHeaderName,
+          month: monthHeaderName,
+          accountingClosing: accountingClosingHeaderName,
+          year: yearHeaderName,
+        });
+        accumulateRawEntryForSnapshot(totalUnitsIntegrityState, entry);
+        const poAmount = entry.parsedPoAmount;
 
         // [v5.01] 문자열 replace 대신 startsWith 최적화
         const rawDong = entry[dongHeaderName];
@@ -22825,6 +24897,20 @@
           totalUnitsPerDongStatic[dongName] = null;
         }
       });
+      const totalUnitsAuditSnapshot = finalizeRawEntriesAggregationState(
+        totalUnitsIntegrityState,
+      );
+      totalUnitsPerDongStatic = cloneSerializableData(
+        totalUnitsAuditSnapshot.totalUnitsPerDongStatic,
+      );
+      window.__lastTotalUnitsIntegrityReport = cloneSerializableData(
+        totalUnitsAuditSnapshot.totalUnitsIntegrity,
+      );
+      if (window.__lastTotalUnitsIntegrityReport?.status === "failed") {
+        throw new Error(
+          `전체 세대수 원천 충돌: ${window.__lastTotalUnitsIntegrityReport.conflictDongCount || 0}개 동`,
+        );
+      }
 
       if (
         hasBaseAmountHeader &&
@@ -23021,13 +25107,137 @@ function normalizeHeaderKey(value) {
     .replace(/\s+/g, "");
 }
 
+function isSourceRowNumberHeader(value) {
+  return /^no\.?$/i.test(normalizeHeaderKey(value));
+}
+
+function hasMeaningfulSourceValue(value) {
+  if (value === null || value === undefined) return false;
+  if (value instanceof Date) return !Number.isNaN(value.getTime());
+  return typeof value === "string" ? value.trim() !== "" : true;
+}
+
+function normalizeMonthClosingValue(value) {
+  if (value === null || value === undefined || value === "") return "";
+
+  const formatMonthDay = (month, day) => {
+    const monthNumber = Number(month);
+    const dayNumber = Number(day);
+    if (
+      !Number.isInteger(monthNumber) ||
+      !Number.isInteger(dayNumber) ||
+      monthNumber < 1 ||
+      monthNumber > 12 ||
+      dayNumber < 1 ||
+      dayNumber > 31
+    ) {
+      return "";
+    }
+    return `${String(monthNumber).padStart(2, "0")}월${String(dayNumber).padStart(2, "0")}일`;
+  };
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime())
+      ? ""
+      : formatMonthDay(value.getMonth() + 1, value.getDate());
+  }
+
+  const text = String(value).trim();
+  if (!text) return "";
+
+  let match = text.match(/^(\d{1,2})월\s*(\d{1,2})일$/);
+  if (match) return formatMonthDay(match[1], match[2]) || text;
+
+  match = text.match(/^\d{4}[./-](\d{1,2})[./-](\d{1,2})(?:[T\s]|$)/);
+  if (match) return formatMonthDay(match[1], match[2]) || text;
+
+  match = text.match(
+    /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+\d{4}\b/i,
+  );
+  if (match) {
+    const englishMonths = {
+      jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+      jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+    };
+    return formatMonthDay(englishMonths[match[1].toLowerCase()], match[2]) || text;
+  }
+
+  return text;
+}
+
+function isMonthClosingHeaderConfig(headerConfig) {
+  if (!headerConfig) return false;
+  const acceptedKeys = new Set([normalizeHeaderKey("매입 마감 (월)")]);
+  return [headerConfig.name, ...(headerConfig.originalName || "").split(",")]
+    .some((name) => acceptedKeys.has(normalizeHeaderKey(name)));
+}
+
+function isAccountingClosingHeaderConfig(headerConfig) {
+  if (!headerConfig) return false;
+  const accountingClosingKey = normalizeHeaderKey("회계 마감");
+  return [headerConfig.name, ...(headerConfig.originalName || "").split(",")]
+    .some((name) => normalizeHeaderKey(name) === accountingClosingKey);
+}
+
+function normalizeAccountingClosingValue(value) {
+  if (value === null || value === undefined || value === "") return "";
+
+  const formatDate = (year, month, day) => {
+    const yearNumber = Number(year);
+    const monthNumber = Number(month);
+    const dayNumber = Number(day);
+    if (
+      !Number.isInteger(yearNumber) ||
+      !Number.isInteger(monthNumber) ||
+      !Number.isInteger(dayNumber) ||
+      yearNumber < 1900 ||
+      yearNumber > 9999 ||
+      monthNumber < 1 ||
+      monthNumber > 12 ||
+      dayNumber < 1 ||
+      dayNumber > 31
+    ) {
+      return "";
+    }
+    return `${String(yearNumber).padStart(4, "0")}-${String(monthNumber).padStart(2, "0")}-${String(dayNumber).padStart(2, "0")}`;
+  };
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime())
+      ? ""
+      : formatDate(value.getFullYear(), value.getMonth() + 1, value.getDate());
+  }
+
+  const text = String(value).trim();
+  if (!text) return "";
+
+  let match = text.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})(?:[T\s]|$)/);
+  if (match) return formatDate(match[1], match[2], match[3]) || text;
+
+  match = text.match(/^(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일$/);
+  if (match) return formatDate(match[1], match[2], match[3]) || text;
+
+  match = text.match(
+    /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+(\d{4})\b/i,
+  );
+  if (match) {
+    const englishMonths = {
+      jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+      jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+    };
+    return formatDate(match[3], englishMonths[match[1].toLowerCase()], match[2]) || text;
+  }
+
+  return text;
+}
+
 function resolveHeaderNameFromConfig(headerConfigs, originalConceptName) {
   const configs = Array.isArray(headerConfigs) ? headerConfigs : [];
   const headerConfig = configs.find((h) =>
     (h.originalName || h.name)
-      .split(",")
-      .map((n) => n.trim())
-      .includes(originalConceptName),
+          .split(",")
+          .map((n) => n.trim())
+          .includes(originalConceptName),
   );
   return headerConfig ? headerConfig.name : originalConceptName;
 }
@@ -23089,6 +25299,9 @@ function applyProcessingSnapshot(snapshot) {
     cloneSerializableData(snapshot.dataDongFinanceAndCountRaw) || [];
   totalUnitsPerDongStatic =
     cloneSerializableData(snapshot.totalUnitsPerDongStatic) || {};
+  window.__lastTotalUnitsIntegrityReport = cloneSerializableData(
+    snapshot.totalUnitsIntegrity || null,
+  );
   outerUnitsPerDongStatic =
     cloneSerializableData(snapshot.outerUnitsPerDongStatic) || {};
   baseEstimateAmounts =
@@ -23101,6 +25314,148 @@ function applyProcessingSnapshot(snapshot) {
   );
 
   return true;
+}
+
+function normalizeBuildingDongName(value) {
+  if (value === null || value === undefined) return "";
+  return String(value).replace(/^사택\s+/, "").trim();
+}
+
+function parseRuntimePoAmount(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (value === null || value === undefined || value === "") return 0;
+  const parsed = Number(String(value).replace(/,/g, "").trim());
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseRuntimeMonthNumber(value) {
+  const normalized = normalizeMonthClosingValue(value);
+  if (!normalized) return 0;
+  const text = String(normalized).trim();
+  let match = text.match(/(\d{1,2})월/);
+  if (match) return Math.min(12, Math.max(0, Number(match[1]) || 0));
+  match =
+    text.match(/-(\d{2})-/) ||
+    text.match(/\/(\d{1,2})\//) ||
+    text.match(/^\d{4}[.\/-](\d{1,2})/) ||
+    text.match(/^\d{4}(\d{2})(?:\d{2})?$/);
+  if (match) return Math.min(12, Math.max(0, Number(match[1]) || 0));
+  const parsedDate = new Date(text);
+  return Number.isNaN(parsedDate.getTime()) ? 0 : parsedDate.getMonth() + 1;
+}
+
+function hydrateRawEntryRuntimeFields(entry, headerNames = {}) {
+  if (!entry || typeof entry !== "object") {
+    return { poAmountCorrected: false, monthCorrected: false };
+  }
+  const poAmountHeaderName = headerNames.poAmount || "PO금액";
+  const monthHeaderName = headerNames.month || "매입 마감 (월)";
+  const accountingClosingHeaderName = headerNames.accountingClosing || null;
+  const yearHeaderName = headerNames.year || "회계 연도";
+  const expectedPoAmount = parseRuntimePoAmount(entry[poAmountHeaderName]);
+  const normalizedMonth = normalizeMonthClosingValue(entry[monthHeaderName]);
+  const expectedMonth = parseRuntimeMonthNumber(normalizedMonth);
+  const poAmountCorrected =
+    !Number.isFinite(entry.parsedPoAmount) ||
+    entry.parsedPoAmount !== expectedPoAmount;
+  const monthCorrected =
+    !Number.isInteger(entry.parsedMonthInt) ||
+    entry.parsedMonthInt !== expectedMonth ||
+    entry._monthNum !== expectedMonth;
+
+  entry[monthHeaderName] = normalizedMonth;
+  if (accountingClosingHeaderName) {
+    entry[accountingClosingHeaderName] = normalizeAccountingClosingValue(
+      entry[accountingClosingHeaderName],
+    );
+  }
+  entry.parsedPoAmount = expectedPoAmount;
+  entry.parsedMonthInt = expectedMonth;
+  entry._monthNum = expectedMonth;
+  entry._monthKey = expectedMonth ? `${expectedMonth}월` : "";
+  entry._yearRaw = entry[yearHeaderName] === null ||
+    entry[yearHeaderName] === undefined
+    ? ""
+    : String(entry[yearHeaderName]).trim();
+  return { poAmountCorrected, monthCorrected };
+}
+
+function hydrateRawEntriesRuntimeFields(entries, headerNames = {}) {
+  const rows = Array.isArray(entries) ? entries : [];
+  let poAmountCorrectionCount = 0;
+  let monthCorrectionCount = 0;
+  let repairedEntryCount = 0;
+  let parsedPoAmountTotal = 0;
+  let invalidParsedPoAmountCount = 0;
+  let invalidParsedMonthCount = 0;
+  rows.forEach((entry) => {
+    const result = hydrateRawEntryRuntimeFields(entry, headerNames);
+    if (result.poAmountCorrected) poAmountCorrectionCount++;
+    if (result.monthCorrected) monthCorrectionCount++;
+    if (result.poAmountCorrected || result.monthCorrected) {
+      repairedEntryCount++;
+    }
+    if (Number.isFinite(entry.parsedPoAmount)) {
+      parsedPoAmountTotal += entry.parsedPoAmount;
+    } else {
+      invalidParsedPoAmountCount++;
+    }
+    if (
+      !Number.isInteger(entry.parsedMonthInt) ||
+      entry.parsedMonthInt < 0 ||
+      entry.parsedMonthInt > 12
+    ) {
+      invalidParsedMonthCount++;
+    }
+  });
+  return {
+    entryCount: rows.length,
+    poAmountCorrectionCount,
+    monthCorrectionCount,
+    parsedPoAmountTotal,
+    invalidParsedPoAmountCount,
+    invalidParsedMonthCount,
+    repairedEntryCount,
+  };
+}
+
+function parsePositiveWholeNumber(value) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).replace(/,/g, "").trim();
+  if (!text || /^(?:n\/?a|-|해당없음|0)$/i.test(text)) return null;
+  const parsed = Number(text);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function recordTotalUnitsEvidence(state, dongName, rawValue, sourceRow) {
+  if (!state || !dongName) return;
+  if (!state.totalUnitsEvidence[dongName]) {
+    state.totalUnitsEvidence[dongName] = {
+      positiveValueCounts: {},
+      blankCount: 0,
+      invalidNonBlankCount: 0,
+      sourceRows: [],
+    };
+  }
+  const evidence = state.totalUnitsEvidence[dongName];
+  const parsed = parsePositiveWholeNumber(rawValue);
+  const text = rawValue === null || rawValue === undefined
+    ? ""
+    : String(rawValue).trim();
+  if (parsed !== null) {
+    const key = String(parsed);
+    evidence.positiveValueCounts[key] =
+      (evidence.positiveValueCounts[key] || 0) + 1;
+    if (evidence.sourceRows.length < 10) {
+      evidence.sourceRows.push(Number(sourceRow || 0) || null);
+    }
+  } else if (!text || /^(?:n\/?a|-|해당없음|0)$/i.test(text)) {
+    evidence.blankCount++;
+  } else {
+    evidence.invalidNonBlankCount++;
+  }
 }
 
 function createRawEntriesAggregationState(csvHeaderConfig, options = {}) {
@@ -23137,7 +25492,7 @@ function createRawEntriesAggregationState(csvHeaderConfig, options = {}) {
     dongBaseAmountMap: new Map(),
     yearDongAmountMap: new Map(),
     tempDongYearMap: new Map(),
-    newUnitsFromCsv: {},
+    totalUnitsEvidence: {},
   };
 }
 
@@ -23148,9 +25503,7 @@ function accumulateRawEntryForSnapshot(state, entry) {
   const poAmount =
     parseFloat(String(entry[headers.poAmount]).replace(regexCommaLocal, "")) ||
     0;
-  const dongName = entry[headers.dong]
-    ? String(entry[headers.dong]).replace("사택 ", "").trim()
-    : "";
+  const dongName = normalizeBuildingDongName(entry[headers.dong]);
   const workType = entry[headers.workType];
   const year = entry[headers.year] ? String(entry[headers.year]).trim() : "";
 
@@ -23209,34 +25562,12 @@ function accumulateRawEntryForSnapshot(state, entry) {
   }
 
   if (state.hasTotalUnitsHeader && dongName) {
-    const unitsValue = entry[headers.totalUnits]
-      ? String(entry[headers.totalUnits]).trim()
-      : null;
-    if (
-      unitsValue === null ||
-      unitsValue.toLowerCase() === "n/a" ||
-      unitsValue === "-" ||
-      unitsValue.toLowerCase() === "해당없음" ||
-      unitsValue === "0"
-    ) {
-      if (
-        !Object.prototype.hasOwnProperty.call(
-          state.newUnitsFromCsv,
-          dongName,
-        )
-      ) {
-        state.newUnitsFromCsv[dongName] = null;
-      }
-    } else {
-      const totalUnitsVal = parseInt(unitsValue.replace(regexCommaLocal, ""), 10);
-      if (!isNaN(totalUnitsVal) && totalUnitsVal > 0) {
-        state.newUnitsFromCsv[dongName] = totalUnitsVal;
-      } else if (
-        !Object.prototype.hasOwnProperty.call(state.newUnitsFromCsv, dongName)
-      ) {
-        state.newUnitsFromCsv[dongName] = null;
-      }
-    }
+    recordTotalUnitsEvidence(
+      state,
+      dongName,
+      entry[headers.totalUnits],
+      entry._sourceWorksheetRow,
+    );
   }
 }
 
@@ -23244,6 +25575,21 @@ function finalizeRawEntriesAggregationState(state) {
   if (!state) return null;
   const totalUnitsPerDong = state.totalUnitsPerDongStatic || {};
   const baseEstimateAmountsSnapshot = {};
+  const totalUnitsIntegrity = {
+    status: "verified",
+    referenceVersion: BUILT_IN_TOTAL_UNITS_REFERENCE_VERSION,
+    referenceSource: BUILT_IN_TOTAL_UNITS_REFERENCE_SOURCE,
+    referenceCatalogDongCount: Object.keys(
+      BUILT_IN_TOTAL_UNITS_REFERENCE,
+    ).length,
+    sourceProvidedDongCount: 0,
+    referenceFallbackDongCount: 0,
+    missingDongCount: 0,
+    conflictDongCount: 0,
+    invalidValueCount: 0,
+    dongs: {},
+    conflicts: [],
+  };
 
   if (state.hasBaseAmountHeader) {
     state.dongBaseAmountMap.forEach((amount, dong) => {
@@ -23252,15 +25598,44 @@ function finalizeRawEntriesAggregationState(state) {
   }
 
   if (state.hasTotalUnitsHeader) {
-    for (const dong in state.newUnitsFromCsv) {
-      if (
-        state.newUnitsFromCsv[dong] !== null ||
-        !Object.prototype.hasOwnProperty.call(totalUnitsPerDong, dong) ||
-        totalUnitsPerDong[dong] === null
-      ) {
-        totalUnitsPerDong[dong] = state.newUnitsFromCsv[dong];
+    Object.keys(state.totalUnitsEvidence).forEach((dong) => {
+      const evidence = state.totalUnitsEvidence[dong];
+      const positiveValues = Object.keys(evidence.positiveValueCounts)
+        .map(Number)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      const hasReference =
+        Object.prototype.hasOwnProperty.call(totalUnitsPerDong, dong) &&
+        parsePositiveWholeNumber(totalUnitsPerDong[dong]) !== null;
+      let resolvedValue = hasReference ? Number(totalUnitsPerDong[dong]) : null;
+      let provenance = hasReference ? "reference" : "missing";
+
+      if (positiveValues.length === 1) {
+        resolvedValue = positiveValues[0];
+        provenance = "source";
+        totalUnitsIntegrity.sourceProvidedDongCount++;
+      } else if (positiveValues.length > 1) {
+        provenance = hasReference ? "reference-conflict" : "conflict";
+        totalUnitsIntegrity.conflictDongCount++;
+        totalUnitsIntegrity.status = "failed";
+        totalUnitsIntegrity.conflicts.push({ dong, values: positiveValues });
+      } else if (hasReference) {
+        totalUnitsIntegrity.referenceFallbackDongCount++;
+      } else {
+        totalUnitsIntegrity.missingDongCount++;
       }
-    }
+
+      totalUnitsIntegrity.invalidValueCount += evidence.invalidNonBlankCount;
+      totalUnitsPerDong[dong] = resolvedValue;
+      totalUnitsIntegrity.dongs[dong] = {
+        value: resolvedValue,
+        provenance,
+        sourceValues: positiveValues,
+        blankCount: evidence.blankCount,
+        invalidNonBlankCount: evidence.invalidNonBlankCount,
+        sourceRows: evidence.sourceRows,
+      };
+    });
   }
 
   state.dongsSet.forEach((dongName) => {
@@ -23270,7 +25645,37 @@ function finalizeRawEntriesAggregationState(state) {
     ) {
       totalUnitsPerDong[dongName] = null;
     }
+    if (!totalUnitsIntegrity.dongs[dongName]) {
+      const resolvedValue = parsePositiveWholeNumber(
+        totalUnitsPerDong[dongName],
+      );
+      const provenance = resolvedValue === null ? "missing" : "reference";
+      if (resolvedValue === null) totalUnitsIntegrity.missingDongCount++;
+      else totalUnitsIntegrity.referenceFallbackDongCount++;
+      totalUnitsIntegrity.dongs[dongName] = {
+        value: resolvedValue,
+        provenance,
+        sourceValues: [],
+        blankCount: 0,
+        invalidNonBlankCount: 0,
+        sourceRows: [],
+      };
+    }
   });
+
+  const residentialDongsInData = Array.from(state.dongsSet)
+    .filter((dongName) => /^\d+동$/.test(String(dongName || "").trim()))
+    .sort((a, b) => a.localeCompare(b, "ko-KR", { numeric: true }));
+  const residentialMissingDongs = residentialDongsInData.filter(
+    (dongName) =>
+      parsePositiveWholeNumber(totalUnitsPerDong[dongName]) === null,
+  );
+  totalUnitsIntegrity.residentialDongCount = residentialDongsInData.length;
+  totalUnitsIntegrity.residentialMappedDongCount =
+    residentialDongsInData.length - residentialMissingDongs.length;
+  totalUnitsIntegrity.residentialMissingDongs = residentialMissingDongs;
+  totalUnitsIntegrity.residentialCoverageStatus =
+    residentialMissingDongs.length === 0 ? "complete" : "incomplete";
 
   const allYearsSnapshot = Array.from(state.yearsSet).sort(
     (a, b) =>
@@ -23365,6 +25770,7 @@ function finalizeRawEntriesAggregationState(state) {
     dataAnnualSummaryRaw: dataAnnualSummarySnapshot,
     dataDongFinanceAndCountRaw: dataDongFinanceAndCountSnapshot,
     totalUnitsPerDongStatic: totalUnitsPerDong,
+    totalUnitsIntegrity: totalUnitsIntegrity,
     baseEstimateAmounts: baseEstimateAmountsSnapshot,
     yearDongBaseAmountsEntries: Array.from(state.yearDongAmountMap.entries()),
   };
@@ -23372,7 +25778,10 @@ function finalizeRawEntriesAggregationState(state) {
 
 function createUploadProcessingContextOptions() {
   return {
-    totalUnitsPerDongStatic: cloneSerializableData(totalUnitsPerDongStatic),
+    totalUnitsPerDongStatic: cloneSerializableData({
+      ...BUILT_IN_TOTAL_UNITS_REFERENCE,
+      ...(totalUnitsPerDongStatic || {}),
+    }),
     leaseWorkType: LEASE_WORK_TYPE,
     headerNames: {
       year: getHeaderName("회계 연도"),
@@ -23387,6 +25796,9 @@ function createUploadProcessingContextOptions() {
 }
 
 function createUploadMappingContext(fileHeaders, sourceHeaders) {
+  sourceHeaders = (Array.isArray(sourceHeaders) ? sourceHeaders : []).filter(
+    (headerConfig) => !isSourceRowNumberHeader(headerConfig?.name),
+  );
   const normalizedKnownHeaders = new Map();
   sourceHeaders.forEach((headerConfig) => {
     const names = [
@@ -23406,7 +25818,11 @@ function createUploadMappingContext(fileHeaders, sourceHeaders) {
     const normalizedFileHeader = normalizeHeaderKey(fileHeader);
     normalizedFileHeaderList.push(normalizedFileHeader);
 
-    if (!normalizedKnownHeaders.has(normalizedFileHeader)) {
+    // 원천 `NO.`는 화면 데이터 열이 아니라 행 추적용 메타데이터로 격리한다.
+    if (
+      !isSourceRowNumberHeader(fileHeader) &&
+      !normalizedKnownHeaders.has(normalizedFileHeader)
+    ) {
       const newHeaderConfig = {
         name: String(fileHeader).trim(),
         originalName: String(fileHeader).trim(),
@@ -23425,8 +25841,10 @@ function createUploadMappingContext(fileHeaders, sourceHeaders) {
   const missingRequiredHeaders = [];
   sourceHeaders.forEach((definedHeader) => {
     if (!definedHeader.required) return;
-    const alternativeNames = (definedHeader.originalName || definedHeader.name)
-      .split(",")
+    const alternativeNames = [
+      definedHeader.name,
+      ...(definedHeader.originalName || "").split(","),
+    ]
       .map((name) => normalizeHeaderKey(name));
     const found = alternativeNames.some((altName) =>
       normalizedFileHeadersSet.has(altName),
@@ -23437,25 +25855,44 @@ function createUploadMappingContext(fileHeaders, sourceHeaders) {
   });
 
   const headerKeyMap = new Map();
-  sourceHeaders.forEach((dashboardHeader) => {
-    const potentialNames = [
-      dashboardHeader.name,
-      ...(dashboardHeader.originalName || "").split(","),
-    ];
-    const targetKeys = new Set(
-      potentialNames.map((name) => normalizeHeaderKey(name)),
-    );
-    let matchedFileHeader = null;
-    for (let i = 0; i < fileHeaders.length; i++) {
-      const fileHeader = fileHeaders[i];
-      if (targetKeys.has(normalizeHeaderKey(fileHeader))) {
-        matchedFileHeader = fileHeader;
-        break;
+  const headerIndexMap = new Map();
+  const claimedFileHeaderIndexes = new Set();
+
+  const claimHeaderMatch = (dashboardHeader, candidateNames) => {
+    for (const candidateName of candidateNames) {
+      const candidateKey = normalizeHeaderKey(candidateName);
+      if (!candidateKey) continue;
+      const matchedIndex = normalizedFileHeaderList.findIndex(
+        (fileHeaderKey, index) =>
+          !claimedFileHeaderIndexes.has(index) && fileHeaderKey === candidateKey,
+      );
+      if (matchedIndex >= 0) {
+        headerKeyMap.set(dashboardHeader.name, fileHeaders[matchedIndex]);
+        headerIndexMap.set(dashboardHeader.name, matchedIndex);
+        claimedFileHeaderIndexes.add(matchedIndex);
+        return true;
       }
     }
-    if (matchedFileHeader) {
-      headerKeyMap.set(dashboardHeader.name, matchedFileHeader);
-    }
+    return false;
+  };
+
+  // 정확한 현재 헤더명을 전부 먼저 선점시켜 `No.` 같은 광범위 별칭이
+  // 뒤에 존재하는 실제 `PO번호` 열을 가로채지 못하게 한다.
+  sourceHeaders.forEach((dashboardHeader) => {
+    claimHeaderMatch(dashboardHeader, [dashboardHeader.name]);
+  });
+
+  sourceHeaders.forEach((dashboardHeader) => {
+    if (headerKeyMap.has(dashboardHeader.name)) return;
+    const alternativeNames = (dashboardHeader.originalName || "")
+      .split(",")
+      .map((name) => name.trim())
+      .filter(
+        (name) =>
+          name &&
+          normalizeHeaderKey(name) !== normalizeHeaderKey(dashboardHeader.name),
+      );
+    claimHeaderMatch(dashboardHeader, alternativeNames);
   });
 
   const fileHeaderIndexMap = new Map();
@@ -23463,13 +25900,21 @@ function createUploadMappingContext(fileHeaders, sourceHeaders) {
     fileHeaderIndexMap.set(fileHeader, index);
   });
 
+  const sourceRowNumberIndex = fileHeaders.findIndex((fileHeader) =>
+    isSourceRowNumberHeader(fileHeader),
+  );
+
   return {
     sourceHeaders: sourceHeaders,
     fileHeaders: fileHeaders,
     newHeadersFound: newHeadersFound,
     missingRequiredHeaders: missingRequiredHeaders,
     headerKeyMap: headerKeyMap,
+    headerIndexMap: headerIndexMap,
     fileHeaderIndexMap: fileHeaderIndexMap,
+    sourceRowNumberIndex: sourceRowNumberIndex,
+    sourceRowNumberKey:
+      sourceRowNumberIndex >= 0 ? fileHeaders[sourceRowNumberIndex] : null,
     numberTypeHeaders: new Set(
       sourceHeaders
         .filter((header) => header.type === "number")
@@ -23480,27 +25925,56 @@ function createUploadMappingContext(fileHeaders, sourceHeaders) {
       "매입 마감 (월)",
     ),
     yearHeaderNameLocal: resolveHeaderNameFromConfig(sourceHeaders, "회계 연도"),
-    poNumeroHeaderName: resolveHeaderNameFromConfig(sourceHeaders, "PO번호"),
+    poAmountHeaderNameLocal: resolveHeaderNameFromConfig(
+      sourceHeaders,
+      "PO금액",
+    ),
+    accountingClosingHeaderNameLocal:
+      sourceHeaders.find((headerConfig) =>
+        isAccountingClosingHeaderConfig(headerConfig),
+      )?.name || null,
   };
 }
 
-function appendMappedUploadEntry(rawEntry, csvValues, context, isExcel) {
+function appendMappedUploadEntry(
+  rawEntry,
+  csvValues,
+  context,
+  isExcel,
+  sourceWorksheetRow,
+) {
   const entry = {};
   const regexCommaForParse = /,/g;
+  let hasMappedSourceValue = false;
 
-  const getRawMappedValue = (rawKey) => {
+  const getRawMappedValue = (rawKey, dashboardHeaderName) => {
     if (!rawKey) return "";
     if (isExcel) return rawEntry[rawKey];
-    const index = context.fileHeaderIndexMap.get(rawKey);
+    const mappedIndex = context.headerIndexMap?.get(dashboardHeaderName);
+    const index = Number.isInteger(mappedIndex)
+      ? mappedIndex
+      : context.fileHeaderIndexMap.get(rawKey);
     return typeof index === "number" ? csvValues[index] : "";
   };
 
   for (const dashboardHeader of context.sourceHeaders) {
     const headerName = dashboardHeader.name;
     const rawKey = context.headerKeyMap.get(headerName);
-    const rawValue = getRawMappedValue(rawKey);
-    let value =
-      rawValue !== null && rawValue !== undefined ? String(rawValue).trim() : "";
+    const rawValue = getRawMappedValue(rawKey, headerName);
+    if (rawKey && hasMeaningfulSourceValue(rawValue)) {
+      hasMappedSourceValue = true;
+    }
+
+    let value;
+    if (isMonthClosingHeaderConfig(dashboardHeader)) {
+      value = normalizeMonthClosingValue(rawValue);
+    } else if (isAccountingClosingHeaderConfig(dashboardHeader)) {
+      value = normalizeAccountingClosingValue(rawValue);
+    } else {
+      value = rawValue !== null && rawValue !== undefined
+        ? String(rawValue).trim()
+        : "";
+    }
 
     if (context.numberTypeHeaders.has(headerName)) {
       if (value) {
@@ -23514,13 +25988,10 @@ function appendMappedUploadEntry(rawEntry, csvValues, context, isExcel) {
     }
   }
 
-  const mappedMonthKey = context.headerKeyMap.get(context.monthHeaderNameLocal);
   const mappedYearKey = context.headerKeyMap.get(context.yearHeaderNameLocal);
-  const rawMonthVal = mappedMonthKey
-    ? getRawMappedValue(mappedMonthKey) || ""
-    : entry[context.monthHeaderNameLocal] || "";
+  const rawMonthVal = entry[context.monthHeaderNameLocal] || "";
   const rawYearVal = mappedYearKey
-    ? getRawMappedValue(mappedYearKey) || ""
+    ? getRawMappedValue(mappedYearKey, context.yearHeaderNameLocal) || ""
     : entry[context.yearHeaderNameLocal] || "";
 
   let monthNum = 0;
@@ -23547,9 +26018,251 @@ function appendMappedUploadEntry(rawEntry, csvValues, context, isExcel) {
   entry._monthNum = monthNum > 0 && monthNum <= 12 ? monthNum : 0;
   entry._monthKey = entry._monthNum ? `${entry._monthNum}월` : "";
   entry._yearRaw = rawYearVal ? String(rawYearVal).trim() : "";
+  hydrateRawEntryRuntimeFields(entry, {
+    poAmount: context.poAmountHeaderNameLocal,
+    month: context.monthHeaderNameLocal,
+    accountingClosing: context.accountingClosingHeaderNameLocal,
+    year: context.yearHeaderNameLocal,
+  });
 
-  const poValue = entry[context.poNumeroHeaderName];
-  return poValue && poValue !== "" ? entry : null;
+  const sourceNumberRaw = context.sourceRowNumberKey
+    ? getRawMappedValue(context.sourceRowNumberKey, "")
+    : "";
+  const sourceNumberText = hasMeaningfulSourceValue(sourceNumberRaw)
+    ? String(sourceNumberRaw).trim()
+    : "";
+  entry._sourceRowNumber = /^[-+]?\d+(?:\.0+)?$/.test(sourceNumberText)
+    ? Number(sourceNumberText)
+    : sourceNumberText || Math.max(1, Number(sourceWorksheetRow || 2) - 1);
+  entry._sourceWorksheetRow = Number(sourceWorksheetRow || 0) || null;
+
+  // PO/PR가 비어 있더라도 원천의 나머지 값이 존재하는 행은 반드시 보존한다.
+  return hasMappedSourceValue ? entry : null;
+}
+
+function verifyExcelUploadMappingIntegrity(
+  rawJsonData,
+  mappedEntries,
+  headerConfigs,
+  sourceMetadata = null,
+) {
+  const rawRows = Array.isArray(rawJsonData) ? rawJsonData : [];
+  const mappedRows = Array.isArray(mappedEntries) ? mappedEntries : [];
+  const configs = (Array.isArray(headerConfigs) ? headerConfigs : []).filter(
+    (headerConfig) => !isSourceRowNumberHeader(headerConfig?.name),
+  );
+  const rawHeaders = rawRows.length > 0 ? Object.keys(rawRows[0]) : [];
+  const normalizedRawHeaders = rawHeaders.map((header) =>
+    normalizeHeaderKey(header),
+  );
+  const claimedRawHeaderIndexes = new Set();
+  const rawKeyByDashboardHeader = new Map();
+
+  const claimRawHeader = (headerConfig, candidates) => {
+    for (const candidate of candidates) {
+      const normalizedCandidate = normalizeHeaderKey(candidate);
+      if (!normalizedCandidate) continue;
+      const rawIndex = normalizedRawHeaders.findIndex(
+        (rawKey, index) =>
+          !claimedRawHeaderIndexes.has(index) && rawKey === normalizedCandidate,
+      );
+      if (rawIndex >= 0) {
+        claimedRawHeaderIndexes.add(rawIndex);
+        rawKeyByDashboardHeader.set(headerConfig.name, rawHeaders[rawIndex]);
+        return;
+      }
+    }
+  };
+
+  configs.forEach((headerConfig) =>
+    claimRawHeader(headerConfig, [headerConfig.name]),
+  );
+  configs.forEach((headerConfig) => {
+    if (rawKeyByDashboardHeader.has(headerConfig.name)) return;
+    claimRawHeader(
+      headerConfig,
+      (headerConfig.originalName || "")
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean),
+    );
+  });
+
+  const mappedRawKeys = new Set(rawKeyByDashboardHeader.values());
+  const expectedRows = rawRows
+    .map((row, index) => ({ row, worksheetRow: index + 2 }))
+    .filter(({ row }) =>
+      Array.from(mappedRawKeys).some((rawKey) =>
+        hasMeaningfulSourceValue(row?.[rawKey]),
+      ),
+    );
+  const mappedByWorksheetRow = new Map(
+    mappedRows.map((row) => [Number(row?._sourceWorksheetRow), row]),
+  );
+  const mismatchSamples = [];
+  let mismatchCount = 0;
+  let comparedCellCount = 0;
+  const columnAuditByName = {};
+  configs.forEach((headerConfig) => {
+    const rawKey = rawKeyByDashboardHeader.get(headerConfig.name);
+    if (!rawKey) return;
+    columnAuditByName[headerConfig.name] = {
+      header: headerConfig.name,
+      sourceHeader: rawKey,
+      comparedCellCount: 0,
+      sourceBlankCount: 0,
+      mappedBlankEquivalentCount: 0,
+      mismatchCount: 0,
+    };
+  });
+
+  const normalizeForAudit = (value, headerConfig) => {
+    if (isMonthClosingHeaderConfig(headerConfig)) {
+      return normalizeMonthClosingValue(value);
+    }
+    if (isAccountingClosingHeaderConfig(headerConfig)) {
+      return normalizeAccountingClosingValue(value);
+    }
+    if (headerConfig?.type === "number") {
+      if (!hasMeaningfulSourceValue(value)) return 0;
+      const parsed = parseFloat(String(value).replace(/,/g, "").trim());
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+    return value === null || value === undefined ? "" : String(value).trim();
+  };
+
+  expectedRows.forEach(({ row, worksheetRow }) => {
+    const mappedRow = mappedByWorksheetRow.get(worksheetRow);
+    if (!mappedRow) {
+      mismatchCount++;
+      if (mismatchSamples.length < 10) {
+        mismatchSamples.push({
+          worksheetRow,
+          header: "(행)",
+          expected: "원천 행 존재",
+          actual: "매핑 행 누락",
+        });
+      }
+      return;
+    }
+
+    configs.forEach((headerConfig) => {
+      const rawKey = rawKeyByDashboardHeader.get(headerConfig.name);
+      if (!rawKey) return;
+      comparedCellCount++;
+      const columnAudit = columnAuditByName[headerConfig.name];
+      if (columnAudit) {
+        columnAudit.comparedCellCount++;
+        if (!hasMeaningfulSourceValue(row?.[rawKey])) {
+          columnAudit.sourceBlankCount++;
+        }
+      }
+      const expectedValue = normalizeForAudit(row?.[rawKey], headerConfig);
+      const actualValue = normalizeForAudit(
+        mappedRow?.[headerConfig.name],
+        headerConfig,
+      );
+      if (columnAudit) {
+        const mappedIsBlankEquivalent = headerConfig.type === "number"
+          ? Number(actualValue) === 0
+          : !hasMeaningfulSourceValue(actualValue);
+        if (mappedIsBlankEquivalent) {
+          columnAudit.mappedBlankEquivalentCount++;
+        }
+      }
+      const matches = headerConfig.type === "number"
+        ? Number(expectedValue) === Number(actualValue)
+        : String(expectedValue) === String(actualValue);
+      if (!matches) {
+        mismatchCount++;
+        if (columnAudit) columnAudit.mismatchCount++;
+        if (mismatchSamples.length < 10) {
+          mismatchSamples.push({
+            worksheetRow,
+            header: headerConfig.name,
+            expected: expectedValue,
+            actual: actualValue,
+          });
+        }
+      }
+    });
+  });
+
+  if (mappedRows.length !== expectedRows.length) {
+    mismatchCount += Math.abs(mappedRows.length - expectedRows.length);
+    if (mismatchSamples.length < 10) {
+      mismatchSamples.push({
+        worksheetRow: null,
+        header: "(행 수)",
+        expected: expectedRows.length,
+        actual: mappedRows.length,
+      });
+    }
+  }
+
+  const poConfig = configs.find(
+    (headerConfig) => normalizeHeaderKey(headerConfig.name) === normalizeHeaderKey("PO번호"),
+  );
+  const prConfig = configs.find(
+    (headerConfig) => normalizeHeaderKey(headerConfig.name) === normalizeHeaderKey("PR번호"),
+  );
+  const amountConfig = configs.find(
+    (headerConfig) => normalizeHeaderKey(headerConfig.name) === normalizeHeaderKey("PO금액"),
+  );
+  const countBlankValues = (headerConfig, rows, isRaw) => {
+    if (!headerConfig) return 0;
+    const key = isRaw
+      ? rawKeyByDashboardHeader.get(headerConfig.name)
+      : headerConfig.name;
+    if (!key) return 0;
+    return rows.reduce(
+      (count, row) => count + (hasMeaningfulSourceValue(row?.[key]) ? 0 : 1),
+      0,
+    );
+  };
+  const sumValues = (headerConfig, rows, isRaw) => {
+    if (!headerConfig) return 0;
+    const key = isRaw
+      ? rawKeyByDashboardHeader.get(headerConfig.name)
+      : headerConfig.name;
+    if (!key) return 0;
+    return rows.reduce((sum, row) => {
+      const value = normalizeForAudit(row?.[key], headerConfig);
+      return sum + (Number.isFinite(Number(value)) ? Number(value) : 0);
+    }, 0);
+  };
+
+  const report = {
+    status: mismatchCount === 0 ? "verified" : "failed",
+    source: sourceMetadata?.sourceLabel || "Excel",
+    sourceSha256: sourceMetadata?.fileHash || "",
+    sourceByteLength: Number(sourceMetadata?.byteLength || 0),
+    sourceEntryCount: expectedRows.length,
+    mappedEntryCount: mappedRows.length,
+    comparedHeaderCount: rawKeyByDashboardHeader.size,
+    comparedCellCount,
+    mismatchCount,
+    blankPoSourceCount: countBlankValues(poConfig, expectedRows.map((item) => item.row), true),
+    blankPoMappedCount: countBlankValues(poConfig, mappedRows, false),
+    blankPrSourceCount: countBlankValues(prConfig, expectedRows.map((item) => item.row), true),
+    blankPrMappedCount: countBlankValues(prConfig, mappedRows, false),
+    poAmountSourceTotal: sumValues(amountConfig, expectedRows.map((item) => item.row), true),
+    poAmountMappedTotal: sumValues(amountConfig, mappedRows, false),
+    columnAudits: Object.values(columnAuditByName),
+    mismatchSamples,
+    verifiedAt: new Date().toISOString(),
+  };
+
+  if (
+    report.blankPoSourceCount !== report.blankPoMappedCount ||
+    report.blankPrSourceCount !== report.blankPrMappedCount ||
+    report.poAmountSourceTotal !== report.poAmountMappedTotal
+  ) {
+    report.status = "failed";
+    report.mismatchCount++;
+  }
+
+  return report;
 }
 
 function processUploadedDataCore(payload) {
@@ -23622,11 +26335,13 @@ function processUploadedDataCore(payload) {
         null,
         mappingContext,
         true,
+        i + 2,
       );
       if (entry) localRawEntries.push(entry);
     }
   } else {
     let lineStart = csvDataStartIndex;
+    let sourceWorksheetRow = 2;
     while (lineStart <= csvTextForRows.length) {
       let newlineIndex = csvTextForRows.indexOf("\n", lineStart);
       if (newlineIndex === -1) newlineIndex = csvTextForRows.length;
@@ -23641,18 +26356,29 @@ function processUploadedDataCore(payload) {
           parseCsvLine(line),
           mappingContext,
           false,
+          sourceWorksheetRow,
         );
         if (entry) localRawEntries.push(entry);
       }
       lineStart = newlineIndex + 1;
+      sourceWorksheetRow++;
     }
   }
+
+  const aggregationState = createRawEntriesAggregationState(
+    mappingContext.sourceHeaders,
+    payload.processingOptions || {},
+  );
+  localRawEntries.forEach((entry) => {
+    accumulateRawEntryForSnapshot(aggregationState, entry);
+  });
 
   return {
     fileHeaders: fileHeaders,
     newHeadersFound: mappingContext.newHeadersFound,
     missingRequiredHeaders: [],
     localRawEntries: localRawEntries,
+    processingSnapshot: finalizeRawEntriesAggregationState(aggregationState),
   };
 }
 
@@ -23685,6 +26411,7 @@ function processUploadedCsvBlobChunked(payload, emit) {
   let aggregationState = null;
   let entryBatch = [];
   let parsedCount = 0;
+  let sourceWorksheetRow = 0;
   let lastProgressOffset = 0;
   let stoppedResult = null;
 
@@ -23707,6 +26434,7 @@ function processUploadedCsvBlobChunked(payload, emit) {
 
   const handleLine = (line) => {
     if (stoppedResult) return;
+    sourceWorksheetRow++;
     let currentLine = line;
     if (currentLine && currentLine.charCodeAt(0) === 0xfeff) {
       currentLine = currentLine.substring(1);
@@ -23743,6 +26471,7 @@ function processUploadedCsvBlobChunked(payload, emit) {
       parseCsvLine(currentLine),
       mappingContext,
       false,
+      sourceWorksheetRow,
     );
     if (!entry) return;
 
@@ -23845,7 +26574,19 @@ function createUploadProcessingWorker() {
     parseCsvLine.toString(),
     cloneSerializableData.toString(),
     normalizeHeaderKey.toString(),
+    isSourceRowNumberHeader.toString(),
+    hasMeaningfulSourceValue.toString(),
+    normalizeMonthClosingValue.toString(),
+    isMonthClosingHeaderConfig.toString(),
+    normalizeAccountingClosingValue.toString(),
+    isAccountingClosingHeaderConfig.toString(),
     resolveHeaderNameFromConfig.toString(),
+    normalizeBuildingDongName.toString(),
+    parseRuntimePoAmount.toString(),
+    parseRuntimeMonthNumber.toString(),
+    hydrateRawEntryRuntimeFields.toString(),
+    parsePositiveWholeNumber.toString(),
+    recordTotalUnitsEvidence.toString(),
     createRawEntriesAggregationState.toString(),
     accumulateRawEntryForSnapshot.toString(),
     finalizeRawEntriesAggregationState.toString(),
@@ -24024,11 +26765,13 @@ async function processUploadedDataTransaction(data, isExcel = false) {
   }
 
   const isCsvBlobUpload = !isExcel && isCsvBlobSource(data);
+  const uploadSourceHeaderConfigs = cloneSerializableData(masterCsvHeaders)
+    .filter((headerConfig) => !isSourceRowNumberHeader(headerConfig?.name));
   const preparedResult = await prepareUploadedDataPayload({
     data: isCsvBlobUpload ? null : data,
     csvFile: isCsvBlobUpload ? data : null,
     isExcel: isExcel,
-    masterCsvHeaders: cloneSerializableData(masterCsvHeaders),
+    masterCsvHeaders: uploadSourceHeaderConfigs,
     processingOptions: createUploadProcessingContextOptions(),
     chunkBytes: CSV_BLOB_WORKER_CHUNK_BYTES,
     entryBatchSize: CSV_WORKER_ENTRY_BATCH_SIZE,
@@ -24076,10 +26819,11 @@ async function processUploadedDataTransaction(data, isExcel = false) {
     return false;
   }
 
+  const nextMasterCsvHeaders = cloneSerializableData(uploadSourceHeaderConfigs);
   if (Array.isArray(preparedResult.newHeadersFound)) {
     preparedResult.newHeadersFound.forEach((newHeaderConfig) => {
-      if (!masterCsvHeaders.some((header) => header.name === newHeaderConfig.name)) {
-        masterCsvHeaders.push(newHeaderConfig);
+      if (!nextMasterCsvHeaders.some((header) => header.name === newHeaderConfig.name)) {
+        nextMasterCsvHeaders.push(newHeaderConfig);
       }
     });
   }
@@ -24098,7 +26842,60 @@ async function processUploadedDataTransaction(data, isExcel = false) {
     }
     return false;
   } else {
+    if (isExcel && Array.isArray(data)) {
+      const integrityReport = verifyExcelUploadMappingIntegrity(
+        data,
+        localRawEntries,
+        nextMasterCsvHeaders,
+        window.__pendingXlsbIntegritySource || null,
+      );
+      window.__lastMappingIntegrityReport = integrityReport;
+      if (
+        integrityReport.status !== "verified" ||
+        integrityReport.mismatchCount !== 0
+      ) {
+        throw new Error(
+          `원천-매핑 무결성 검증 실패: ${integrityReport.mismatchCount}건 불일치`,
+        );
+      }
+    } else {
+      window.__lastMappingIntegrityReport = null;
+    }
+
+    masterCsvHeaders = nextMasterCsvHeaders;
+    invalidateHeaderNameCache();
     masterRawEntries = localRawEntries;
+    const runtimeAccountingClosingHeader = masterCsvHeaders.find(
+      (headerConfig) => isAccountingClosingHeaderConfig(headerConfig),
+    )?.name || null;
+    const runtimeHydrationReport = hydrateRawEntriesRuntimeFields(
+      masterRawEntries,
+      {
+        poAmount: getHeaderName("PO금액"),
+        month: getHeaderName("매입 마감 (월)"),
+        accountingClosing: runtimeAccountingClosingHeader,
+        year: getHeaderName("회계 연도"),
+      },
+    );
+    window.__lastRuntimeHydrationReport = cloneSerializableData(
+      runtimeHydrationReport,
+    );
+    if (window.__lastMappingIntegrityReport) {
+      window.__lastMappingIntegrityReport.runtimeFields =
+        cloneSerializableData(runtimeHydrationReport);
+      if (
+        runtimeHydrationReport.entryCount !==
+          window.__lastMappingIntegrityReport.mappedEntryCount ||
+        runtimeHydrationReport.invalidParsedPoAmountCount !== 0 ||
+        runtimeHydrationReport.invalidParsedMonthCount !== 0 ||
+        runtimeHydrationReport.parsedPoAmountTotal !==
+          window.__lastMappingIntegrityReport.poAmountMappedTotal
+      ) {
+        throw new Error(
+          "원천-런타임 금액/월 파생 필드 무결성 검증 실패",
+        );
+      }
+    }
     rawEntryRuntimeIndexes = preparedResult.runtimeIndexes || null;
     if (rawEntryRuntimeIndexes) {
       rawEntryRuntimeIndexes.sourceEntries = masterRawEntries;
@@ -24160,6 +26957,19 @@ async function processUploadedDataTransaction(data, isExcel = false) {
     await processRawEntries(masterRawEntries, masterCsvHeaders);
   } else {
     await updateProgressAndYield(80, "업로드 요약 스냅샷 적용 완료.");
+  }
+
+  const totalUnitsIntegrityReport =
+    window.__lastTotalUnitsIntegrityReport || null;
+  if (totalUnitsIntegrityReport?.status === "failed") {
+    throw new Error(
+      `전체 세대수 원천 충돌: ${totalUnitsIntegrityReport.conflictDongCount || 0}개 동`,
+    );
+  }
+  if (window.__lastMappingIntegrityReport) {
+    window.__lastMappingIntegrityReport.totalUnits = cloneSerializableData(
+      totalUnitsIntegrityReport,
+    );
   }
 
   try {
@@ -24327,11 +27137,16 @@ async function processUploadedData(data, isExcel = false) {
     summaryCache,
     lastDashboardRenderStateKey,
     yearDongBaseAmounts: window.yearDongBaseAmounts,
+    mappingIntegrityReport: window.__lastMappingIntegrityReport || null,
   };
   try {
     window.isInitialBootLoading = true; // [v5.01] 업로드 트랜잭션 중 중복 updateDashboard 무시
     return await processUploadedDataTransaction(data, isExcel);
   } catch (error) {
+    if (window.__lastMappingIntegrityReport?.status === "failed") {
+      window.__lastMappingIntegrityFailureReport =
+        window.__lastMappingIntegrityReport;
+    }
     masterRawEntries = previousState.masterRawEntries;
     masterCsvHeaders = previousState.masterCsvHeaders;
     totalUnitsPerDongStatic = previousState.totalUnitsPerDongStatic;
@@ -24348,6 +27163,8 @@ async function processUploadedData(data, isExcel = false) {
     summaryCache = previousState.summaryCache;
     lastDashboardRenderStateKey = previousState.lastDashboardRenderStateKey;
     window.yearDongBaseAmounts = previousState.yearDongBaseAmounts;
+    window.__lastMappingIntegrityReport =
+      previousState.mappingIntegrityReport;
     invalidateFilteredEntriesCache();
     const uploadStatusEl = document.getElementById("uploadStatus");
     if (uploadStatusEl) {
@@ -24367,7 +27184,10 @@ async function processUploadedData(data, isExcel = false) {
     function openDetailModal(title, data, isFromPopup = false) {
       const detailModalEl = document.getElementById("detailModal");
 
-      detailModalCurrentData = [...data];
+      // 상세 순번 메타데이터가 원천 행 객체로 역류하지 않도록 얕은 복제한다.
+      detailModalCurrentData = (Array.isArray(data) ? data : []).map((item) =>
+        item && typeof item === "object" ? { ...item } : item,
+      );
       setDetailModalSort(getHeaderName("회계 연도"), "desc");
 
       document.getElementById("detailModalTitle").innerHTML =
@@ -24418,13 +27238,21 @@ async function processUploadedData(data, isExcel = false) {
     function sortAndPopulateDetailModal() {
       const { key, direction } = detailModalSortConfig;
       const headerConfig = masterCsvHeaders.find((h) => h.name === key);
-      const isNumeric = (headerConfig && headerConfig.type === "number") || key === "외벽 세대수";
+      const isRowNumberSort = key === "No.";
+      const isNumeric =
+        isRowNumberSort ||
+        (headerConfig && headerConfig.type === "number") ||
+        key === "외벽 세대수";
 
       const yearHeaderName = getHeaderName("회계 연도");
 
       detailModalCurrentData.sort((a, b) => {
-        let valA = a[key];
-        let valB = b[key];
+        let valA = isRowNumberSort
+          ? a?.[DETAIL_MODAL_ROW_NUMBER_KEY]
+          : a?.[key];
+        let valB = isRowNumberSort
+          ? b?.[DETAIL_MODAL_ROW_NUMBER_KEY]
+          : b?.[key];
 
         if (key === "외벽 세대수") {
           const dongHeaderName = getHeaderName("건물동");
@@ -24457,7 +27285,7 @@ async function processUploadedData(data, isExcel = false) {
           }
         }
 
-        if (key !== yearHeaderName) {
+        if (key !== yearHeaderName && !isRowNumberSort) {
           const yearA =
             parseInt(String(a[yearHeaderName]).replace("년", ""), 10) || 0;
           const yearB =
@@ -24469,6 +27297,18 @@ async function processUploadedData(data, isExcel = false) {
 
         return 0;
       });
+
+      if (!isRowNumberSort) {
+        detailModalCurrentData.forEach((item, index) => {
+          if (!item || typeof item !== "object") return;
+          Object.defineProperty(item, DETAIL_MODAL_ROW_NUMBER_KEY, {
+            value: index + 1,
+            writable: true,
+            configurable: true,
+            enumerable: false,
+          });
+        });
+      }
 
       populateTable("detailModalTable", detailModalCurrentData, [], true);
     }
@@ -24535,50 +27375,28 @@ async function processUploadedData(data, isExcel = false) {
     // Handles units produced by formatCurrency / formatCurrencyShort_v2 (억원, 백만원, 천원, 만원 등) and plain numbers with commas.
     function parseFormattedCurrencyToNumber(text) {
       if (text === null || typeof text === "undefined") return NaN;
-      let s = String(text).trim();
-      if (s === "" || s === "-") return NaN;
+      const normalized = String(text)
+        .trim()
+        .replace(/<sup>([0-9]+)<\/sup>/g, ".$1")
+        .replace(/\s+/g, "");
+      if (normalized === "" || normalized === "-") return NaN;
 
-      // If a data-sort-value was provided, prefer that.
-      const numericFromData = parseFloat(
-        s.replace(/,/g, "").replace(/[^0-9.\-]/g, ""),
+      const amountMatch = normalized.match(
+        /^([-+]?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?)(억원|천만원|백만원|십만원|만원|천원|원)?$/,
       );
-      if (
-        !isNaN(numericFromData) &&
-        /\d/.test(s) &&
-        !/억|만원|백만원|천원/.test(s)
-      ) {
-        return numericFromData;
-      }
-
-      // Check for units like '억원', '백만원', '천원', '만원', '십만원', '천만원'
-      // Examples: '1.60억원' or '1.60억원' with superscript decimals
-      try {
-        // Normalize superscript decimal like 1.<sup>23</sup> to 1.23
-        s = s.replace(/<sup>([0-9]+)<\/sup>/g, ".$1");
-        s = s.replace(/\s+/g, "");
-        if (/억원/.test(s)) {
-          const num = parseFloat(s.replace(/억원/g, "")) || 0;
-          return num * 100000000;
-        } else if (/백만원/.test(s)) {
-          const num = parseFloat(s.replace(/백만원/g, "")) || 0;
-          return num * 1000000;
-        } else if (/천만원/.test(s)) {
-          const num = parseFloat(s.replace(/천만원/g, "")) || 0;
-          return num * 10000000; // 천만원 -> 10,000,000
-        } else if (/만원/.test(s)) {
-          const num = parseFloat(s.replace(/만원/g, "")) || 0;
-          return num * 10000;
-        } else if (/천원/.test(s)) {
-          const num = parseFloat(s.replace(/천원/g, "")) || 0;
-          return num * 1000;
-        } else {
-          // fallback: remove non-numeric except dot and minus
-          const cleaned = s.replace(/[^0-9.\-]/g, "");
-          return parseFloat(cleaned) || NaN;
-        }
-      } catch (e) {
-        return NaN;
-      }
+      if (!amountMatch) return NaN;
+      const amount = Number(amountMatch[1].replace(/,/g, ""));
+      if (!Number.isFinite(amount)) return NaN;
+      const multipliers = {
+        억원: 100000000,
+        천만원: 10000000,
+        백만원: 1000000,
+        십만원: 100000,
+        만원: 10000,
+        천원: 1000,
+        원: 1,
+      };
+      return amount * (multipliers[amountMatch[2]] || 1);
     }
 
     // 효율적인 DOM 정렬 함수 (일반 테이블용)
@@ -26861,9 +29679,159 @@ async function processUploadedData(data, isExcel = false) {
       resetUiBestEffort("saved-chart-previews", clearAllSavedChartPreviews);
     }
 
+    async function restorePreviousAutomaticMode(sourceSurface = "scenario") {
+      if (completeManualModeTransitionPromise) {
+        return completeManualModeTransitionPromise;
+      }
+      if (!window.isCompleteManualModeActive) return true;
+
+      completeManualModeTransitionPromise = (async () => {
+        const indicatorKey = "complete-manual-mode";
+        const previousCheckboxSyncState = checkboxFilterSyncEnabled;
+        const manualRollbackState = captureCompleteManualModeRollbackState();
+        const automaticState = completeManualModePreviousAutomaticState;
+        try {
+          setProcessingIndicator(
+            indicatorKey,
+            true,
+            "이전 자동모드 복원 중",
+            "수동 필터를 종료하고 진입 직전의 자동 상태를 복원하고 있습니다.",
+          );
+          cancelScheduledDashboardUpdate();
+          checkboxFilterSyncEnabled = false;
+
+          if (automaticState && !automaticState.isCompleteManualModeActive) {
+            restoreCompleteManualModeRollbackState(automaticState);
+            setCompleteManualModeState(false, { deferDropletSurface: true });
+            invalidateFilteredEntriesCache();
+            invalidatePivotViewCache();
+            ensureCurrentFilteredEntries();
+            await updateDashboard({ force: true });
+            // 종속 옵션 정규화는 의미상 같은 전체 선택 배열을 축약할 수
+            // 있으므로 배열 길이가 아니라 원천 행 집합의 동일성을 단정한다.
+            const restoredEntries = ensureCurrentFilteredEntries();
+            const expectedRowCount = Array.isArray(
+              automaticState.currentFilteredEntries,
+            )
+              ? automaticState.currentFilteredEntries.length
+              : restoredEntries.length;
+            const expectedRowIds = Array.isArray(
+              automaticState.currentFilteredEntries,
+            )
+              ? automaticState.currentFilteredEntries.map(
+                  (entry) => entry?._sourceWorksheetRow ?? entry?._sourceRowNumber,
+                )
+              : [];
+            const restoredRowIds = restoredEntries.map(
+              (entry) => entry?._sourceWorksheetRow ?? entry?._sourceRowNumber,
+            );
+            const hasSameRows =
+              restoredEntries.length === expectedRowCount &&
+              (expectedRowIds.length === 0 ||
+                expectedRowIds.every(
+                  (rowId, index) => rowId === restoredRowIds[index],
+                ));
+            if (!hasSameRows) {
+              throw new Error(
+                `이전 자동모드 행 집합 검증 실패: 이전 ${expectedRowCount}행 / 복원 ${restoredEntries.length}행`,
+              );
+            }
+          } else {
+            // 저장본에서 이미 수동모드였던 경우에는 진입 전 스냅샷이 없으므로
+            // 검증된 기본 자동 범위(최신 3개년)로 명시적으로 복원한다.
+            setCompleteManualModeState(false, {
+              automatic: true,
+              deferDropletSurface: true,
+            });
+            await resetToInitialState();
+            await applyYearFilter(3);
+          }
+
+          completeManualModePreviousAutomaticState = null;
+          syncScenarioOrdererSelectors();
+          updateFilterSummaryBars();
+          updateFilterInteractivity();
+          updateDropletState();
+          refreshCompleteManualModeIndicators();
+          populateScenarioDropdown();
+          populateDropletMenu();
+          scheduleScenarioDropletVisibilityCheck();
+
+          const restoredLabel = automaticState?.activeScenarioApplied
+            ? automaticState.activeScenarioName || "이전 시나리오"
+            : automaticState?.activeQuickYearFilterApplied
+              ? automaticState.activeQuickYearFilterName || "이전 연도 필터"
+              : "기본 자동 필터";
+          const uploadStatusEl = document.getElementById("uploadStatus");
+          if (uploadStatusEl) {
+            uploadStatusEl.textContent =
+              `완전 수동모드를 종료하고 '${restoredLabel}' 상태로 복원했습니다.`;
+            uploadStatusEl.style.color = "#047857";
+          }
+          window.dispatchEvent(
+            new CustomEvent("completeManualModeChanged", {
+              detail: {
+                active: false,
+                restored: true,
+                source: sourceSurface,
+                restoredLabel,
+                rowCount: ensureCurrentFilteredEntries().length,
+              },
+            }),
+          );
+          return true;
+        } catch (error) {
+          console.error("[완전 수동모드] 이전 자동모드 복원 실패:", error);
+          checkboxFilterSyncEnabled = false;
+          restoreCompleteManualModeRollbackState(manualRollbackState);
+          try {
+            await updateDashboard({ force: true });
+          } catch (rollbackRenderError) {
+            console.error(
+              "[완전 수동모드] 복원 실패 후 수동 화면 재렌더링 실패:",
+              rollbackRenderError,
+            );
+          }
+          const uploadStatusEl = document.getElementById("uploadStatus");
+          if (uploadStatusEl) {
+            uploadStatusEl.textContent =
+              "이전 자동모드 복원에 실패하여 현재 수동 필터를 유지했습니다: " +
+              (error?.message || String(error));
+            uploadStatusEl.style.color = "#dc2626";
+          }
+          return false;
+        } finally {
+          checkboxFilterSyncEnabled = previousCheckboxSyncState;
+          try {
+            setProcessingIndicator(indicatorKey, false);
+          } catch (_) { }
+        }
+      })();
+
+      try {
+        return await completeManualModeTransitionPromise;
+      } finally {
+        completeManualModeTransitionPromise = null;
+        try {
+          syncScenarioOrdererSelectors();
+          refreshCompleteManualModeIndicators();
+          populateDropletMenu();
+          scheduleScenarioDropletVisibilityCheck();
+        } catch (_) { }
+        const dropletMenu = document.getElementById("dropletMenu");
+        if (dropletMenu) dropletMenu.removeAttribute("aria-busy");
+      }
+    }
+
     async function enterCompleteManualMode(sourceSurface = "scenario") {
       if (completeManualModeTransitionPromise) {
         return completeManualModeTransitionPromise;
+      }
+      if (window.isCompleteManualModeActive) {
+        refreshCompleteManualModeIndicators();
+        populateDropletMenu();
+        scheduleScenarioDropletVisibilityCheck();
+        return true;
       }
 
       completeManualModeTransitionPromise = (async () => {
@@ -26881,7 +29849,7 @@ async function processUploadedData(data, isExcel = false) {
             "자동 기준·예외·임시 분석 상태를 초기화하고 있습니다.",
           );
           cancelScheduledDashboardUpdate();
-          setCompleteManualModeState(true);
+          setCompleteManualModeState(true, { deferDropletSurface: true });
 
           resetScenarioButton();
           resetQuickYearFilterState();
@@ -26985,6 +29953,10 @@ async function processUploadedData(data, isExcel = false) {
           invalidatePivotViewCache();
           ensureCurrentFilteredEntries();
 
+          // 진입이 성공한 시점의 자동 상태만 복귀점으로 커밋한다. 수동모드
+          // 재렌더·데이터 복원 과정에서는 이 스냅샷을 덮어쓰지 않는다.
+          completeManualModePreviousAutomaticState = rollbackState;
+
           // 첫 중립 단정과 대시보드 갱신이 모두 성공한 뒤에만 파괴적인
           // 모달/피벗 컨트롤/프리뷰 초기화를 커밋합니다.
           finalizeCompleteManualModeTransientUi();
@@ -26994,6 +29966,8 @@ async function processUploadedData(data, isExcel = false) {
           updateFilterInteractivity();
           updateDropletState();
           refreshCompleteManualModeIndicators();
+          populateDropletMenu();
+          scheduleScenarioDropletVisibilityCheck();
 
           const uploadStatusEl = document.getElementById("uploadStatus");
           if (uploadStatusEl) {
@@ -27106,10 +30080,17 @@ async function processUploadedData(data, isExcel = false) {
         try {
           refreshCompleteManualModeIndicators();
         } catch (_) { }
+        try {
+          populateDropletMenu();
+          scheduleScenarioDropletVisibilityCheck();
+        } catch (_) { }
+        const dropletMenu = document.getElementById("dropletMenu");
+        if (dropletMenu) dropletMenu.removeAttribute("aria-busy");
       }
     }
 
     window.enterCompleteManualMode = enterCompleteManualMode;
+    window.restorePreviousAutomaticMode = restorePreviousAutomaticMode;
 
     async function resetToInitialState() {
       setCompleteManualModeState(false);
@@ -29023,7 +32004,10 @@ async function processUploadedData(data, isExcel = false) {
             try {
               const pairNames = ["건물 동별", "작업 유형"];
               const ht = headerText.trim();
-              if (pairNames.includes(ht)) {
+              if (
+                !window.matchMedia("(max-width: 767px) and (orientation: portrait)").matches &&
+                pairNames.includes(ht)
+              ) {
                 const otherName = pairNames.find((n) => n !== ht);
                 const otherHeader = Array.from(
                   document.querySelectorAll(".section-accordion-header"),
@@ -29169,7 +32153,10 @@ async function processUploadedData(data, isExcel = false) {
             try {
               const pairNames = ["건물 동별", "작업 유형"];
               const ht = headerText || (content && content.id) || "";
-              if (pairNames.includes((ht || "").trim())) {
+              if (
+                !window.matchMedia("(max-width: 767px) and (orientation: portrait)").matches &&
+                pairNames.includes((ht || "").trim())
+              ) {
                 const otherName = pairNames.find((n) => n !== ht.trim());
                 const otherHeader = Array.from(
                   document.querySelectorAll(".section-accordion-header"),
@@ -32323,42 +35310,22 @@ async function processUploadedData(data, isExcel = false) {
         return;
       }
 
-      const wb = XLSX.utils.book_new();
-      const ws_data = [];
-      const merges = [];
+      try {
+        assertExportDatasetIntegrity();
+        const wb = XLSX.utils.book_new();
+        const pivotData = extractPivotTableDataForExcel(table);
+        const ws = XLSX.utils.aoa_to_sheet(pivotData.data);
+        ws["!merges"] = pivotData.merges;
 
-      Array.from(table.rows).forEach((row, r) => {
-        const rowData = [];
-        let currentCellIndex = 0;
-        Array.from(row.cells).forEach((cell) => {
-          const cellText = (cell.innerText || cell.textContent)
-            .replace(/\s+/g, " ")
-            .trim();
-          // 금액 표시는 원 단위 숫자로 내보내기
-          const parsed = parseFormattedCurrencyToNumber(cellText);
-          rowData[currentCellIndex] = !isNaN(parsed) ? parsed : cellText;
+        XLSX.utils.book_append_sheet(wb, ws, "계층분석결과");
+        appendMappingIntegritySheet(wb);
 
-          if (cell.rowSpan > 1 || cell.colSpan > 1) {
-            merges.push({
-              s: { r: r, c: currentCellIndex },
-              e: {
-                r: r + (cell.rowSpan || 1) - 1,
-                c: currentCellIndex + (cell.colSpan || 1) - 1,
-              },
-            });
-          }
-          currentCellIndex += cell.colSpan || 1;
-        });
-        ws_data.push(rowData);
-      });
-
-      const ws = XLSX.utils.aoa_to_sheet(ws_data);
-      ws["!merges"] = merges;
-
-      XLSX.utils.book_append_sheet(wb, ws, "계층분석결과");
-
-      const dateSuffix = getFormattedDateSuffix();
-      XLSX.writeFile(wb, `계층분석_결과${dateSuffix}.xlsx`);
+        const dateSuffix = getFormattedDateSuffix();
+        XLSX.writeFile(wb, `계층분석_결과${dateSuffix}.xlsx`);
+      } catch (error) {
+        console.error("계층 분석 Excel 내보내기 중 오류 발생:", error);
+        alert(error.message || "Excel 내보내기 중 오류가 발생했습니다.");
+      }
     }
 
     function initializeNewComparisonModal(
@@ -33499,6 +36466,9 @@ async function processUploadedData(data, isExcel = false) {
         if (!silentIndicator) {
           hideLayoutSwitchIndicator(delay);
         }
+        if (typeof scheduleScenarioDropletVisibilityCheck === "function") {
+          scheduleScenarioDropletVisibilityCheck();
+        }
       };
       try {
         if (layout === "top" && isCurrentlySidebar && !isBoot) {
@@ -33755,8 +36725,22 @@ async function processUploadedData(data, isExcel = false) {
             }
           },
         });
-        const savedSettings =
+        let savedSettings =
           restoredSavedState.settings || window.DASHBOARD_SAVED_SETTINGS;
+
+        if (isLegacyBuiltInDemoDataset(savedSettings?.masterRawEntries)) {
+          console.warn(
+            "[DataIntegrity] 과거 내장 데모 저장본을 실데이터로 복원하지 않습니다.",
+          );
+          savedSettings = null;
+          window.DASHBOARD_SAVED_SETTINGS = null;
+          const uploadStatusEl = document.getElementById("uploadStatus");
+          if (uploadStatusEl) {
+            uploadStatusEl.textContent =
+              "과거 데모 데이터가 제거되었습니다. GitHub 원천 XLSB를 불러옵니다.";
+            uploadStatusEl.style.color = "#b45309";
+          }
+        }
 
         if (savedSettings) {
           wasLoadedFromSave = true;
@@ -33778,8 +36762,30 @@ async function processUploadedData(data, isExcel = false) {
           resetRawEntryRuntimeIndexes();
           masterCsvHeaders = fastDeepClone(savedSettings.masterCsvHeaders);
           invalidateHeaderNameCache();
+          const savedAccountingClosingHeader = masterCsvHeaders.find(
+            (headerConfig) => isAccountingClosingHeaderConfig(headerConfig),
+          )?.name || null;
+          const savedRuntimeHydrationReport = hydrateRawEntriesRuntimeFields(
+            masterRawEntries,
+            {
+              poAmount: getHeaderName("PO금액"),
+              month: getHeaderName("매입 마감 (월)"),
+              accountingClosing: savedAccountingClosingHeader,
+              year: getHeaderName("회계 연도"),
+            },
+          );
+          window.__lastRuntimeHydrationReport = fastDeepClone(
+            savedRuntimeHydrationReport,
+          );
 
-          totalUnitsPerDongStatic = fastDeepClone(savedSettings.totalUnitsPerDongStatic);
+          totalUnitsPerDongStatic = mergeBuiltInTotalUnitsReference(
+            fastDeepClone(savedSettings.totalUnitsPerDongStatic),
+            {
+              migrateOlderCatalog:
+                Number(savedSettings.totalUnitsReferenceVersion || 0) <
+                BUILT_IN_TOTAL_UNITS_REFERENCE_VERSION,
+            },
+          );
           outerUnitsPerDongStatic = fastDeepClone(savedSettings.outerUnitsPerDongStatic || {});
           activeFilterConfigs = fastDeepClone(savedSettings.activeFilterConfigs);
 
@@ -33870,15 +36876,21 @@ async function processUploadedData(data, isExcel = false) {
           ) {
             await processRawEntries(masterRawEntries, masterCsvHeaders);
           }
-          if (savedSettings.summaryCache) {
+          if (
+            savedSettings.summaryCache &&
+            savedRuntimeHydrationReport.repairedEntryCount === 0
+          ) {
             summaryCache = fastDeepClone(savedSettings.summaryCache);
           } else {
             summaryCache = null;
           }
           lastDashboardRenderStateKey =
-            savedSettings.dashboardRenderStateKey || null;
+            savedRuntimeHydrationReport.repairedEntryCount === 0
+              ? savedSettings.dashboardRenderStateKey || null
+              : null;
           window.__savedDashboardHydratedFromSnapshot__ =
-            !!lastDashboardRenderStateKey;
+            !!lastDashboardRenderStateKey &&
+            savedRuntimeHydrationReport.repairedEntryCount === 0;
           try {
             if (
               isCompleteManualModeActive &&
@@ -34698,6 +37710,15 @@ async function processUploadedData(data, isExcel = false) {
           closeDataManagementDropdown();
           const uploadStatusEl = document.getElementById("uploadStatus");
           if (masterRawEntries.length > 0 && masterCsvHeaders.length > 0) {
+            try {
+              assertExportDatasetIntegrity();
+            } catch (error) {
+              if (uploadStatusEl) {
+                uploadStatusEl.textContent = error.message || String(error);
+                uploadStatusEl.style.color = "red";
+              }
+              return;
+            }
             const dongHeaderName = getHeaderName("건물동");
             const totalUnitsHeaderName = getHeaderName("전체 세대수");
             const baseAmountHeaderName = getHeaderName("동별 기본 금액");
@@ -34716,11 +37737,14 @@ async function processUploadedData(data, isExcel = false) {
               return newEntry;
             });
             let csvContent =
-              masterCsvHeaders.map((h) => h.name).join(",") + "\n";
+              ["No.", ...masterCsvHeaders.map((h) => h.name)].join(",") + "\n";
             entriesWithExtraData.forEach((entry) => {
-              const rowValues = masterCsvHeaders.map((headerConfig) =>
-                escapeCsvField(entry[headerConfig.name]),
-              );
+              const rowValues = [
+                escapeCsvField(entry._sourceRowNumber ?? ""),
+                ...masterCsvHeaders.map((headerConfig) =>
+                  escapeCsvField(entry[headerConfig.name]),
+                ),
+              ];
               csvContent += rowValues.join(",") + "\n";
             });
             downloadFile(
@@ -34747,18 +37771,30 @@ async function processUploadedData(data, isExcel = false) {
           const uploadStatusEl = document.getElementById("uploadStatus");
           if (masterRawEntries.length > 0 && masterCsvHeaders.length > 0) {
             try {
+              assertExportDatasetIntegrity();
               const wb = XLSX.utils.book_new();
               const dongHeaderName = getHeaderName("건물동");
               const totalUnitsHeaderName = getHeaderName("전체 세대수");
               const baseAmountHeaderName = getHeaderName("동별 기본 금액");
+              const exportHeaders = [
+                "No.",
+                ...masterCsvHeaders.map((header) => header.name),
+              ];
+              if (new Set(exportHeaders).size !== exportHeaders.length) {
+                throw new Error("Excel 내보내기 헤더가 중복되었습니다.");
+              }
 
               const dataForExport = masterRawEntries.map((entry) => {
                 const dongName = entry[dongHeaderName]
                   ? entry[dongHeaderName].replace("사택 ", "").trim()
                   : "";
                 const newEntry = {};
+                newEntry["No."] = entry._sourceRowNumber ?? "";
                 masterCsvHeaders.forEach((header) => {
-                  newEntry[header.name] = entry[header.name];
+                  newEntry[header.name] = convertConfiguredExcelValue(
+                    entry[header.name],
+                    header,
+                  );
                 });
                 newEntry[totalUnitsHeaderName] =
                   totalUnitsPerDongStatic[dongName] === null
@@ -34770,9 +37806,10 @@ async function processUploadedData(data, isExcel = false) {
               });
 
               const ws = XLSX.utils.json_to_sheet(dataForExport, {
-                header: masterCsvHeaders.map((h) => h.name),
+                header: exportHeaders,
               });
               XLSX.utils.book_append_sheet(wb, ws, "현재 데이터");
+              appendMappingIntegritySheet(wb);
 
               const dateSuffix = getFormattedDateSuffix();
               const finalFileName = `현재_데이터_상태${dateSuffix}.xlsx`;
@@ -34853,6 +37890,8 @@ async function processUploadedData(data, isExcel = false) {
                 masterRawEntries: [],
                 masterCsvHeaders: masterCsvHeaders,
                 totalUnitsPerDongStatic: totalUnitsPerDongStatic,
+                totalUnitsReferenceVersion:
+                  BUILT_IN_TOTAL_UNITS_REFERENCE_VERSION,
                 isAutoExclusionActive: isAutoExclusionActive, // 필터링 규칙 상태 저장
                 isCompleteManualModeActive: isCompleteManualModeActive,
                 scenarioTargetOrderers: Array.isArray(
@@ -39588,7 +42627,7 @@ async function processUploadedData(data, isExcel = false) {
               try {
                 const pairNames = ["건물 동별", "작업 유형"];
                 const htClose = headerText.trim();
-                if (pairNames.includes(htClose)) {
+                if (!isMobilePortrait && pairNames.includes(htClose)) {
                   const otherName = pairNames.find((n) => n !== htClose);
                   const otherHeader = Array.from(
                     document.querySelectorAll(".section-accordion-header"),
@@ -39661,20 +42700,26 @@ async function processUploadedData(data, isExcel = false) {
               toggledThisClick = true;
               announceAccordionAction("open");
 
-              // [v5.28] 종합 개요를 제외한 모든 아코디언 펼칠 시 '금년' 시나리오 자동 적용, 종합 개요 펼칠 시 '최신 3년' 자동 적용
-              if (headerText === "종합 개요") {
-                await resetToInitialState();
-              } else {
-                if (!activeScenarioApplied || activeScenarioValue !== "cost_concentration_current_year") {
-                  window.skipScenarioAccordionRedirect = true;
-                  await applyScenario(
-                    "cost_concentration_current_year",
-                    undefined,
-                    "금년도 집행비",
-                    undefined,
-                    "금년",
-                  );
-                  window.skipScenarioAccordionRedirect = false;
+              // 자동모드에서만 아코디언별 기본 시나리오를 적용합니다.
+              // 완전 수동모드에서는 사용자가 만든 교집합을 화면 전환이 절대 덮지 않습니다.
+              if (!isCompleteManualModeActive) {
+                if (headerText === "종합 개요") {
+                  await resetToInitialState();
+                } else {
+                  if (!activeScenarioApplied || activeScenarioValue !== "cost_concentration_current_year") {
+                    window.skipScenarioAccordionRedirect = true;
+                    try {
+                      await applyScenario(
+                        "cost_concentration_current_year",
+                        undefined,
+                        "금년도 집행비",
+                        undefined,
+                        "금년",
+                      );
+                    } finally {
+                      window.skipScenarioAccordionRedirect = false;
+                    }
+                  }
                 }
               }
               
@@ -39780,7 +42825,7 @@ async function processUploadedData(data, isExcel = false) {
               try {
                 const pairNames = ["건물 동별", "작업 유형"];
                 const ht = headerText.trim();
-                if (pairNames.includes(ht)) {
+                if (!isMobilePortrait && pairNames.includes(ht)) {
                   const otherName = pairNames.find((n) => n !== ht);
                   const otherHeader = Array.from(
                     document.querySelectorAll(".section-accordion-header"),
@@ -39924,6 +42969,7 @@ async function processUploadedData(data, isExcel = false) {
                 }
               }
             } catch (_) { }
+            scheduleScenarioDropletVisibilityCheck();
           });
         });
 
@@ -42794,7 +45840,7 @@ async function processUploadedData(data, isExcel = false) {
       </div>
 
       <div class="diag-section">
-        <div class="diag-section-title">🔧 데이터 결함 즉시 조정 (세대수 누락)</div>
+        <div class="diag-section-title">🔧 데이터 결함 즉시 조정 (주거동 세대수 누락)</div>
         <div id="diagDefectsList" style="max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
           <!-- Dynamic defect corrections -->
         </div>
@@ -42820,6 +45866,17 @@ async function processUploadedData(data, isExcel = false) {
       }
     }
 
+    function getManagedResidentialMissingDongs() {
+      const auditedMissing =
+        window.__lastTotalUnitsIntegrityReport?.residentialMissingDongs;
+      if (Array.isArray(auditedMissing)) return [...auditedMissing];
+      return allDongsGlobal.filter((dong) => {
+        const normalized = String(dong || "").trim();
+        if (!/^\d+동$/.test(normalized)) return false;
+        return parsePositiveWholeNumber(totalUnitsPerDongStatic[normalized]) === null;
+      });
+    }
+
     function updateDiagnosticTriggerLabel() {
       const btn = document.getElementById("diagnosticTriggerBtn");
       if (!btn) return;
@@ -42835,12 +45892,7 @@ async function processUploadedData(data, isExcel = false) {
         return !mapped || (mapped === h && !masterCsvHeaders.some(head => head.name === h));
       });
 
-      const missingDongs = allDongsGlobal.filter(
-        (d) =>
-          totalUnitsPerDongStatic[d] === null ||
-          totalUnitsPerDongStatic[d] === undefined ||
-          totalUnitsPerDongStatic[d] === 0
-      );
+      const missingDongs = getManagedResidentialMissingDongs();
 
       if (masterRawEntries.length === 0) {
         statusText = "누수 → 파일 업로드 없음";
@@ -42884,7 +45936,7 @@ async function processUploadedData(data, isExcel = false) {
                         `1. 데이터 흐름 상태 (원활):\n` +
                         `   - 업로드된 Excel 파일의 주요 데이터(회계연도, 건물동, 작업유형, 금액 등) 파싱과 매핑은 무결하게 수집 및 처리되고 있습니다.\n` +
                         `2. 데이터 구성 결함 (세대수 누락):\n` +
-                        `   - 일부 건물동의 '전체 세대수' 설정이 누락되어 대시보드 내 특정 동의 진행률(%)이 'N/A'로 출력되는 구성 오류가 존재합니다.\n` +
+                        `   - 일부 주거동의 '전체 세대수' 설정이 누락되어 대시보드 내 특정 동의 진행률(%)이 'N/A'로 출력되는 구성 오류가 존재합니다.\n` +
                         `   - 누락 대상: [${missingDongs.join(", ")}]\n` +
                         `3. 조치 방법:\n` +
                         `   - 우측 상단 '데이터 관리' > '동별 세대수 관리' 모달을 열어 값을 입력하시거나, 화면 우측 하단의 '시스템 진단 모니터' 패널 내 '결함 즉시 조정' 영역에서 즉석으로 세대수를 보정하십시오.`;
@@ -42896,7 +45948,7 @@ async function processUploadedData(data, isExcel = false) {
                         `1. 데이터 흐름 상태 (원활):\n` +
                         `   - 모든 필수 컬럼들이 규격에 맞게 파싱되어 누수 없이 실시간으로 원활히 적재/집계되고 있습니다.\n` +
                         `2. 데이터 구성 상태 (원활):\n` +
-                        `   - 모든 건물동의 전체 세대수 데이터 구성이 완전하여 진행률 및 세대당 평균 통계가 정상 계산됩니다.\n` +
+                        `   - 관리 대상 주거동의 전체 세대수 데이터 구성이 완전하여 진행률 및 세대당 평균 통계가 정상 계산됩니다. 비주거 시설의 N/A는 결함으로 판정하지 않습니다.\n` +
                         `3. 조치:\n` +
                         `   - 분석 보고서 발행이나 대시보드 열람을 진행하시면 됩니다. 추가 조치가 필요하지 않습니다.`;
         }
@@ -42969,13 +46021,9 @@ async function processUploadedData(data, isExcel = false) {
       // 3. 결함 즉시 보정 데이터 바인딩
       const defectsContainer = document.getElementById("diagDefectsList");
       if (defectsContainer) {
-        // 세대수가 누락되거나 0인 건물 동 찾기
-        const missingDongs = allDongsGlobal.filter(
-          (d) =>
-            totalUnitsPerDongStatic[d] === null ||
-            totalUnitsPerDongStatic[d] === undefined ||
-            totalUnitsPerDongStatic[d] === 0
-        );
+        // 전체 세대수 분모가 적용되는 숫자형 사택 동만 결함 대상으로 본다.
+        // 연구동·Pilot동·기숙사 공용동 등 비주거 시설의 N/A는 정상 상태다.
+        const missingDongs = getManagedResidentialMissingDongs();
 
         if (missingDongs.length === 0) {
           const emptyMessage = document.createElement("p");
@@ -43048,6 +46096,7 @@ async function processUploadedData(data, isExcel = false) {
           } catch(e) {}
         }
         localStorage.removeItem("dropletPosition");
+        localStorage.removeItem("dropletMenuGeometryV1");
         location.reload();
       }
     }
@@ -43080,22 +46129,37 @@ async function processUploadedData(data, isExcel = false) {
 
   <!-- ▼▼▼ [v4.84] 모바일 세로 모드 전용 플로팅 시나리오 물방울 제어기 ▼▼▼ -->
   <div id="floatingScenarioDroplet" class="floating-scenario-droplet-widget" style="display: none;">
-    <div id="dropletHandle" class="droplet-bubble" title="시나리오 간편 선택 (드래그 가능)">
+    <div id="dropletHandle" class="droplet-bubble" title="시나리오 간편 선택 (드래그 가능)"
+      role="button" tabindex="0" aria-controls="dropletMenu" aria-expanded="false"
+      aria-label="시나리오 간편 선택 패널 열기">
       <span class="droplet-emoji">솔루션
 화학</span>
       <span id="dropletCurrentScenario" class="droplet-text">시나리오</span>
     </div>
-    <div id="dropletMenu" class="droplet-menu hidden">
-      <div class="droplet-menu-header">
-        <span>🎯 시나리오 선택</span>
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <button id="dropletBtnLatest2Years" class="droplet-header-btn">최신 2년</button>
-          <button id="dropletBtnLatest3Years" class="droplet-header-btn">최신 3년</button>
+    <div id="dropletMenu" class="droplet-menu hidden" role="dialog" aria-modal="false"
+      aria-labelledby="dropletMenuTitle" aria-hidden="true">
+      <div class="droplet-menu-header" role="group" tabindex="0"
+        aria-label="시나리오 선택 패널 이동 영역. 마우스나 손가락으로 끌거나 방향키로 이동"
+        title="드래그 또는 방향키로 패널 이동">
+        <span class="droplet-menu-title-wrap">
+          <span class="droplet-menu-move-grip" aria-hidden="true">⠿</span>
+          <span id="dropletMenuTitle" class="droplet-menu-title">🎯 시나리오 선택</span>
+        </span>
+        <div class="droplet-menu-header-actions">
+          <div class="droplet-quick-actions">
+            <button type="button" id="dropletBtnLatest2Years" class="droplet-header-btn">최신 2년</button>
+            <button type="button" id="dropletBtnLatest3Years" class="droplet-header-btn">최신 3년</button>
+          </div>
+          <button type="button" id="dropletMenuCloseButton" class="droplet-menu-close-btn"
+            aria-label="시나리오 선택 패널 닫기" title="패널 닫기">&times;</button>
         </div>
       </div>
       <div id="dropletOptionsContainer" class="droplet-options-list">
         <!-- Dynamic Scenario Buttons -->
       </div>
+      <button type="button" id="dropletMenuResizeHandle" class="droplet-menu-resize-handle"
+        aria-label="시나리오 선택 패널 크기 조절, 현재 자동 크기"
+        title="드래그 또는 방향키로 크기 조절 · Home 키나 두 번 클릭으로 자동 크기 복원"></button>
     </div>
   </div>
 
