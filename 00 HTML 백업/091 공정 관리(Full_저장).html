@@ -107365,7 +107365,7 @@ function showPendingSettlementModal(periodType, projects) {
                 + '</div>'
                 + '<div class="space-y-1.5">'
                 + '<div class="flex items-center justify-between gap-1">'
-                + '<span class="text-xs font-bold text-slate-700 block">📐 6대 흐름 배치 모드</span>'
+                + '<span class="overview-sankey-layout-title text-xs font-bold text-slate-700 block">📐 6대 흐름 배치 모드</span>'
                 + '<div class="flex gap-1">' + symHButton + symVButton + '</div>'
                 + '</div>'
                 + '<div class="grid grid-cols-6 gap-1">' + modeButtons + '</div>'
@@ -108439,8 +108439,10 @@ function showPendingSettlementModal(periodType, projects) {
             box-shadow: 0 6px 28px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.08);
             border: 1.5px solid rgba(100,116,139,0.22);
             pointer-events: auto !important;
-            max-width: 310px;
-            min-width: 220px;
+            width: min(390px, calc(100% - 44px));
+            max-width: none;
+            min-width: 0;
+            box-sizing: border-box;
             max-height: calc(100% - 20px);
             font-size: 13px;
             line-height: 1.45;
@@ -108525,11 +108527,15 @@ function showPendingSettlementModal(periodType, projects) {
         .overview-sankey-top2-name {
             font-weight: 600;
             color: #1e293b;
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            flex: 0 0 auto;
+            overflow: visible !important;
+            text-overflow: clip !important;
             white-space: nowrap;
             font-size: 13px;
+        }
+        .overview-sankey-layout-title {
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         .overview-sankey-top2-amount {
             font-weight: 700;
@@ -108574,8 +108580,9 @@ function showPendingSettlementModal(periodType, projects) {
             .overview-sankey-top2-summary {
                 top: 6px;
                 left: 6px;
-                max-width: 220px;
-                min-width: 180px;
+                width: calc(100% - 38px);
+                max-width: none;
+                min-width: 0;
                 padding: 10px 14px;
                 font-size: 11px;
                 border-radius: 10px;
@@ -115231,7 +115238,7 @@ function showPendingSettlementModal(periodType, projects) {
             if (typeof window === 'undefined' || window.__codexRawDataWebModalApplied) return;
             window.__codexRawDataWebModalApplied = true;
 
-            var RAW_DATA_URL = 'https://jonggunelee.github.io/wyggkr04/RawData/데이터 추출_(기숙사 및 사택).html';
+            var RAW_DATA_URL = 'https://jonggunelee.github.io/wyggkr04/RawData/검색추출/데이터 추출_(기숙사 및 사택).html';
             var RAW_DATA_SRC = encodeURI(RAW_DATA_URL);
             var RAW_DATA_RUN_SRC = RAW_DATA_SRC + '#run-button';
 
@@ -124765,7 +124772,7 @@ window.openAddNewProjectModal = function(editProject) {
                     if (rawTheme && typeof window.TextDecoder === 'function') {
                         var currentTheme = rawTheme;
                         function mojibakeScore(text) {
-                            var matches = String(text || '').match(/[ÃÂâïð�]/g);
+                            var matches = String(text || '').match(/[ÃÂâïð ]/g);
                             return matches ? matches.length : 0;
                         }
                         for (var decodeDepth = 0; decodeDepth < 4; decodeDepth += 1) {
