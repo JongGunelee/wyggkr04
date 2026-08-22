@@ -7,6 +7,7 @@
     const DATASET_STATUS = 'status';
     const DATASET_MEMO = 'memo';
     const VALID_DATASETS = new Set([DATASET_STATUS, DATASET_MEMO]);
+    const MEMO_CONFLICT_STRATEGIES = new Set(['fail', 'rebase-if-remote-empty', 'local-after-review']);
     const MAX_GITHUB_CONFLICT_RETRIES = 3;
     const MAX_EXCEL_CELL_CHARACTERS = 32767;
     const MAX_XLSB_BYTES = 50 * 1024 * 1024;
@@ -203,7 +204,7 @@
     function openDatabase() {
         if (shouldUseMemoryStorage()) return Promise.resolve(null);
         if (typeof global.indexedDB === 'undefined') {
-            return Promise.reject(new MeetingDataStoreError('IndexedDB is unavailable. Export offline TXT before leaving this page.', 'INDEXEDDB_UNAVAILABLE'));
+            return Promise.reject(new MeetingDataStoreError('IndexedDB is unavailable. Download the current XLSB before leaving this page.', 'INDEXEDDB_UNAVAILABLE'));
         }
         if (databasePromise) return databasePromise;
         databasePromise = new Promise((resolve, reject) => {
@@ -549,6 +550,15 @@
         assertKeyFields(input, parsed, settings.strict === true);
         const status = cleanString(input.status).trim() || (settings.strict ? '' : '작성');
         if (!['작성', '미작성'].includes(status)) throw new MeetingDataStoreError(`Invalid status for ${parsed.key}: ${status}`, 'INVALID_STATUS');
+        const counterIncluded = normalizeFlag(input.counterIncluded, 'Y', 'counterIncluded', settings.strict === true);
+        const cardVisible = normalizeFlag(input.cardVisible, 'Y', 'cardVisible', settings.strict === true);
+        if (counterIncluded !== cardVisible) {
+            throw new SchemaError(`Counter and card visibility flags must match for ${parsed.key}.`, {
+                key: parsed.key,
+                counterIncluded,
+                cardVisible
+            });
+        }
         const referenceDate = normalizeDateOnly(input.referenceDate);
         if (settings.strict && referenceDate && !/^\d{4}-\d{2}-\d{2}$/.test(referenceDate)) {
             throw new SchemaError(`Invalid referenceDate for ${parsed.key}: ${referenceDate}`);
@@ -564,8 +574,8 @@
             month: parsed.month,
             week: parsed.week,
             status,
-            counterIncluded: normalizeFlag(input.counterIncluded, 'Y', 'counterIncluded', settings.strict === true),
-            cardVisible: normalizeFlag(input.cardVisible, 'Y', 'cardVisible', settings.strict === true),
+            counterIncluded,
+            cardVisible,
             referenceDate,
             updatedAt: updatedAt || nowIso(),
             source: assertExcelCellText(input.source || '웹 수동 편집', 'source'),
@@ -680,6 +690,82 @@
         };
     }
 
+    function historySemanticRecord(kind, row) {
+        const record = {
+            eventId: cleanString(row && row.eventId),
+            changedAt: normalizeDateTime(row && row.changedAt),
+            key: cleanString(row && row.key),
+            type: cleanString(row && row.type),
+            beforeValue: cleanString(row && row.beforeValue),
+            afterValue: cleanString(row && row.afterValue),
+            source: cleanString(row && row.source)
+        };
+        if (kind === DATASET_MEMO) record.revision = Math.max(1, normalizeInteger(row && row.revision, 1));
+        return record;
+    }
+
+    function sameHistoryRecord(kind, left, right) {
+        return stableStringify(historySemanticRecord(kind, left)) === stableStringify(historySemanticRecord(kind, right));
+    }
+
+    function duplicateHistoryOutcome(kind, state, event, syncStatus, reapplyDuplicates) {
+        const existing = state.history.find((row) => row.eventId === event.eventId);
+        if (!existing) return null;
+        const expected = kind === DATASET_STATUS
+            ? statusHistoryFromEvent(event, syncStatus)
+            : memoHistoryFromEvent(event, syncStatus);
+        if (!sameHistoryRecord(kind, existing, expected)) {
+            return {
+                conflict: {
+                    eventId: event.eventId,
+                    dataset: kind,
+                    key: event.key,
+                    reason: 'EVENT_ID_HISTORY_MISMATCH',
+                    existingHistory: historySemanticRecord(kind, existing),
+                    incomingHistory: historySemanticRecord(kind, expected)
+                },
+                applied: false,
+                duplicate: false
+            };
+        }
+        return { conflict: null, applied: false, duplicate: true, reapply: reapplyDuplicates === true };
+    }
+
+    function memoHeadConsistencyConflict(state, event) {
+        const keyHistory = state.history
+            .filter((row) => row.key === event.key)
+            .slice();
+        if (!keyHistory.length) return null;
+        sortHistory(keyHistory);
+        const head = keyHistory[keyHistory.length - 1];
+        const current = state.rows.find((row) => row.key === event.key) || null;
+        const expectedSummary = cleanString(head.afterValue);
+        const expectedRevision = Math.max(1, normalizeInteger(head.revision, 1));
+        const expectedDate = normalizeDateTime(head.changedAt);
+        const expectedSource = cleanString(head.source);
+        const consistent = expectedSummary
+            ? Boolean(current)
+                && cleanString(current.summary) === expectedSummary
+                && normalizeInteger(current.revision, 0) === expectedRevision
+                && normalizeDateTime(current.updatedAt) === expectedDate
+                && cleanString(current.source) === expectedSource
+            : !current;
+        if (consistent) return null;
+        return {
+            eventId: event.eventId,
+            dataset: DATASET_MEMO,
+            key: event.key,
+            reason: 'REMOTE_MEMO_HEAD_STATE_MISMATCH',
+            remoteHistoryHead: historySemanticRecord(DATASET_MEMO, head),
+            remoteRow: current ? {
+                summary: cleanString(current.summary),
+                revision: normalizeInteger(current.revision, 0),
+                updatedAt: normalizeDateTime(current.updatedAt),
+                source: cleanString(current.source)
+            } : null
+        };
+    }
+
     function upsertByKey(rows, nextRow) {
         const index = rows.findIndex((row) => row.key === nextRow.key);
         if (index >= 0) rows[index] = nextRow;
@@ -750,7 +836,8 @@
         return serializeLocal(async () => {
             const nextSnapshot = clone(snapshot);
             const current = nextSnapshot.memo.rows.find((row) => row.key === parsed.key) || null;
-            if ((current ? current.summary : '') === desiredSummary) {
+            const summaryUnchanged = (current ? current.summary : '') === desiredSummary;
+            if (summaryUnchanged && settings.forceHistory !== true) {
                 return { changed: false, row: clone(current), event: null };
             }
             const changedAt = settings.changedAt || nowIso();
@@ -787,9 +874,11 @@
 
     function applyStatusEvent(state, event, strict, syncStatus, reapplyDuplicates) {
         const result = { conflict: null, applied: false, duplicate: false };
-        if (state.history.some((row) => row.eventId === event.eventId)) {
+        const duplicate = duplicateHistoryOutcome(DATASET_STATUS, state, event, syncStatus, reapplyDuplicates);
+        if (duplicate) {
+            if (duplicate.conflict) return duplicate;
             result.duplicate = true;
-            if (!reapplyDuplicates) return result;
+            if (!duplicate.reapply) return result;
         }
         const parsed = parseMeetingKey(event.key);
         const current = state.rows.find((row) => row.key === parsed.key) || null;
@@ -830,9 +919,15 @@
 
     function applyMemoEvent(state, event, strict, syncStatus, reapplyDuplicates) {
         const result = { conflict: null, applied: false, duplicate: false };
-        if (state.history.some((row) => row.eventId === event.eventId)) {
+        const duplicate = duplicateHistoryOutcome(DATASET_MEMO, state, event, syncStatus, reapplyDuplicates);
+        if (duplicate) {
+            if (duplicate.conflict) return duplicate;
             result.duplicate = true;
-            if (!reapplyDuplicates) return result;
+            if (!duplicate.reapply) {
+                const headConflict = memoHeadConsistencyConflict(state, event);
+                if (headConflict) return { conflict: headConflict, applied: false, duplicate: false };
+                return result;
+            }
         }
         const parsed = parseMeetingKey(event.key);
         const current = state.rows.find((row) => row.key === parsed.key) || null;
@@ -847,7 +942,16 @@
                 eventId: event.eventId,
                 dataset: DATASET_MEMO,
                 key: event.key,
-                fields: [{ field: 'summary', base: baseSummary, remote: currentSummary, local: desiredSummary }]
+                reason: 'MEMO_BASE_DIVERGED',
+                fields: [{
+                    field: 'summary',
+                    base: baseSummary,
+                    remote: currentSummary,
+                    local: desiredSummary,
+                    baseRevision,
+                    remoteRevision: currentRevision,
+                    localRevision: Math.max(normalizeInteger(event.revision, 1), normalizeInteger(event.values && event.values.revision, 1))
+                }]
             };
             if (strict) return result;
         }
@@ -895,6 +999,333 @@
         else sortMemoRows(state.rows);
         sortHistory(state.history);
         return { state, conflicts, applied, duplicates };
+    }
+
+    function memoSummaryFromEvent(event) {
+        return cleanString(event.afterValue !== undefined ? event.afterValue : event.values && event.values.summary);
+    }
+
+    function memoStateFingerprint(state, key) {
+        const row = state.rows.find((item) => item.key === key) || null;
+        const history = state.history
+            .filter((item) => item.key === key)
+            .map((item) => historySemanticRecord(DATASET_MEMO, item));
+        return stableStringify({
+            key,
+            row: row ? {
+                summary: cleanString(row.summary),
+                revision: normalizeInteger(row.revision, 0),
+                updatedAt: normalizeDateTime(row.updatedAt),
+                source: cleanString(row.source)
+            } : null,
+            history
+        });
+    }
+
+    function prepareMemoConflictResolution(events, settings, selectedKeys) {
+        const strategy = settings.memoConflictStrategy || 'fail';
+        if (!MEMO_CONFLICT_STRATEGIES.has(strategy)) {
+            throw new TypeError(`Unknown memo conflict strategy: ${strategy}`);
+        }
+        if (strategy === 'fail') return null;
+        if (!selectedKeys || selectedKeys.size !== 1) {
+            throw new MeetingDataStoreError('Memo conflict recovery requires exactly one selected meeting key.', 'INVALID_MEMO_CONFLICT_RESOLUTION');
+        }
+        const key = [...selectedKeys][0];
+        const keyEvents = [...events].filter((event) => event.key === key).sort(compareEvents);
+        const intent = keyEvents.find((event) => event.eventId === settings.intentEventId);
+        const expectedSummaryProvided = Object.prototype.hasOwnProperty.call(settings, 'expectedSummary');
+        const expectedSummary = expectedSummaryProvided ? assertExcelCellText(cleanString(settings.expectedSummary), 'expectedSummary') : null;
+        if (!intent || !settings.intentEventId || !expectedSummaryProvided || memoSummaryFromEvent(intent) !== expectedSummary) {
+            throw new MeetingDataStoreError('The memo conflict recovery intent no longer matches the newest pending screen value.', 'STALE_MEMO_CONFLICT_INTENT', {
+                key,
+                expectedIntentEventId: settings.intentEventId || null,
+                currentIntentEventId: intent ? intent.eventId : null
+            });
+        }
+        return {
+            strategy,
+            key,
+            intentEventId: intent.eventId,
+            expectedSummary,
+            reviewedRemoteShaProvided: Object.prototype.hasOwnProperty.call(settings, 'reviewedRemoteSha'),
+            reviewedRemoteSha: settings.reviewedRemoteSha === null ? null : cleanString(settings.reviewedRemoteSha),
+            reviewedRemoteFingerprint: cleanString(settings.reviewedRemoteFingerprint)
+        };
+    }
+
+    function comparePendingMemoEvents(left, right) {
+        const leftSequence = Number(left && left.sequence);
+        const rightSequence = Number(right && right.sequence);
+        const leftHasSequence = Number.isFinite(leftSequence);
+        const rightHasSequence = Number.isFinite(rightSequence);
+        if (leftHasSequence && rightHasSequence && leftSequence !== rightSequence) return leftSequence - rightSequence;
+        if (leftHasSequence !== rightHasSequence) return leftHasSequence ? 1 : -1;
+        return compareEvents(left, right);
+    }
+
+    function orderMemoEventsForResolution(events, resolution) {
+        const ordered = [...events].sort(comparePendingMemoEvents);
+        if (!resolution) return ordered;
+        const intentIndex = ordered.findIndex((event) => event.eventId === resolution.intentEventId);
+        if (intentIndex < 0 || intentIndex === ordered.length - 1) return ordered;
+        const [intent] = ordered.splice(intentIndex, 1);
+        ordered.push(intent);
+        return ordered;
+    }
+
+    function maxMemoRevision(state, events, key) {
+        const revisions = [0];
+        const current = state.rows.find((row) => row.key === key);
+        if (current) revisions.push(current.revision);
+        for (const row of state.history.filter((item) => item.key === key)) revisions.push(row.revision);
+        for (const event of events.filter((item) => item.key === key)) {
+            revisions.push(event.revision);
+            revisions.push(event.values && event.values.revision);
+            revisions.push(event.base && event.base.revision);
+        }
+        let maximum = 0;
+        for (const value of revisions) {
+            const normalized = normalizeInteger(value, 0);
+            if (!Number.isSafeInteger(normalized) || normalized < 0) {
+                throw new MeetingDataStoreError('Memo reconciliation cannot safely advance an invalid revision.', 'MEMO_RECONCILIATION_REVISION_INVALID', { key });
+            }
+            maximum = Math.max(maximum, normalized);
+        }
+        if (maximum >= Number.MAX_SAFE_INTEGER) {
+            throw new MeetingDataStoreError('Memo reconciliation revision reached the safe integer limit.', 'MEMO_RECONCILIATION_REVISION_OVERFLOW', { key });
+        }
+        return maximum;
+    }
+
+    function nextMemoReconciliationTimestamp(initialState, workingState, events, key) {
+        const values = [nowIso()];
+        const initialRow = initialState.rows.find((row) => row.key === key);
+        const workingRow = workingState.rows.find((row) => row.key === key);
+        if (initialRow && initialRow.updatedAt) values.push(initialRow.updatedAt);
+        if (workingRow && workingRow.updatedAt) values.push(workingRow.updatedAt);
+        for (const row of initialState.history.filter((item) => item.key === key)) values.push(row.changedAt);
+        for (const row of workingState.history.filter((item) => item.key === key)) values.push(row.changedAt);
+        for (const event of events.filter((item) => item.key === key)) values.push(event.createdAt);
+        let maximum = 0;
+        for (const value of values) {
+            const milliseconds = new Date(value).getTime();
+            if (!Number.isFinite(milliseconds)) {
+                throw new MeetingDataStoreError('Memo reconciliation found an invalid audit timestamp.', 'MEMO_RECONCILIATION_TIMESTAMP_INVALID', { key, value: cleanString(value) });
+            }
+            maximum = Math.max(maximum, milliseconds);
+        }
+        const excelMaximum = Date.UTC(9999, 11, 31, 23, 59, 59, 998);
+        if (maximum >= excelMaximum) {
+            throw new MeetingDataStoreError('Memo reconciliation timestamp exceeds the Excel date range.', 'MEMO_RECONCILIATION_TIMESTAMP_OVERFLOW', { key });
+        }
+        return new Date(maximum + 1).toISOString();
+    }
+
+    function memoResolutionConflict(initialState, events, resolution, remoteSha, reason) {
+        const intent = events.find((event) => event.eventId === resolution.intentEventId) || events[events.length - 1];
+        const current = initialState.rows.find((row) => row.key === resolution.key) || null;
+        const remoteRevision = maxMemoRevision(initialState, [], resolution.key);
+        const localRevision = maxMemoRevision(createDatasetState(), events, resolution.key);
+        return {
+            eventId: intent ? intent.eventId : resolution.intentEventId,
+            dataset: DATASET_MEMO,
+            key: resolution.key,
+            reason: reason || 'MEMO_BASE_DIVERGED',
+            fields: [{
+                field: 'summary',
+                base: cleanString(intent && intent.base && intent.base.summary),
+                remote: current ? cleanString(current.summary) : '',
+                local: resolution.expectedSummary,
+                baseRevision: normalizeInteger(intent && intent.base && intent.base.revision, 0),
+                remoteRevision,
+                localRevision
+            }],
+            remoteSha: remoteSha || null,
+            remoteFingerprint: memoStateFingerprint(initialState, resolution.key)
+        };
+    }
+
+    function appendMemoReconciliation(workingState, initialState, events, resolution) {
+        const intent = events.find((event) => event.eventId === resolution.intentEventId);
+        if (!intent) {
+            throw new MeetingDataStoreError('Memo reconciliation intent is no longer available.', 'STALE_MEMO_CONFLICT_INTENT', { key: resolution.key });
+        }
+        const parsed = parseMeetingKey(resolution.key);
+        const initial = initialState.rows.find((row) => row.key === resolution.key) || null;
+        const current = workingState.rows.find((row) => row.key === resolution.key) || null;
+        const createdAt = nextMemoReconciliationTimestamp(initialState, workingState, events, resolution.key);
+        const revision = maxMemoRevision(workingState, events, resolution.key) + 1;
+        const source = assertExcelCellText(`웹 저장 · 충돌 대기열 복구 · ${resolution.strategy} · ${intent.eventId.slice(0, 24)}`, 'memo reconciliation source');
+        const expectedSummary = resolution.expectedSummary;
+        const event = {
+            eventId: makeEventId(),
+            sequence: nextEventSequence(),
+            dataset: DATASET_MEMO,
+            createdAt,
+            key: resolution.key,
+            type: intent.type || parsed.type,
+            source,
+            operation: expectedSummary ? 'upsert' : 'delete',
+            base: { summary: current ? cleanString(current.summary) : '', revision: current ? normalizeInteger(current.revision, 0) : 0 },
+            values: expectedSummary ? {
+                key: resolution.key,
+                type: intent.type || parsed.type,
+                year: parsed.year,
+                month: parsed.month,
+                week: parsed.week,
+                summary: expectedSummary,
+                updatedAt: createdAt,
+                source,
+                revision
+            } : { summary: '', revision },
+            beforeValue: initial ? cleanString(initial.summary) : '',
+            afterValue: expectedSummary,
+            revision
+        };
+        const outcome = applyMemoEvent(workingState, event, true, '완료', false);
+        const headConflict = outcome.conflict || memoHeadConsistencyConflict(workingState, event);
+        if (headConflict || !outcome.applied) {
+            throw new MeetingDataStoreError('Memo reconciliation could not establish a consistent history head.', 'MEMO_RECONCILIATION_FAILED', {
+                key: resolution.key,
+                conflict: headConflict || null
+            });
+        }
+        return event;
+    }
+
+    function rebaseMemoEventsOntoRemote(remoteState, events, resolution, remoteSha, retry) {
+        const initialState = clone(remoteState || createDatasetState());
+        const workingState = clone(initialState);
+        const rebasedEventIds = [];
+        const resolutions = [];
+        const applied = [];
+        const duplicates = [];
+        const orderedEvents = orderMemoEventsForResolution(events, resolution);
+        const initialRow = resolution ? initialState.rows.find((row) => row.key === resolution.key) || null : null;
+        const initialKeyHistory = resolution ? initialState.history.filter((row) => row.key === resolution.key) : [];
+        const initialFingerprint = resolution ? memoStateFingerprint(initialState, resolution.key) : '';
+        const automaticRecoveryApproved = Boolean(resolution
+            && resolution.strategy === 'rebase-if-remote-empty'
+            && !initialRow
+            && initialKeyHistory.length === 0);
+        const reviewedRemoteMatches = Boolean(resolution
+            && resolution.strategy === 'local-after-review'
+            && retry === 0
+            && resolution.reviewedRemoteShaProvided
+            && resolution.reviewedRemoteSha === (remoteSha || null)
+            && resolution.reviewedRemoteFingerprint === initialFingerprint);
+
+        for (const sourceEvent of orderedEvents) {
+            const event = clone(sourceEvent);
+            const firstAttempt = applyMemoEvent(workingState, event, true, '완료', false);
+            if (!firstAttempt.conflict) {
+                if (firstAttempt.applied) applied.push(event.eventId);
+                if (firstAttempt.duplicate) duplicates.push(event.eventId);
+                continue;
+            }
+
+            const current = workingState.rows.find((row) => row.key === event.key) || null;
+            const currentFingerprint = memoStateFingerprint(workingState, event.key);
+            const currentSummary = current ? current.summary : '';
+            const currentRevision = current ? current.revision : 0;
+            const localRevision = Math.max(normalizeInteger(event.revision, 1), normalizeInteger(event.values && event.values.revision, 1));
+            const canRebase = resolution
+                && event.key === resolution.key
+                && firstAttempt.conflict.reason === 'MEMO_BASE_DIVERGED'
+                && (automaticRecoveryApproved || reviewedRemoteMatches);
+            if (!canRebase) {
+                let conflict = clone(firstAttempt.conflict);
+                conflict.remoteSha = remoteSha || null;
+                conflict.remoteFingerprint = currentFingerprint;
+                if (firstAttempt.conflict.reason === 'MEMO_BASE_DIVERGED') {
+                    if (resolution && resolution.strategy === 'local-after-review' && retry > 0) {
+                        conflict = memoResolutionConflict(initialState, orderedEvents, resolution, remoteSha, 'MEMO_REVIEW_EXPIRED_AFTER_GITHUB_RACE');
+                    } else if (resolution && resolution.strategy === 'local-after-review' && !reviewedRemoteMatches) {
+                        conflict = memoResolutionConflict(initialState, orderedEvents, resolution, remoteSha, 'MEMO_REVIEWED_REMOTE_CHANGED');
+                    } else if (resolution && event.key === resolution.key) {
+                        conflict = memoResolutionConflict(initialState, orderedEvents, resolution, remoteSha, 'MEMO_BASE_DIVERGED');
+                    }
+                }
+                return {
+                    ok: false,
+                    state: workingState,
+                    conflicts: [conflict],
+                    applied,
+                    duplicates,
+                    rebasedEventIds,
+                    resolutions
+                };
+            }
+
+            event.base = { ...(event.base || {}), summary: currentSummary, revision: currentRevision };
+
+            const retryOutcome = applyMemoEvent(workingState, event, true, '완료', false);
+            if (retryOutcome.conflict || !retryOutcome.applied) {
+                const conflict = clone(retryOutcome.conflict || firstAttempt.conflict);
+                conflict.reason = 'MEMO_EPHEMERAL_REBASE_FAILED';
+                conflict.remoteSha = remoteSha || null;
+                conflict.remoteFingerprint = currentFingerprint;
+                return {
+                    ok: false,
+                    state: workingState,
+                    conflicts: [conflict],
+                    applied,
+                    duplicates,
+                    rebasedEventIds,
+                    resolutions
+                };
+            }
+            applied.push(event.eventId);
+            rebasedEventIds.push(event.eventId);
+            resolutions.push({
+                eventId: event.eventId,
+                key: event.key,
+                strategy: resolution.strategy,
+                remoteSummary: currentSummary,
+                localSummary: memoSummaryFromEvent(event),
+                remoteRevision: currentRevision,
+                localRevision,
+                remoteSha: remoteSha || null,
+                remoteFingerprint: currentFingerprint
+            });
+        }
+
+        if (resolution) {
+            const current = workingState.rows.find((row) => row.key === resolution.key) || null;
+            const currentSummary = current ? cleanString(current.summary) : '';
+            if (currentSummary !== resolution.expectedSummary) {
+                return {
+                    ok: false,
+                    state: workingState,
+                    conflicts: [memoResolutionConflict(initialState, orderedEvents, resolution, remoteSha, 'MEMO_FINAL_INTENT_MISMATCH')],
+                    applied,
+                    duplicates,
+                    rebasedEventIds,
+                    resolutions
+                };
+            }
+            const headConflict = memoHeadConsistencyConflict(workingState, { eventId: resolution.intentEventId, key: resolution.key });
+            if (rebasedEventIds.length || headConflict) {
+                const reconciliation = appendMemoReconciliation(workingState, initialState, orderedEvents, resolution);
+                applied.push(reconciliation.eventId);
+                resolutions.push({
+                    eventId: reconciliation.eventId,
+                    intentEventId: resolution.intentEventId,
+                    key: resolution.key,
+                    strategy: resolution.strategy,
+                    kind: 'history-head-reconciliation',
+                    remoteSummary: initialRow ? cleanString(initialRow.summary) : '',
+                    localSummary: resolution.expectedSummary,
+                    remoteSha: remoteSha || null,
+                    remoteFingerprint: initialFingerprint
+                });
+            }
+        }
+
+        sortMemoRows(workingState.rows);
+        sortHistory(workingState.history);
+        return { ok: true, state: workingState, conflicts: [], applied, duplicates, rebasedEventIds, resolutions };
     }
 
     function sheetRows(workbook, sheetName, headers) {
@@ -1082,6 +1513,9 @@
             ['안건키', '안건현황 XLSB와 동일한 고유키', '두 파일의 유일한 매핑 키'],
             ['회의요약', '웹에서 작성하는 메모', 'HTML로 해석하지 않고 텍스트로 저장'],
             ['리비전', '메모 변경 횟수', '저장할 때 1씩 증가'],
+            ['등록 버튼', '회의 요약 XLSB를 GitHub에 등록', '변경경로=등록 · GitHub XLSB'],
+            ['저장 버튼', '회의 요약 XLSB를 로컬 컴퓨터에 다운로드', '변경경로=저장 · 로컬 XLSB'],
+            ['변경일시', '등록·저장 버튼을 누른 현지 일시', 'yyyy-mm-dd hh:mm:ss로 표시'],
             ['온라인', 'GitHub Contents API로 자동 동기화', '세션 토큰 필요'],
             ['오프라인', '로컬 변경 큐와 JSONL TXT 이력', '재연결 후 병합 업로드'],
             ['용량', '실제 사용 행/열만 저장', '빈 셀 대량 서식 금지, 압축 저장']
@@ -1132,11 +1566,11 @@
             xlsx.utils.book_append_sheet(workbook, makeWorksheet(matrices.current, [17, 10, 9, 7, 7, 10, 14, 12, 13, 25, 24, 30, 42], {
                 numberFormats: [
                     { column: 'I', startRow: 2, code: 'yyyy-mm-dd' },
-                    { column: 'J', startRow: 2, code: 'yyyy-mm-dd hh:mm' }
+                    { column: 'J', startRow: 2, code: 'yyyy-mm-dd hh:mm:ss' }
                 ]
             }), '안건현황');
             xlsx.utils.book_append_sheet(workbook, makeWorksheet(matrices.history, [38, 25, 18, 16, 18, 18, 24, 14], {
-                numberFormats: [{ column: 'B', startRow: 2, code: 'yyyy-mm-dd hh:mm' }]
+                numberFormats: [{ column: 'B', startRow: 2, code: 'yyyy-mm-dd hh:mm:ss' }]
             }), '변경이력');
             xlsx.utils.book_append_sheet(workbook, makeWorksheet(statusDictionaryMatrix(), [30, 18, 42, 42]), '데이터사전');
         } else {
@@ -1147,10 +1581,10 @@
                 numberFormats: [{ column: 'B', startRow: 3, endRow: 3, code: 'yyyy-mm-dd' }]
             }), '요약');
             xlsx.utils.book_append_sheet(workbook, makeWorksheet(matrices.current, [18, 10, 9, 7, 7, 70, 25, 24, 10], {
-                numberFormats: [{ column: 'G', startRow: 2, code: 'yyyy-mm-dd hh:mm' }]
+                numberFormats: [{ column: 'G', startRow: 2, code: 'yyyy-mm-dd hh:mm:ss' }]
             }), '회의요약');
             xlsx.utils.book_append_sheet(workbook, makeWorksheet(matrices.history, [38, 25, 18, 16, 40, 40, 24, 14, 10], {
-                numberFormats: [{ column: 'B', startRow: 2, code: 'yyyy-mm-dd hh:mm' }]
+                numberFormats: [{ column: 'B', startRow: 2, code: 'yyyy-mm-dd hh:mm:ss' }]
             }), '변경이력');
             xlsx.utils.book_append_sheet(workbook, makeWorksheet(memoGuideMatrix(), [22, 50, 50]), '사용안내');
         }
@@ -1392,15 +1826,74 @@
         });
     }
 
+    function normalizeMemoSyncKeys(kind, settings) {
+        if (settings.keys === undefined) return null;
+        if (kind !== DATASET_MEMO || !Array.isArray(settings.keys) || !settings.keys.length) {
+            throw new TypeError('keys must be a non-empty array for a memo dataset sync.');
+        }
+        return new Set(settings.keys.map((key) => parseMeetingKey(key).key));
+    }
+
+    async function captureSyncBatch(kind) {
+        return serializeLocal(async () => {
+            const allPending = (await readOutboxInternal()).filter((event) => event.dataset === kind);
+            return { localState: clone(snapshot[kind]), allPending: clone(allPending) };
+        });
+    }
+
+    function mergeAcknowledgedLocalHistory(kind, candidateState, localState, allPending) {
+        const state = clone(candidateState);
+        const pendingIds = new Set(allPending.map((event) => event.eventId));
+        const byId = new Map(state.history.map((row) => [row.eventId, row]));
+        const conflicts = [];
+        let added = 0;
+        for (const localRow of localState.history) {
+            if (!localRow.eventId || pendingIds.has(localRow.eventId) || cleanString(localRow.syncStatus) !== '완료') continue;
+            const existing = byId.get(localRow.eventId);
+            if (existing) {
+                if (!sameHistoryRecord(kind, existing, localRow)) {
+                    conflicts.push({
+                        eventId: localRow.eventId,
+                        dataset: kind,
+                        key: localRow.key,
+                        reason: 'ACKNOWLEDGED_HISTORY_MISMATCH',
+                        remoteHistory: historySemanticRecord(kind, existing),
+                        localHistory: historySemanticRecord(kind, localRow)
+                    });
+                }
+                continue;
+            }
+            const preserved = clone(localRow);
+            preserved.syncStatus = '완료';
+            state.history.push(preserved);
+            byId.set(preserved.eventId, preserved);
+            added += 1;
+        }
+        sortHistory(state.history);
+        return { state, conflicts, added };
+    }
+
     async function syncDatasetInternal(kind, options) {
         assertDataset(kind);
         if (!sessionToken) throw new MeetingDataStoreError('A session GitHub token is required for upload.', 'TOKEN_REQUIRED');
         const settings = options || {};
-        const captured = (await readOutboxInternal()).filter((event) => event.dataset === kind);
+        const memoConflictStrategy = settings.memoConflictStrategy || 'fail';
+        if (!MEMO_CONFLICT_STRATEGIES.has(memoConflictStrategy)) {
+            throw new TypeError(`Unknown memo conflict strategy: ${memoConflictStrategy}`);
+        }
+        const selectedKeys = normalizeMemoSyncKeys(kind, settings);
+        const batch = await captureSyncBatch(kind);
+        const captured = selectedKeys
+            ? batch.allPending.filter((event) => selectedKeys.has(event.key))
+            : batch.allPending;
         if (!captured.length && !settings.publishMissing) {
             return { ok: true, skipped: true, reason: 'empty-outbox', dataset: kind, uploadedEvents: 0 };
         }
+        const memoResolution = kind === DATASET_MEMO
+            ? prepareMemoConflictResolution(captured, settings, selectedKeys)
+            : null;
         let lastConflictResponse = null;
+        const conflictResolution = { strategy: memoConflictStrategy, rebasedEventIds: [], resolutions: [] };
         for (let retry = 0; retry <= MAX_GITHUB_CONFLICT_RETRIES; retry += 1) {
             const remote = await fetchGitHubDataset(kind);
             if (!captured.length && remote.exists) {
@@ -1413,16 +1906,54 @@
                     sha: remote.sha || null
                 };
             }
+            if (!remote.exists && selectedKeys) {
+                throw new MeetingDataStoreError('A key-scoped memo sync requires the remote memo workbook to exist.', 'SCOPED_SYNC_REMOTE_MISSING', {
+                    dataset: kind,
+                    keys: [...selectedKeys]
+                });
+            }
             let mergeBase = remote.state;
             if (!remote.exists) {
                 const capturedIds = new Set(captured.map((event) => event.eventId));
-                mergeBase = clone(snapshot[kind]);
+                mergeBase = clone(batch.localState);
                 mergeBase.history = mergeBase.history.filter((row) => !capturedIds.has(row.eventId));
                 mergeBase.remoteSha = null;
             }
-            const merged = applyEvents(mergeBase, captured, { strict: true, syncStatus: '완료' });
+            let merged = kind === DATASET_MEMO
+                ? rebaseMemoEventsOntoRemote(mergeBase, captured, memoResolution, remote.sha, retry)
+                : applyEvents(mergeBase, captured, { strict: true, syncStatus: '완료' });
+            if (merged.rebasedEventIds && merged.rebasedEventIds.length) {
+                for (const eventId of merged.rebasedEventIds) {
+                    if (!conflictResolution.rebasedEventIds.includes(eventId)) conflictResolution.rebasedEventIds.push(eventId);
+                }
+                conflictResolution.resolutions.push(...(merged.resolutions || []));
+            }
             if (merged.conflicts.length) throw new ConflictError(`Cannot merge ${kind} changes without user review.`, merged.conflicts);
+            const historyMerge = mergeAcknowledgedLocalHistory(kind, merged.state, batch.localState, batch.allPending);
+            if (historyMerge.conflicts.length) {
+                throw new ConflictError(`Cannot preserve ${kind} history without user review.`, historyMerge.conflicts);
+            }
+            merged = { ...merged, state: historyMerge.state };
             merged.state.remoteSha = remote.sha;
+            const acknowledgedIds = captured.map((event) => event.eventId);
+            const allAlreadyRemote = captured.length > 0
+                && merged.applied.length === 0
+                && merged.duplicates.length === captured.length
+                && historyMerge.added === 0;
+            if (allAlreadyRemote) {
+                await finalizeSuccessfulSync(kind, merged.state, acknowledgedIds, remote.sha);
+                emit('synced', { dataset: kind, uploadedEvents: acknowledgedIds.length, retryCount: retry, alreadyRemote: true });
+                return {
+                    ok: true,
+                    skipped: true,
+                    reason: 'already-remote',
+                    dataset: kind,
+                    uploadedEvents: acknowledgedIds.length,
+                    retryCount: retry,
+                    sha: remote.sha || null,
+                    conflictResolution: conflictResolution.rebasedEventIds.length ? conflictResolution : null
+                };
+            }
             const result = await putGitHubDataset(kind, merged.state, remote.sha, settings.message);
             if (result.conflict) {
                 lastConflictResponse = result;
@@ -1433,7 +1964,6 @@
                 }
                 break;
             }
-            const acknowledgedIds = captured.map((event) => event.eventId);
             await finalizeSuccessfulSync(kind, merged.state, acknowledgedIds, result.sha);
             emit('synced', { dataset: kind, uploadedEvents: acknowledgedIds.length, retryCount: retry });
             return {
@@ -1445,7 +1975,8 @@
                 sha: result.sha || null,
                 byteLength: result.generated.byteLength,
                 bookSST: result.generated.bookSST,
-                candidateSizes: result.generated.candidateSizes
+                candidateSizes: result.generated.candidateSizes,
+                conflictResolution: conflictResolution.rebasedEventIds.length ? conflictResolution : null
             };
         }
         const status = (lastConflictResponse && lastConflictResponse.status) || 409;
@@ -1684,7 +2215,7 @@
             await serializeLocal(async () => {
                 const pending = (await readOutboxInternal()).filter((event) => event.dataset === kind);
                 if (pending.length && !settings.force) {
-                    throw new MeetingDataStoreError('Cannot replace or merge a local XLSB while this dataset has pending changes. Sync or export the offline TXT first.', 'OUTBOX_NOT_EMPTY', {
+                    throw new MeetingDataStoreError('Cannot replace or merge a local XLSB while this dataset has pending changes. Sync or download the current XLSB first.', 'OUTBOX_NOT_EMPTY', {
                         dataset: kind,
                         pendingCount: pending.length
                     });
@@ -1841,7 +2372,7 @@
     }
 
     const api = {
-        version: '1.0.0',
+        version: '1.1.0',
         schemaVersion: SCHEMA_VERSION,
         datasets: Object.freeze({ status: DATASET_STATUS, memo: DATASET_MEMO }),
         headers: Object.freeze({

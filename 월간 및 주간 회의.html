@@ -14,6 +14,7 @@
     <script defer src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
     <script defer src="./vendor/xlsx.full.min.js"></script>
     <script defer src="./meeting-data-store.js"></script>
+    <script defer src="./meeting-github-credential.js"></script>
     <script defer src="./meeting-data-bootstrap.js"></script>
     <style>
         :root {
@@ -1443,6 +1444,648 @@
             box-shadow: -6px 15px 30px rgba(0, 0, 0, 0.4);
         }
 
+        /* 저장 상태는 메모 편집기 안에서만 안내한다. 기존 전역 토스트 DOM은 호환성을 위해 유지한다. */
+        #autoSaveStatus {
+            display: none !important;
+        }
+
+        .memo-editor-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .memo-editor-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            min-height: 34px;
+        }
+
+        .memo-editor-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 28px;
+            padding: 4px 9px;
+            border: 1px solid #cbd5e1;
+            border-radius: 999px;
+            background: #fff;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .memo-editor-status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #64748b;
+            box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.12);
+        }
+
+        .memo-editor-status[data-state='waiting']::before,
+        .memo-editor-status[data-state='editing']::before {
+            background: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+        }
+
+        .memo-editor-status[data-state='saving']::before {
+            background: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            animation: memoStatusPulse 0.9s ease-in-out infinite;
+        }
+
+        .memo-editor-status[data-state='saved']::before,
+        .memo-editor-status[data-state='pending']::before {
+            background: #16a34a;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+        }
+
+        .memo-editor-status[data-state='error']::before {
+            background: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+        }
+
+        @keyframes memoStatusPulse {
+            50% {
+                opacity: 0.35;
+                transform: scale(0.75);
+            }
+        }
+
+        .memo-editor-clock {
+            color: #64748b;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .memo-mode-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .memo-mode-btn,
+        .memo-focus-btn,
+        .memo-persist-btn {
+            min-height: 30px;
+            padding: 5px 11px;
+            border: 1px solid #94a3b8;
+            border-radius: 7px;
+            background: #fff;
+            color: var(--accent-color);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .memo-mode-btn:hover,
+        .memo-focus-btn:hover,
+        .memo-persist-btn:hover {
+            background: #eaf0f6;
+        }
+
+        .memo-editor-actions {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 8px;
+            border-top: 1px solid #dbe4ed;
+        }
+
+        .memo-commit-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .memo-persist-btn {
+            min-width: 76px;
+            min-height: 34px;
+        }
+
+        .memo-persist-btn[data-memo-action='register'] {
+            border-color: var(--accent-color);
+            background: var(--accent-color);
+            color: #fff;
+        }
+
+        .memo-persist-btn[data-memo-action='register']:hover {
+            background: #183858;
+        }
+
+        .memo-persist-btn[data-memo-action='save'] {
+            border-color: #2f6f85;
+            background: #edf7fa;
+            color: #174f64;
+        }
+
+        .memo-persist-btn:disabled {
+            cursor: wait;
+            opacity: 0.58;
+        }
+
+        body.dark-mode .memo-editor-status,
+        body.dark-mode .memo-mode-btn,
+        body.dark-mode .memo-focus-btn,
+        body.dark-mode .memo-persist-btn[data-memo-action='save'] {
+            background: #1e2736;
+            border-color: #475569;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .memo-editor-actions {
+            border-color: #334155;
+        }
+
+        body.dark-mode .memo-editor-clock {
+            color: #94a3b8;
+        }
+
+        .memo-focus-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 11000;
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .memo-focus-overlay.open {
+            display: flex;
+        }
+
+        body.memo-focus-open {
+            overflow: hidden;
+        }
+
+        .memo-focus-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 20px;
+            border-bottom: 1px solid rgba(30, 58, 95, 0.14);
+            background: var(--card-bg);
+            box-shadow: 0 4px 14px rgba(30, 58, 95, 0.06);
+        }
+
+        .memo-focus-heading {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        #memoFocusTitle {
+            overflow: hidden;
+            color: var(--accent-color);
+            font-size: 18px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #memoFocusClock {
+            color: #64748b;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .memo-focus-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        #memoFocusCloseBtn {
+            min-height: 36px;
+            padding: 7px 14px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--accent-color);
+            color: #fff;
+            font-family: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .memo-focus-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-bottom: 1px solid rgba(30, 58, 95, 0.1);
+            background: var(--card-bg);
+        }
+
+        .memo-focus-tab {
+            min-width: 110px;
+            min-height: 38px;
+            border: 1px solid #94a3b8;
+            border-radius: 9px;
+            background: transparent;
+            color: var(--text-color);
+            font-family: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .memo-focus-tab.active {
+            border-color: var(--accent-color);
+            background: var(--accent-color);
+            color: #fff;
+        }
+
+        .memo-focus-main {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .memo-focus-panel {
+            display: none;
+            flex-direction: column;
+            width: min(1100px, 100%);
+            height: 100%;
+            margin: 0 auto;
+            padding: 16px 20px 20px;
+            box-sizing: border-box;
+        }
+
+        .memo-focus-panel.active {
+            display: flex;
+        }
+
+        .memo-focus-toolstrip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding-bottom: 10px;
+        }
+
+        #memoFocusReadContent {
+            flex: 1;
+            overflow: auto;
+            padding: 24px;
+            border: 1px solid #d7e0e9;
+            border-radius: 12px;
+            background: var(--card-bg);
+            font-size: calc(17px * var(--memo-read-scale, 1));
+            line-height: 1.8;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+            user-select: text;
+        }
+
+        #memoFocusReadContent.empty {
+            color: #64748b;
+            font-style: italic;
+        }
+
+        #memoFocusEditTextarea {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            padding: 20px;
+            border: 1px solid #aebdca;
+            border-radius: 12px;
+            background: var(--card-bg);
+            color: var(--text-color);
+            font-family: 'Noto Sans KR', '맑은 고딕', sans-serif;
+            font-size: 17px;
+            line-height: 1.7;
+            resize: none;
+            box-sizing: border-box;
+        }
+
+        .memo-focus-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding-top: 8px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .memo-focus-footer-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        body.dark-mode .memo-focus-header,
+        body.dark-mode .memo-focus-tabs,
+        body.dark-mode #memoFocusReadContent,
+        body.dark-mode #memoFocusEditTextarea {
+            background: #1e2736;
+            border-color: #334155;
+        }
+
+        @media (max-width: 600px) and (orientation: portrait) {
+            body,
+            body * {
+                cursor: auto !important;
+            }
+
+            button,
+            [role='button'] {
+                cursor: pointer !important;
+            }
+
+            #dashboard-container {
+                padding: 10px;
+            }
+
+            header {
+                top: -10px;
+                margin-bottom: 8px;
+                padding: 8px 0 10px;
+            }
+
+            h1 {
+                gap: 8px;
+                margin-bottom: 6px;
+                font-size: clamp(1.2rem, 6vw, 1.5rem);
+                white-space: nowrap;
+            }
+
+            h1 svg {
+                width: 24px;
+                height: 24px;
+                flex-shrink: 0;
+            }
+
+            #year-navigator {
+                gap: 8px;
+            }
+
+            #currentYearSpan {
+                min-width: 112px;
+                font-size: 1.75em;
+            }
+
+            #year-navigator button {
+                width: 36px;
+                height: 36px;
+            }
+
+            .view {
+                padding: 10px 4px 155px;
+            }
+
+            #month-view {
+                gap: 14px;
+            }
+
+            #month-view-actions {
+                gap: 10px;
+                margin-bottom: 6px;
+            }
+
+            #month-view-actions button {
+                min-height: 42px;
+                padding: 9px 14px;
+                gap: 7px;
+                font-size: 16px;
+            }
+
+            #month-view-header {
+                gap: 10px;
+            }
+
+            #month-view-title {
+                font-size: 1.22rem;
+                text-align: center;
+            }
+
+            #monthly-card-container,
+            #weekly-cards-container {
+                width: 100%;
+                max-width: none;
+            }
+
+            #weekly-cards-container {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 11px;
+                padding: 0;
+            }
+
+            .week-card-container {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .report-card,
+            .week-card {
+                min-height: 58px;
+                padding: 15px 24px;
+                font-size: 1rem;
+                box-sizing: border-box;
+            }
+
+            #monthly-report-card {
+                font-size: 1.05rem;
+            }
+
+            .memo-wrapper:not(.hidden) {
+                max-height: 440px;
+                padding: 8px;
+                overflow: auto;
+            }
+
+            .memo-wrapper textarea {
+                height: 150px;
+                font-size: 16px;
+            }
+
+            .memo-editor-toolbar {
+                align-items: stretch;
+            }
+
+            .memo-editor-clock {
+                order: 3;
+                width: 100%;
+            }
+
+            .memo-mode-actions {
+                margin-left: auto;
+            }
+
+            .memo-mode-btn {
+                min-width: 58px;
+                min-height: 34px;
+            }
+
+            .memo-editor-actions {
+                padding-top: 7px;
+            }
+
+            .memo-editor-actions .memo-commit-actions {
+                width: 100%;
+            }
+
+            .memo-editor-actions .memo-persist-btn {
+                flex: 1;
+                min-height: 40px;
+            }
+
+            .control-btn-group-left,
+            .control-btn-group-right {
+                right: 8px;
+                left: 8px;
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                gap: 8px;
+                max-height: none;
+                padding: 5px 8px;
+                border: 1px solid rgba(148, 163, 184, 0.3);
+                border-radius: 999px;
+                background: rgba(247, 248, 252, 0.92);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                box-shadow: 0 4px 16px rgba(30, 58, 95, 0.12);
+            }
+
+            .control-btn-group-left {
+                bottom: 7px;
+            }
+
+            .control-btn-group-right {
+                bottom: 60px;
+            }
+
+            body.dark-mode .control-btn-group-left,
+            body.dark-mode .control-btn-group-right {
+                background: rgba(19, 25, 32, 0.92);
+            }
+
+            .btn-group-label,
+            .btn-divider {
+                display: none;
+            }
+
+            .control-btn,
+            .control-btn:hover {
+                width: 40px;
+                height: 40px;
+                flex: 0 0 40px;
+                transform: none;
+            }
+
+            .control-btn::after {
+                display: none;
+            }
+
+            .control-btn-group-right .control-btn {
+                justify-content: center;
+            }
+
+            .btn-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+
+            .modal-content {
+                width: calc(100% - 20px);
+                max-height: calc(100dvh - 20px);
+                padding: 18px;
+                box-sizing: border-box;
+            }
+
+            .batch-process-grid .selector-group {
+                grid-template-columns: 1fr;
+            }
+
+            .memo-focus-header {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                align-items: start;
+                gap: 7px 10px;
+                padding: 10px 12px;
+            }
+
+            #memoFocusTitle {
+                max-width: none;
+                font-size: 15px;
+            }
+
+            .memo-focus-header-actions {
+                display: contents;
+            }
+
+            .memo-focus-header .memo-editor-status {
+                grid-row: 2;
+                grid-column: 1 / -1;
+                justify-self: start;
+                max-width: calc(100vw - 24px);
+            }
+
+            #memoFocusCloseBtn {
+                grid-row: 1;
+                grid-column: 2;
+                min-height: 34px;
+                padding: 6px 10px;
+            }
+
+            .memo-focus-tabs {
+                padding: 8px 12px;
+            }
+
+            .memo-focus-tab {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .memo-focus-panel {
+                padding: 10px 12px max(12px, env(safe-area-inset-bottom));
+            }
+
+            .memo-focus-toolstrip {
+                gap: 6px;
+            }
+
+            .memo-focus-btn {
+                min-height: 34px;
+                padding: 6px 9px;
+            }
+
+            #memoFocusReadContent,
+            #memoFocusEditTextarea {
+                padding: 16px;
+                font-size: 16px;
+            }
+
+            .memo-focus-footer {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .memo-focus-footer .memo-commit-actions {
+                width: 100%;
+            }
+
+            .memo-focus-footer .memo-persist-btn {
+                flex: 1;
+                min-height: 42px;
+            }
+        }
+
     </style>
 </head>
 
@@ -1533,24 +2176,8 @@
         <!-- 🗓 회의 관리 -->
         <button class="control-btn" id="creationPanelToggleBtn" title="새 회의 안건 작성" data-tooltip="새 회의 안건 작성"><span
                 class="btn-icon">+</span></button>
-        <button class="control-btn" id="manageSkippedBtn" data-tooltip="최초 작성 (월간): 2023-03
-마지막 작성 (월간): 2026-02
-최초 작성 (주간): 2023-03 (1주차)
-마지막 작성 (주간): 2026-01 (5주차)
---------------------
-[경과 기간]
-- 월간: 36개월 경과
-- 주간: 154주 경과
-
-[월간 안건]
-- 총 대상: 36건
-- 미작성: 0건
-= 최종 작성: 36건
-
-[주간 안건]
-- 총 대상: 154건
-- 미작성: 30건
-= 최종 작성: 124건"><span class="btn-icon">📅</span></button>
+        <button class="control-btn" id="manageSkippedBtn" title="XLSB 현황 계산 중…"
+            data-tooltip="XLSB 현황 계산 중…"><span class="btn-icon">📅</span></button>
         <button class="control-btn" id="searchToggleBtn" title="요약 검색" data-tooltip="요약 검색"><span
                 class="btn-icon">🔍</span></button>
         <!-- 구분선 -->
@@ -1661,8 +2288,8 @@
 
                 <div id="extractDataBtnContainer">
                     <button id="extractDataForGithubBtn">두 XLSB 다운로드</button>
-                    <button id="exportOfflineTxtBtn">오프라인 이력 TXT 다운로드</button>
-                    <button id="importOfflineTxtBtn">오프라인 이력 TXT 가져오기</button>
+                    <button id="exportOfflineXlsbBtn">오프라인 XLSB 다운로드</button>
+                    <button id="importOfflineTxtBtn">이전 TXT 이력 가져오기</button>
                     <button id="importLocalXlsbBtn">로컬 XLSB 가져오기</button>
                     <button id="syncPendingBtn">대기 변경 GitHub 동기화</button>
                     <input id="offlineTxtFileInput" type="file" accept=".txt,text/plain" hidden>
@@ -1686,7 +2313,7 @@
                     <ul>
                         <li>Raw URL 또는 로컬 파일에서 두 XLSB를 불러옵니다.</li>
                         <li>변경 내용은 IndexedDB 대기열에 즉시 보관됩니다.</li>
-                        <li>인터넷이 없으면 UTF-8 JSONL TXT를 내려받아 나중에 다시 가져오거나 GitHub 업로드에 사용합니다.</li>
+                        <li>인터넷이 없거나 웹 저장이 실패하면 현재 변경 이력이 포함된 XLSB를 PC에 내려받습니다.</li>
                         <li>XLSB는 사용 중인 행·열만 압축 재생성하여 반복 저장으로 인한 용량 누적을 방지합니다.</li>
                     </ul>
                 </details>
@@ -1704,13 +2331,13 @@
                     <label for="confApiMemosPath">회의 요약 XLSB 경로</label> <input type="text" id="confApiMemosPath"
                         placeholder="RawData/월간 및 주간/회의_요약_메모.xlsb">
                     <label for="confApiToken">Personal Access Token</label> <input type="password" id="confApiToken"
-                        autocomplete="off" placeholder="세션에만 유지되며 파일·브라우저 저장소에는 기록하지 않습니다.">
+                        autocomplete="new-password" placeholder="직접 입력 또는 웹 저장 시 encrypted-pat 간편키 사용">
                 </div>
                 <details>
                     <summary>GitHub 동기화 보안·충돌 처리</summary>
                     <ul>
                         <li>저장소 하나의 Contents 읽기/쓰기만 허용한 fine-grained PAT를 사용하세요.</li>
-                        <li>PAT은 현재 세션 메모리에만 유지되며 설정, TXT, XLSB에 포함되지 않습니다.</li>
+                        <li>공정 관리의 encrypted-pat.json 암호문과 간편키를 조합하며 PAT 원문은 설정, TXT, XLSB에 포함되지 않습니다.</li>
                         <li>각 XLSB를 최신 SHA로 다시 읽고 변경 이력을 병합한 뒤 순차 업로드합니다.</li>
                         <li>충돌·권한·네트워크 오류 시 대기열을 지우지 않아 수동 복구할 수 있습니다.</li>
                     </ul>
@@ -1871,6 +2498,55 @@
         </div>
     </div>
 
+    <section id="memoFocusOverlay" class="memo-focus-overlay" aria-hidden="true" aria-label="회의 요약 전체 화면">
+        <header class="memo-focus-header">
+            <div class="memo-focus-heading">
+                <strong id="memoFocusTitle">회의 요약</strong>
+                <time id="memoFocusClock" aria-label="현재 날짜와 시간"></time>
+            </div>
+            <div class="memo-focus-header-actions">
+                <span id="memoFocusStatus" class="memo-editor-status" data-state="ready">준비 중</span>
+                <button id="memoFocusCloseBtn" type="button" aria-label="전체 화면 닫기">닫기 ×</button>
+            </div>
+        </header>
+        <nav class="memo-focus-tabs" aria-label="회의 요약 모드">
+            <button class="memo-focus-tab" type="button" data-focus-mode="read" aria-selected="false">읽기</button>
+            <button class="memo-focus-tab" type="button" data-focus-mode="edit" aria-selected="false">내용 입력</button>
+        </nav>
+        <main class="memo-focus-main">
+            <section id="memoFocusReadPanel" class="memo-focus-panel" aria-label="회의 요약 읽기 모드">
+                <div class="memo-focus-toolstrip">
+                    <button class="memo-focus-btn" type="button" data-read-action="smaller">글자 작게</button>
+                    <button class="memo-focus-btn" type="button" data-read-action="reset">기본 크기</button>
+                    <button class="memo-focus-btn" type="button" data-read-action="larger">글자 크게</button>
+                    <button class="memo-focus-btn" type="button" data-read-action="copy">내용 복사</button>
+                </div>
+                <article id="memoFocusReadContent" tabindex="0"></article>
+            </section>
+            <section id="memoFocusEditPanel" class="memo-focus-panel" aria-label="회의 요약 내용 입력 모드">
+                <div class="memo-focus-toolstrip">
+                    <button class="memo-focus-btn" type="button" data-edit-action="insert-time">현재 시각 삽입</button>
+                    <button class="memo-focus-btn" type="button" data-edit-action="undo">실행 취소</button>
+                    <button class="memo-focus-btn" type="button" data-edit-action="redo">다시 실행</button>
+                    <button class="memo-focus-btn" type="button" data-edit-action="select-all">전체 선택</button>
+                </div>
+                <textarea id="memoFocusEditTextarea" aria-label="회의 요약 내용 입력" spellcheck="true"></textarea>
+                <div class="memo-focus-footer">
+                    <div class="memo-focus-footer-info">
+                        <span id="memoFocusCount">0자 · 0줄</span>
+                        <span>웹 저장은 GitHub XLSB, PC 저장은 로컬 XLSB에 초 단위 이력으로 기록됩니다.</span>
+                    </div>
+                    <div class="memo-commit-actions" aria-label="회의 요약 웹 저장 및 PC 저장">
+                        <button id="memoFocusRegisterBtn" class="memo-persist-btn" type="button"
+                            data-memo-action="register" title="회의 요약 XLSB를 GitHub에 웹 저장">웹 저장</button>
+                        <button id="memoFocusSaveBtn" class="memo-persist-btn" type="button"
+                            data-memo-action="save" title="회의 요약 XLSB를 로컬 컴퓨터에 PC 저장">PC 저장</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </section>
+
     <script>
         let WEEKLY_TEMPLATE_HTML = `(주간 회의 템플릿 로딩 중...)`;
         let MONTHLY_TEMPLATE_HTML = `(월간 회의 템플릿 로딩 중...)`;
@@ -1910,10 +2586,15 @@
         let currentYear;
         let currentMonth = null;
         let meetingStore = null;
+        let meetingGithubCredential = null;
         let meetingStatusRows = [];
         let meetingMemoRows = [];
         let tempMeetingMemos = {};
         let tempSkippedDates = [];
+        const memoIndicatorStates = new Map();
+        let memoFocusState = null;
+        let memoReadScale = 1;
+        let memoClockInterval = null;
 
         const debounce = (func, delay) => {
             let timeout;
@@ -1922,6 +2603,57 @@
                 timeout = setTimeout(() => func(...args), delay);
             };
         };
+
+        function isGithubAuthenticationError(error) {
+            const status = Number(error?.status || error?.details?.status || error?.cause?.status || 0);
+            return status === 401 || status === 403;
+        }
+
+        async function ensureMeetingGithubToken(options = {}) {
+            if (!meetingStore || !meetingGithubCredential) {
+                throw new Error('GitHub PAT 암호문 모듈이 준비되지 않았습니다.');
+            }
+            if (navigator.onLine === false) {
+                const offlineError = new Error('인터넷 연결이 없어 GitHub 웹 저장을 대기열로 전환합니다.');
+                offlineError.code = 'NETWORK_OFFLINE';
+                throw offlineError;
+            }
+            const input = document.getElementById('confApiToken');
+            const directToken = String(input?.value || '').trim();
+            if (directToken) {
+                try { return meetingGithubCredential.adoptToken(directToken); }
+                finally { input.value = ''; }
+            }
+            const token = await meetingGithubCredential.ensureToken({
+                allowPrompt: options.allowPrompt !== false,
+                allowSetup: options.allowSetup !== false,
+                forcePrompt: options.forcePrompt === true,
+                skipLocalVault: options.skipLocalVault === true
+            });
+            if (!token) {
+                const cancelled = new Error('GitHub PAT 인증이 취소되었습니다. 변경 이력은 로컬 대기열에 유지됩니다.');
+                cancelled.code = 'CREDENTIAL_CANCELLED';
+                throw cancelled;
+            }
+            return token;
+        }
+
+        async function runWithMeetingGithubCredential(operation, options = {}) {
+            let token = await ensureMeetingGithubToken(options);
+            try {
+                return await operation(token);
+            } catch (error) {
+                if (!isGithubAuthenticationError(error) || options.authRetry === false) throw error;
+                meetingGithubCredential.clearStoredGithubToken(`github-${Number(error.status || 0)}`);
+                updateDataSyncStatus('GitHub PAT 재인증 필요 · 간편키를 다시 확인해주세요.', 'waiting');
+                token = await ensureMeetingGithubToken({
+                    forcePrompt: true,
+                    skipLocalVault: true,
+                    allowSetup: true
+                });
+                return await operation(token);
+            }
+        }
 
         function applyStoreSnapshot(snapshot = {}) {
             meetingStatusRows = Array.isArray(snapshot.status?.rows)
@@ -1940,15 +2672,32 @@
             );
             const pending = Number(snapshot.pendingCount || 0);
             const statusText = pending
-                ? `브라우저에 저장됨 · GitHub 동기화 대기 ${pending}건`
+                ? `GitHub 동기화 대기 ${pending}건`
                 : 'XLSB와 동기화됨 · 대기 변경 없음';
             updateDataSyncStatus(statusText, pending ? 'waiting' : 'saved');
+            if (document.getElementById('manageSkippedBtn')) updateAnalyticsTooltip();
+        }
+
+        function applyStoreSnapshotPreservingMemoDrafts(snapshot = {}) {
+            const liveDrafts = new Map();
+            const draftKeys = new Set([...pendingMemoTimers.keys(), ...memoPersistPromises.keys()]);
+            if (memoFocusState?.mode === 'edit') draftKeys.add(memoFocusState.key);
+            document.querySelectorAll('.memo-wrapper textarea[data-key]').forEach(textarea => {
+                if (draftKeys.has(textarea.dataset.key)) liveDrafts.set(textarea.dataset.key, textarea.value);
+            });
+            if (memoFocusState?.key && draftKeys.has(memoFocusState.key)) {
+                liveDrafts.set(memoFocusState.key, memoFocusState.draft);
+            }
+            applyStoreSnapshot(snapshot);
+            for (const [key, value] of liveDrafts) {
+                if (value.trim()) tempMeetingMemos[key] = value;
+                else delete tempMeetingMemos[key];
+            }
         }
 
         function updateDataSyncStatus(message, state = '') {
             const settingsStatus = document.getElementById('dataSyncStatus');
             if (settingsStatus) settingsStatus.textContent = message;
-            setAutoSaveStatus(state, message);
         }
 
         /* --- 개선: ISO 8601 주차 계산 함수 --- */
@@ -2062,12 +2811,253 @@
             return `${cleanedBase}/${cleanedTemplate}`;
         }
 
-        function createMemoTextarea(key, placeholder) {
+        function formatCurrentDateTime(date = new Date()) {
+            return new Intl.DateTimeFormat('ko-KR', {
+                year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            }).format(date);
+        }
+
+        function formatAuditDateTime(value = new Date()) {
+            const date = value instanceof Date ? value : new Date(value);
+            const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+            const pad = number => String(number).padStart(2, '0');
+            return `${safeDate.getFullYear()}-${pad(safeDate.getMonth() + 1)}-${pad(safeDate.getDate())} ` +
+                `${pad(safeDate.getHours())}:${pad(safeDate.getMinutes())}:${pad(safeDate.getSeconds())}`;
+        }
+
+        function formatAuditFilename(value = new Date()) {
+            return formatAuditDateTime(value).replace(' ', '_').replace(/:/g, '-');
+        }
+
+        function updateMemoClocks() {
+            const nowText = formatCurrentDateTime();
+            document.querySelectorAll('[data-memo-clock]').forEach(clock => { clock.textContent = nowText; });
+            const focusClock = document.getElementById('memoFocusClock');
+            if (focusClock) focusClock.textContent = nowText;
+        }
+
+        function getMemoLabel(key) {
+            const [year, month, week] = String(key).split('-');
+            return week ? `${year}년 ${month}월 ${week}주차 회의 요약` : `${year}년 ${month}월 월간 회의 요약`;
+        }
+
+        function findMemoTextarea(key) {
+            return [...document.querySelectorAll('.memo-wrapper textarea')]
+                .find(textarea => textarea.dataset.key === key) || null;
+        }
+
+        function getPersistedMemoValue(key) {
+            const row = meetingMemoRows.find(item => item.key === key);
+            return row?.summary || row?.memo || '';
+        }
+
+        function getMemoIndicatorState(key) {
+            return memoIndicatorStates.get(key) || { state: 'ready', message: '준비 중' };
+        }
+
+        function setMemoIndicatorState(key, state, message) {
+            const next = { state, message };
+            memoIndicatorStates.set(key, next);
+            document.querySelectorAll('[data-memo-status-key]').forEach(indicator => {
+                if (indicator.dataset.memoStatusKey !== key) return;
+                indicator.dataset.state = state;
+                indicator.textContent = message;
+            });
+            if (memoFocusState?.key === key) {
+                const focusStatus = document.getElementById('memoFocusStatus');
+                focusStatus.dataset.state = state;
+                focusStatus.textContent = message;
+            }
+        }
+
+        function createMemoEditor(key, placeholder) {
+            const shell = document.createElement('div');
+            shell.className = 'memo-editor-shell';
+
+            const toolbar = document.createElement('div');
+            toolbar.className = 'memo-editor-toolbar';
+
+            const indicator = document.createElement('span');
+            const indicatorState = getMemoIndicatorState(key);
+            indicator.className = 'memo-editor-status';
+            indicator.dataset.memoStatusKey = key;
+            indicator.dataset.state = indicatorState.state;
+            indicator.textContent = indicatorState.message;
+            indicator.setAttribute('role', 'status');
+            indicator.setAttribute('aria-live', 'polite');
+
+            const clock = document.createElement('time');
+            clock.className = 'memo-editor-clock';
+            clock.dataset.memoClock = '';
+            clock.textContent = formatCurrentDateTime();
+
+            const modeActions = document.createElement('div');
+            modeActions.className = 'memo-mode-actions';
+            for (const [mode, label] of [['read', '읽기'], ['edit', '내용 입력']]) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'memo-mode-btn';
+                button.dataset.memoMode = mode;
+                button.dataset.memoKey = key;
+                button.textContent = label;
+                button.setAttribute('aria-label', `${getMemoLabel(key)} ${label} 전체 화면`);
+                modeActions.appendChild(button);
+            }
+            toolbar.append(indicator, clock, modeActions);
+
             const textarea = document.createElement('textarea');
             textarea.dataset.key = key;
             textarea.placeholder = placeholder;
             textarea.value = tempMeetingMemos[key] || '';
-            return textarea;
+            textarea.setAttribute('aria-label', getMemoLabel(key));
+
+            const actionBar = document.createElement('div');
+            actionBar.className = 'memo-editor-actions';
+            const commitActions = document.createElement('div');
+            commitActions.className = 'memo-commit-actions';
+            commitActions.setAttribute('aria-label', `${getMemoLabel(key)} 웹 저장 및 PC 저장`);
+            for (const [action, label, title] of [
+                ['register', '웹 저장', '회의 요약 XLSB를 GitHub에 웹 저장'],
+                ['save', 'PC 저장', '회의 요약 XLSB를 로컬 컴퓨터에 PC 저장']
+            ]) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'memo-persist-btn';
+                button.dataset.memoAction = action;
+                button.dataset.memoKey = key;
+                button.textContent = label;
+                button.title = title;
+                button.setAttribute('aria-label', `${getMemoLabel(key)} ${label}`);
+                commitActions.appendChild(button);
+            }
+            actionBar.appendChild(commitActions);
+            shell.append(toolbar, textarea, actionBar);
+            return shell;
+        }
+
+        function updateMemoFocusCount() {
+            const textarea = document.getElementById('memoFocusEditTextarea');
+            const text = textarea.value;
+            const lines = text ? text.split(/\r?\n/).length : 0;
+            document.getElementById('memoFocusCount').textContent = `${text.length.toLocaleString('ko-KR')}자 · ${lines.toLocaleString('ko-KR')}줄`;
+        }
+
+        function renderMemoFocusMode(mode) {
+            if (!memoFocusState) return;
+            memoFocusState.mode = mode;
+            document.querySelectorAll('.memo-focus-tab').forEach(tab => {
+                const active = tab.dataset.focusMode === mode;
+                tab.classList.toggle('active', active);
+                tab.setAttribute('aria-selected', active);
+            });
+            document.getElementById('memoFocusReadPanel').classList.toggle('active', mode === 'read');
+            document.getElementById('memoFocusEditPanel').classList.toggle('active', mode === 'edit');
+            document.getElementById('memoFocusTitle').textContent = `${getMemoLabel(memoFocusState.key)} · ${mode === 'read' ? '읽기' : '내용 입력'}`;
+
+            if (mode === 'read') {
+                const content = document.getElementById('memoFocusReadContent');
+                const savedText = getPersistedMemoValue(memoFocusState.key);
+                memoFocusState.readSnapshot = savedText;
+                content.textContent = savedText || '저장된 회의 요약이 없습니다.';
+                content.classList.toggle('empty', !savedText);
+                content.style.setProperty('--memo-read-scale', memoReadScale);
+                requestAnimationFrame(() => content.focus());
+            } else {
+                const editor = document.getElementById('memoFocusEditTextarea');
+                if (editor.value !== memoFocusState.draft) editor.value = memoFocusState.draft;
+                updateMemoFocusCount();
+                requestAnimationFrame(() => editor.focus());
+            }
+        }
+
+        function openMemoFocus(key, mode) {
+            const source = findMemoTextarea(key);
+            const draft = source?.value ?? tempMeetingMemos[key] ?? '';
+            memoFocusState = {
+                key,
+                mode,
+                draft,
+                readSnapshot: getPersistedMemoValue(key),
+                returnFocus: document.activeElement
+            };
+            const editor = document.getElementById('memoFocusEditTextarea');
+            editor.value = draft;
+            const indicatorState = getMemoIndicatorState(key);
+            const focusStatus = document.getElementById('memoFocusStatus');
+            focusStatus.dataset.state = indicatorState.state;
+            focusStatus.textContent = indicatorState.message;
+            document.querySelectorAll('.memo-focus-footer .memo-persist-btn').forEach(button => {
+                button.dataset.memoKey = key;
+            });
+            const overlay = document.getElementById('memoFocusOverlay');
+            overlay.classList.add('open');
+            overlay.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('memo-focus-open');
+            updateMemoClocks();
+            renderMemoFocusMode(mode);
+        }
+
+        function closeMemoFocus() {
+            if (!memoFocusState) return;
+            const { key, draft, returnFocus } = memoFocusState;
+            const source = findMemoTextarea(key);
+            if (source && source.value !== draft) source.value = draft;
+            const overlay = document.getElementById('memoFocusOverlay');
+            overlay.classList.remove('open');
+            overlay.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('memo-focus-open');
+            memoFocusState = null;
+            requestAnimationFrame(() => returnFocus?.focus?.());
+        }
+
+        async function copyMemoReadContent() {
+            if (!memoFocusState) return;
+            const text = getPersistedMemoValue(memoFocusState.key);
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const helper = document.createElement('textarea');
+                    helper.value = text;
+                    helper.style.position = 'fixed';
+                    helper.style.opacity = '0';
+                    document.body.appendChild(helper);
+                    helper.select();
+                    document.execCommand('copy');
+                    helper.remove();
+                }
+                setMemoIndicatorState(memoFocusState.key, 'saved', '복사 완료');
+            } catch (error) {
+                setMemoIndicatorState(memoFocusState.key, 'error', '복사 실패');
+            }
+        }
+
+        function handleMemoReadAction(action) {
+            if (action === 'copy') {
+                copyMemoReadContent();
+                return;
+            }
+            if (action === 'reset') memoReadScale = 1;
+            if (action === 'smaller') memoReadScale = Math.max(0.8, memoReadScale - 0.1);
+            if (action === 'larger') memoReadScale = Math.min(1.5, memoReadScale + 0.1);
+            document.getElementById('memoFocusReadContent').style.setProperty('--memo-read-scale', memoReadScale);
+        }
+
+        function handleMemoEditAction(action) {
+            const editor = document.getElementById('memoFocusEditTextarea');
+            editor.focus();
+            if (action === 'insert-time') {
+                const stamp = `[${formatCurrentDateTime()}]`;
+                const prefix = editor.value && editor.selectionStart > 0 && editor.value[editor.selectionStart - 1] !== '\n' ? '\n' : '';
+                editor.setRangeText(`${prefix}${stamp}\n`, editor.selectionStart, editor.selectionEnd, 'end');
+                editor.dispatchEvent(new Event('input', { bubbles: true }));
+            } else if (action === 'select-all') {
+                editor.select();
+            } else if (action === 'undo' || action === 'redo') {
+                document.execCommand(action);
+                editor.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         }
 
         function renderYearView(year, skippedDates) {
@@ -2095,8 +3085,8 @@
                     const isLegacy = year < 2023 || (year === 2023 && i < 3);
                     if (isLegacy || isFuture) {
                         card.classList.add('not-written');
-                        let tooltip = '회의 안건 미작성';
-                        if (isLegacy) tooltip = '해당 날짜는 지원되지 않습니다.';
+                        let tooltip = isFuture ? '미도래 · 공식 집계 제외' : '회의 안건 미작성';
+                        if (isLegacy) tooltip = '해당 날짜는 지원되지 않습니다. · 공식 집계 제외';
                         card.dataset.tooltip = tooltip;
                     } else {
                         card.dataset.month = i;
@@ -2154,8 +3144,8 @@
                 const isLegacyMonth = parseInt(year) < 2023 || (parseInt(year) === 2023 && parseInt(month) < 3);
                 if (isLegacyMonth || isFutureMonth) {
                     monthlyCard.classList.add('not-written');
-                    let tooltip = '회의 안건 미작성';
-                    if (isLegacyMonth) tooltip = '해당 날짜는 지원되지 않습니다.';
+                    let tooltip = isFutureMonth ? '미도래 · 공식 집계 제외' : '회의 안건 미작성';
+                    if (isLegacyMonth) tooltip = '해당 날짜는 지원되지 않습니다. · 공식 집계 제외';
                     monthlyCard.dataset.tooltip = tooltip;
                     monthlyCard.removeAttribute('data-href');
                 } else {
@@ -2176,7 +3166,7 @@
                     memoToggleBtn.textContent = '+';
                     memoToggleBtn.title = '회의 요약 보기/숨기기';
                     monthlyCard.appendChild(memoToggleBtn);
-                    monthlyMemoWrapper.appendChild(createMemoTextarea(monthlyKey, '월간 회의 요약 내용을 입력하세요...'));
+                    monthlyMemoWrapper.appendChild(createMemoEditor(monthlyKey, '월간 회의 요약 내용을 입력하세요...'));
                 }
             }
             const monthlyStatusRow = meetingStatusRows.find(row => row.key === monthlyKey && row.cardVisible === 'Y');
@@ -2187,7 +3177,7 @@
                 memoToggleBtn.textContent = '+';
                 memoToggleBtn.title = '회의 요약 보기/숨기기';
                 monthlyCard.appendChild(memoToggleBtn);
-                monthlyMemoWrapper.appendChild(createMemoTextarea(monthlyKey, '월간 회의 요약 내용을 입력하세요...'));
+                monthlyMemoWrapper.appendChild(createMemoEditor(monthlyKey, '월간 회의 요약 내용을 입력하세요...'));
             }
             monthlyCard.style.animation = 'slideInCascade 0.5s 0.1s ease-out backwards';
 
@@ -2216,8 +3206,8 @@
                         (parseInt(year) === todayYear && parseInt(month) === todayMonth && w > todayWeek);
                     if (isLegacyWeek || isFutureWeek) {
                         weeklyCard.classList.add('not-written');
-                        let tooltip = '회의 안건 미작성';
-                        if (isLegacyWeek) tooltip = '해당 날짜는 지원되지 않습니다.';
+                        let tooltip = isFutureWeek ? '미도래 · 공식 집계 제외' : '회의 안건 미작성';
+                        if (isLegacyWeek) tooltip = '해당 날짜는 지원되지 않습니다. · 공식 집계 제외';
                         weeklyCard.dataset.tooltip = tooltip;
                     } else {
                         weeklyCard.classList.remove('not-written');
@@ -2242,14 +3232,19 @@
                 memoWrapper.className = 'memo-wrapper hidden';
                 memoWrapper.id = `memo-${weeklyKey}`;
                 const weeklyStatusRow = meetingStatusRows.find(row => row.key === weeklyKey && row.cardVisible === 'Y');
-                if (weeklyStatusRow?.status === '작성' && !weeklyCard.classList.contains('not-written')) {
+                const isCurrentOfficialWeek = Boolean(weeklyStatusRow && weeklyCard.classList.contains('current'));
+                const canEditWeeklyMemo = Boolean(weeklyStatusRow && (
+                    (weeklyStatusRow.status === '작성' && !weeklyCard.classList.contains('not-written'))
+                    || isCurrentOfficialWeek
+                ));
+                if (canEditWeeklyMemo) {
                     const memoToggleBtn = document.createElement('button');
                     memoToggleBtn.className = 'memo-toggle-btn';
                     memoToggleBtn.dataset.key = weeklyKey;
                     memoToggleBtn.textContent = '+';
                     memoToggleBtn.title = '회의 요약 보기/숨기기';
                     weeklyCard.appendChild(memoToggleBtn);
-                    memoWrapper.appendChild(createMemoTextarea(weeklyKey, '주간 회의 요약 내용을 입력하세요...'));
+                    memoWrapper.appendChild(createMemoEditor(weeklyKey, '주간 회의 요약 내용을 입력하세요...'));
                 }
                 container.appendChild(weeklyCard);
                 container.appendChild(memoWrapper);
@@ -2304,17 +3299,22 @@
             }));
         }
 
-        /* --- 개선 1: 툴팁 정보 강화 --- */
-        function updateAnalyticsTooltip() {
-            const activeRows = meetingStatusRows.filter(row => row.counterIncluded === 'Y');
-            const unmappedRows = meetingStatusRows.filter(row => row.counterIncluded !== 'Y');
+        function buildMeetingStatusSummary(rows = meetingStatusRows) {
+            const sourceRows = Array.isArray(rows) ? rows : [];
+            const activeRows = sourceRows.filter(row => row.counterIncluded === 'Y');
+            const excludedRows = sourceRows.filter(row => row.counterIncluded !== 'Y');
+            const visibleRows = sourceRows.filter(row => row.cardVisible === 'Y');
             const rowOrder = row => Number(row.year) * 1000 + Number(row.month) * 10 + Number(row.week || 0);
+            const referenceOrder = row => {
+                const parsed = Date.parse(`${row.referenceDate || ''}T00:00:00`);
+                return Number.isFinite(parsed) ? parsed : rowOrder(row);
+            };
             const label = row => row.type === '월간'
-                ? `${row.year}-${String(row.month).padStart(2, '0')}`
-                : `${row.year}-${String(row.month).padStart(2, '0')} (${row.week}주차)`;
+                ? `${row.year}-${String(row.month).padStart(2, '0')}${row.referenceDate ? ` · 기준일 ${row.referenceDate}` : ''}`
+                : `${row.year}-${String(row.month).padStart(2, '0')} (${row.week}주차${row.referenceDate ? ` · 기준일 ${row.referenceDate}` : ''})`;
             const summarize = type => {
                 const rows = activeRows.filter(row => row.type === type).sort((a, b) => rowOrder(a) - rowOrder(b));
-                const writtenRows = rows.filter(row => row.status === '작성');
+                const writtenRows = rows.filter(row => row.status === '작성').sort((a, b) => referenceOrder(a) - referenceOrder(b));
                 return {
                     total: rows.length,
                     written: writtenRows.length,
@@ -2323,19 +3323,57 @@
                     last: writtenRows.length ? label(writtenRows[writtenRows.length - 1]) : '없음'
                 };
             };
-            const monthly = summarize('월간');
-            const weekly = summarize('주간');
+            const countStatuses = targetRows => ({
+                total: targetRows.length,
+                written: targetRows.filter(row => row.status === '작성').length,
+                skipped: targetRows.filter(row => row.status === '미작성').length
+            });
+            const officialHidden = activeRows.filter(row => row.cardVisible !== 'Y');
+            const excludedVisible = excludedRows.filter(row => row.cardVisible === 'Y');
+            const flagMismatchRows = sourceRows.filter(row => row.counterIncluded !== row.cardVisible);
+            const forcedWeeklyRows = activeRows.filter(row => row.type === '주간' && row.exceptionCode === 'FORCED_WEEK5');
+            return {
+                all: countStatuses(sourceRows),
+                official: countStatuses(activeRows),
+                visible: countStatuses(visibleRows),
+                excluded: countStatuses(excludedRows),
+                monthly: summarize('월간'),
+                weekly: summarize('주간'),
+                regularWeeklyCount: activeRows.filter(row => row.type === '주간').length - forcedWeeklyRows.length,
+                forcedWeeklyRows,
+                flagMismatchRows,
+                officialHidden,
+                excludedVisible,
+                excludedRows
+            };
+        }
+
+        /* XLSB 행, 공식 카운터, 화면 카드가 하나의 요약 객체를 공유한다. */
+        function updateAnalyticsTooltip() {
+            const summary = buildMeetingStatusSummary();
+            const { all, official, visible, excluded, monthly, weekly } = summary;
+            const mismatchCount = summary.flagMismatchRows.length;
 
             const tooltipText = `최초 작성 (월간): ${monthly.first}\n` +
                 `마지막 작성 (월간): ${monthly.last}\n` +
                 `최초 작성 (주간): ${weekly.first}\n` +
                 `마지막 작성 (주간): ${weekly.last}\n` +
                 `--------------------\n` +
-                `[누적 대상 카드]\n` +
+                `[기간·카드 기준]\n` +
+                `- 월간: ${monthly.total}개월\n` +
+                `- 주간 카드: ${weekly.total}건 (정규 ${summary.regularWeeklyCount} + 보존 특수 ${summary.forcedWeeklyRows.length})\n\n` +
+                `[전체 자료]\n` +
+                `- 전체: ${all.total}건 (작성 ${all.written} / 미작성 ${all.skipped})\n` +
+                `- 공식 집계: ${official.total}건 (작성 ${official.written} / 미작성 ${official.skipped})\n\n` +
+                `[유형별 공식 집계]\n` +
                 `- 월간: ${monthly.total}건 (작성 ${monthly.written} / 미작성 ${monthly.skipped})\n` +
                 `- 주간: ${weekly.total}건 (작성 ${weekly.written} / 미작성 ${weekly.skipped})\n\n` +
+                `[카드 대조]\n` +
+                `- 표시 카드: ${visible.total}건 (작성 ${visible.written} / 미작성 ${visible.skipped})\n` +
+                `- 공식 집계·카드 불일치: ${mismatchCount}건\n\n` +
                 `[감사 예외]\n` +
-                `- 카드 미매핑 보존 이력: ${unmappedRows.length}건 (공식 카운터 제외)`;
+                `- 공식 포함 보존 특수 주차: ${summary.forcedWeeklyRows.length}건\n` +
+                `- 공식 제외 보존 이력: ${excluded.total}건 (작성 ${excluded.written} / 미작성 ${excluded.skipped})`;
 
             const manageSkippedBtn = document.getElementById('manageSkippedBtn');
             manageSkippedBtn.dataset.tooltip = tooltipText;
@@ -2346,6 +3384,7 @@
         function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
         function closeAllOpenElements() {
+            if (document.getElementById('memoFocusOverlay').classList.contains('open')) closeMemoFocus();
             document.querySelectorAll('.modal-overlay.open').forEach(modal => closeModal(modal.id));
             document.querySelectorAll('.memo-wrapper:not(.hidden)').forEach(memoWrapper => {
                 memoWrapper.classList.add('hidden');
@@ -2531,23 +3570,8 @@
             location.reload();
         }
 
-        let autoSaveStatusTimer = null;
-        function setAutoSaveStatus(status, message) {
-            const statusEl = document.getElementById('autoSaveStatus');
-            if (!statusEl) return;
-
-            clearTimeout(autoSaveStatusTimer);
-            statusEl.className = status;
-            statusEl.textContent = message;
-            if (status === 'saved') {
-                autoSaveStatusTimer = setTimeout(() => {
-                    statusEl.className = '';
-                    statusEl.textContent = '⚪ 변경사항 없음';
-                }, 2000);
-            }
-        }
-
-        async function checkForUnsavedChanges() {
+        async function checkForUnsavedChanges(options) {
+            const settings = options || {};
             const saveBtn = document.getElementById('saveAllChangesBtn');
             if (!saveBtn || !meetingStore) return 0;
             const pending = await meetingStore.pendingCount();
@@ -2555,50 +3579,264 @@
             saveBtn.style.backgroundColor = pending ? 'var(--current-month-color)' : '';
             saveBtn.style.cursor = pending ? 'pointer' : 'not-allowed';
             const message = pending
-                ? `브라우저에 저장됨 · GitHub 동기화 대기 ${pending}건`
+                ? `GitHub 동기화 대기 ${pending}건`
                 : 'XLSB와 동기화됨 · 대기 변경 없음';
             updateDataSyncStatus(message, pending ? 'waiting' : 'saved');
-            const token = document.getElementById('confApiToken')?.value.trim();
-            if (pending && dashboardConfig.dataManagement.mode === 'api' && token) {
-                meetingStore.setSessionToken(token);
+            const sessionReady = Boolean(meetingGithubCredential?.hasSessionToken());
+            if (settings.autoSync !== false && pending && dashboardConfig.dataManagement.mode === 'api' && sessionReady) {
                 debouncedSync();
             }
             return pending;
         }
 
         const pendingMemoTimers = new Map();
-        async function persistMemoChange(key, value) {
+        const memoPersistPromises = new Map();
+        function persistMemoChange(key, value) {
             pendingMemoTimers.delete(key);
-            await meetingStore.setMemo(key, value, { source: '웹 회의 요약 편집' });
-            applyStoreSnapshot(meetingStore.getSnapshot());
-            await checkForUnsavedChanges();
+            const previous = memoPersistPromises.get(key) || Promise.resolve();
+            let task;
+            task = previous.catch(() => undefined).then(async () => {
+                setMemoIndicatorState(key, 'saving', '로컬 저장 중');
+                try {
+                    await meetingStore.setMemo(key, value, { source: '웹 회의 요약 편집' });
+                    applyStoreSnapshotPreservingMemoDrafts(meetingStore.getSnapshot());
+                    const pending = await checkForUnsavedChanges({ autoSync: false });
+                    setMemoIndicatorState(
+                        key,
+                        pending ? 'pending' : 'saved',
+                        pending ? `로컬 저장 완료 · 업로드 대기 ${pending}건` : '저장 완료'
+                    );
+                    if (memoFocusState?.key === key && memoFocusState.mode === 'read') {
+                        renderMemoFocusMode('read');
+                    }
+                } catch (error) {
+                    const code = error?.code || error?.name || 'UNKNOWN';
+                    setMemoIndicatorState(key, 'error', `로컬 저장 오류 · ${code}`);
+                    throw error;
+                }
+            });
+            memoPersistPromises.set(key, task);
+            void task.finally(() => {
+                if (memoPersistPromises.get(key) === task) memoPersistPromises.delete(key);
+            }).catch(() => undefined);
+            return task;
+        }
+
+        function queueMemoSave(key, value) {
+            if (value.trim()) tempMeetingMemos[key] = value;
+            else delete tempMeetingMemos[key];
+            setMemoIndicatorState(key, 'waiting', '입력 대기 중');
+            clearTimeout(pendingMemoTimers.get(key));
+            pendingMemoTimers.set(key, setTimeout(() => {
+                persistMemoChange(key, value).catch(error => {
+                    console.error('메모 저장 실패:', error);
+                    updateDataSyncStatus(`메모 로컬 저장 실패: ${error.message}`, 'error');
+                });
+            }, 600));
         }
 
         function handleMemoInput(e) {
             if (!e.target.matches('.memo-wrapper textarea')) return;
             const textarea = e.target;
-            const key = textarea.dataset.key;
-            if (textarea.value.trim()) { tempMeetingMemos[key] = textarea.value; }
-            else { delete tempMeetingMemos[key]; }
-            clearTimeout(pendingMemoTimers.get(key));
-            pendingMemoTimers.set(key, setTimeout(() => {
-                persistMemoChange(key, textarea.value).catch(error => {
-                    console.error('메모 저장 실패:', error);
-                    updateDataSyncStatus(`메모 로컬 저장 실패: ${error.message}`, 'error');
-                });
-            }, 400));
+            queueMemoSave(textarea.dataset.key, textarea.value);
         }
 
         async function flushMemoChanges() {
             const textareas = [...document.querySelectorAll('.memo-wrapper textarea')];
-            const tasks = [];
+            const tasks = new Set();
             for (const textarea of textareas) {
                 const key = textarea.dataset.key;
                 if (!pendingMemoTimers.has(key)) continue;
                 clearTimeout(pendingMemoTimers.get(key));
-                tasks.push(persistMemoChange(key, textarea.value));
+                const value = memoFocusState?.key === key ? memoFocusState.draft : textarea.value;
+                tasks.add(persistMemoChange(key, value));
             }
-            await Promise.all(tasks);
+            for (const task of memoPersistPromises.values()) tasks.add(task);
+            await Promise.all([...tasks]);
+        }
+
+        function cancelPendingMemoSave(key) {
+            clearTimeout(pendingMemoTimers.get(key));
+            pendingMemoTimers.delete(key);
+        }
+
+        function setMemoActionButtonsDisabled(key, disabled) {
+            document.querySelectorAll('.memo-persist-btn').forEach(button => {
+                if (button.dataset.memoKey === key) button.disabled = disabled;
+            });
+            const cardEditor = findMemoTextarea(key);
+            if (cardEditor) cardEditor.disabled = disabled;
+            const focusEditor = document.getElementById('memoFocusEditTextarea');
+            if (focusEditor && memoFocusState?.key === key) {
+                focusEditor.disabled = disabled;
+                document.querySelectorAll('[data-edit-action]').forEach(button => { button.disabled = disabled; });
+            }
+        }
+
+        function getMemoDraftValue(key) {
+            if (memoFocusState?.key === key) return memoFocusState.draft;
+            return findMemoTextarea(key)?.value ?? tempMeetingMemos[key] ?? '';
+        }
+
+        async function downloadPendingXlsbFallback(options = {}) {
+            if (!meetingStore) return { requestedCount: 0, downloadedCount: 0, files: [], errors: [] };
+            const datasets = options.dataset ? [options.dataset] : ['status', 'memo'];
+            const stamp = formatAuditFilename(options.changedAt || new Date().toISOString());
+            const suffix = String(options.suffix || '웹저장_대기').replace(/[^0-9A-Za-z가-힣_-]+/g, '_');
+            const files = [];
+            const errors = [];
+            for (const dataset of datasets) {
+                try {
+                    const pending = await meetingStore.pendingCount(dataset);
+                    if (!pending) continue;
+                    const base = dataset === 'status' ? '회의_안건_현황' : '회의_요약_메모';
+                    const filename = `${base}_${suffix}_${stamp}.xlsb`;
+                    const result = meetingStore.downloadXlsb(dataset, filename);
+                    if (!result.downloaded) throw new Error(`${filename} 다운로드를 시작하지 못했습니다.`);
+                    files.push({ dataset, filename, pending, byteLength: result.byteLength });
+                } catch (error) {
+                    errors.push({ dataset, message: error.message });
+                }
+            }
+            return {
+                requestedCount: datasets.length,
+                downloadedCount: files.length,
+                files,
+                errors
+            };
+        }
+
+        function isMemoConflictError(error) {
+            return error?.code === 'DATA_CONFLICT'
+                && (error?.conflicts || error?.details?.conflicts || []).some(conflict => conflict.dataset === 'memo');
+        }
+
+        function getReviewableMemoConflict(error, key) {
+            const conflicts = error?.conflicts || error?.details?.conflicts || [];
+            const invalid = conflicts.some(conflict => {
+                return conflict.dataset !== 'memo'
+                    || conflict.key !== key
+                    || conflict.reason !== 'MEMO_BASE_DIVERGED'
+                    || !Object.prototype.hasOwnProperty.call(conflict, 'remoteSha')
+                    || !conflict.remoteFingerprint;
+            });
+            if (!conflicts.length || invalid) return null;
+            return conflicts[0];
+        }
+
+        function confirmLocalMemoConflictResolution(error) {
+            const conflicts = error?.conflicts || error?.details?.conflicts || [];
+            const clip = value => {
+                const text = String(value ?? '').trim() || '(비어 있음)';
+                return text.length > 100 ? `${text.slice(0, 100)}…` : text;
+            };
+            const details = conflicts.slice(0, 3).map(conflict => {
+                const field = conflict.fields?.[0] || {};
+                return `${conflict.key}\n- GitHub: ${clip(field.remote)}\n- 현재 화면: ${clip(field.local)}`;
+            }).join('\n\n');
+            const overflow = conflicts.length > 3 ? `\n\n외 ${conflicts.length - 3}건` : '';
+            return confirm(`GitHub와 현재 화면의 회의 요약이 서로 다릅니다.\n\n${details}${overflow}\n\n[확인] 현재 화면 내용을 우선해 이력을 보존하고 웹 저장\n[취소] 아무 내용도 덮어쓰지 않고 대기열 유지`);
+        }
+
+        async function syncMemoWithConflictRecovery(key, auditTime, expectedSummary, intentEventId) {
+            const syncOnce = (memoConflictStrategy, reviewedRemote = {}) => runWithMeetingGithubCredential(() => meetingStore.syncDataset('memo', {
+                publishMissing: true,
+                keys: [key],
+                expectedSummary,
+                intentEventId,
+                memoConflictStrategy,
+                ...reviewedRemote,
+                message: `[회의 요약 웹 저장] ${key} · ${auditTime}`
+            }));
+            try {
+                return await syncOnce('rebase-if-remote-empty');
+            } catch (error) {
+                const reviewable = getReviewableMemoConflict(error, key);
+                if (!isMemoConflictError(error) || !reviewable || !confirmLocalMemoConflictResolution(error)) throw error;
+                setMemoIndicatorState(key, 'saving', '충돌 이력 재기준화 후 웹 저장 중');
+                return syncOnce('local-after-review', {
+                    reviewedRemoteSha: reviewable.remoteSha,
+                    reviewedRemoteFingerprint: reviewable.remoteFingerprint
+                });
+            }
+        }
+
+        async function persistMemoAction(key, action) {
+            if (!meetingStore || !['register', 'save'].includes(action)) return false;
+            const value = getMemoDraftValue(key);
+            if (!value.trim() && !getPersistedMemoValue(key)) {
+                setMemoIndicatorState(key, 'error', '입력 내용 없음');
+                alert('웹 저장하거나 PC 저장할 회의 요약 내용을 입력해주세요.');
+                return false;
+            }
+
+            cancelPendingMemoSave(key);
+            let changedAt = new Date().toISOString();
+            let auditTime = formatAuditDateTime(changedAt);
+            const isRegister = action === 'register';
+            const source = isRegister ? '웹 저장 · GitHub XLSB' : 'PC 저장 · 로컬 XLSB';
+            const sourceTextarea = findMemoTextarea(key);
+            if (sourceTextarea && sourceTextarea.value !== value) sourceTextarea.value = value;
+            setMemoActionButtonsDisabled(key, true);
+            setMemoIndicatorState(key, 'saving', isRegister ? 'GitHub 웹 저장 중' : 'PC XLSB 저장 중');
+
+            try {
+                const activeLocalSave = memoPersistPromises.get(key);
+                if (activeLocalSave) await activeLocalSave;
+                changedAt = new Date().toISOString();
+                auditTime = formatAuditDateTime(changedAt);
+                setMemoIndicatorState(key, 'saving', isRegister ? 'GitHub 웹 저장 중' : 'PC XLSB 저장 중');
+                const memoChange = await meetingStore.setMemo(key, value, {
+                    source,
+                    changedAt,
+                    forceHistory: true
+                });
+                applyStoreSnapshotPreservingMemoDrafts(meetingStore.getSnapshot());
+
+                if (isRegister) {
+                    if (!memoChange.event?.eventId) throw new Error('웹 저장 이력 ID를 생성하지 못했습니다.');
+                    const result = await syncMemoWithConflictRecovery(key, auditTime, value, memoChange.event.eventId);
+                    if (!result.ok) throw new Error('GitHub 회의 요약 XLSB 웹 저장에 실패했습니다.');
+                    applyStoreSnapshotPreservingMemoDrafts(meetingStore.getSnapshot());
+                    const recovered = Boolean(result.conflictResolution?.rebasedEventIds?.length);
+                    setMemoIndicatorState(key, 'saved', `${recovered ? '충돌 복구 후 ' : ''}웹 저장 완료 · ${auditTime}`);
+                    updateDataSyncStatus(`회의 요약 XLSB ${recovered ? '충돌 복구 · ' : ''}GitHub 웹 저장 완료 · ${auditTime}`, 'saved');
+                } else {
+                    const filename = `회의_요약_메모_${formatAuditFilename(changedAt)}.xlsb`;
+                    const result = meetingStore.downloadXlsb('memo', filename);
+                    if (!result.downloaded) throw new Error('브라우저가 XLSB 다운로드를 시작하지 못했습니다.');
+                    setMemoIndicatorState(key, 'saved', `PC 저장 완료 · ${auditTime}`);
+                    updateDataSyncStatus(`회의 요약 XLSB PC 저장 완료 · ${auditTime}`, 'saved');
+                }
+
+                await checkForUnsavedChanges({ autoSync: false });
+                return true;
+            } catch (error) {
+                console.error(`${isRegister ? 'GitHub 웹 저장' : 'PC 저장'} 실패:`, error);
+                if (isRegister) {
+                    let fallback = { downloadedCount: 0, files: [], errors: [] };
+                    try {
+                        fallback = await downloadPendingXlsbFallback({
+                            dataset: 'memo',
+                            changedAt,
+                            suffix: '웹저장_대기'
+                        });
+                    } catch (fallbackError) {
+                        console.error('웹 저장 실패 XLSB 다운로드 오류:', fallbackError);
+                    }
+                    const fallbackDownloaded = fallback.downloadedCount > 0;
+                    setMemoIndicatorState(key, 'pending', fallbackDownloaded ? '웹 저장 대기 · XLSB PC 저장됨' : '웹 저장 대기 · 로컬 이력 유지');
+                    updateDataSyncStatus(`GitHub 웹 저장 대기 · ${error.message}`, 'error');
+                    alert(`GitHub 웹 저장 실패: ${error.message}\n변경 이력은 로컬 대기열에 유지됩니다.${fallbackDownloaded ? '\n현재 변경 이력이 포함된 XLSB를 PC에 저장했습니다.' : '\nXLSB 다운로드를 시작하지 못했습니다.'}`);
+                } else {
+                    setMemoIndicatorState(key, 'error', 'PC 저장 오류');
+                    updateDataSyncStatus(`회의 요약 XLSB PC 저장 실패: ${error.message}`, 'error');
+                    alert(`PC XLSB 저장 실패: ${error.message}`);
+                }
+                return false;
+            } finally {
+                setMemoActionButtonsDisabled(key, false);
+            }
         }
 
         async function handleSaveAllChanges() {
@@ -2606,7 +3844,6 @@
             if (dashboardConfig.dataManagement.mode === 'api') await syncPendingChanges(true);
             else {
                 downloadCurrentXlsb();
-                await meetingStore.exportOfflineTxt({ download: true });
             }
         }
 
@@ -2636,25 +3873,41 @@
             saveBtn.textContent = '동기화 중...';
             updateDataSyncStatus('GitHub 최신 XLSB와 병합·업로드 중…', 'waiting');
             try {
-                const token = document.getElementById('confApiToken')?.value.trim() || '';
-                if (token) meetingStore.setSessionToken(token);
-                if (!meetingStore.hasSessionToken()) throw new Error('현재 세션의 GitHub PAT를 입력해주세요.');
-                const result = await meetingStore.sync(token
-                    ? { token, publishMissing: true }
-                    : { publishMissing: true });
-                refreshDashboardFromStore();
+                const result = await runWithMeetingGithubCredential(token => meetingStore.sync({
+                    token,
+                    publishMissing: true,
+                    memoConflictStrategy: 'fail'
+                }));
                 if (!result.ok) throw new Error('일부 XLSB 동기화가 실패했습니다. 로컬 대기 이력은 유지됩니다.');
+                if (showAlert) refreshDashboardFromStore();
+                else {
+                    applyStoreSnapshotPreservingMemoDrafts(meetingStore.getSnapshot());
+                    updateAnalyticsTooltip();
+                }
                 updateDataSyncStatus('GitHub XLSB 동기화 완료', 'saved');
+                for (const key of memoIndicatorStates.keys()) {
+                    setMemoIndicatorState(key, 'saved', 'GitHub 동기화 완료');
+                }
                 if (showAlert) alert('상태와 회의 요약 XLSB가 GitHub에 동기화되었습니다.');
                 return result;
             } catch (error) {
                 console.error('GitHub 동기화 실패:', error);
-                updateDataSyncStatus(`동기화 실패 · 로컬 이력 유지: ${error.message}`, 'error');
-                if (showAlert) alert(`GitHub 동기화 실패: ${error.message}\n오프라인 이력은 브라우저에 유지됩니다.`);
+                let fallback = { downloadedCount: 0, files: [], errors: [] };
+                if (showAlert) {
+                    fallback = await downloadPendingXlsbFallback({
+                        changedAt: new Date().toISOString(),
+                        suffix: '동기화_대기'
+                    });
+                }
+                updateDataSyncStatus(`동기화 실패 · 로컬 이력 유지${fallback.downloadedCount ? ' · XLSB PC 저장됨' : ''}: ${error.message}`, 'error');
+                for (const key of memoIndicatorStates.keys()) {
+                    setMemoIndicatorState(key, 'pending', fallback.downloadedCount ? '업로드 대기 · XLSB PC 저장됨' : '로컬 저장 완료 · 업로드 대기');
+                }
+                if (showAlert) alert(`GitHub 동기화 실패: ${error.message}\n변경 이력은 로컬 대기열에 유지됩니다.${fallback.downloadedCount ? `\n대기 변경 XLSB ${fallback.downloadedCount}개를 PC에 저장했습니다.` : '\nXLSB 다운로드를 시작하지 못했습니다.'}`);
                 return { ok: false, error };
             } finally {
                 saveBtn.textContent = originalBtnText;
-                checkForUnsavedChanges();
+                checkForUnsavedChanges({ autoSync: false });
             }
         }
 
@@ -2854,6 +4107,14 @@
             }
         }
 
+        async function hydrateMemoIndicatorStates() {
+            const pendingMemoEvents = await meetingStore.getOutbox('memo');
+            const pendingKeys = new Set(pendingMemoEvents.map(event => event.key));
+            for (const key of pendingKeys) {
+                memoIndicatorStates.set(key, { state: 'pending', message: '로컬 저장 완료 · 업로드 대기' });
+            }
+        }
+
         async function initializeMeetingData() {
             updateDataSyncStatus('XLSB 및 오프라인 이력을 불러오는 중…', 'waiting');
             if (!window.XLSX || !window.MeetingDataStore) {
@@ -2868,9 +4129,20 @@
                     memoPath: githubApi.memosPath
                 }
             });
+            if (!window.MeetingGithubCredential) {
+                throw new Error('GitHub PAT 암호문 모듈을 불러오지 못했습니다. meeting-github-credential.js를 확인해주세요.');
+            }
+            meetingGithubCredential = MeetingGithubCredential.configure({
+                tokenConsumer: meetingStore,
+                github: {
+                    repo: githubApi.repo,
+                    branch: githubApi.branch,
+                    remoteVaultPath: 'RawData/공정관리/encrypted-pat.json'
+                }
+            });
 
             const pending = await meetingStore.pendingCount();
-            if (mode === 'api' && pending === 0) {
+            if (mode === 'api') {
                 await meetingStore.load({ throwOnError: false });
             } else if (mode === 'manual' && pending === 0) {
                 await importInitialXlsbFiles(githubManual.skippedJsonUrl, githubManual.memosJsonUrl);
@@ -2894,6 +4166,7 @@
             }
             await ensureRosterThroughToday();
             snapshot = meetingStore.getSnapshot();
+            await hydrateMemoIndicatorStates();
             applyStoreSnapshot({ ...snapshot, pendingCount: await meetingStore.pendingCount() });
             initializeDashboard();
         }
@@ -3035,10 +4308,7 @@
             document.querySelectorAll('input[name="dataManagementMode"]').forEach(radio => radio.addEventListener('change', (e) => toggleDataManagementMode(e.target.value)));
             document.querySelectorAll('input[name="configMode"]').forEach(radio => radio.addEventListener('change', (e) => toggleConfigMode(e.target.value)));
             document.getElementById('extractDataForGithubBtn').addEventListener('click', downloadCurrentXlsb);
-            document.getElementById('exportOfflineTxtBtn').addEventListener('click', async () => {
-                try { await meetingStore.exportOfflineTxt({ download: true }); }
-                catch (error) { alert(`오프라인 이력 내보내기 실패: ${error.message}`); }
-            });
+            document.getElementById('exportOfflineXlsbBtn').addEventListener('click', downloadCurrentXlsb);
             document.getElementById('importOfflineTxtBtn').addEventListener('click', () => document.getElementById('offlineTxtFileInput').click());
             document.getElementById('offlineTxtFileInput').addEventListener('change', async event => {
                 const [file] = event.target.files;
@@ -3056,9 +4326,17 @@
             });
             document.getElementById('syncPendingBtn').addEventListener('click', () => syncPendingChanges(true));
             document.getElementById('confApiToken').addEventListener('change', async event => {
-                if (!meetingStore) return;
-                meetingStore.setSessionToken(event.target.value);
-                if (event.target.value.trim()) syncPendingChanges(false);
+                if (!meetingStore || !meetingGithubCredential) return;
+                const token = String(event.target.value || '').trim();
+                if (!token) return;
+                try {
+                    meetingGithubCredential.adoptToken(token);
+                    event.target.value = '';
+                    syncPendingChanges(false);
+                } catch (error) {
+                    event.target.value = '';
+                    alert(error.message);
+                }
             });
             document.getElementById('selectFolderBtn').addEventListener('click', selectLocalFolder);
             document.getElementById('loadWeeklyTemplateBtn').addEventListener('click', () => loadTemplateFromFile('weekly'));
@@ -3067,6 +4345,16 @@
             document.getElementById('createNewMeetingBtn').addEventListener('click', createNewMeetingFile);
             document.getElementById('saveAllChangesBtn').addEventListener('click', handleSaveAllChanges);
             document.getElementById('month-view').addEventListener('click', (e) => {
+                const persistBtn = e.target.closest('.memo-persist-btn');
+                if (persistBtn) {
+                    persistMemoAction(persistBtn.dataset.memoKey, persistBtn.dataset.memoAction);
+                    return;
+                }
+                const modeBtn = e.target.closest('.memo-mode-btn');
+                if (modeBtn) {
+                    openMemoFocus(modeBtn.dataset.memoKey, modeBtn.dataset.memoMode);
+                    return;
+                }
                 const toggleBtn = e.target.closest('.memo-toggle-btn');
                 if (toggleBtn) {
                     const key = toggleBtn.dataset.key;
@@ -3079,6 +4367,10 @@
                         // ARIA 속성 업데이트
                         toggleBtn.setAttribute('aria-expanded', !isHidden);
                         card.classList.toggle('expanded', !isHidden);
+                        if (!isHidden) {
+                            if (!memoIndicatorStates.has(key)) setMemoIndicatorState(key, 'ready', '준비 중');
+                            updateMemoClocks();
+                        }
                     }
                     return;
                 }
@@ -3086,12 +4378,42 @@
                 if (card && card.dataset.href) { window.open(card.dataset.href, '_blank'); }
             });
             document.getElementById('month-view').addEventListener('input', handleMemoInput);
+            document.getElementById('memoFocusCloseBtn').addEventListener('click', closeMemoFocus);
+            document.getElementById('memoFocusRegisterBtn').addEventListener('click', event => {
+                persistMemoAction(event.currentTarget.dataset.memoKey, 'register');
+            });
+            document.getElementById('memoFocusSaveBtn').addEventListener('click', event => {
+                persistMemoAction(event.currentTarget.dataset.memoKey, 'save');
+            });
+            document.querySelectorAll('.memo-focus-tab').forEach(tab => {
+                tab.addEventListener('click', () => renderMemoFocusMode(tab.dataset.focusMode));
+            });
+            document.querySelectorAll('[data-read-action]').forEach(button => {
+                button.addEventListener('click', () => handleMemoReadAction(button.dataset.readAction));
+            });
+            document.querySelectorAll('[data-edit-action]').forEach(button => {
+                button.addEventListener('click', () => handleMemoEditAction(button.dataset.editAction));
+            });
+            document.getElementById('memoFocusEditTextarea').addEventListener('input', event => {
+                if (!memoFocusState) return;
+                memoFocusState.draft = event.target.value;
+                updateMemoFocusCount();
+                queueMemoSave(memoFocusState.key, memoFocusState.draft);
+            });
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape' && document.getElementById('memoFocusOverlay').classList.contains('open')) {
+                    event.preventDefault();
+                    closeMemoFocus();
+                }
+            });
+            updateMemoClocks();
+            clearInterval(memoClockInterval);
+            memoClockInterval = setInterval(updateMemoClocks, 1000);
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden') flushMemoChanges().catch(console.error);
             });
             window.addEventListener('online', async () => {
-                const token = document.getElementById('confApiToken')?.value.trim();
-                if (token && meetingStore) syncPendingChanges(false);
+                if (meetingStore && meetingGithubCredential?.hasSessionToken()) syncPendingChanges(false);
             });
             document.getElementById('searchInput').addEventListener('input', performSearch);
             document.getElementById('searchResultsContainer').addEventListener('click', handleSearchResultClick);
