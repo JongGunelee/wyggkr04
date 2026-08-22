@@ -137,8 +137,18 @@ for (const pattern of requiredMemoPersistencePatterns) {
   if (!html.includes(pattern)) throw new Error(`memo persistence safety pattern missing: ${pattern}`);
 }
 
+const openMemoFocusStart = html.indexOf('function openMemoFocus(key, mode)');
+const openMemoFocusEnd = html.indexOf('function closeMemoFocus()', openMemoFocusStart);
+if (openMemoFocusStart < 0 || openMemoFocusEnd < 0) {
+  throw new Error('openMemoFocus source block could not be isolated');
+}
+const openMemoFocusSource = html.slice(openMemoFocusStart, openMemoFocusEnd);
+if (!/const\s+draft\s*=\s*sessionEditedMemoKeys\.has\(key\)\s*\?[\s\S]{0,240}:\s*getConfirmedMemoValue\(key\)/.test(openMemoFocusSource)) {
+  throw new Error('openMemoFocus can freeze a stale card/cache value instead of the confirmed GitHub memo');
+}
+
 const syncPendingStart = html.indexOf('async function syncPendingChanges(showAlert = false)');
-const syncPendingEnd = html.indexOf('const debouncedSync = debounce(', syncPendingStart);
+const syncPendingEnd = html.indexOf('async function importOfflineHistory(', syncPendingStart);
 if (syncPendingStart < 0 || syncPendingEnd < 0) throw new Error('syncPendingChanges source block could not be isolated');
 const syncPendingSource = html.slice(syncPendingStart, syncPendingEnd);
 const syncResultCheck = syncPendingSource.indexOf('if (!result.ok)');
@@ -149,6 +159,26 @@ for (const refreshPattern of ['refreshDashboardFromStore()', 'applyStoreSnapshot
   if (refreshIndex < syncResultCheck) {
     throw new Error(`syncPendingChanges refreshes via ${refreshPattern} before validating result.ok`);
   }
+}
+
+const initializeMeetingStart = html.indexOf('async function initializeMeetingData()');
+const initializeMeetingEnd = html.indexOf('function initializeDashboard()', initializeMeetingStart);
+if (initializeMeetingStart < 0 || initializeMeetingEnd < 0) {
+  throw new Error('initializeMeetingData source block could not be isolated');
+}
+const initializeMeetingSource = html.slice(initializeMeetingStart, initializeMeetingEnd);
+const remoteStatusMissingDeclaration = initializeMeetingSource.indexOf('const remoteStatusMissing = mode === \'api\'');
+const guardedStatusFallback = initializeMeetingSource.indexOf("if (!remoteStatusMissing && !snapshot.status.rows.length) fallbackDatasets.push('status');");
+const guardedBootstrapFallback = initializeMeetingSource.indexOf('if (!remoteStatusMissing && !snapshot.status.rows.length && window.MEETING_DATA_BOOTSTRAP');
+const explicitMissingFailure = initializeMeetingSource.indexOf('if (remoteStatusMissing)');
+if (!initializeMeetingSource.includes('overlayPending: false')) {
+  throw new Error('startup GitHub load is not configured as the authoritative view');
+}
+if (remoteStatusMissingDeclaration < 0
+  || guardedStatusFallback < remoteStatusMissingDeclaration
+  || guardedBootstrapFallback < guardedStatusFallback
+  || explicitMissingFailure < guardedBootstrapFallback) {
+  throw new Error('status 404 can fall back to cached/local data and resurrect a deleted remote workbook');
 }
 
 const directTokenLiteral = /(?:github_pat_|gh[pousr]_)[A-Za-z0-9_]{20,}/;
@@ -349,7 +379,8 @@ await globalThis.MeetingDataStore.setMemo('2026-8-2', '웹 저장 및 PC 저장 
   forceHistory: true
 });
 const auditHistory = globalThis.MeetingDataStore.getHistory('memo');
-const actionHistory = auditHistory.filter(row => row.key === '2026-8-2');
+const actionHistory = auditHistory.filter(row => row.key === '2026-8-2'
+  && (row.changedAt === registerAt || row.changedAt === saveAt));
 if (actionHistory.length !== 2
   || actionHistory[0].changedAt !== registerAt
   || actionHistory[0].source !== '웹 저장 · GitHub XLSB'
@@ -359,7 +390,9 @@ if (actionHistory.length !== 2
 }
 const auditExport = globalThis.MeetingDataStore.exportXlsb('memo');
 const auditParsed = await globalThis.MeetingDataStore.parseXlsb('memo', auditExport.bytes);
-if (auditParsed.history.length !== memo.history.length + 2 || auditParsed.rows[0]?.revision !== 2) {
+const originalMemoRevision = Number(memo.rows.find(row => row.key === '2026-8-2')?.revision || 0);
+if (auditParsed.history.length !== memo.history.length + 2
+  || auditParsed.rows.find(row => row.key === '2026-8-2')?.revision !== originalMemoRevision + 2) {
   throw new Error('memo action history did not round-trip through XLSB');
 }
 const auditWorkbook = globalThis.XLSX.read(auditExport.bytes, { type: 'array', cellDates: true, cellNF: true });
@@ -383,6 +416,16 @@ function jsonResponse(status, payload) {
   };
 }
 
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 function createGitHubMemoMock(initialBytes, options = {}) {
   let remoteBytes = Uint8Array.from(initialBytes);
   let shaSequence = 1;
@@ -391,6 +434,9 @@ function createGitHubMemoMock(initialBytes, options = {}) {
   const putRequests = [];
   const fetch = async (_url, request = {}) => {
     const method = String(request.method || 'GET').toUpperCase();
+    if (method === 'GET' && options.missing === true) {
+      return jsonResponse(404, { message: 'Not Found' });
+    }
     if (method === 'PUT') {
       const body = JSON.parse(request.body || '{}');
       putRequests.push(body);
@@ -415,6 +461,50 @@ function createGitHubMemoMock(initialBytes, options = {}) {
   return {
     fetch,
     putRequests,
+    getRemoteBytes: () => Uint8Array.from(remoteBytes)
+  };
+}
+
+function createMemoPutLoadRaceMock(initialBytes) {
+  let remoteBytes = Uint8Array.from(initialBytes);
+  let shaSequence = 1;
+  let getCount = 0;
+  const putRequests = [];
+  const putStarted = deferred();
+  const releasePut = deferred();
+  const lateGetStarted = deferred();
+  const releaseLateGet = deferred();
+  const fetch = async (_url, request = {}) => {
+    const method = String(request.method || 'GET').toUpperCase();
+    if (method === 'PUT') {
+      const body = JSON.parse(request.body || '{}');
+      putRequests.push(body);
+      putStarted.resolve();
+      await releasePut.promise;
+      remoteBytes = Uint8Array.from(Buffer.from(body.content, 'base64'));
+      shaSequence += 1;
+      return jsonResponse(200, { content: { sha: `memo-race-sha-${shaSequence}` } });
+    }
+    getCount += 1;
+    const capturedBytes = Uint8Array.from(remoteBytes);
+    const capturedSha = `memo-race-sha-${shaSequence}`;
+    if (getCount === 2) {
+      lateGetStarted.resolve();
+      await releaseLateGet.promise;
+    }
+    return jsonResponse(200, {
+      sha: capturedSha,
+      encoding: 'base64',
+      content: Buffer.from(capturedBytes).toString('base64')
+    });
+  };
+  return {
+    fetch,
+    putRequests,
+    putStarted,
+    releasePut,
+    lateGetStarted,
+    releaseLateGet,
     getRemoteBytes: () => Uint8Array.from(remoteBytes)
   };
 }
@@ -485,7 +575,7 @@ const staleLocalRow = {
 };
 const remoteFixture = globalThis.MeetingDataStore.exportXlsb('memo', {
   rows: [remoteOtherRow],
-  history: memo.history
+  history: memo.history.filter(row => row.key === '전체')
 });
 
 async function initializeConflictHarness(mock) {
@@ -501,7 +591,7 @@ async function initializeConflictHarness(mock) {
       mutationDelayMs: 0
     }
   });
-  await api.replaceLocalData({ memo: { rows: [staleLocalRow], history: [] } }, { force: true });
+  await api.replaceLocalData({ memo: { rows: [], history: [] } }, { force: true });
   await api.setMemo(targetMemoKey, targetSummary, {
     source: '웹 저장 · GitHub XLSB',
     changedAt: '2026-08-22T07:08:09.000Z',
@@ -529,9 +619,9 @@ const successfulConflictResult = await successfulConflictApi.syncDataset('memo',
   message: '[validator] key-scoped memo conflict recovery'
 });
 if (successfulConflictResult.uploadedEvents !== 1
-  || successfulConflictResult.conflictResolution?.rebasedEventIds?.length !== 1
+  || successfulConflictResult.conflictResolution
   || successfulConflictMock.putRequests.length !== 1) {
-  throw new Error(`key-scoped memo rebase did not upload exactly one recovered event: ${JSON.stringify(successfulConflictResult)}`);
+  throw new Error(`new key-scoped memo did not upload exactly one event: ${JSON.stringify(successfulConflictResult)}`);
 }
 const successfulRemoteMemo = await globalThis.MeetingDataStore.parseXlsb('memo', successfulConflictMock.getRemoteBytes());
 const successfulTarget = successfulRemoteMemo.rows.find(row => row.key === targetMemoKey);
@@ -688,6 +778,256 @@ const makeSeededMemoEvent = ({ eventId, sequence, createdAt, key, source, baseSu
     revision
   };
 };
+
+const harnessGithubConfig = {
+  repo: 'validator/meeting-data',
+  branch: 'main',
+  memoPath: 'RawData/월간 및 주간/회의_요약_메모.xlsb',
+  statusPath: 'RawData/월간 및 주간/회의_안건_현황.xlsb',
+  mutationDelayMs: 0
+};
+
+async function initializeSeededMemoHarness(mock, seededSnapshot, seededOutbox) {
+  const api = createStoreHarness(mock.fetch);
+  api.__validatorSeed(seededSnapshot, seededOutbox);
+  await api.init({
+    storage: 'memory',
+    fetch: mock.fetch,
+    github: harnessGithubConfig
+  });
+  return api;
+}
+
+const restartSnapshot = {
+  id: 'current',
+  schemaVersion: 1,
+  savedAt: '2026-08-22T08:59:58.000Z',
+  status: { rows: [], history: [], remoteSha: null, loadedAt: null },
+  memo: {
+    rows: [remoteOtherRow],
+    history: [],
+    remoteSha: 'cached-memo-sha',
+    loadedAt: '2026-08-22T08:59:58.000Z'
+  }
+};
+const legacyRestartEvent = makeSeededMemoEvent({
+  eventId: 'validator-restart-legacy-event',
+  sequence: 701,
+  createdAt: '2026-08-22T09:00:00.000Z',
+  key: targetMemoKey,
+  source: '이전 브라우저 세션 대기 메모',
+  baseSummary: '',
+  baseRevision: 0,
+  summary: '재시작 시 화면에 재생되면 안 되는 레거시 메모',
+  revision: 1
+});
+
+const authoritativeLoadMock = createGitHubMemoMock(remoteFixture.bytes);
+const authoritativeLoadApi = await initializeSeededMemoHarness(
+  authoritativeLoadMock,
+  restartSnapshot,
+  [legacyRestartEvent]
+);
+const snapshotImmediatelyAfterRestart = authoritativeLoadApi.getSnapshot();
+if (snapshotImmediatelyAfterRestart.memo.rows.some(row => row.key === targetMemoKey)
+  || snapshotImmediatelyAfterRestart.memo.history.some(row => row.eventId === legacyRestartEvent.eventId)) {
+  throw new Error('store init replayed a legacy outbox event into the authoritative browser snapshot');
+}
+const restartOutbox = await authoritativeLoadApi.getOutbox('memo');
+if (restartOutbox.length !== 1 || restartOutbox[0].eventId !== legacyRestartEvent.eventId) {
+  throw new Error(`store init lost or changed the isolated legacy outbox event: ${JSON.stringify(restartOutbox)}`);
+}
+const authoritativeLoad = await authoritativeLoadApi.load({
+  dataset: 'memo',
+  overlayPending: false,
+  throwOnError: true
+});
+const authoritativeSnapshot = authoritativeLoadApi.getSnapshot();
+const authoritativePending = await authoritativeLoadApi.getOutbox('memo');
+if (!authoritativeLoad.memo?.ok
+  || authoritativeLoad.memo.pendingCount !== 1
+  || authoritativeLoad.memo.acknowledgedCount !== 0
+  || authoritativeSnapshot.memo.rows.some(row => row.key === targetMemoKey)
+  || authoritativeSnapshot.memo.rows.find(row => row.key === remoteOtherKey)?.summary !== remoteOtherSummary
+  || authoritativePending.length !== 1
+  || authoritativePending[0].eventId !== legacyRestartEvent.eventId
+  || authoritativeLoadMock.putRequests.length !== 0) {
+  throw new Error(`startup GitHub XLSB did not remain authoritative over a legacy outbox: ${JSON.stringify({ authoritativeLoad, authoritativeSnapshot, authoritativePending })}`);
+}
+
+const remoteLatestEvent = makeSeededMemoEvent({
+  eventId: 'validator-remote-latest-event',
+  sequence: 702,
+  createdAt: '2026-08-22T09:00:01.000Z',
+  key: targetMemoKey,
+  source: '다른 사용자 GitHub 최신 메모',
+  baseSummary: legacyRestartEvent.afterValue,
+  baseRevision: 1,
+  summary: '다른 사용자가 확정한 GitHub 최신 메모',
+  revision: 2
+});
+const memoHistoryFromSeededEvent = event => ({
+  eventId: event.eventId,
+  changedAt: event.createdAt,
+  key: event.key,
+  type: event.type,
+  beforeValue: event.beforeValue,
+  afterValue: event.afterValue,
+  source: event.source,
+  syncStatus: '완료',
+  revision: event.revision
+});
+const exactDuplicateRemoteFixture = globalThis.MeetingDataStore.exportXlsb('memo', {
+  rows: [remoteLatestEvent.values],
+  history: [legacyRestartEvent, remoteLatestEvent].map(memoHistoryFromSeededEvent)
+});
+const exactDuplicateMock = createGitHubMemoMock(exactDuplicateRemoteFixture.bytes);
+const exactDuplicateApi = await initializeSeededMemoHarness(
+  exactDuplicateMock,
+  restartSnapshot,
+  [legacyRestartEvent]
+);
+const exactDuplicateLoad = await exactDuplicateApi.load({
+  dataset: 'memo',
+  overlayPending: false,
+  throwOnError: true
+});
+const exactDuplicateSnapshot = exactDuplicateApi.getSnapshot();
+const exactDuplicatePending = await exactDuplicateApi.getOutbox('memo');
+if (exactDuplicateLoad.memo?.acknowledgedCount !== 1
+  || exactDuplicateLoad.memo.pendingCount !== 0
+  || exactDuplicateLoad.memo.conflicts.length !== 0
+  || exactDuplicateSnapshot.memo.rows.find(row => row.key === targetMemoKey)?.summary !== remoteLatestEvent.afterValue
+  || exactDuplicateSnapshot.memo.history.filter(row => row.eventId === legacyRestartEvent.eventId).length !== 1
+  || exactDuplicatePending.length !== 0
+  || exactDuplicateMock.putRequests.length !== 0) {
+  throw new Error(`an exact remote duplicate was not acknowledged without replaying stale content: ${JSON.stringify({ exactDuplicateLoad, exactDuplicateSnapshot, exactDuplicatePending })}`);
+}
+
+const mismatchedDuplicateEvent = structuredClone(legacyRestartEvent);
+mismatchedDuplicateEvent.afterValue = '같은 eventId를 사용한 다른 내용';
+mismatchedDuplicateEvent.values.summary = mismatchedDuplicateEvent.afterValue;
+const mismatchedDuplicateMock = createGitHubMemoMock(exactDuplicateRemoteFixture.bytes);
+const mismatchedDuplicateApi = await initializeSeededMemoHarness(
+  mismatchedDuplicateMock,
+  restartSnapshot,
+  [mismatchedDuplicateEvent]
+);
+const mismatchedDuplicateLoad = await mismatchedDuplicateApi.load({
+  dataset: 'memo',
+  overlayPending: false,
+  throwOnError: true
+});
+const mismatchedDuplicatePending = await mismatchedDuplicateApi.getOutbox('memo');
+if (mismatchedDuplicateLoad.memo?.acknowledgedCount !== 0
+  || mismatchedDuplicateLoad.memo.pendingCount !== 1
+  || !mismatchedDuplicateLoad.memo.conflicts.some(conflict => conflict.reason === 'EVENT_ID_HISTORY_MISMATCH')
+  || mismatchedDuplicateApi.getSnapshot().memo.rows.find(row => row.key === targetMemoKey)?.summary !== remoteLatestEvent.afterValue
+  || mismatchedDuplicatePending.length !== 1
+  || mismatchedDuplicatePending[0].eventId !== mismatchedDuplicateEvent.eventId
+  || mismatchedDuplicateMock.putRequests.length !== 0) {
+  throw new Error(`a semantic eventId mismatch was incorrectly acknowledged or overlaid: ${JSON.stringify({ mismatchedDuplicateLoad, mismatchedDuplicatePending })}`);
+}
+
+const missingRemoteMock = createGitHubMemoMock(remoteFixture.bytes, { missing: true });
+const missingRemoteApi = await initializeSeededMemoHarness(
+  missingRemoteMock,
+  restartSnapshot,
+  [legacyRestartEvent]
+);
+const missingRemoteLoad = await missingRemoteApi.load({
+  dataset: 'memo',
+  overlayPending: false,
+  throwOnError: true
+});
+const missingRemoteSnapshot = missingRemoteApi.getSnapshot();
+const missingRemotePending = await missingRemoteApi.getOutbox('memo');
+if (!missingRemoteLoad.memo?.ok
+  || missingRemoteLoad.memo.exists !== false
+  || missingRemoteLoad.memo.pendingCount !== 1
+  || missingRemoteSnapshot.memo.rows.length !== 0
+  || missingRemoteSnapshot.memo.history.length !== 0
+  || missingRemoteSnapshot.memo.remoteSha !== null
+  || missingRemotePending.length !== 1
+  || missingRemotePending[0].eventId !== legacyRestartEvent.eventId
+  || missingRemoteMock.putRequests.length !== 0) {
+  throw new Error(`GitHub 404 resurrected a cached memo snapshot or mutated its outbox: ${JSON.stringify({ missingRemoteLoad, missingRemoteSnapshot, missingRemotePending })}`);
+}
+
+const missingStatusMock = createGitHubMemoMock(statusBytes, { missing: true });
+const cachedStatusSnapshot = structuredClone(restartSnapshot);
+cachedStatusSnapshot.status.rows = [status.rows[0]];
+cachedStatusSnapshot.status.remoteSha = 'cached-status-sha';
+cachedStatusSnapshot.status.loadedAt = '2026-08-22T08:59:58.000Z';
+const missingStatusApi = await initializeSeededMemoHarness(missingStatusMock, cachedStatusSnapshot, []);
+const missingStatusLoad = await missingStatusApi.load({
+  dataset: 'status',
+  overlayPending: false,
+  throwOnError: true
+});
+const missingStatusSnapshot = missingStatusApi.getSnapshot();
+if (!missingStatusLoad.status?.ok
+  || missingStatusLoad.status.exists !== false
+  || missingStatusSnapshot.status.rows.length !== 0
+  || missingStatusSnapshot.status.history.length !== 0
+  || missingStatusSnapshot.status.remoteSha !== null
+  || missingStatusMock.putRequests.length !== 0) {
+  throw new Error(`GitHub status 404 resurrected cached agenda rows: ${JSON.stringify({ missingStatusLoad, missingStatusSnapshot })}`);
+}
+
+const raceSummary = 'PUT 완료 뒤에도 유지되어야 하는 최신 메모';
+const putLoadRaceMock = createMemoPutLoadRaceMock(remoteFixture.bytes);
+const putLoadRaceApi = createStoreHarness(putLoadRaceMock.fetch);
+await putLoadRaceApi.init({
+  storage: 'memory',
+  fetch: putLoadRaceMock.fetch,
+  github: harnessGithubConfig
+});
+await putLoadRaceApi.replaceLocalData({ memo: { rows: [], history: [] } }, { force: true });
+const raceMemoChange = await putLoadRaceApi.setMemo(targetMemoKey, raceSummary, {
+  source: '검증용 PUT/GET 경합',
+  changedAt: '2026-08-22T09:00:02.000Z',
+  forceHistory: true
+});
+putLoadRaceApi.setSessionToken('validator-session-token');
+const putLoadRaceSync = putLoadRaceApi.syncDataset('memo', {
+  keys: [targetMemoKey],
+  intentEventId: raceMemoChange.event.eventId,
+  expectedSummary: raceSummary,
+  memoConflictStrategy: 'rebase-if-remote-empty',
+  message: '[validator] invalidate GET started during PUT'
+});
+await putLoadRaceMock.putStarted.promise;
+const lateMemoLoad = putLoadRaceApi.load({
+  dataset: 'memo',
+  overlayPending: false,
+  throwOnError: true
+});
+await putLoadRaceMock.lateGetStarted.promise;
+putLoadRaceMock.releasePut.resolve();
+const putLoadRaceResult = await putLoadRaceSync;
+putLoadRaceMock.releaseLateGet.resolve();
+const lateMemoLoadResult = await lateMemoLoad;
+const putLoadRaceSnapshot = putLoadRaceApi.getSnapshot();
+const putLoadRacePending = await putLoadRaceApi.getOutbox('memo');
+const putLoadRaceRemote = await globalThis.MeetingDataStore.parseXlsb('memo', putLoadRaceMock.getRemoteBytes());
+if (!lateMemoLoadResult.memo?.stale
+  || lateMemoLoadResult.memo.skipped !== true
+  || putLoadRaceResult.uploadedEvents !== 1
+  || putLoadRaceMock.putRequests.length !== 1
+  || putLoadRacePending.length !== 0
+  || putLoadRaceSnapshot.memo.rows.find(row => row.key === targetMemoKey)?.summary !== raceSummary
+  || putLoadRaceRemote.rows.find(row => row.key === targetMemoKey)?.summary !== raceSummary) {
+  throw new Error(`a GET started during PUT replaced the committed memo snapshot: ${JSON.stringify({
+    lateMemoLoadResult,
+    putLoadRaceResult,
+    putRequests: putLoadRaceMock.putRequests.length,
+    putLoadRacePending,
+    snapshotRows: putLoadRaceSnapshot.memo.rows,
+    remoteRows: putLoadRaceRemote.rows
+  })}`);
+}
+
 const multiTargetEvents = [
   makeSeededMemoEvent({
     eventId: multiTargetEventIds[0],
@@ -695,8 +1035,8 @@ const multiTargetEvents = [
     createdAt: '2026-08-22T09:00:03.000Z',
     key: targetMemoKey,
     source: '검증용 단절 이력 1',
-    baseSummary: '서로 다른 과거 기준 A',
-    baseRevision: 1,
+    baseSummary: '',
+    baseRevision: 0,
     summary: '첫 번째 로컬 초안',
     revision: 2
   }),
@@ -745,6 +1085,96 @@ const pendingMemoHistory = event => ({
   syncStatus: '대기',
   revision: event.revision
 });
+
+const deletedRemoteBaseSummary = '원격에서 row와 history가 삭제된 과거 메모';
+const deletedRemoteLocalSummary = '삭제 사실 검토 뒤에만 복원할 로컬 메모';
+const deletedRemotePendingEvent = makeSeededMemoEvent({
+  eventId: 'validator-deleted-remote-pending-event',
+  sequence: 790,
+  createdAt: '2026-08-22T09:00:02.500Z',
+  key: targetMemoKey,
+  source: '삭제된 원격 기준의 로컬 편집',
+  baseSummary: deletedRemoteBaseSummary,
+  baseRevision: 7,
+  summary: deletedRemoteLocalSummary,
+  revision: 8
+});
+const deletedRemoteSeedSnapshot = {
+  id: 'current',
+  schemaVersion: 1,
+  savedAt: '2026-08-22T09:00:02.500Z',
+  status: { rows: [], history: [], remoteSha: null, loadedAt: null },
+  memo: {
+    rows: [deletedRemotePendingEvent.values],
+    history: [pendingMemoHistory(deletedRemotePendingEvent)],
+    remoteSha: 'memo-sha-before-remote-deletion',
+    loadedAt: '2026-08-22T09:00:02.500Z'
+  }
+};
+const deletedRemoteMock = createGitHubMemoMock(remoteFixture.bytes);
+const deletedRemoteApi = await initializeSeededMemoHarness(
+  deletedRemoteMock,
+  deletedRemoteSeedSnapshot,
+  [deletedRemotePendingEvent]
+);
+deletedRemoteApi.setSessionToken('validator-session-token');
+const deletedRemoteOutboxBefore = await deletedRemoteApi.getOutbox('memo');
+const deletedRemoteSnapshotBefore = deletedRemoteApi.getSnapshot();
+let deletedRemoteConflict = null;
+try {
+  await deletedRemoteApi.syncDataset('memo', {
+    keys: [targetMemoKey],
+    intentEventId: deletedRemotePendingEvent.eventId,
+    expectedSummary: deletedRemoteLocalSummary,
+    memoConflictStrategy: 'rebase-if-remote-empty',
+    message: '[validator] deleted remote memo must not auto-resurrect'
+  });
+} catch (error) {
+  deletedRemoteConflict = error;
+}
+const deletedRemoteConflictDetail = deletedRemoteConflict?.conflicts?.find(conflict => conflict.key === targetMemoKey);
+const deletedRemoteOutboxAfterConflict = await deletedRemoteApi.getOutbox('memo');
+const deletedRemoteSnapshotAfterConflict = deletedRemoteApi.getSnapshot();
+if (deletedRemoteConflict?.code !== 'DATA_CONFLICT'
+  || !deletedRemoteConflictDetail
+  || deletedRemoteMock.putRequests.length !== 0
+  || JSON.stringify(deletedRemoteOutboxAfterConflict) !== JSON.stringify(deletedRemoteOutboxBefore)
+  || JSON.stringify(deletedRemoteSnapshotAfterConflict) !== JSON.stringify(deletedRemoteSnapshotBefore)) {
+  throw new Error(`a deleted remote memo was automatically resurrected from a non-empty local base: ${JSON.stringify({
+    errorCode: deletedRemoteConflict?.code,
+    conflicts: deletedRemoteConflict?.conflicts,
+    putRequests: deletedRemoteMock.putRequests.length,
+    outboxBefore: deletedRemoteOutboxBefore,
+    outboxAfter: deletedRemoteOutboxAfterConflict,
+    snapshotBefore: deletedRemoteSnapshotBefore.memo,
+    snapshotAfter: deletedRemoteSnapshotAfterConflict.memo
+  })}`);
+}
+const reviewedDeletedRemoteResult = await deletedRemoteApi.syncDataset('memo', {
+  keys: [targetMemoKey],
+  intentEventId: deletedRemotePendingEvent.eventId,
+  expectedSummary: deletedRemoteLocalSummary,
+  memoConflictStrategy: 'local-after-review',
+  reviewedRemoteSha: deletedRemoteConflictDetail.remoteSha,
+  reviewedRemoteFingerprint: deletedRemoteConflictDetail.remoteFingerprint,
+  message: '[validator] explicitly reviewed deleted remote memo restoration'
+});
+const deletedRemoteAfterReview = await globalThis.MeetingDataStore.parseXlsb('memo', deletedRemoteMock.getRemoteBytes());
+const deletedRemoteOutboxAfterReview = await deletedRemoteApi.getOutbox('memo');
+if (reviewedDeletedRemoteResult.uploadedEvents !== 1
+  || reviewedDeletedRemoteResult.conflictResolution?.strategy !== 'local-after-review'
+  || reviewedDeletedRemoteResult.conflictResolution?.rebasedEventIds?.length !== 1
+  || deletedRemoteMock.putRequests.length !== 1
+  || deletedRemoteOutboxAfterReview.length !== 0
+  || deletedRemoteAfterReview.rows.find(row => row.key === targetMemoKey)?.summary !== deletedRemoteLocalSummary) {
+  throw new Error(`an explicitly reviewed deleted memo was not restored exactly once: ${JSON.stringify({
+    reviewedDeletedRemoteResult,
+    putRequests: deletedRemoteMock.putRequests.length,
+    outbox: deletedRemoteOutboxAfterReview,
+    rows: deletedRemoteAfterReview.rows
+  })}`);
+}
+
 const multiSeedSnapshot = {
   id: 'current',
   schemaVersion: 1,
@@ -828,10 +1258,10 @@ async function assertMultiSyncPreservation(api, mock, label) {
   const localSnapshot = api.getSnapshot();
   const localUnrelated = localSnapshot.memo.rows.find(row => row.key === pendingOtherKey);
   const remainingOutbox = await api.getOutbox('memo');
-  if (localUnrelated?.summary !== pendingOtherSummary
+  if (localUnrelated
     || remainingOutbox.length !== 1
     || remainingOutbox[0].eventId !== multiOtherEvent.eventId) {
-    throw new Error(`${label} did not preserve only the unrelated local pending change: ${JSON.stringify({ localUnrelated, remainingOutbox })}`);
+    throw new Error(`${label} did not keep the unrelated draft isolated in the outbox: ${JSON.stringify({ localUnrelated, remainingOutbox })}`);
   }
   return parsedRemote;
 }
@@ -846,7 +1276,7 @@ const multiSuccessResult = await multiSuccessApi.syncDataset('memo', {
   message: '[validator] three discontinuities with timestamp inversion'
 });
 if (multiSuccessResult.uploadedEvents !== 3
-  || multiSuccessResult.conflictResolution?.rebasedEventIds?.length !== 3
+  || multiSuccessResult.conflictResolution?.rebasedEventIds?.length !== 2
   || multiSuccessMock.putRequests.length !== 1) {
   throw new Error(`three-event discontinuity recovery did not use one PUT: ${JSON.stringify(multiSuccessResult)}`);
 }
@@ -892,6 +1322,177 @@ if (!responseLossRetry.skipped
 }
 await assertMultiSyncPreservation(responseLossApi, responseLossMock, 'accepted response-loss retry');
 
+const stableEventJson = value => {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableEventJson).join(',')}]`;
+  return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableEventJson(value[key])}`).join(',')}}`;
+};
+
+// PC XLSB must include the unrelated outbox-only memo left behind by a key-scoped web save.
+const scopedPortableExport = await successfulConflictApi.exportPendingXlsb('memo');
+const scopedPortableWorkbook = globalThis.XLSX.read(scopedPortableExport.bytes, { type: 'array' });
+if (!scopedPortableWorkbook.SheetNames.includes('로컬대기이력')) {
+  throw new Error('PC XLSB omitted the local pending-history sheet');
+}
+const scopedPendingSheet = scopedPortableWorkbook.Sheets['로컬대기이력'];
+const scopedPendingRange = globalThis.XLSX.utils.decode_range(scopedPendingSheet['!ref']);
+if (scopedPendingRange.e.r !== 1 || scopedPendingRange.e.c !== 16) {
+  throw new Error(`one pending event expanded the local pending sheet unexpectedly: ${scopedPendingSheet['!ref']}`);
+}
+const scopedPortableParsed = await globalThis.MeetingDataStore.parseXlsb('memo', scopedPortableExport.bytes);
+const scopedPortableRow = scopedPortableParsed.rows.find(row => row.key === pendingOtherKey);
+const scopedPortableHistoryCount = scopedPortableParsed.history.filter(row => row.eventId === successfulPending[0].eventId).length;
+const scopedPortablePending = scopedPortableParsed.pendingEvents.find(event => event.eventId === successfulPending[0].eventId);
+if (scopedPortableExport.pendingCount !== 1
+  || scopedPortableRow?.summary !== pendingOtherSummary
+  || scopedPortableHistoryCount !== 1
+  || !scopedPortablePending
+  || stableEventJson(scopedPortablePending) !== stableEventJson(successfulPending[0])) {
+  throw new Error(`PC XLSB did not preserve the scoped-sync remainder exactly: ${JSON.stringify({
+    pendingCount: scopedPortableExport.pendingCount,
+    scopedPortableRow,
+    scopedPortableHistoryCount,
+    pendingEventIds: scopedPortableParsed.pendingEvents.map(event => event.eventId)
+  })}`);
+}
+
+// Normal exports and GitHub PUT payloads must remain authoritative workbooks without a local queue sheet.
+const scopedNormalExport = successfulConflictApi.exportXlsb('memo');
+const scopedNormalWorkbook = globalThis.XLSX.read(scopedNormalExport.bytes, { type: 'array' });
+if (scopedNormalWorkbook.SheetNames.includes('로컬대기이력')) {
+  throw new Error('normal exportXlsb leaked the local pending-history sheet');
+}
+const scopedPutBytes = Uint8Array.from(Buffer.from(successfulConflictMock.putRequests[0].content, 'base64'));
+const scopedPutWorkbook = globalThis.XLSX.read(scopedPutBytes, { type: 'array' });
+if (scopedPutWorkbook.SheetNames.includes('로컬대기이력')) {
+  throw new Error('GitHub PUT payload leaked the local pending-history sheet');
+}
+
+// A portable workbook must not silently discard its queue, and an explicit queue import must restore exact IDs/payloads.
+const portableImportApi = createStoreHarness(async () => jsonResponse(404, { message: 'Not Found' }));
+await portableImportApi.init({ storage: 'memory' });
+let portableDiscardGuard = null;
+try {
+  await portableImportApi.importLocalFile('memo', scopedPortableExport.bytes, { queueForSync: false });
+} catch (error) {
+  portableDiscardGuard = error;
+}
+if (portableDiscardGuard?.code !== 'PENDING_EVENTS_REQUIRE_QUEUE_IMPORT'
+  || (await portableImportApi.getOutbox('memo')).length !== 0) {
+  throw new Error(`portable XLSB pending-event discard was not blocked atomically: ${portableDiscardGuard?.code || 'no error'}`);
+}
+const portableImportResult = await portableImportApi.importLocalFile('memo', scopedPortableExport.bytes, { queueForSync: true });
+const restoredPortableOutbox = await portableImportApi.getOutbox('memo');
+if (!portableImportResult.portable
+  || portableImportResult.queued !== 1
+  || restoredPortableOutbox.length !== 1
+  || restoredPortableOutbox[0].eventId !== successfulPending[0].eventId
+  || stableEventJson(restoredPortableOutbox[0]) !== stableEventJson(successfulPending[0])) {
+  throw new Error(`portable XLSB did not restore the original event identity and payload: ${JSON.stringify({ portableImportResult, restoredPortableOutbox })}`);
+}
+
+// A stale-base pending memo over a newer remote revision needs an export-only head, not mutation of the original event.
+const higherRemoteSummary = '다른 사용자가 저장한 리비전 12 메모';
+const oldBaseLocalSummary = 'PC XLSB에 보존할 최종 로컬 메모';
+const higherRemoteChangedAt = '2026-08-22T10:00:00.000Z';
+const higherRemoteSource = '다른 사용자 GitHub 리비전 12';
+const oldBasePendingEvent = makeSeededMemoEvent({
+  eventId: 'validator-portable-old-base-event',
+  sequence: 901,
+  createdAt: '2026-08-22T09:30:00.000Z',
+  key: targetMemoKey,
+  source: 'PC 저장 검증용 오래된 기준 편집',
+  baseSummary: '로컬이 마지막으로 보았던 리비전 2 메모',
+  baseRevision: 2,
+  summary: oldBaseLocalSummary,
+  revision: 3
+});
+const higherRevisionSnapshot = {
+  id: 'current',
+  schemaVersion: 1,
+  savedAt: higherRemoteChangedAt,
+  status: { rows: [], history: [], remoteSha: null, loadedAt: null },
+  memo: {
+    rows: [{
+      key: targetMemoKey,
+      type: '주간',
+      year: 2026,
+      month: 8,
+      week: 2,
+      summary: higherRemoteSummary,
+      updatedAt: higherRemoteChangedAt,
+      source: higherRemoteSource,
+      revision: 12
+    }],
+    history: [{
+      eventId: 'validator-higher-remote-head',
+      changedAt: higherRemoteChangedAt,
+      key: targetMemoKey,
+      type: '주간',
+      beforeValue: '',
+      afterValue: higherRemoteSummary,
+      source: higherRemoteSource,
+      syncStatus: '완료',
+      revision: 12
+    }],
+    remoteSha: 'validator-higher-remote-sha',
+    loadedAt: higherRemoteChangedAt
+  }
+};
+const oldBasePortableApi = createStoreHarness(async () => jsonResponse(404, { message: 'Not Found' }));
+await oldBasePortableApi.init({ storage: 'memory' });
+oldBasePortableApi.__validatorSeed(higherRevisionSnapshot, [oldBasePendingEvent]);
+const oldBaseSnapshotBeforeExport = oldBasePortableApi.getSnapshot();
+const oldBaseOutboxBeforeExport = await oldBasePortableApi.getOutbox('memo');
+const oldBasePortableExport = await oldBasePortableApi.exportPendingXlsb('memo');
+const oldBasePortableParsed = await globalThis.MeetingDataStore.parseXlsb('memo', oldBasePortableExport.bytes);
+const oldBaseProjectedRow = oldBasePortableParsed.rows.find(row => row.key === targetMemoKey);
+const oldBaseKeyHistory = oldBasePortableParsed.history
+  .filter(row => row.key === targetMemoKey)
+  .sort((left, right) => Number(left.revision) - Number(right.revision)
+    || String(left.changedAt).localeCompare(String(right.changedAt))
+    || String(left.eventId).localeCompare(String(right.eventId)));
+const oldBaseProjectedHead = oldBaseKeyHistory.at(-1);
+const oldBaseOriginalHistoryCount = oldBaseKeyHistory.filter(row => row.eventId === oldBasePendingEvent.eventId).length;
+const oldBaseEmbeddedEvent = oldBasePortableParsed.pendingEvents.find(event => event.eventId === oldBasePendingEvent.eventId);
+const oldBaseSnapshotAfterExport = oldBasePortableApi.getSnapshot();
+const oldBaseOutboxAfterExport = await oldBasePortableApi.getOutbox('memo');
+if (oldBasePortableExport.exportHeadEventIds.length !== 1
+  || !oldBasePortableExport.projectionConflicts.some(conflict => conflict.reason === 'MEMO_BASE_DIVERGED')
+  || oldBaseProjectedRow?.summary !== oldBaseLocalSummary
+  || oldBaseProjectedRow.revision !== oldBaseProjectedHead?.revision
+  || oldBaseProjectedRow.updatedAt !== oldBaseProjectedHead?.changedAt
+  || oldBaseProjectedRow.source !== oldBaseProjectedHead?.source
+  || oldBaseOriginalHistoryCount !== 1
+  || !oldBaseEmbeddedEvent
+  || stableEventJson(oldBaseEmbeddedEvent) !== stableEventJson(oldBasePendingEvent)
+  || stableEventJson(oldBaseSnapshotAfterExport) !== stableEventJson(oldBaseSnapshotBeforeExport)
+  || stableEventJson(oldBaseOutboxAfterExport) !== stableEventJson(oldBaseOutboxBeforeExport)) {
+  throw new Error(`old-base portable XLSB projection lost intent, history identity, or memo-head consistency: ${JSON.stringify({
+    exportHeadEventIds: oldBasePortableExport.exportHeadEventIds,
+    projectionConflicts: oldBasePortableExport.projectionConflicts,
+    oldBaseProjectedRow,
+    oldBaseProjectedHead,
+    oldBaseOriginalHistoryCount
+  })}`);
+}
+
+const compactPendingSize = Math.min(
+  scopedPortableExport.candidateSizes.inline,
+  scopedPortableExport.candidateSizes.sharedStrings
+);
+const portableGrowthBytes = scopedPortableExport.byteLength - scopedNormalExport.byteLength;
+if (scopedPortableExport.byteLength !== compactPendingSize
+  || scopedPortableExport.byteLength >= 50 * 1024 * 1024
+  || portableGrowthBytes > 512 * 1024) {
+  throw new Error(`portable XLSB size guard failed: ${JSON.stringify({
+    portableBytes: scopedPortableExport.byteLength,
+    normalBytes: scopedNormalExport.byteLength,
+    portableGrowthBytes,
+    candidateSizes: scopedPortableExport.candidateSizes
+  })}`);
+}
+
 console.log(JSON.stringify({
   ok: true,
   htmlBytes: Buffer.byteLength(html),
@@ -929,9 +1530,23 @@ console.log(JSON.stringify({
     weeklyRoster: { regular: regularWeeklyRows.length, forcedWeek5: forcedWeek5Rows.length },
     writtenReferenceRanges
   },
+  startupMappingAudit: {
+    authoritativePendingIsolated: authoritativeLoad.memo.pendingCount,
+    exactDuplicateAcknowledged: exactDuplicateLoad.memo.acknowledgedCount,
+    semanticMismatchRetained: mismatchedDuplicateLoad.memo.pendingCount,
+    missingRemoteExists: missingRemoteLoad.memo.exists,
+    missingRemoteRows: missingRemoteSnapshot.memo.rows.length,
+    missingStatusRows: missingStatusSnapshot.status.rows.length,
+    implicitPutRequests: authoritativeLoadMock.putRequests.length
+      + exactDuplicateMock.putRequests.length
+      + mismatchedDuplicateMock.putRequests.length
+      + missingRemoteMock.putRequests.length
+      + missingStatusMock.putRequests.length,
+    status404FallbackGuarded: true
+  },
   memoConflictAudit: {
     keyScopedUploadedEvents: successfulConflictResult.uploadedEvents,
-    rebasedEvents: successfulConflictResult.conflictResolution.rebasedEventIds.length,
+    rebasedEvents: successfulConflictResult.conflictResolution?.rebasedEventIds?.length || 0,
     unrelatedRemotePreserved: true,
     unrelatedLocalPendingPreserved: true,
     networkFailureOutboxUnchanged: true,
@@ -939,11 +1554,28 @@ console.log(JSON.stringify({
     repeatedWebSaveUploadedEvents: repeatedClickResult.uploadedEvents,
     repeatedWebSaveTotalPutRequests: repeatedClickMock.putRequests.length,
     repeatedWebSaveOriginalAndNewHistoryExactlyOnce: 2,
+    putLoadRaceLateLoadStale: lateMemoLoadResult.memo.stale,
+    putLoadRacePutRequests: putLoadRaceMock.putRequests.length,
+    deletedRemoteAutoRestoreBlocked: deletedRemoteConflict.code === 'DATA_CONFLICT',
+    deletedRemoteReviewedRestoreUploadedEvents: reviewedDeletedRemoteResult.uploadedEvents,
     multiDiscontinuityEvents: multiSuccessResult.uploadedEvents,
     multiDiscontinuityPutRequests: multiSuccessMock.putRequests.length,
     originalEventIdsPreservedExactlyOnce: multiTargetEventIds.length,
     responseLossRetryReason: responseLossRetry.reason,
     responseLossTotalPutRequests: responseLossMock.putRequests.length
+  },
+  portableXlsbAudit: {
+    scopedPendingCount: scopedPortableExport.pendingCount,
+    originalEventIdPreserved: scopedPortablePending.eventId,
+    normalExportPendingSheet: scopedNormalWorkbook.SheetNames.includes('로컬대기이력'),
+    githubPutPendingSheet: scopedPutWorkbook.SheetNames.includes('로컬대기이력'),
+    restoredEventId: restoredPortableOutbox[0].eventId,
+    discardGuardCode: portableDiscardGuard.code,
+    oldBaseProjectedRevision: oldBaseProjectedRow.revision,
+    oldBaseHeadRevision: oldBaseProjectedHead.revision,
+    portableBytes: scopedPortableExport.byteLength,
+    normalBytes: scopedNormalExport.byteLength,
+    portableGrowthBytes
   },
   augustThirdWeek: { status: augustThirdWeek.status, counterIncluded: augustThirdWeek.counterIncluded, cardVisible: augustThirdWeek.cardVisible }
 }, null, 2));

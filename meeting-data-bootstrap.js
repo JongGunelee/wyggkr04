@@ -2,7 +2,7 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "ed471ab17970276e4351aa2da86de9ebd1b9ef80f6482771a7daa5d9aebef8a9",
+  "sourceSha256": "f142f3d9a991f8f88f74d2d444b026adc103a20007e291c6be880d46c7d7d4e6",
   "status": {
     "rows": [
       {
@@ -3770,7 +3770,19 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
     ]
   },
   "memo": {
-    "rows": [],
+    "rows": [
+      {
+        "key": "2026-8-2",
+        "type": "주간",
+        "year": 2026,
+        "month": 8,
+        "week": 2,
+        "summary": "KKK",
+        "updatedAt": "2026-08-22T10:10:37.000Z",
+        "source": "웹 저장 · GitHub XLSB",
+        "revision": 2
+      }
+    ],
     "history": [
       {
         "eventId": "MIGRATION-20260822",
@@ -3782,6 +3794,28 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "source": "초기 전환",
         "syncStatus": "완료",
         "revision": 1
+      },
+      {
+        "eventId": "7f729cc9-339c-4c14-80d4-459d145ceaff",
+        "changedAt": "2026-08-22T10:10:32.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "",
+        "afterValue": "KKK",
+        "source": "웹 회의 요약 편집",
+        "syncStatus": "완료",
+        "revision": 1
+      },
+      {
+        "eventId": "9c496b83-a5a0-46bd-aa19-826a8ad55422",
+        "changedAt": "2026-08-22T10:10:37.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "KKK",
+        "afterValue": "KKK",
+        "source": "웹 저장 · GitHub XLSB",
+        "syncStatus": "완료",
+        "revision": 2
       }
     ]
   }

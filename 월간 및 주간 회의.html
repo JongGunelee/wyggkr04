@@ -696,10 +696,17 @@
             box-sizing: border-box;
         }
 
+        .memo-wrapper.hidden {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
         .memo-wrapper:not(.hidden) {
             max-height: 500px;
             opacity: 1;
             padding: 10px;
+            visibility: visible;
+            pointer-events: auto;
         }
 
         .memo-wrapper textarea {
@@ -1804,102 +1811,6 @@
                 cursor: pointer !important;
             }
 
-            #dashboard-container {
-                padding: 10px;
-            }
-
-            header {
-                top: -10px;
-                margin-bottom: 8px;
-                padding: 8px 0 10px;
-            }
-
-            h1 {
-                gap: 8px;
-                margin-bottom: 6px;
-                font-size: clamp(1.2rem, 6vw, 1.5rem);
-                white-space: nowrap;
-            }
-
-            h1 svg {
-                width: 24px;
-                height: 24px;
-                flex-shrink: 0;
-            }
-
-            #year-navigator {
-                gap: 8px;
-            }
-
-            #currentYearSpan {
-                min-width: 112px;
-                font-size: 1.75em;
-            }
-
-            #year-navigator button {
-                width: 36px;
-                height: 36px;
-            }
-
-            .view {
-                padding: 10px 4px 155px;
-            }
-
-            #month-view {
-                gap: 14px;
-            }
-
-            #month-view-actions {
-                gap: 10px;
-                margin-bottom: 6px;
-            }
-
-            #month-view-actions button {
-                min-height: 42px;
-                padding: 9px 14px;
-                gap: 7px;
-                font-size: 16px;
-            }
-
-            #month-view-header {
-                gap: 10px;
-            }
-
-            #month-view-title {
-                font-size: 1.22rem;
-                text-align: center;
-            }
-
-            #monthly-card-container,
-            #weekly-cards-container {
-                width: 100%;
-                max-width: none;
-            }
-
-            #weekly-cards-container {
-                display: grid;
-                grid-template-columns: minmax(0, 1fr);
-                gap: 11px;
-                padding: 0;
-            }
-
-            .week-card-container {
-                width: 100%;
-                min-width: 0;
-            }
-
-            .report-card,
-            .week-card {
-                min-height: 58px;
-                padding: 15px 24px;
-                font-size: 1rem;
-                box-sizing: border-box;
-            }
-
-            #monthly-report-card {
-                font-size: 1.05rem;
-            }
-
             .memo-wrapper:not(.hidden) {
                 max-height: 440px;
                 padding: 8px;
@@ -1940,64 +1851,6 @@
             .memo-editor-actions .memo-persist-btn {
                 flex: 1;
                 min-height: 40px;
-            }
-
-            .control-btn-group-left,
-            .control-btn-group-right {
-                right: 8px;
-                left: 8px;
-                display: flex;
-                flex-direction: row;
-                justify-content: center;
-                gap: 8px;
-                max-height: none;
-                padding: 5px 8px;
-                border: 1px solid rgba(148, 163, 184, 0.3);
-                border-radius: 999px;
-                background: rgba(247, 248, 252, 0.92);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                box-shadow: 0 4px 16px rgba(30, 58, 95, 0.12);
-            }
-
-            .control-btn-group-left {
-                bottom: 7px;
-            }
-
-            .control-btn-group-right {
-                bottom: 60px;
-            }
-
-            body.dark-mode .control-btn-group-left,
-            body.dark-mode .control-btn-group-right {
-                background: rgba(19, 25, 32, 0.92);
-            }
-
-            .btn-group-label,
-            .btn-divider {
-                display: none;
-            }
-
-            .control-btn,
-            .control-btn:hover {
-                width: 40px;
-                height: 40px;
-                flex: 0 0 40px;
-                transform: none;
-            }
-
-            .control-btn::after {
-                display: none;
-            }
-
-            .control-btn-group-right .control-btn {
-                justify-content: center;
-            }
-
-            .btn-icon {
-                width: 40px;
-                height: 40px;
-                font-size: 18px;
             }
 
             .modal-content {
@@ -2140,7 +1993,7 @@
                         data-href="https://jonggunelee.github.io/wyggkr/2026/2026_02_회의록.html"><span>월간 회의 안건
                             보기</span><button class="memo-toggle-btn" data-key="2026-2" title="회의 요약 보기/숨기기">+</button>
                     </div>
-                    <div id="monthly-memo-wrapper" class="memo-wrapper hidden"><textarea data-key="2026-2"
+                    <div id="monthly-memo-wrapper" class="memo-wrapper hidden" aria-hidden="true" inert><textarea data-key="2026-2"
                             placeholder="월간 회의 요약 내용을 입력하세요..."></textarea></div>
                 </div>
                 <div id="weekly-cards-container">
@@ -2295,8 +2148,7 @@
                     <input id="offlineTxtFileInput" type="file" accept=".txt,text/plain" hidden>
                     <input id="localXlsbFileInput" type="file" accept=".xlsb,application/vnd.ms-excel.sheet.binary.macroEnabled.12" multiple hidden>
                     <p id="dataSyncStatus" role="status" aria-live="polite">XLSB 데이터 연결 준비 중…</p>
-                    <p>상태·미작성 이력과 회의 요약은 서로 다른 XLSB로 관리됩니다. 편집 내용은 먼저 이 브라우저에 보관되며,
-                        온라인이면 GitHub에 병합됩니다.</p>
+                    <p>상태·미작성 이력과 회의 요약은 서로 다른 XLSB로 관리됩니다. 웹 저장은 GitHub에 병합하고 PC 저장은 복구 대기 이력을 포함한 XLSB를 다운로드합니다.</p>
                 </div>
             </fieldset>
 
@@ -2589,9 +2441,13 @@
         let meetingGithubCredential = null;
         let meetingStatusRows = [];
         let meetingMemoRows = [];
+        let confirmedMeetingMemoRows = [];
         let tempMeetingMemos = {};
         let tempSkippedDates = [];
         const memoIndicatorStates = new Map();
+        const sessionEditedMemoKeys = new Set();
+        const remoteDatasetState = { status: 'cache', memo: 'cache' };
+        const remoteRefreshPromises = new Map();
         let memoFocusState = null;
         let memoReadScale = 1;
         let memoClockInterval = null;
@@ -2671,17 +2527,31 @@
                     .map(row => [row.key, row.summary || row.memo])
             );
             const pending = Number(snapshot.pendingCount || 0);
-            const statusText = pending
-                ? `GitHub 동기화 대기 ${pending}건`
-                : 'XLSB와 동기화됨 · 대기 변경 없음';
+            const githubMapped = remoteDatasetState.status === 'github' && remoteDatasetState.memo === 'github';
+            const statusText = githubMapped
+                ? (pending
+                    ? `GitHub 최신 XLSB 표시 · 로컬 대기 ${pending}건 분리 보관`
+                    : 'GitHub 최신 XLSB와 매핑됨')
+                : (pending
+                    ? `원격 읽기 부분 실패 · 로컬 대기 ${pending}건 보존`
+                    : '원격 읽기 부분 실패 · 오프라인 캐시 표시');
             updateDataSyncStatus(statusText, pending ? 'waiting' : 'saved');
             if (document.getElementById('manageSkippedBtn')) updateAnalyticsTooltip();
         }
 
         function applyStoreSnapshotPreservingMemoDrafts(snapshot = {}) {
             const liveDrafts = new Map();
-            const draftKeys = new Set([...pendingMemoTimers.keys(), ...memoPersistPromises.keys()]);
+            const draftKeys = new Set([
+                ...sessionEditedMemoKeys,
+                ...pendingMemoTimers.keys(),
+                ...memoPersistPromises.keys()
+            ]);
             if (memoFocusState?.mode === 'edit') draftKeys.add(memoFocusState.key);
+            for (const key of draftKeys) {
+                if (Object.prototype.hasOwnProperty.call(tempMeetingMemos, key)) {
+                    liveDrafts.set(key, tempMeetingMemos[key]);
+                }
+            }
             document.querySelectorAll('.memo-wrapper textarea[data-key]').forEach(textarea => {
                 if (draftKeys.has(textarea.dataset.key)) liveDrafts.set(textarea.dataset.key, textarea.value);
             });
@@ -2830,6 +2700,35 @@
             return formatAuditDateTime(value).replace(' ', '_').replace(/:/g, '-');
         }
 
+        const meetingSessionAuditId = (() => {
+            try { return crypto.randomUUID().slice(0, 8); }
+            catch (_) { return Math.random().toString(36).slice(2, 10); }
+        })();
+
+        function getMeetingClientAuditId() {
+            const storageKey = 'meetingDataClientAuditId';
+            try {
+                let value = localStorage.getItem(storageKey);
+                if (!value) {
+                    try { value = crypto.randomUUID().slice(0, 12); }
+                    catch (_) { value = Math.random().toString(36).slice(2, 14); }
+                    localStorage.setItem(storageKey, value);
+                }
+                return value;
+            } catch (_) {
+                return meetingSessionAuditId;
+            }
+        }
+
+        function auditSource(label) {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local';
+            const offsetMinutes = -new Date().getTimezoneOffset();
+            const sign = offsetMinutes >= 0 ? '+' : '-';
+            const absolute = Math.abs(offsetMinutes);
+            const offset = `${sign}${String(Math.floor(absolute / 60)).padStart(2, '0')}:${String(absolute % 60).padStart(2, '0')}`;
+            return `${label} · client:${getMeetingClientAuditId()} · session:${meetingSessionAuditId} · ${timezone} UTC${offset}`;
+        }
+
         function updateMemoClocks() {
             const nowText = formatCurrentDateTime();
             document.querySelectorAll('[data-memo-clock]').forEach(clock => { clock.textContent = nowText; });
@@ -2849,6 +2748,11 @@
 
         function getPersistedMemoValue(key) {
             const row = meetingMemoRows.find(item => item.key === key);
+            return row?.summary || row?.memo || '';
+        }
+
+        function getConfirmedMemoValue(key) {
+            const row = confirmedMeetingMemoRows.find(item => item.key === key);
             return row?.summary || row?.memo || '';
         }
 
@@ -2957,9 +2861,9 @@
 
             if (mode === 'read') {
                 const content = document.getElementById('memoFocusReadContent');
-                const savedText = getPersistedMemoValue(memoFocusState.key);
+                const savedText = getConfirmedMemoValue(memoFocusState.key);
                 memoFocusState.readSnapshot = savedText;
-                content.textContent = savedText || '저장된 회의 요약이 없습니다.';
+                content.textContent = savedText || 'GitHub XLSB에 확정된 회의 요약이 없습니다.';
                 content.classList.toggle('empty', !savedText);
                 content.style.setProperty('--memo-read-scale', memoReadScale);
                 requestAnimationFrame(() => content.focus());
@@ -2973,12 +2877,14 @@
 
         function openMemoFocus(key, mode) {
             const source = findMemoTextarea(key);
-            const draft = source?.value ?? tempMeetingMemos[key] ?? '';
+            const draft = sessionEditedMemoKeys.has(key)
+                ? (source?.value ?? tempMeetingMemos[key] ?? '')
+                : getConfirmedMemoValue(key);
             memoFocusState = {
                 key,
                 mode,
                 draft,
-                readSnapshot: getPersistedMemoValue(key),
+                readSnapshot: getConfirmedMemoValue(key),
                 returnFocus: document.activeElement
             };
             const editor = document.getElementById('memoFocusEditTextarea');
@@ -3013,7 +2919,7 @@
 
         async function copyMemoReadContent() {
             if (!memoFocusState) return;
-            const text = getPersistedMemoValue(memoFocusState.key);
+            const text = getConfirmedMemoValue(memoFocusState.key);
             try {
                 if (navigator.clipboard && window.isSecureContext) {
                     await navigator.clipboard.writeText(text);
@@ -3112,6 +3018,10 @@
             const weeklyContainer = document.getElementById('weekly-cards-container');
             monthlyCard.replaceChildren();
             monthlyMemoWrapper.replaceChildren();
+            monthlyMemoWrapper.classList.add('hidden');
+            monthlyMemoWrapper.setAttribute('aria-hidden', 'true');
+            monthlyMemoWrapper.inert = true;
+            monthlyCard.classList.remove('expanded');
             weeklyContainer.replaceChildren();
             const now = new Date();
             const isoNow = getISOWeekInfo(now);
@@ -3231,6 +3141,8 @@
                 const memoWrapper = document.createElement('div');
                 memoWrapper.className = 'memo-wrapper hidden';
                 memoWrapper.id = `memo-${weeklyKey}`;
+                memoWrapper.setAttribute('aria-hidden', 'true');
+                memoWrapper.inert = true;
                 const weeklyStatusRow = meetingStatusRows.find(row => row.key === weeklyKey && row.cardVisible === 'Y');
                 const isCurrentOfficialWeek = Boolean(weeklyStatusRow && weeklyCard.classList.contains('current'));
                 const canEditWeeklyMemo = Boolean(weeklyStatusRow && (
@@ -3388,6 +3300,8 @@
             document.querySelectorAll('.modal-overlay.open').forEach(modal => closeModal(modal.id));
             document.querySelectorAll('.memo-wrapper:not(.hidden)').forEach(memoWrapper => {
                 memoWrapper.classList.add('hidden');
+                memoWrapper.setAttribute('aria-hidden', 'true');
+                memoWrapper.inert = true;
                 const cardContainer = memoWrapper.closest('.week-card-container, #monthly-card-container');
                 if (cardContainer) {
                     const card = cardContainer.querySelector('.report-card');
@@ -3571,7 +3485,6 @@
         }
 
         async function checkForUnsavedChanges(options) {
-            const settings = options || {};
             const saveBtn = document.getElementById('saveAllChangesBtn');
             if (!saveBtn || !meetingStore) return 0;
             const pending = await meetingStore.pendingCount();
@@ -3582,10 +3495,6 @@
                 ? `GitHub 동기화 대기 ${pending}건`
                 : 'XLSB와 동기화됨 · 대기 변경 없음';
             updateDataSyncStatus(message, pending ? 'waiting' : 'saved');
-            const sessionReady = Boolean(meetingGithubCredential?.hasSessionToken());
-            if (settings.autoSync !== false && pending && dashboardConfig.dataManagement.mode === 'api' && sessionReady) {
-                debouncedSync();
-            }
             return pending;
         }
 
@@ -3598,7 +3507,7 @@
             task = previous.catch(() => undefined).then(async () => {
                 setMemoIndicatorState(key, 'saving', '로컬 저장 중');
                 try {
-                    await meetingStore.setMemo(key, value, { source: '웹 회의 요약 편집' });
+                    await meetingStore.setMemo(key, value, { source: auditSource('웹 회의 요약 편집') });
                     applyStoreSnapshotPreservingMemoDrafts(meetingStore.getSnapshot());
                     const pending = await checkForUnsavedChanges({ autoSync: false });
                     setMemoIndicatorState(
@@ -3623,6 +3532,7 @@
         }
 
         function queueMemoSave(key, value) {
+            sessionEditedMemoKeys.add(key);
             if (value.trim()) tempMeetingMemos[key] = value;
             else delete tempMeetingMemos[key];
             setMemoIndicatorState(key, 'waiting', '입력 대기 중');
@@ -3664,6 +3574,9 @@
             document.querySelectorAll('.memo-persist-btn').forEach(button => {
                 if (button.dataset.memoKey === key) button.disabled = disabled;
             });
+            document.querySelectorAll('.memo-mode-btn').forEach(button => {
+                if (button.dataset.memoKey === key) button.disabled = disabled;
+            });
             const cardEditor = findMemoTextarea(key);
             if (cardEditor) cardEditor.disabled = disabled;
             const focusEditor = document.getElementById('memoFocusEditTextarea');
@@ -3691,7 +3604,7 @@
                     if (!pending) continue;
                     const base = dataset === 'status' ? '회의_안건_현황' : '회의_요약_메모';
                     const filename = `${base}_${suffix}_${stamp}.xlsb`;
-                    const result = meetingStore.downloadXlsb(dataset, filename);
+                    const result = await meetingStore.downloadPendingXlsb(dataset, filename);
                     if (!result.downloaded) throw new Error(`${filename} 다운로드를 시작하지 못했습니다.`);
                     files.push({ dataset, filename, pending, byteLength: result.byteLength });
                 } catch (error) {
@@ -3774,7 +3687,7 @@
             let changedAt = new Date().toISOString();
             let auditTime = formatAuditDateTime(changedAt);
             const isRegister = action === 'register';
-            const source = isRegister ? '웹 저장 · GitHub XLSB' : 'PC 저장 · 로컬 XLSB';
+            const source = auditSource(isRegister ? '웹 저장 · GitHub XLSB' : 'PC 저장 · 로컬 XLSB');
             const sourceTextarea = findMemoTextarea(key);
             if (sourceTextarea && sourceTextarea.value !== value) sourceTextarea.value = value;
             setMemoActionButtonsDisabled(key, true);
@@ -3797,13 +3710,16 @@
                     if (!memoChange.event?.eventId) throw new Error('웹 저장 이력 ID를 생성하지 못했습니다.');
                     const result = await syncMemoWithConflictRecovery(key, auditTime, value, memoChange.event.eventId);
                     if (!result.ok) throw new Error('GitHub 회의 요약 XLSB 웹 저장에 실패했습니다.');
+                    remoteDatasetState.memo = 'github';
+                    confirmedMeetingMemoRows = meetingStore.getSnapshot().memo.rows.map(row => ({ ...row }));
+                    sessionEditedMemoKeys.delete(key);
                     applyStoreSnapshotPreservingMemoDrafts(meetingStore.getSnapshot());
                     const recovered = Boolean(result.conflictResolution?.rebasedEventIds?.length);
                     setMemoIndicatorState(key, 'saved', `${recovered ? '충돌 복구 후 ' : ''}웹 저장 완료 · ${auditTime}`);
                     updateDataSyncStatus(`회의 요약 XLSB ${recovered ? '충돌 복구 · ' : ''}GitHub 웹 저장 완료 · ${auditTime}`, 'saved');
                 } else {
                     const filename = `회의_요약_메모_${formatAuditFilename(changedAt)}.xlsb`;
-                    const result = meetingStore.downloadXlsb('memo', filename);
+                    const result = await meetingStore.downloadPendingXlsb('memo', filename);
                     if (!result.downloaded) throw new Error('브라우저가 XLSB 다운로드를 시작하지 못했습니다.');
                     setMemoIndicatorState(key, 'saved', `PC 저장 완료 · ${auditTime}`);
                     updateDataSyncStatus(`회의 요약 XLSB PC 저장 완료 · ${auditTime}`, 'saved');
@@ -3843,15 +3759,27 @@
             await flushMemoChanges();
             if (dashboardConfig.dataManagement.mode === 'api') await syncPendingChanges(true);
             else {
-                downloadCurrentXlsb();
+                await downloadCurrentXlsb();
             }
         }
 
-        function downloadCurrentXlsb() {
+        async function downloadCurrentXlsb() {
             if (!meetingStore) return;
-            meetingStore.downloadXlsb('status', '회의_안건_현황.xlsb');
-            meetingStore.downloadXlsb('memo', '회의_요약_메모.xlsb');
-            updateDataSyncStatus('현재 현황을 압축 XLSB 두 파일로 다운로드했습니다.', 'saved');
+            try {
+                const [statusFile, memoFile] = await Promise.all([
+                    meetingStore.downloadPendingXlsb('status', '회의_안건_현황.xlsb'),
+                    meetingStore.downloadPendingXlsb('memo', '회의_요약_메모.xlsb')
+                ]);
+                if (!statusFile.downloaded || !memoFile.downloaded) {
+                    throw new Error('브라우저가 XLSB 다운로드를 시작하지 못했습니다.');
+                }
+                updateDataSyncStatus('현재 현황과 업로드 대기 이력을 압축 XLSB 두 파일로 다운로드했습니다.', 'saved');
+                return { status: statusFile, memo: memoFile };
+            } catch (error) {
+                updateDataSyncStatus(`PC XLSB 저장 실패: ${error.message}`, 'error');
+                alert(`PC XLSB 저장 실패: ${error.message}`);
+                return null;
+            }
         }
 
         function refreshDashboardFromStore() {
@@ -3873,12 +3801,34 @@
             saveBtn.textContent = '동기화 중...';
             updateDataSyncStatus('GitHub 최신 XLSB와 병합·업로드 중…', 'waiting');
             try {
-                const result = await runWithMeetingGithubCredential(token => meetingStore.sync({
+                const runSync = allowRemoteCreate => runWithMeetingGithubCredential(token => meetingStore.sync({
                     token,
-                    publishMissing: true,
+                    publishMissing: false,
+                    allowRemoteCreate,
                     memoConflictStrategy: 'fail'
                 }));
+                let result = await runSync(false);
+                const missingDatasets = Object.entries(result.results || {})
+                    .filter(([, item]) => item?.error?.code === 'REMOTE_DATASET_MISSING')
+                    .map(([kind]) => kind === 'status' ? '안건 현황' : '회의 요약');
+                if (missingDatasets.length && showAlert) {
+                    const approved = confirm(
+                        `GitHub에 ${missingDatasets.join(', ')} XLSB가 없습니다.\n` +
+                        '다른 사용자가 삭제했을 수 있으므로 자동 복원하지 않습니다.\n현재 대기 이력으로 새 XLSB를 생성할까요?'
+                    );
+                    if (approved) result = await runSync(true);
+                }
                 if (!result.ok) throw new Error('일부 XLSB 동기화가 실패했습니다. 로컬 대기 이력은 유지됩니다.');
+                for (const [kind, item] of Object.entries(result.results || {})) {
+                    if (item?.ok) remoteDatasetState[kind] = 'github';
+                }
+                if (result.results?.memo?.ok) {
+                    confirmedMeetingMemoRows = meetingStore.getSnapshot().memo.rows.map(row => ({ ...row }));
+                }
+                const remainingMemoKeys = new Set((await meetingStore.getOutbox('memo')).map(event => event.key));
+                for (const key of [...sessionEditedMemoKeys]) {
+                    if (!remainingMemoKeys.has(key)) sessionEditedMemoKeys.delete(key);
+                }
                 if (showAlert) refreshDashboardFromStore();
                 else {
                     applyStoreSnapshotPreservingMemoDrafts(meetingStore.getSnapshot());
@@ -3907,13 +3857,9 @@
                 return { ok: false, error };
             } finally {
                 saveBtn.textContent = originalBtnText;
-                checkForUnsavedChanges({ autoSync: false });
+                await checkForUnsavedChanges({ autoSync: false });
             }
         }
-
-        const debouncedSync = debounce(() => {
-            syncPendingChanges(false);
-        }, 2000);
 
         async function importOfflineHistory(file) {
             const result = await meetingStore.importOfflineTxt(file);
@@ -3939,13 +3885,15 @@
                     }
                 }
             }
-            await meetingStore.importXlsbFiles(selected, {
+            const importResults = await meetingStore.importXlsbFiles(selected, {
                 queueForSync: true,
                 mode: 'replace',
                 source: '로컬 XLSB 수동 가져오기'
             });
             refreshDashboardFromStore();
-            alert(`로컬 XLSB ${Object.keys(selected).length}개를 적용하고 GitHub 동기화 대기열에 기록했습니다.`);
+            const restored = Object.values(importResults).reduce((sum, item) => sum + Number(item.queued || 0), 0);
+            const conflicts = Object.values(importResults).reduce((sum, item) => sum + Number(item.conflicts?.length || 0), 0);
+            alert(`로컬 XLSB ${Object.keys(selected).length}개를 적용하고 동일 이력 ID ${restored}건을 GitHub 동기화 대기열에 복구했습니다.${conflicts ? `\n원격 차이 ${conflicts}건은 덮어쓰지 않고 검토 대기 상태로 보존했습니다.` : ''}`);
         }
 
         async function fetchTemplateFromURL(url, type) {
@@ -3982,9 +3930,14 @@
             }
             const searchRegex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
             let found = false;
-            const sortedKeys = Object.keys(tempMeetingMemos).sort().reverse();
+            const confirmedMemos = Object.fromEntries(
+                confirmedMeetingMemoRows
+                    .filter(row => row.summary || row.memo)
+                    .map(row => [row.key, row.summary || row.memo])
+            );
+            const sortedKeys = Object.keys(confirmedMemos).sort().reverse();
             for (const key of sortedKeys) {
-                if (tempMeetingMemos[key].toLowerCase().includes(searchTerm.toLowerCase())) {
+                if (confirmedMemos[key].toLowerCase().includes(searchTerm.toLowerCase())) {
                     found = true;
                     const keyParts = key.split('-'), year = keyParts[0], month = keyParts[1];
                     let locationText = (keyParts.length > 2) ? `${year}년 ${month}월 ${keyParts[2]}주차` : `${year}년 ${month}월`;
@@ -3996,7 +3949,7 @@
                     const heading = document.createElement('h5');
                     heading.textContent = locationText;
                     const memo = document.createElement('p');
-                    appendHighlightedText(memo, tempMeetingMemos[key], searchRegex);
+                    appendHighlightedText(memo, confirmedMemos[key], searchRegex);
                     resultItem.append(heading, memo);
                     resultsContainer.appendChild(resultItem);
                 }
@@ -4051,18 +4004,78 @@
             });
         }
 
-        async function importInitialXlsbFiles(statusUrl, memoUrl) {
+        function recordRemoteLoadResults(results = {}) {
+            for (const kind of ['status', 'memo']) {
+                if (!Object.prototype.hasOwnProperty.call(results, kind)) continue;
+                const result = results[kind];
+                if (result?.stale) continue;
+                remoteDatasetState[kind] = result?.ok
+                    ? (result.exists ? 'github' : 'missing')
+                    : (navigator.onLine === false ? 'offline' : 'error');
+            }
+        }
+
+        async function refreshAuthoritativeMeetingData(options = {}) {
+            if (!meetingStore || dashboardConfig.dataManagement.mode !== 'api') return {};
+            const dataset = options.dataset || '';
+            const refreshKey = dataset || 'all';
+            if (remoteRefreshPromises.has(refreshKey)) return remoteRefreshPromises.get(refreshKey);
+            if (navigator.onLine === false) {
+                for (const kind of (dataset ? [dataset] : ['status', 'memo'])) remoteDatasetState[kind] = 'offline';
+                return { [dataset || 'all']: { ok: false, offline: true } };
+            }
+
+            const task = (async () => {
+                const results = await meetingStore.load({
+                    ...(dataset ? { dataset } : {}),
+                    overlayPending: false,
+                    throwOnError: false
+                });
+                recordRemoteLoadResults(results);
+                const snapshot = meetingStore.getSnapshot();
+                if (results.memo?.ok && !results.memo.stale) {
+                    confirmedMeetingMemoRows = results.memo.exists
+                        ? snapshot.memo.rows.map(row => ({ ...row }))
+                        : [];
+                }
+                if (Object.prototype.hasOwnProperty.call(results, 'memo')) await hydrateMemoIndicatorStates();
+                applyStoreSnapshotPreservingMemoDrafts({
+                    ...snapshot,
+                    pendingCount: await meetingStore.pendingCount()
+                });
+                if (options.render && currentYear) {
+                    updateAnalyticsTooltip();
+                    if (currentMonth) showMonthView(currentMonth, currentYear, tempSkippedDates);
+                    else renderYearView(currentYear, tempSkippedDates);
+                }
+                return results;
+            })().finally(() => remoteRefreshPromises.delete(refreshKey));
+            remoteRefreshPromises.set(refreshKey, task);
+            return task;
+        }
+
+        async function importInitialXlsbFiles(statusUrl, memoUrl, options = {}) {
+            const requested = new Set(options.datasets || ['status', 'memo']);
             const files = {};
             const results = await Promise.allSettled([
-                fetchWorkbookFile(statusUrl, '회의_안건_현황.xlsb'),
-                fetchWorkbookFile(memoUrl, '회의_요약_메모.xlsb')
+                requested.has('status') ? fetchWorkbookFile(statusUrl, '회의_안건_현황.xlsb') : Promise.resolve(null),
+                requested.has('memo') ? fetchWorkbookFile(memoUrl, '회의_요약_메모.xlsb') : Promise.resolve(null)
             ]);
             if (results[0].status === 'fulfilled' && results[0].value) files.status = results[0].value;
             if (results[1].status === 'fulfilled' && results[1].value) files.memo = results[1].value;
-            if (Object.keys(files).length) {
-                await meetingStore.importXlsbFiles(files, { queueForSync: false, mode: 'replace' });
+            const imported = {};
+            for (const kind of ['status', 'memo']) {
+                if (!files[kind]) continue;
+                try {
+                    imported[kind] = await meetingStore.importLocalFile(kind, files[kind], {
+                        queueForSync: false,
+                        mode: 'replace'
+                    });
+                } catch (error) {
+                    imported[kind] = { ok: false, error };
+                }
             }
-            return results;
+            return { fetched: results, imported };
         }
 
         async function ensureRosterThroughToday() {
@@ -4108,10 +4121,22 @@
         }
 
         async function hydrateMemoIndicatorStates() {
+            memoIndicatorStates.clear();
+            if (remoteDatasetState.memo === 'github') {
+                for (const row of confirmedMeetingMemoRows) {
+                    memoIndicatorStates.set(row.key, { state: 'saved', message: 'GitHub 최신본' });
+                }
+            }
             const pendingMemoEvents = await meetingStore.getOutbox('memo');
-            const pendingKeys = new Set(pendingMemoEvents.map(event => event.key));
-            for (const key of pendingKeys) {
-                memoIndicatorStates.set(key, { state: 'pending', message: '로컬 저장 완료 · 업로드 대기' });
+            const pendingByKey = new Map();
+            for (const event of pendingMemoEvents) {
+                pendingByKey.set(event.key, (pendingByKey.get(event.key) || 0) + 1);
+            }
+            for (const [key, count] of pendingByKey) {
+                const message = remoteDatasetState.memo === 'github'
+                    ? `GitHub 확정본 · 로컬 대기 ${count}건 분리`
+                    : `로컬 대기 ${count}건 보존 · 원격 확인 필요`;
+                memoIndicatorStates.set(key, { state: 'pending', message });
             }
         }
 
@@ -4142,30 +4167,52 @@
             });
 
             const pending = await meetingStore.pendingCount();
+            let loadResults = {};
             if (mode === 'api') {
-                await meetingStore.load({ throwOnError: false });
+                loadResults = await meetingStore.load({
+                    overlayPending: false,
+                    throwOnError: false
+                });
+                recordRemoteLoadResults(loadResults);
             } else if (mode === 'manual' && pending === 0) {
                 await importInitialXlsbFiles(githubManual.skippedJsonUrl, githubManual.memosJsonUrl);
+                remoteDatasetState.status = 'local';
+                remoteDatasetState.memo = 'local';
             }
 
             let snapshot = meetingStore.getSnapshot();
-            if (!snapshot.status.rows.length) {
+            const remoteStatusMissing = mode === 'api'
+                && loadResults.status?.ok
+                && loadResults.status.exists === false;
+            const fallbackDatasets = [];
+            if (!remoteStatusMissing && !snapshot.status.rows.length) fallbackDatasets.push('status');
+            if (!snapshot.memo.rows.length && loadResults.memo && !loadResults.memo.ok) fallbackDatasets.push('memo');
+            if (fallbackDatasets.length) {
                 await importInitialXlsbFiles(
                     URL_DEFAULT_CONFIG.dataManagement.githubManual.skippedJsonUrl,
-                    URL_DEFAULT_CONFIG.dataManagement.githubManual.memosJsonUrl
+                    URL_DEFAULT_CONFIG.dataManagement.githubManual.memosJsonUrl,
+                    { datasets: fallbackDatasets }
                 );
                 snapshot = meetingStore.getSnapshot();
             }
-            if (!snapshot.status.rows.length && window.MEETING_DATA_BOOTSTRAP) {
+            if (!remoteStatusMissing && !snapshot.status.rows.length && window.MEETING_DATA_BOOTSTRAP && await meetingStore.pendingCount() === 0) {
                 await meetingStore.replaceLocalData(window.MEETING_DATA_BOOTSTRAP, { force: false });
                 snapshot = meetingStore.getSnapshot();
                 updateDataSyncStatus('오프라인 XLSB 기준 데이터로 복구했습니다.', 'saved');
             }
+            if (remoteStatusMissing) {
+                throw new Error('GitHub의 회의 안건 현황 XLSB가 없습니다. 삭제된 원격 파일을 로컬 캐시로 자동 복원하지 않습니다. 설정에서 원격 경로를 확인한 뒤 명시적으로 복구해주세요.');
+            }
             if (!snapshot.status.rows.length) {
                 throw new Error('안건 현황 XLSB를 원격·캐시·로컬 어느 곳에서도 찾지 못했습니다.');
             }
-            await ensureRosterThroughToday();
-            snapshot = meetingStore.getSnapshot();
+            if (loadResults.memo?.ok && !loadResults.memo.stale) {
+                confirmedMeetingMemoRows = loadResults.memo.exists
+                    ? snapshot.memo.rows.map(row => ({ ...row }))
+                    : [];
+            } else {
+                confirmedMeetingMemoRows = snapshot.memo.rows.map(row => ({ ...row }));
+            }
             await hydrateMemoIndicatorStates();
             applyStoreSnapshot({ ...snapshot, pendingCount: await meetingStore.pendingCount() });
             initializeDashboard();
@@ -4238,7 +4285,7 @@
                     for (const key of keysToUpdate) {
                         const existing = meetingStatusRows.find(row => row.key === key);
                         if (existing) {
-                            await meetingStore.setStatus(key, targetStatus, { source: '미작성 안건 수동 관리' });
+                            await meetingStore.setStatus(key, targetStatus, { source: auditSource('미작성 안건 수동 관리') });
                         } else {
                             await meetingStore.upsertStatus({
                                 key,
@@ -4247,7 +4294,7 @@
                                 cardVisible: 'N',
                                 exceptionCode: 'MANUAL_OUT_OF_ROSTER',
                                 note: '카드 로스터 밖 수동 입력 — 검토 후 포함 여부 결정'
-                            }, { source: '미작성 안건 수동 관리' });
+                            }, { source: auditSource('미작성 안건 수동 관리') });
                         }
                     }
                     refreshDashboardFromStore();
@@ -4332,7 +4379,7 @@
                 try {
                     meetingGithubCredential.adoptToken(token);
                     event.target.value = '';
-                    syncPendingChanges(false);
+                    updateDataSyncStatus('GitHub PAT가 현재 세션에 준비됐습니다. 웹 저장을 누르면 최신 XLSB와 재병합합니다.', 'saved');
                 } catch (error) {
                     event.target.value = '';
                     alert(error.message);
@@ -4344,7 +4391,7 @@
             document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
             document.getElementById('createNewMeetingBtn').addEventListener('click', createNewMeetingFile);
             document.getElementById('saveAllChangesBtn').addEventListener('click', handleSaveAllChanges);
-            document.getElementById('month-view').addEventListener('click', (e) => {
+            document.getElementById('month-view').addEventListener('click', async (e) => {
                 const persistBtn = e.target.closest('.memo-persist-btn');
                 if (persistBtn) {
                     persistMemoAction(persistBtn.dataset.memoKey, persistBtn.dataset.memoAction);
@@ -4362,13 +4409,51 @@
                     const memoWrapperId = key.split('-').length > 2 ? `memo-${key}` : 'monthly-memo-wrapper';
                     const memoWrapper = document.getElementById(memoWrapperId);
                     if (memoWrapper && card) {
+                        const willOpen = memoWrapper.classList.contains('hidden');
                         const isHidden = memoWrapper.classList.toggle('hidden');
                         toggleBtn.textContent = isHidden ? '+' : '–';
                         // ARIA 속성 업데이트
                         toggleBtn.setAttribute('aria-expanded', !isHidden);
+                        memoWrapper.setAttribute('aria-hidden', String(isHidden));
+                        memoWrapper.inert = isHidden;
                         card.classList.toggle('expanded', !isHidden);
                         if (!isHidden) {
-                            if (!memoIndicatorStates.has(key)) setMemoIndicatorState(key, 'ready', '준비 중');
+                            if (willOpen && dashboardConfig.dataManagement.mode === 'api') {
+                                setMemoIndicatorState(key, 'saving', 'GitHub XLSB 최신본 확인 중');
+                                setMemoActionButtonsDisabled(key, true);
+                                try {
+                                    let results = await refreshAuthoritativeMeetingData({ dataset: 'memo' });
+                                    if (results.memo?.stale) {
+                                        results = await refreshAuthoritativeMeetingData({ dataset: 'memo' });
+                                    }
+                                    const memoResult = results.memo;
+                                    if (memoResult?.ok && !memoResult.stale) {
+                                        if (!sessionEditedMemoKeys.has(key)) {
+                                            const confirmed = getConfirmedMemoValue(key);
+                                            const textarea = findMemoTextarea(key);
+                                            if (textarea) textarea.value = confirmed;
+                                            if (confirmed) tempMeetingMemos[key] = confirmed;
+                                            else delete tempMeetingMemos[key];
+                                        }
+                                        if (!memoResult.exists) {
+                                            setMemoIndicatorState(key, 'error', 'GitHub 회의 요약 XLSB 없음 · 자동 복원 안 함');
+                                        } else if (memoResult.conflicts?.length) {
+                                            setMemoIndicatorState(key, 'error', '원격·로컬 이력 충돌 · 웹 저장 전 검토');
+                                        } else {
+                                            const state = getMemoIndicatorState(key);
+                                            setMemoIndicatorState(key, state.state, state.message);
+                                        }
+                                    } else if (memoResult?.stale) {
+                                        setMemoIndicatorState(key, 'saving', '웹 저장 작업 완료 후 최신본 반영 대기');
+                                    } else {
+                                        setMemoIndicatorState(key, 'error', '오프라인 캐시 · GitHub 읽기 재시도 필요');
+                                    }
+                                } finally {
+                                    setMemoActionButtonsDisabled(key, false);
+                                }
+                            } else if (!memoIndicatorStates.has(key)) {
+                                setMemoIndicatorState(key, 'ready', '준비 중');
+                            }
                             updateMemoClocks();
                         }
                     }
@@ -4413,7 +4498,12 @@
                 if (document.visibilityState === 'hidden') flushMemoChanges().catch(console.error);
             });
             window.addEventListener('online', async () => {
-                if (meetingStore && meetingGithubCredential?.hasSessionToken()) syncPendingChanges(false);
+                if (!meetingStore) return;
+                updateDataSyncStatus('GitHub 최신 XLSB를 다시 매핑하는 중…', 'waiting');
+                await refreshAuthoritativeMeetingData({ render: true });
+            });
+            window.addEventListener('pageshow', event => {
+                if (event.persisted && meetingStore) refreshAuthoritativeMeetingData({ render: true });
             });
             document.getElementById('searchInput').addEventListener('input', performSearch);
             document.getElementById('searchResultsContainer').addEventListener('click', handleSearchResultClick);

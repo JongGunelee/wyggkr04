@@ -24,6 +24,11 @@
     const MEMO_HISTORY_HEADERS = [
         '이력ID', '변경일시', '안건키', '구분', '이전요약', '변경요약', '변경경로', '동기화상태', '리비전'
     ];
+    const LOCAL_PENDING_HEADERS = [
+        '이력ID', '변경일시', '데이터셋', '안건키', '구분', '작업', '이전값', '변경값',
+        '변경경로', '리비전', '기준리비전', 'XLSB 투영상태', '충돌사유', '로컬순번',
+        'JSON조각번호', 'JSON조각수', '원본이벤트JSON'
+    ];
 
     const DEFAULT_CONFIG = Object.freeze({
         dbName: 'monthly-weekly-meeting-data',
@@ -308,13 +313,6 @@
             const stored = await readStoredSnapshot();
             snapshot = normalizeSnapshot(stored);
             const pendingEvents = await readOutboxInternal();
-            for (const kind of VALID_DATASETS) {
-                const events = pendingEvents.filter((event) => event.dataset === kind);
-                if (!events.length) continue;
-                const recovered = applyEvents(snapshot[kind], events, { strict: false, syncStatus: '대기', reapplyDuplicates: true });
-                snapshot[kind] = recovered.state;
-            }
-            if (pendingEvents.length) await persistAtomically(snapshot, [], []);
             return pendingEvents;
         };
         const locks = global.navigator && global.navigator.locks;
@@ -736,7 +734,9 @@
             .filter((row) => row.key === event.key)
             .slice();
         if (!keyHistory.length) return null;
-        sortHistory(keyHistory);
+        keyHistory.sort((left, right) => normalizeInteger(left.revision, 0) - normalizeInteger(right.revision, 0)
+            || String(left.changedAt || '').localeCompare(String(right.changedAt || ''))
+            || String(left.eventId || '').localeCompare(String(right.eventId || '')));
         const head = keyHistory[keyHistory.length - 1];
         const current = state.rows.find((row) => row.key === event.key) || null;
         const expectedSummary = cleanString(head.afterValue);
@@ -1156,7 +1156,10 @@
         const current = workingState.rows.find((row) => row.key === resolution.key) || null;
         const createdAt = nextMemoReconciliationTimestamp(initialState, workingState, events, resolution.key);
         const revision = maxMemoRevision(workingState, events, resolution.key) + 1;
-        const source = assertExcelCellText(`웹 저장 · 충돌 대기열 복구 · ${resolution.strategy} · ${intent.eventId.slice(0, 24)}`, 'memo reconciliation source');
+        const source = assertExcelCellText(
+            resolution.auditSource || `웹 저장 · 충돌 대기열 복구 · ${resolution.strategy} · ${intent.eventId.slice(0, 24)}`,
+            'memo reconciliation source'
+        );
         const expectedSummary = resolution.expectedSummary;
         const event = {
             eventId: makeEventId(),
@@ -1202,13 +1205,18 @@
         const applied = [];
         const duplicates = [];
         const orderedEvents = orderMemoEventsForResolution(events, resolution);
+        const earliestLocalEvent = [...events].sort(comparePendingMemoEvents)[0] || null;
         const initialRow = resolution ? initialState.rows.find((row) => row.key === resolution.key) || null : null;
         const initialKeyHistory = resolution ? initialState.history.filter((row) => row.key === resolution.key) : [];
         const initialFingerprint = resolution ? memoStateFingerprint(initialState, resolution.key) : '';
+        const localChainStartedEmpty = Boolean(earliestLocalEvent
+            && !cleanString(earliestLocalEvent.base && earliestLocalEvent.base.summary)
+            && normalizeInteger(earliestLocalEvent.base && earliestLocalEvent.base.revision, 0) === 0);
         const automaticRecoveryApproved = Boolean(resolution
             && resolution.strategy === 'rebase-if-remote-empty'
             && !initialRow
-            && initialKeyHistory.length === 0);
+            && initialKeyHistory.length === 0
+            && localChainStartedEmpty);
         const reviewedRemoteMatches = Boolean(resolution
             && resolution.strategy === 'local-after-review'
             && retry === 0
@@ -1363,19 +1371,117 @@
         }
     }
 
+    function parseLocalPendingSheet(workbook, kind) {
+        if (!workbook.Sheets['로컬대기이력']) return [];
+        const rows = sheetRows(workbook, '로컬대기이력', LOCAL_PENDING_HEADERS);
+        const groups = new Map();
+        for (const [index, row] of rows.entries()) {
+            const eventId = cleanString(row[0]);
+            const dataset = cleanString(row[2]);
+            const key = cleanString(row[3]);
+            const chunkIndex = normalizeInteger(row[14], NaN);
+            const chunkCount = normalizeInteger(row[15], NaN);
+            const chunk = cleanString(row[16]);
+            if (!eventId || dataset !== kind || !key || !Number.isInteger(chunkIndex) || !Number.isInteger(chunkCount)
+                || chunkIndex < 1 || chunkCount < 1 || chunkIndex > chunkCount) {
+                throw new SchemaError(`로컬대기이력 row ${index + 2} has invalid event metadata.`);
+            }
+            const group = groups.get(eventId) || { dataset, key, chunkCount, chunks: new Map() };
+            if (group.dataset !== dataset || group.key !== key || group.chunkCount !== chunkCount || group.chunks.has(chunkIndex)) {
+                throw new SchemaError(`로컬대기이력 has inconsistent chunks for ${eventId}.`);
+            }
+            group.chunks.set(chunkIndex, chunk);
+            groups.set(eventId, group);
+        }
+        const events = [];
+        for (const [eventId, group] of groups) {
+            if (group.chunks.size !== group.chunkCount) {
+                throw new SchemaError(`로컬대기이력 is missing JSON chunks for ${eventId}.`);
+            }
+            let raw = '';
+            for (let index = 1; index <= group.chunkCount; index += 1) raw += group.chunks.get(index);
+            let parsed;
+            try { parsed = JSON.parse(raw); }
+            catch (error) { throw new SchemaError(`로컬대기이력 JSON parsing failed for ${eventId}: ${error.message}`); }
+            const event = validateImportedEvent(parsed);
+            if (event.eventId !== eventId || event.dataset !== kind || event.key !== group.key) {
+                throw new SchemaError(`로컬대기이력 JSON identity mismatch for ${eventId}.`);
+            }
+            events.push(event);
+        }
+        return events.sort(compareEvents);
+    }
+
+    function normalizeHistoryRow(kind, input, rowNumber) {
+        const sheetName = '변경이력';
+        const eventId = assertExcelCellText(input.eventId, `${sheetName} eventId`);
+        const changedAt = normalizeDateTime(input.changedAt);
+        if (!eventId) throw new SchemaError(`${sheetName} row ${rowNumber} has a blank eventId.`);
+        if (!changedAt || Number.isNaN(new Date(changedAt).getTime())) {
+            throw new SchemaError(`${sheetName} row ${rowNumber} has an invalid changedAt.`);
+        }
+        const rawKey = cleanString(input.key);
+        const type = cleanString(input.type);
+        const migrationMetadata = rawKey === '전체' && type === '마이그레이션';
+        const parsed = migrationMetadata ? null : parseMeetingKey(rawKey);
+        if (parsed && type !== parsed.type) {
+            throw new SchemaError(`${sheetName} row ${rowNumber} type does not match ${parsed.key}.`);
+        }
+        const syncStatus = cleanString(input.syncStatus);
+        if (!['대기', '완료'].includes(syncStatus)) {
+            throw new SchemaError(`${sheetName} row ${rowNumber} has an invalid syncStatus.`);
+        }
+        const normalized = {
+            eventId,
+            changedAt,
+            key: parsed ? parsed.key : rawKey,
+            type,
+            beforeValue: assertExcelCellText(input.beforeValue, `${sheetName} beforeValue`),
+            afterValue: assertExcelCellText(input.afterValue, `${sheetName} afterValue`),
+            source: assertExcelCellText(input.source, `${sheetName} source`),
+            syncStatus
+        };
+        if (!normalized.source) throw new SchemaError(`${sheetName} row ${rowNumber} has a blank source.`);
+        if (kind === DATASET_MEMO) {
+            const revision = normalizeInteger(input.revision, NaN);
+            if (!Number.isInteger(revision) || revision < 1) {
+                throw new SchemaError(`${sheetName} row ${rowNumber} has an invalid revision.`);
+            }
+            normalized.revision = revision;
+        }
+        return normalized;
+    }
+
+    function assertMemoRowsMatchHistory(rows, history) {
+        const state = { rows, history };
+        const keysWithHistory = new Set(history.filter((row) => row.key !== '전체').map((row) => row.key));
+        for (const key of keysWithHistory) {
+            const conflict = memoHeadConsistencyConflict(state, { eventId: `parse:${key}`, key });
+            if (conflict) {
+                throw new SchemaError(`회의요약 row and 변경이력 head do not match for ${key}.`, conflict);
+            }
+        }
+    }
+
     function parseStatusWorkbook(workbook) {
         const rows = sheetRows(workbook, '안건현황', STATUS_HEADERS).map((row) => normalizeStatusRow({
             key: row[0], type: row[1], year: row[2], month: row[3], week: row[4], status: row[5],
             counterIncluded: row[6], cardVisible: row[7], referenceDate: row[8], updatedAt: row[9],
             source: row[10], exceptionCode: row[11], note: row[12]
         }, { strict: true }));
-        const history = sheetRows(workbook, '변경이력', STATUS_HISTORY_HEADERS).map((row) => ({
+        const history = sheetRows(workbook, '변경이력', STATUS_HISTORY_HEADERS).map((row, index) => normalizeHistoryRow(DATASET_STATUS, {
             eventId: cleanString(row[0]), changedAt: normalizeDateTime(row[1]), key: cleanString(row[2]), type: cleanString(row[3]),
             beforeValue: cleanString(row[4]), afterValue: cleanString(row[5]), source: cleanString(row[6]), syncStatus: cleanString(row[7])
-        }));
+        }, index + 2));
         ensureUnique(rows, 'key', '안건현황');
         ensureUnique(history, 'eventId', '변경이력');
-        return { rows: sortStatusRows(rows), history: sortHistory(history), remoteSha: null, loadedAt: nowIso() };
+        return {
+            rows: sortStatusRows(rows),
+            history: sortHistory(history),
+            pendingEvents: parseLocalPendingSheet(workbook, DATASET_STATUS),
+            remoteSha: null,
+            loadedAt: nowIso()
+        };
     }
 
     function parseMemoWorkbook(workbook) {
@@ -1383,14 +1489,21 @@
             key: row[0], type: row[1], year: row[2], month: row[3], week: row[4], summary: row[5],
             updatedAt: row[6], source: row[7], revision: row[8]
         }, { strict: true })).filter((row) => row.summary !== '');
-        const history = sheetRows(workbook, '변경이력', MEMO_HISTORY_HEADERS).map((row) => ({
+        const history = sheetRows(workbook, '변경이력', MEMO_HISTORY_HEADERS).map((row, index) => normalizeHistoryRow(DATASET_MEMO, {
             eventId: cleanString(row[0]), changedAt: normalizeDateTime(row[1]), key: cleanString(row[2]), type: cleanString(row[3]),
             beforeValue: cleanString(row[4]), afterValue: cleanString(row[5]), source: cleanString(row[6]), syncStatus: cleanString(row[7]),
-            revision: Math.max(1, normalizeInteger(row[8], 1))
-        }));
+            revision: row[8]
+        }, index + 2));
         ensureUnique(rows, 'key', '회의요약');
         ensureUnique(history, 'eventId', '변경이력');
-        return { rows: sortMemoRows(rows), history: sortHistory(history), remoteSha: null, loadedAt: nowIso() };
+        assertMemoRowsMatchHistory(rows, history);
+        return {
+            rows: sortMemoRows(rows),
+            history: sortHistory(history),
+            pendingEvents: parseLocalPendingSheet(workbook, DATASET_MEMO),
+            remoteSha: null,
+            loadedAt: nowIso()
+        };
     }
 
     async function inputToBytes(input) {
@@ -1404,6 +1517,12 @@
     async function parseXlsb(kind, input) {
         assertDataset(kind);
         const bytes = await inputToBytes(input);
+        if (bytes.byteLength > MAX_XLSB_BYTES) {
+            throw new MeetingDataStoreError(`XLSB input exceeds the ${MAX_XLSB_BYTES}-byte safety limit.`, 'XLSB_TOO_LARGE', {
+                byteLength: bytes.byteLength,
+                limit: MAX_XLSB_BYTES
+            });
+        }
         const workbook = getXlsx().read(bytes, { type: 'array', cellDates: true, dense: true });
         return kind === DATASET_STATUS ? parseStatusWorkbook(workbook) : parseMemoWorkbook(workbook);
     }
@@ -1513,11 +1632,11 @@
             ['안건키', '안건현황 XLSB와 동일한 고유키', '두 파일의 유일한 매핑 키'],
             ['회의요약', '웹에서 작성하는 메모', 'HTML로 해석하지 않고 텍스트로 저장'],
             ['리비전', '메모 변경 횟수', '저장할 때 1씩 증가'],
-            ['등록 버튼', '회의 요약 XLSB를 GitHub에 등록', '변경경로=등록 · GitHub XLSB'],
-            ['저장 버튼', '회의 요약 XLSB를 로컬 컴퓨터에 다운로드', '변경경로=저장 · 로컬 XLSB'],
-            ['변경일시', '등록·저장 버튼을 누른 현지 일시', 'yyyy-mm-dd hh:mm:ss로 표시'],
+            ['웹 저장 버튼', '회의 요약 XLSB를 GitHub에 저장', '변경경로=웹 저장 · GitHub XLSB'],
+            ['PC 저장 버튼', '회의 요약 XLSB를 로컬 컴퓨터에 다운로드', '변경경로=PC 저장 · 로컬 XLSB'],
+            ['변경일시', '웹 저장·PC 저장 버튼을 누른 현지 일시', 'yyyy-mm-dd hh:mm:ss로 표시'],
             ['온라인', 'GitHub Contents API로 자동 동기화', '세션 토큰 필요'],
-            ['오프라인', '로컬 변경 큐와 JSONL TXT 이력', '재연결 후 병합 업로드'],
+            ['오프라인', '로컬 변경 큐와 대기 이력 포함 XLSB', '재연결 후 검토·병합 업로드'],
             ['용량', '실제 사용 행/열만 저장', '빈 셀 대량 서식 금지, 압축 저장']
         ];
     }
@@ -1549,8 +1668,57 @@
         };
     }
 
-    function buildWorkbook(kind, state) {
+    function localPendingMatrix(events, projectionStatusById, projectionConflicts) {
+        const conflictReasons = new Map();
+        for (const conflict of projectionConflicts || []) {
+            const eventId = cleanString(conflict && conflict.eventId);
+            if (!eventId) continue;
+            const current = conflictReasons.get(eventId) || [];
+            current.push(cleanString(conflict.reason || 'LOCAL_EXPORT_CONFLICT'));
+            conflictReasons.set(eventId, current);
+        }
+        const splitJson = (value) => {
+            const chunks = [];
+            let offset = 0;
+            while (offset < value.length) {
+                let end = Math.min(value.length, offset + 30000);
+                if (end < value.length
+                    && /[\uD800-\uDBFF]/.test(value.charAt(end - 1))
+                    && /[\uDC00-\uDFFF]/.test(value.charAt(end))) end -= 1;
+                chunks.push(value.slice(offset, end));
+                offset = end;
+            }
+            return chunks.length ? chunks : [''];
+        };
+        const rows = [];
+        for (const event of [...(events || [])].sort(compareEvents)) {
+            const jsonChunks = splitJson(JSON.stringify(event));
+            jsonChunks.forEach((chunk, index) => rows.push([
+                cleanString(event.eventId),
+                dateTimeToCell(event.createdAt),
+                cleanString(event.dataset),
+                cleanString(event.key),
+                cleanString(event.type),
+                cleanString(event.operation),
+                assertExcelCellText(event.beforeValue, 'local pending beforeValue'),
+                assertExcelCellText(event.afterValue, 'local pending afterValue'),
+                assertExcelCellText(event.source, 'local pending source'),
+                normalizeInteger(event.revision, null),
+                normalizeInteger(event.base && event.base.revision, null),
+                cleanString(projectionStatusById && projectionStatusById.get(event.eventId) || '로컬 대기 보존'),
+                (conflictReasons.get(event.eventId) || []).join(', '),
+                normalizeInteger(event.sequence, null),
+                index + 1,
+                jsonChunks.length,
+                chunk
+            ]));
+        }
+        return [LOCAL_PENDING_HEADERS, ...rows];
+    }
+
+    function buildWorkbook(kind, state, options) {
         const xlsx = getXlsx();
+        const settings = options || {};
         const workbook = xlsx.utils.book_new();
         if (kind === DATASET_STATUS) {
             const matrices = statusMatrix(state);
@@ -1588,6 +1756,13 @@
             }), '변경이력');
             xlsx.utils.book_append_sheet(workbook, makeWorksheet(memoGuideMatrix(), [22, 50, 50]), '사용안내');
         }
+        if (settings.pendingEvents && settings.pendingEvents.length) {
+            xlsx.utils.book_append_sheet(workbook, makeWorksheet(
+                localPendingMatrix(settings.pendingEvents, settings.projectionStatusById, settings.projectionConflicts),
+                [38, 25, 12, 18, 12, 13, 40, 40, 30, 10, 12, 22, 30, 12, 12, 12, 60],
+                { numberFormats: [{ column: 'B', startRow: 2, code: 'yyyy-mm-dd hh:mm:ss' }] }
+            ), '로컬대기이력');
+        }
         return workbook;
     }
 
@@ -1608,10 +1783,10 @@
         }));
     }
 
-    function exportXlsb(kind, stateOverride) {
+    function exportXlsb(kind, stateOverride, options) {
         assertDataset(kind);
         const state = stateOverride ? clone(stateOverride) : clone(snapshot[kind]);
-        const workbook = buildWorkbook(kind, state);
+        const workbook = buildWorkbook(kind, state, options);
         const inlineBytes = writeWorkbookVariant(workbook, false);
         const sharedBytes = writeWorkbookVariant(workbook, true);
         const useSharedStrings = sharedBytes.byteLength < inlineBytes.byteLength;
@@ -1655,6 +1830,169 @@
         const defaultName = kind === DATASET_STATUS ? '회의_안건_현황.xlsb' : '회의_요약_메모.xlsb';
         const blob = new Blob([generated.bytes], { type: 'application/vnd.ms-excel.sheet.binary.macroEnabled.12' });
         return { ...generated, blob, filename: filename || defaultName, downloaded: triggerDownload(blob, filename || defaultName) };
+    }
+
+    function nextMemoExportTimestamp(state, pendingEvents, key) {
+        const values = [];
+        const current = state.rows.find((row) => row.key === key);
+        if (current && current.updatedAt) values.push(current.updatedAt);
+        for (const row of state.history.filter((item) => item.key === key)) values.push(row.changedAt);
+        for (const event of pendingEvents.filter((item) => item.key === key)) values.push(event.createdAt);
+        let maximum = Date.UTC(2000, 0, 1);
+        for (const value of values) {
+            const milliseconds = new Date(value).getTime();
+            if (!Number.isFinite(milliseconds)) {
+                throw new MeetingDataStoreError('PC XLSB 투영에서 잘못된 이력 시간이 발견됐습니다.', 'LOCAL_XLSB_TIMESTAMP_INVALID', { key, value: cleanString(value) });
+            }
+            maximum = Math.max(maximum, milliseconds);
+        }
+        const excelMaximum = Date.UTC(9999, 11, 31, 23, 59, 59, 998);
+        if (maximum >= excelMaximum) {
+            throw new MeetingDataStoreError('PC XLSB 투영 시간이 Excel 날짜 범위를 초과했습니다.', 'LOCAL_XLSB_TIMESTAMP_OVERFLOW', { key });
+        }
+        return new Date(maximum + 1).toISOString();
+    }
+
+    function appendMemoExportHead(state, pendingEvents, key) {
+        const parsed = parseMeetingKey(key);
+        const current = state.rows.find((row) => row.key === key) || null;
+        const createdAt = nextMemoExportTimestamp(state, pendingEvents, key);
+        const revision = maxMemoRevision(state, pendingEvents, key) + 1;
+        const summary = current ? cleanString(current.summary) : '';
+        const source = 'PC 저장 · 로컬 대기 스냅샷';
+        const event = {
+            eventId: `pc-export:${key}:r${revision}:${createdAt}`,
+            dataset: DATASET_MEMO,
+            createdAt,
+            key,
+            type: parsed.type,
+            source,
+            operation: summary ? 'upsert' : 'delete',
+            base: {
+                summary,
+                revision: current ? normalizeInteger(current.revision, 0) : 0
+            },
+            values: summary ? {
+                key,
+                type: parsed.type,
+                year: parsed.year,
+                month: parsed.month,
+                week: parsed.week,
+                summary,
+                updatedAt: createdAt,
+                source,
+                revision
+            } : { summary: '', revision },
+            beforeValue: summary,
+            afterValue: summary,
+            revision
+        };
+        const outcome = applyMemoEvent(state, event, true, '대기', false);
+        const conflict = outcome.conflict || memoHeadConsistencyConflict(state, event);
+        if (conflict || !outcome.applied) {
+            throw new MeetingDataStoreError('PC XLSB용 회의 요약 이력 머리를 일관되게 만들지 못했습니다.', 'LOCAL_XLSB_PROJECTION_FAILED', {
+                key,
+                conflict: conflict || null
+            });
+        }
+        return event;
+    }
+
+    function projectPendingStateForXlsb(kind, baseState, pendingEvents) {
+        const state = clone(baseState || createDatasetState());
+        const ordered = [...(pendingEvents || [])].sort(kind === DATASET_MEMO ? comparePendingMemoEvents : compareEvents);
+        const projectionStatusById = new Map();
+        const projectionConflicts = [];
+        const memoKeys = new Set();
+
+        for (const event of ordered) {
+            const existing = state.history.find((row) => row.eventId === event.eventId) || null;
+            const expected = kind === DATASET_STATUS
+                ? statusHistoryFromEvent(event, '대기')
+                : memoHistoryFromEvent(event, '대기');
+            if (existing) {
+                if (!sameHistoryRecord(kind, existing, expected)) {
+                    projectionStatusById.set(event.eventId, '이력 ID 충돌 · 원본 이벤트만 보존');
+                    projectionConflicts.push({
+                        eventId: event.eventId,
+                        dataset: kind,
+                        key: event.key,
+                        reason: 'EVENT_ID_HISTORY_MISMATCH',
+                        existingHistory: historySemanticRecord(kind, existing),
+                        incomingHistory: historySemanticRecord(kind, expected)
+                    });
+                    continue;
+                }
+                existing.syncStatus = '대기';
+                projectionStatusById.set(event.eventId, '현재 이력에 동일 이벤트 포함');
+                if (kind === DATASET_MEMO) memoKeys.add(event.key);
+                continue;
+            }
+
+            const outcome = kind === DATASET_STATUS
+                ? applyStatusEvent(state, event, false, '대기', false)
+                : applyMemoEvent(state, event, false, '대기', false);
+            if (outcome.conflict) {
+                projectionConflicts.push(clone(outcome.conflict));
+                projectionStatusById.set(event.eventId, '원격 차이 보존 · 로컬 의도 투영');
+            } else if (outcome.applied) {
+                projectionStatusById.set(event.eventId, '현재 행과 이력에 로컬 의도 투영');
+            } else {
+                projectionStatusById.set(event.eventId, '원본 이벤트 보존');
+            }
+            if (kind === DATASET_MEMO && outcome.applied) memoKeys.add(event.key);
+        }
+
+        const exportHeadEventIds = [];
+        if (kind === DATASET_MEMO) {
+            for (const key of memoKeys) {
+                const conflict = memoHeadConsistencyConflict(state, { eventId: `pc-export:${key}`, key });
+                if (!conflict) continue;
+                const head = appendMemoExportHead(state, ordered, key);
+                exportHeadEventIds.push(head.eventId);
+            }
+            sortMemoRows(state.rows);
+        } else {
+            sortStatusRows(state.rows);
+        }
+        sortHistory(state.history);
+        return { state, projectionStatusById, projectionConflicts, exportHeadEventIds };
+    }
+
+    async function capturePendingExportBatch(kind) {
+        return serializeLocal(async () => ({
+            state: clone(snapshot[kind]),
+            pendingEvents: clone((await readOutboxInternal()).filter((event) => event.dataset === kind))
+        }));
+    }
+
+    async function exportPendingXlsb(kind, options) {
+        assertInitialized();
+        assertDataset(kind);
+        const settings = options || {};
+        const batch = await capturePendingExportBatch(kind);
+        const projection = projectPendingStateForXlsb(kind, batch.state, batch.pendingEvents);
+        const generated = exportXlsb(kind, projection.state, {
+            ...settings,
+            pendingEvents: batch.pendingEvents,
+            projectionStatusById: projection.projectionStatusById,
+            projectionConflicts: projection.projectionConflicts
+        });
+        return {
+            ...generated,
+            pendingCount: batch.pendingEvents.length,
+            pendingEventIds: batch.pendingEvents.map((event) => event.eventId),
+            projectionConflicts: clone(projection.projectionConflicts),
+            exportHeadEventIds: projection.exportHeadEventIds.slice()
+        };
+    }
+
+    async function downloadPendingXlsb(kind, filename, options) {
+        const generated = await exportPendingXlsb(kind, options);
+        const defaultName = kind === DATASET_STATUS ? '회의_안건_현황.xlsb' : '회의_요약_메모.xlsb';
+        const targetName = filename || defaultName;
+        const blob = new Blob([generated.bytes], { type: 'application/vnd.ms-excel.sheet.binary.macroEnabled.12' });
+        return { ...generated, blob, filename: targetName, downloaded: triggerDownload(blob, targetName) };
     }
 
     function bytesToBase64(bytes) {
@@ -1742,14 +2080,62 @@
             bytes = new Uint8Array(await rawResponse.arrayBuffer());
         }
         const state = await parseXlsb(kind, bytes);
+        const embeddedPending = Array.isArray(state.pendingEvents) ? state.pendingEvents : [];
+        delete state.pendingEvents;
+        if (embeddedPending.length) {
+            throw new MeetingDataStoreError('GitHub 원본 XLSB에 PC 복구용 로컬 대기열이 포함되어 있습니다. 표준 웹 저장 XLSB와 분리해주세요.', 'REMOTE_PENDING_QUEUE_FORBIDDEN', {
+                dataset: kind,
+                pendingCount: embeddedPending.length
+            });
+        }
         state.remoteSha = metadata.sha || null;
         state.loadedAt = nowIso();
         return { state, sha: state.remoteSha, exists: true, byteLength: bytes.byteLength };
     }
 
+    function classifyPendingAgainstRemote(kind, remoteState, pendingEvents) {
+        const remoteHistory = new Map(remoteState.history.map((row) => [row.eventId, row]));
+        const pending = [];
+        const acknowledgedIds = [];
+        const conflicts = [];
+        for (const event of pendingEvents) {
+            const existing = remoteHistory.get(event.eventId);
+            if (!existing) {
+                pending.push(event);
+                continue;
+            }
+            const expected = kind === DATASET_STATUS
+                ? statusHistoryFromEvent(event, '완료')
+                : memoHistoryFromEvent(event, '완료');
+            if (!sameHistoryRecord(kind, existing, expected)) {
+                conflicts.push({
+                    eventId: event.eventId,
+                    dataset: kind,
+                    key: event.key,
+                    reason: 'EVENT_ID_HISTORY_MISMATCH',
+                    existingHistory: historySemanticRecord(kind, existing),
+                    incomingHistory: historySemanticRecord(kind, expected)
+                });
+                pending.push(event);
+                continue;
+            }
+            if (kind === DATASET_MEMO) {
+                const headConflict = memoHeadConsistencyConflict(remoteState, event);
+                if (headConflict) {
+                    conflicts.push(headConflict);
+                    pending.push(event);
+                    continue;
+                }
+            }
+            acknowledgedIds.push(event.eventId);
+        }
+        return { pending, acknowledgedIds, conflicts };
+    }
+
     async function loadFromGitHub(options) {
         assertInitialized();
         const settings = options || {};
+        const overlayPending = settings.overlayPending === true;
         const kinds = settings.dataset ? [settings.dataset] : [DATASET_STATUS, DATASET_MEMO];
         kinds.forEach(assertDataset);
         const results = {};
@@ -1761,25 +2147,47 @@
                     if (generation !== loadGeneration[kind]) {
                         return { stale: true, pendingCount: 0, conflicts: [] };
                     }
-                    const pending = (await readOutboxInternal()).filter((event) => event.dataset === kind);
-                    const localFallback = !remote.exists && (snapshot[kind].rows.length || snapshot[kind].history.length)
-                        ? clone(snapshot[kind])
-                        : remote.state;
-                    const overlay = applyEvents(localFallback, pending, { strict: false, syncStatus: '대기', reapplyDuplicates: true });
+                    const storedPending = (await readOutboxInternal()).filter((event) => event.dataset === kind);
+                    const classified = remote.exists
+                        ? classifyPendingAgainstRemote(kind, remote.state, storedPending)
+                        : { pending: storedPending, acknowledgedIds: [], conflicts: [] };
+                    const overlay = overlayPending
+                        ? applyEvents(remote.state, classified.pending, { strict: true, syncStatus: '대기' })
+                        : { state: clone(remote.state), conflicts: [], applied: [], duplicates: [] };
+                    const conflicts = [...classified.conflicts, ...overlay.conflicts];
                     overlay.state.remoteSha = remote.sha;
                     overlay.state.loadedAt = nowIso();
                     const nextSnapshot = clone(snapshot);
                     nextSnapshot[kind] = overlay.state;
-                    await persistAtomically(nextSnapshot, [], []);
-                    return { stale: false, pendingCount: pending.length, conflicts: overlay.conflicts };
+                    await persistAtomically(nextSnapshot, [], classified.acknowledgedIds);
+                    return {
+                        stale: false,
+                        pendingCount: classified.pending.length,
+                        acknowledgedCount: classified.acknowledgedIds.length,
+                        conflicts
+                    };
                 });
                 if (update.stale) {
                     results[kind] = { ok: true, skipped: true, stale: true, exists: remote.exists, byteLength: remote.byteLength, conflicts: [] };
                     emit('remote-load-stale', { dataset: kind, generation });
                     continue;
                 }
-                results[kind] = { ok: true, exists: remote.exists, byteLength: remote.byteLength, conflicts: update.conflicts };
-                emit('remote-loaded', { dataset: kind, conflicts: update.conflicts.length, pendingCount: update.pendingCount });
+                results[kind] = {
+                    ok: true,
+                    exists: remote.exists,
+                    byteLength: remote.byteLength,
+                    conflicts: update.conflicts,
+                    pendingCount: update.pendingCount,
+                    acknowledgedCount: update.acknowledgedCount,
+                    overlayPending
+                };
+                emit('remote-loaded', {
+                    dataset: kind,
+                    conflicts: update.conflicts.length,
+                    pendingCount: update.pendingCount,
+                    acknowledgedCount: update.acknowledgedCount,
+                    overlayPending
+                });
             } catch (error) {
                 results[kind] = { ok: false, error };
                 emit('remote-error', { dataset: kind, error });
@@ -1814,14 +2222,11 @@
 
     async function finalizeSuccessfulSync(kind, mergedRemoteState, acknowledgedIds, newSha) {
         await serializeLocal(async () => {
-            const currentOutbox = await readOutboxInternal();
-            const acknowledged = new Set(acknowledgedIds);
-            const stillPending = currentOutbox.filter((event) => event.dataset === kind && !acknowledged.has(event.eventId));
-            const overlay = applyEvents(mergedRemoteState, stillPending, { strict: false, syncStatus: '대기' });
-            overlay.state.remoteSha = newSha || mergedRemoteState.remoteSha || null;
-            overlay.state.loadedAt = nowIso();
+            const authoritativeState = clone(mergedRemoteState);
+            authoritativeState.remoteSha = newSha || mergedRemoteState.remoteSha || null;
+            authoritativeState.loadedAt = nowIso();
             const nextSnapshot = clone(snapshot);
-            nextSnapshot[kind] = overlay.state;
+            nextSnapshot[kind] = authoritativeState;
             await persistAtomically(nextSnapshot, [], acknowledgedIds);
         });
     }
@@ -1841,38 +2246,6 @@
         });
     }
 
-    function mergeAcknowledgedLocalHistory(kind, candidateState, localState, allPending) {
-        const state = clone(candidateState);
-        const pendingIds = new Set(allPending.map((event) => event.eventId));
-        const byId = new Map(state.history.map((row) => [row.eventId, row]));
-        const conflicts = [];
-        let added = 0;
-        for (const localRow of localState.history) {
-            if (!localRow.eventId || pendingIds.has(localRow.eventId) || cleanString(localRow.syncStatus) !== '완료') continue;
-            const existing = byId.get(localRow.eventId);
-            if (existing) {
-                if (!sameHistoryRecord(kind, existing, localRow)) {
-                    conflicts.push({
-                        eventId: localRow.eventId,
-                        dataset: kind,
-                        key: localRow.key,
-                        reason: 'ACKNOWLEDGED_HISTORY_MISMATCH',
-                        remoteHistory: historySemanticRecord(kind, existing),
-                        localHistory: historySemanticRecord(kind, localRow)
-                    });
-                }
-                continue;
-            }
-            const preserved = clone(localRow);
-            preserved.syncStatus = '완료';
-            state.history.push(preserved);
-            byId.set(preserved.eventId, preserved);
-            added += 1;
-        }
-        sortHistory(state.history);
-        return { state, conflicts, added };
-    }
-
     async function syncDatasetInternal(kind, options) {
         assertDataset(kind);
         if (!sessionToken) throw new MeetingDataStoreError('A session GitHub token is required for upload.', 'TOKEN_REQUIRED');
@@ -1889,6 +2262,7 @@
         if (!captured.length && !settings.publishMissing) {
             return { ok: true, skipped: true, reason: 'empty-outbox', dataset: kind, uploadedEvents: 0 };
         }
+        ++loadGeneration[kind];
         const memoResolution = kind === DATASET_MEMO
             ? prepareMemoConflictResolution(captured, settings, selectedKeys)
             : null;
@@ -1912,6 +2286,11 @@
                     keys: [...selectedKeys]
                 });
             }
+            if (!remote.exists && settings.allowRemoteCreate !== true) {
+                throw new MeetingDataStoreError('The remote workbook is missing. Explicit approval is required before recreating it.', 'REMOTE_DATASET_MISSING', {
+                    dataset: kind
+                });
+            }
             let mergeBase = remote.state;
             if (!remote.exists) {
                 const capturedIds = new Set(captured.map((event) => event.eventId));
@@ -1929,17 +2308,11 @@
                 conflictResolution.resolutions.push(...(merged.resolutions || []));
             }
             if (merged.conflicts.length) throw new ConflictError(`Cannot merge ${kind} changes without user review.`, merged.conflicts);
-            const historyMerge = mergeAcknowledgedLocalHistory(kind, merged.state, batch.localState, batch.allPending);
-            if (historyMerge.conflicts.length) {
-                throw new ConflictError(`Cannot preserve ${kind} history without user review.`, historyMerge.conflicts);
-            }
-            merged = { ...merged, state: historyMerge.state };
             merged.state.remoteSha = remote.sha;
             const acknowledgedIds = captured.map((event) => event.eventId);
             const allAlreadyRemote = captured.length > 0
                 && merged.applied.length === 0
-                && merged.duplicates.length === captured.length
-                && historyMerge.added === 0;
+                && merged.duplicates.length === captured.length;
             if (allAlreadyRemote) {
                 await finalizeSuccessfulSync(kind, merged.state, acknowledgedIds, remote.sha);
                 emit('synced', { dataset: kind, uploadedEvents: acknowledgedIds.length, retryCount: retry, alreadyRemote: true });
@@ -1954,7 +2327,13 @@
                     conflictResolution: conflictResolution.rebasedEventIds.length ? conflictResolution : null
                 };
             }
-            const result = await putGitHubDataset(kind, merged.state, remote.sha, settings.message);
+            let result;
+            try {
+                result = await putGitHubDataset(kind, merged.state, remote.sha, settings.message);
+            } finally {
+                // A GET started before or during this PUT must never replace its result afterwards.
+                ++loadGeneration[kind];
+            }
             if (result.conflict) {
                 lastConflictResponse = result;
                 if (retry < MAX_GITHUB_CONFLICT_RETRIES) {
@@ -2206,12 +2585,101 @@
         return sortHistory([...byId.values()]);
     }
 
+    async function restorePortablePendingEvents(kind, eventRecords) {
+        return serializeLocal(async () => {
+            const existingOutbox = await readOutboxInternal();
+            const outboxById = new Map(existingOutbox.map((event) => [event.eventId, event]));
+            const historyById = new Map();
+            for (const dataset of VALID_DATASETS) {
+                for (const row of snapshot[dataset].history) {
+                    if (!historyById.has(row.eventId)) historyById.set(row.eventId, { dataset, row });
+                }
+            }
+
+            const nextSnapshot = clone(snapshot);
+            const accepted = [];
+            const duplicates = [];
+            const acknowledged = [];
+            const conflicts = [];
+            for (const event of [...eventRecords].sort(kind === DATASET_MEMO ? comparePendingMemoEvents : compareEvents)) {
+                if (event.dataset !== kind) {
+                    conflicts.push({ eventId: event.eventId, dataset: event.dataset, key: event.key, reason: 'PENDING_DATASET_MISMATCH' });
+                    continue;
+                }
+
+                const queued = outboxById.get(event.eventId);
+                if (queued) {
+                    if (eventSignature(queued) !== eventSignature(event)) {
+                        conflicts.push({ eventId: event.eventId, dataset: kind, key: event.key, reason: 'EVENT_ID_PAYLOAD_MISMATCH' });
+                    } else {
+                        duplicates.push(event.eventId);
+                    }
+                    continue;
+                }
+
+                const knownHistory = historyById.get(event.eventId);
+                if (knownHistory) {
+                    if (knownHistory.dataset !== kind) {
+                        conflicts.push({ eventId: event.eventId, dataset: kind, key: event.key, reason: 'EVENT_ID_DATASET_MISMATCH' });
+                        continue;
+                    }
+                    const expected = kind === DATASET_STATUS
+                        ? statusHistoryFromEvent(event, '대기')
+                        : memoHistoryFromEvent(event, '대기');
+                    if (!sameHistoryRecord(kind, knownHistory.row, expected)) {
+                        conflicts.push({
+                            eventId: event.eventId,
+                            dataset: kind,
+                            key: event.key,
+                            reason: 'EVENT_ID_HISTORY_MISMATCH',
+                            existingHistory: historySemanticRecord(kind, knownHistory.row),
+                            incomingHistory: historySemanticRecord(kind, expected)
+                        });
+                        continue;
+                    }
+                    if (knownHistory.row.syncStatus === '완료') {
+                        acknowledged.push(event.eventId);
+                        continue;
+                    }
+                }
+
+                accepted.push(event);
+                outboxById.set(event.eventId, event);
+                lastEventSequence = Math.max(lastEventSequence, Number.isFinite(Number(event.sequence)) ? Number(event.sequence) : 0);
+                const merged = applyEvents(nextSnapshot[kind], [event], { strict: true, syncStatus: '대기' });
+                if (merged.conflicts.length) {
+                    conflicts.push(...merged.conflicts.map((conflict) => ({ ...clone(conflict), preservedInOutbox: true })));
+                } else {
+                    nextSnapshot[kind] = merged.state;
+                }
+            }
+
+            if (accepted.length) await persistAtomically(nextSnapshot, accepted, []);
+            return {
+                accepted: accepted.length,
+                eventIds: accepted.map((event) => event.eventId),
+                duplicateEventIds: duplicates,
+                acknowledgedEventIds: acknowledged,
+                conflicts,
+                pendingCount: (await readOutboxInternal()).filter((event) => event.dataset === kind).length
+            };
+        });
+    }
+
     async function importLocalFile(kind, file, options) {
         assertInitialized();
         assertDataset(kind);
         const settings = options || {};
         const imported = await parseXlsb(kind, file);
+        const portablePending = clone(Array.isArray(imported.pendingEvents) ? imported.pendingEvents : []);
+        delete imported.pendingEvents;
         if (!settings.queueForSync) {
+            if (portablePending.length && settings.discardPending !== true) {
+                throw new MeetingDataStoreError('이 XLSB에는 웹 업로드 대기 이력이 있습니다. 대기열 복구 가져오기를 사용하거나 discardPending을 명시해야 합니다.', 'PENDING_EVENTS_REQUIRE_QUEUE_IMPORT', {
+                    dataset: kind,
+                    pendingCount: portablePending.length
+                });
+            }
             await serializeLocal(async () => {
                 const pending = (await readOutboxInternal()).filter((event) => event.dataset === kind);
                 if (pending.length && !settings.force) {
@@ -2234,6 +2702,25 @@
             });
             emit('local-file-imported', { dataset: kind, queued: 0 });
             return { dataset: kind, queued: 0, rows: imported.rows.length, history: imported.history.length };
+        }
+        if (portablePending.length) {
+            const restored = await restorePortablePendingEvents(kind, portablePending);
+            emit('local-file-imported', {
+                dataset: kind,
+                queued: restored.accepted,
+                portable: true,
+                conflicts: restored.conflicts.length
+            });
+            return {
+                dataset: kind,
+                queued: restored.accepted,
+                eventIds: restored.eventIds,
+                duplicateEventIds: restored.duplicateEventIds,
+                acknowledgedEventIds: restored.acknowledgedEventIds,
+                conflicts: restored.conflicts,
+                pendingCount: restored.pendingCount,
+                portable: true
+            };
         }
         const queued = [];
         if (kind === DATASET_STATUS) {
@@ -2372,14 +2859,15 @@
     }
 
     const api = {
-        version: '1.1.0',
+        version: '1.3.0',
         schemaVersion: SCHEMA_VERSION,
         datasets: Object.freeze({ status: DATASET_STATUS, memo: DATASET_MEMO }),
         headers: Object.freeze({
             status: STATUS_HEADERS.slice(),
             statusHistory: STATUS_HISTORY_HEADERS.slice(),
             memo: MEMO_HEADERS.slice(),
-            memoHistory: MEMO_HISTORY_HEADERS.slice()
+            memoHistory: MEMO_HISTORY_HEADERS.slice(),
+            localPending: LOCAL_PENDING_HEADERS.slice()
         }),
         errors: Object.freeze({ MeetingDataStoreError, SchemaError, GitHubError, ConflictError }),
         create,
@@ -2403,6 +2891,8 @@
         parseXlsb,
         exportXlsb,
         downloadXlsb,
+        exportPendingXlsb,
+        downloadPendingXlsb,
         importLocalFile,
         importXlsbFiles,
         exportOfflineTxt,
