@@ -12,10 +12,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script defer src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
-    <script defer src="./vendor/xlsx.full.min.js"></script>
-    <script defer src="./meeting-data-store.js"></script>
-    <script defer src="./meeting-github-credential.js"></script>
-    <script defer src="./meeting-data-bootstrap.js"></script>
+    <script defer src="./RawData/월간 및 주간/vendor/xlsx.full.min.js"></script>
+    <script defer src="./RawData/월간 및 주간/runtime/meeting-data-store.js"></script>
+    <script defer src="./RawData/월간 및 주간/runtime/meeting-github-credential.js"></script>
+    <script defer src="./RawData/월간 및 주간/runtime/meeting-data-bootstrap.js"></script>
     <style>
         :root {
             /* 2025 트렌드: 미니멀 감성 컨러 + 에코 UI + WCAG 접근성 */
@@ -1740,18 +1740,29 @@
             padding-bottom: 10px;
         }
 
+        .memo-focus-tool-status {
+            margin-left: auto;
+            color: #64748b;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
         #memoFocusReadContent {
             flex: 1;
+            width: min(var(--memo-read-width, 72ch), 100%);
             overflow: auto;
+            margin: 0 auto;
             padding: 24px;
             border: 1px solid #d7e0e9;
             border-radius: 12px;
             background: var(--card-bg);
             font-size: calc(17px * var(--memo-read-scale, 1));
-            line-height: 1.8;
+            line-height: var(--memo-read-line-height, 1.8);
             overflow-wrap: anywhere;
             white-space: pre-wrap;
             user-select: text;
+            box-sizing: border-box;
         }
 
         #memoFocusReadContent.empty {
@@ -1912,6 +1923,11 @@
                 gap: 6px;
             }
 
+            .memo-focus-tool-status {
+                width: 100%;
+                margin-left: 0;
+            }
+
             .memo-focus-btn {
                 min-height: 34px;
                 padding: 6px 9px;
@@ -1920,6 +1936,13 @@
             #memoFocusReadContent,
             #memoFocusEditTextarea {
                 padding: 16px;
+            }
+
+            #memoFocusReadContent {
+                font-size: calc(16px * var(--memo-read-scale, 1));
+            }
+
+            #memoFocusEditTextarea {
                 font-size: 16px;
             }
 
@@ -2350,7 +2373,7 @@
         </div>
     </div>
 
-    <section id="memoFocusOverlay" class="memo-focus-overlay" aria-hidden="true" aria-label="회의 요약 전체 화면">
+    <section id="memoFocusOverlay" class="memo-focus-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-label="회의 요약 전체 화면" inert>
         <header class="memo-focus-header">
             <div class="memo-focus-heading">
                 <strong id="memoFocusTitle">회의 요약</strong>
@@ -2361,31 +2384,40 @@
                 <button id="memoFocusCloseBtn" type="button" aria-label="전체 화면 닫기">닫기 ×</button>
             </div>
         </header>
-        <nav class="memo-focus-tabs" aria-label="회의 요약 모드">
-            <button class="memo-focus-tab" type="button" data-focus-mode="read" aria-selected="false">읽기</button>
-            <button class="memo-focus-tab" type="button" data-focus-mode="edit" aria-selected="false">내용 입력</button>
+        <nav class="memo-focus-tabs" role="tablist" aria-label="회의 요약 모드">
+            <button id="memoFocusReadTab" class="memo-focus-tab" type="button" role="tab" data-focus-mode="read" aria-controls="memoFocusReadPanel" aria-selected="false">읽기</button>
+            <button id="memoFocusEditTab" class="memo-focus-tab" type="button" role="tab" data-focus-mode="edit" aria-controls="memoFocusEditPanel" aria-selected="false">내용 입력</button>
         </nav>
         <main class="memo-focus-main">
-            <section id="memoFocusReadPanel" class="memo-focus-panel" aria-label="회의 요약 읽기 모드">
-                <div class="memo-focus-toolstrip">
-                    <button class="memo-focus-btn" type="button" data-read-action="smaller">글자 작게</button>
-                    <button class="memo-focus-btn" type="button" data-read-action="reset">기본 크기</button>
-                    <button class="memo-focus-btn" type="button" data-read-action="larger">글자 크게</button>
+            <section id="memoFocusReadPanel" class="memo-focus-panel" role="tabpanel" aria-labelledby="memoFocusReadTab" aria-hidden="true" inert>
+                <div class="memo-focus-toolstrip" role="toolbar" aria-label="회의 요약 읽기 도구">
+                    <button class="memo-focus-btn" type="button" data-read-action="smaller" title="글자 크기 10% 축소">글자 −</button>
+                    <button class="memo-focus-btn" type="button" data-read-action="reset" title="글자 크기와 줄 간격 초기화">기본</button>
+                    <button class="memo-focus-btn" type="button" data-read-action="larger" title="글자 크기 10% 확대, 최대 200%">글자 +</button>
+                    <button class="memo-focus-btn" type="button" data-read-action="line-height" title="줄 간격 1.5, 1.8, 2.1 순환">줄 간격</button>
+                    <button class="memo-focus-btn" type="button" data-read-action="width" title="편안한 읽기 폭과 넓은 폭 전환">읽기 폭</button>
                     <button class="memo-focus-btn" type="button" data-read-action="copy">내용 복사</button>
+                    <span id="memoReadDisplayStatus" class="memo-focus-tool-status" aria-live="polite">100% · 줄 간격 1.8</span>
                 </div>
                 <article id="memoFocusReadContent" tabindex="0"></article>
             </section>
-            <section id="memoFocusEditPanel" class="memo-focus-panel" aria-label="회의 요약 내용 입력 모드">
-                <div class="memo-focus-toolstrip">
-                    <button class="memo-focus-btn" type="button" data-edit-action="insert-time">현재 시각 삽입</button>
+            <section id="memoFocusEditPanel" class="memo-focus-panel" role="tabpanel" aria-labelledby="memoFocusEditTab" aria-hidden="true" inert>
+                <div class="memo-focus-toolstrip" role="toolbar" aria-label="회의 요약 내용 입력 도구">
                     <button class="memo-focus-btn" type="button" data-edit-action="undo">실행 취소</button>
                     <button class="memo-focus-btn" type="button" data-edit-action="redo">다시 실행</button>
+                    <button class="memo-focus-btn" type="button" data-edit-action="indent" title="선택 문단 들여쓰기 (Tab)">들여쓰기</button>
+                    <button class="memo-focus-btn" type="button" data-edit-action="outdent" title="선택 문단 내어쓰기 (Shift+Tab)">내어쓰기</button>
+                    <button class="memo-focus-btn" type="button" data-edit-action="bullet" title="글머리 기호 적용/해제 (Ctrl+Shift+8)">• 글머리</button>
+                    <button class="memo-focus-btn" type="button" data-edit-action="number" title="1부터 자동 번호 매기기 (Ctrl+Shift+7)">1. 자동 번호</button>
+                    <button class="memo-focus-btn" type="button" data-edit-action="manual-number" title="시작 번호를 지정해 번호 매기기">번호 지정</button>
+                    <button class="memo-focus-btn" type="button" data-edit-action="separator" title="문단 구분선 삽입">구분선</button>
+                    <button class="memo-focus-btn" type="button" data-edit-action="insert-time">현재 시각</button>
                     <button class="memo-focus-btn" type="button" data-edit-action="select-all">전체 선택</button>
                 </div>
                 <textarea id="memoFocusEditTextarea" aria-label="회의 요약 내용 입력" spellcheck="true"></textarea>
                 <div class="memo-focus-footer">
                     <div class="memo-focus-footer-info">
-                        <span id="memoFocusCount">0자 · 0줄</span>
+                        <span id="memoFocusCount">0자 · 0단어 · 0줄</span>
                         <span>웹 저장은 GitHub XLSB, PC 저장은 로컬 XLSB에 초 단위 이력으로 기록됩니다.</span>
                     </div>
                     <div class="memo-commit-actions" aria-label="회의 요약 웹 저장 및 PC 저장">
@@ -2450,6 +2482,8 @@
         const remoteRefreshPromises = new Map();
         let memoFocusState = null;
         let memoReadScale = 1;
+        let memoReadLineHeight = 1.8;
+        let memoReadWide = false;
         let memoClockInterval = null;
 
         const debounce = (func, delay) => {
@@ -2844,7 +2878,19 @@
             const textarea = document.getElementById('memoFocusEditTextarea');
             const text = textarea.value;
             const lines = text ? text.split(/\r?\n/).length : 0;
-            document.getElementById('memoFocusCount').textContent = `${text.length.toLocaleString('ko-KR')}자 · ${lines.toLocaleString('ko-KR')}줄`;
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const minutes = words ? Math.max(1, Math.ceil(words / 250)) : 0;
+            document.getElementById('memoFocusCount').textContent = `${text.length.toLocaleString('ko-KR')}자 · ${words.toLocaleString('ko-KR')}단어 · ${lines.toLocaleString('ko-KR')}줄${minutes ? ` · 약 ${minutes}분` : ''}`;
+        }
+
+        function updateMemoReadPresentation() {
+            const content = document.getElementById('memoFocusReadContent');
+            content.style.setProperty('--memo-read-scale', memoReadScale);
+            content.style.setProperty('--memo-read-line-height', memoReadLineHeight);
+            content.style.setProperty('--memo-read-width', memoReadWide ? '100%' : '72ch');
+            const status = document.getElementById('memoReadDisplayStatus');
+            status.textContent = `${Math.round(memoReadScale * 100)}% · 줄 간격 ${memoReadLineHeight.toFixed(1)} · ${memoReadWide ? '넓은 폭' : '읽기 폭'}`;
+            document.querySelector('[data-read-action="width"]')?.setAttribute('aria-pressed', String(memoReadWide));
         }
 
         function renderMemoFocusMode(mode) {
@@ -2855,8 +2901,14 @@
                 tab.classList.toggle('active', active);
                 tab.setAttribute('aria-selected', active);
             });
-            document.getElementById('memoFocusReadPanel').classList.toggle('active', mode === 'read');
-            document.getElementById('memoFocusEditPanel').classList.toggle('active', mode === 'edit');
+            const readPanel = document.getElementById('memoFocusReadPanel');
+            const editPanel = document.getElementById('memoFocusEditPanel');
+            readPanel.classList.toggle('active', mode === 'read');
+            editPanel.classList.toggle('active', mode === 'edit');
+            readPanel.setAttribute('aria-hidden', String(mode !== 'read'));
+            editPanel.setAttribute('aria-hidden', String(mode !== 'edit'));
+            readPanel.inert = mode !== 'read';
+            editPanel.inert = mode !== 'edit';
             document.getElementById('memoFocusTitle').textContent = `${getMemoLabel(memoFocusState.key)} · ${mode === 'read' ? '읽기' : '내용 입력'}`;
 
             if (mode === 'read') {
@@ -2865,7 +2917,7 @@
                 memoFocusState.readSnapshot = savedText;
                 content.textContent = savedText || 'GitHub XLSB에 확정된 회의 요약이 없습니다.';
                 content.classList.toggle('empty', !savedText);
-                content.style.setProperty('--memo-read-scale', memoReadScale);
+                updateMemoReadPresentation();
                 requestAnimationFrame(() => content.focus());
             } else {
                 const editor = document.getElementById('memoFocusEditTextarea');
@@ -2899,6 +2951,7 @@
             const overlay = document.getElementById('memoFocusOverlay');
             overlay.classList.add('open');
             overlay.setAttribute('aria-hidden', 'false');
+            overlay.inert = false;
             document.body.classList.add('memo-focus-open');
             updateMemoClocks();
             renderMemoFocusMode(mode);
@@ -2912,6 +2965,7 @@
             const overlay = document.getElementById('memoFocusOverlay');
             overlay.classList.remove('open');
             overlay.setAttribute('aria-hidden', 'true');
+            overlay.inert = true;
             document.body.classList.remove('memo-focus-open');
             memoFocusState = null;
             requestAnimationFrame(() => returnFocus?.focus?.());
@@ -2944,10 +2998,117 @@
                 copyMemoReadContent();
                 return;
             }
-            if (action === 'reset') memoReadScale = 1;
+            if (action === 'reset') {
+                memoReadScale = 1;
+                memoReadLineHeight = 1.8;
+                memoReadWide = false;
+            }
             if (action === 'smaller') memoReadScale = Math.max(0.8, memoReadScale - 0.1);
-            if (action === 'larger') memoReadScale = Math.min(1.5, memoReadScale + 0.1);
-            document.getElementById('memoFocusReadContent').style.setProperty('--memo-read-scale', memoReadScale);
+            if (action === 'larger') memoReadScale = Math.min(2, memoReadScale + 0.1);
+            if (action === 'line-height') {
+                const choices = [1.5, 1.8, 2.1];
+                const currentIndex = choices.findIndex(value => Math.abs(value - memoReadLineHeight) < 0.01);
+                memoReadLineHeight = choices[(currentIndex + 1) % choices.length];
+            }
+            if (action === 'width') memoReadWide = !memoReadWide;
+            updateMemoReadPresentation();
+        }
+
+        function dispatchMemoEditorInput(editor) {
+            editor.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function replaceSelectedMemoLines(editor, transform) {
+            const value = editor.value;
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const lineStart = value.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+            const nextLineBreak = value.indexOf('\n', end);
+            const lineEnd = nextLineBreak === -1 ? value.length : nextLineBreak;
+            const original = value.slice(lineStart, lineEnd);
+            const replacement = transform(original.split('\n'));
+            editor.setRangeText(replacement, lineStart, lineEnd, 'select');
+            dispatchMemoEditorInput(editor);
+        }
+
+        function stripMemoListPrefix(line) {
+            return line.replace(/^(\s*)(?:(?:[•*-]|\d+[.)])\s+)?/, '$1');
+        }
+
+        function applyMemoList(editor, kind, startNumber = 1) {
+            const selectedValue = editor.value.slice(editor.selectionStart, editor.selectionEnd);
+            const targetValue = selectedValue || editor.value.slice(
+                editor.value.lastIndexOf('\n', Math.max(0, editor.selectionStart - 1)) + 1,
+                editor.value.indexOf('\n', editor.selectionEnd) === -1 ? editor.value.length : editor.value.indexOf('\n', editor.selectionEnd)
+            );
+            const targetLines = targetValue.split('\n').filter(line => line.trim());
+            const removeBullets = kind === 'bullet' && targetLines.length > 0 && targetLines.every(line => /^\s*•\s+/.test(line));
+            let sequence = Number(startNumber) || 1;
+            replaceSelectedMemoLines(editor, lines => lines.map(line => {
+                if (!line.trim()) return line;
+                const stripped = stripMemoListPrefix(line);
+                const indent = stripped.match(/^\s*/)?.[0] || '';
+                const content = stripped.slice(indent.length);
+                if (removeBullets) return `${indent}${content}`;
+                if (kind === 'bullet') return `${indent}• ${content}`;
+                return `${indent}${sequence++}. ${content}`;
+            }).join('\n'));
+        }
+
+        function handleMemoEditorKeydown(event) {
+            const editor = event.currentTarget;
+            if (event.isComposing) return;
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                handleMemoEditAction(event.shiftKey ? 'outdent' : 'indent');
+                return;
+            }
+            if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === '7') {
+                event.preventDefault();
+                handleMemoEditAction('number');
+                return;
+            }
+            if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === '8') {
+                event.preventDefault();
+                handleMemoEditAction('bullet');
+                return;
+            }
+            if (event.key !== 'Enter' || editor.selectionStart !== editor.selectionEnd) return;
+            const lineStart = editor.value.lastIndexOf('\n', Math.max(0, editor.selectionStart - 1)) + 1;
+            const line = editor.value.slice(lineStart, editor.selectionStart);
+            const match = line.match(/^(\s*)(?:(•|-|\*)\s+|(\d+)([.)])\s+)(.*)$/);
+            if (!match) return;
+            event.preventDefault();
+            if (!match[5].trim()) {
+                editor.setRangeText('', lineStart, editor.selectionStart, 'end');
+            } else {
+                const marker = match[2] ? `${match[2]} ` : `${Number(match[3]) + 1}${match[4]} `;
+                editor.setRangeText(`\n${match[1]}${marker}`, editor.selectionStart, editor.selectionEnd, 'end');
+            }
+            dispatchMemoEditorInput(editor);
+        }
+
+        function initializeMemoToolbars() {
+            document.querySelectorAll('.memo-focus-toolstrip[role="toolbar"]').forEach(toolbar => {
+                const buttons = [...toolbar.querySelectorAll('button:not(:disabled)')];
+                buttons.forEach((button, index) => {
+                    button.tabIndex = index === 0 ? 0 : -1;
+                    button.addEventListener('focus', () => {
+                        buttons.forEach(item => { item.tabIndex = item === button ? 0 : -1; });
+                    });
+                });
+                toolbar.addEventListener('keydown', event => {
+                    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                    const current = Math.max(0, buttons.indexOf(document.activeElement));
+                    let next = current;
+                    if (event.key === 'ArrowLeft') next = (current - 1 + buttons.length) % buttons.length;
+                    if (event.key === 'ArrowRight') next = (current + 1) % buttons.length;
+                    if (event.key === 'Home') next = 0;
+                    if (event.key === 'End') next = buttons.length - 1;
+                    event.preventDefault();
+                    buttons[next]?.focus();
+                });
+            });
         }
 
         function handleMemoEditAction(action) {
@@ -2957,12 +3118,28 @@
                 const stamp = `[${formatCurrentDateTime()}]`;
                 const prefix = editor.value && editor.selectionStart > 0 && editor.value[editor.selectionStart - 1] !== '\n' ? '\n' : '';
                 editor.setRangeText(`${prefix}${stamp}\n`, editor.selectionStart, editor.selectionEnd, 'end');
-                editor.dispatchEvent(new Event('input', { bubbles: true }));
+                dispatchMemoEditorInput(editor);
             } else if (action === 'select-all') {
                 editor.select();
+            } else if (action === 'indent') {
+                replaceSelectedMemoLines(editor, lines => lines.map(line => `    ${line}`).join('\n'));
+            } else if (action === 'outdent') {
+                replaceSelectedMemoLines(editor, lines => lines.map(line => line.replace(/^(?:\t| {1,4})/, '')).join('\n'));
+            } else if (action === 'bullet') {
+                applyMemoList(editor, 'bullet');
+            } else if (action === 'number') {
+                applyMemoList(editor, 'number', 1);
+            } else if (action === 'manual-number') {
+                const requested = Number.parseInt(prompt('번호 매기기 시작 번호를 입력하세요.', '1') || '', 10);
+                if (Number.isInteger(requested) && requested > 0 && requested <= 9999) applyMemoList(editor, 'number', requested);
+            } else if (action === 'separator') {
+                const before = editor.selectionStart > 0 && editor.value[editor.selectionStart - 1] !== '\n' ? '\n' : '';
+                const after = editor.selectionEnd < editor.value.length && editor.value[editor.selectionEnd] !== '\n' ? '\n' : '';
+                editor.setRangeText(`${before}──────────${after || '\n'}`, editor.selectionStart, editor.selectionEnd, 'end');
+                dispatchMemoEditorInput(editor);
             } else if (action === 'undo' || action === 'redo') {
                 document.execCommand(action);
-                editor.dispatchEvent(new Event('input', { bubbles: true }));
+                dispatchMemoEditorInput(editor);
             }
         }
 
@@ -3265,8 +3442,18 @@
             const summary = buildMeetingStatusSummary();
             const { all, official, visible, excluded, monthly, weekly } = summary;
             const mismatchCount = summary.flagMismatchRows.length;
+            const statusSnapshot = meetingStore?.getSnapshot?.().status || {};
+            const mappedFromGithub = remoteDatasetState.status === 'github';
+            const mappedAt = statusSnapshot.loadedAt
+                ? new Date(statusSnapshot.loadedAt).toLocaleString('ko-KR', { hour12: false })
+                : '확인되지 않음';
+            const mappedSha = statusSnapshot.remoteSha ? String(statusSnapshot.remoteSha).slice(0, 12) : '확인되지 않음';
+            const mappingText = mappedFromGithub
+                ? `GitHub 회의_안건_현황.xlsb · ${all.total}행 · SHA ${mappedSha} · ${mappedAt}`
+                : `오프라인/로컬 기준 · ${all.total}행 · GitHub 재연결 시 자동 재매핑`;
 
-            const tooltipText = `최초 작성 (월간): ${monthly.first}\n` +
+            const tooltipText = `[권위 데이터]\n- ${mappingText}\n\n` +
+                `최초 작성 (월간): ${monthly.first}\n` +
                 `마지막 작성 (월간): ${monthly.last}\n` +
                 `최초 작성 (주간): ${weekly.first}\n` +
                 `마지막 작성 (주간): ${weekly.last}\n` +
@@ -3728,6 +3915,11 @@
                 await checkForUnsavedChanges({ autoSync: false });
                 return true;
             } catch (error) {
+                if (isRegister && error?.code === 'CREDENTIAL_CANCELLED') {
+                    setMemoIndicatorState(key, 'ready', '웹 저장 취소 · 로컬 대기 유지');
+                    updateDataSyncStatus('GitHub 웹 저장이 취소되었습니다. XLSB는 다운로드하지 않았습니다.', 'waiting');
+                    return false;
+                }
                 console.error(`${isRegister ? 'GitHub 웹 저장' : 'PC 저장'} 실패:`, error);
                 if (isRegister) {
                     let fallback = { downloadedCount: 0, files: [], errors: [] };
@@ -3841,19 +4033,22 @@
                 if (showAlert) alert('상태와 회의 요약 XLSB가 GitHub에 동기화되었습니다.');
                 return result;
             } catch (error) {
-                console.error('GitHub 동기화 실패:', error);
                 let fallback = { downloadedCount: 0, files: [], errors: [] };
-                if (showAlert) {
+                const cancelled = error?.code === 'CREDENTIAL_CANCELLED';
+                if (!cancelled) console.error('GitHub 동기화 실패:', error);
+                if (showAlert && !cancelled) {
                     fallback = await downloadPendingXlsbFallback({
                         changedAt: new Date().toISOString(),
                         suffix: '동기화_대기'
                     });
                 }
-                updateDataSyncStatus(`동기화 실패 · 로컬 이력 유지${fallback.downloadedCount ? ' · XLSB PC 저장됨' : ''}: ${error.message}`, 'error');
+                updateDataSyncStatus(cancelled
+                    ? 'GitHub 동기화 취소 · XLSB 다운로드 안 함'
+                    : `동기화 실패 · 로컬 이력 유지${fallback.downloadedCount ? ' · XLSB PC 저장됨' : ''}: ${error.message}`, cancelled ? 'waiting' : 'error');
                 for (const key of memoIndicatorStates.keys()) {
                     setMemoIndicatorState(key, 'pending', fallback.downloadedCount ? '업로드 대기 · XLSB PC 저장됨' : '로컬 저장 완료 · 업로드 대기');
                 }
-                if (showAlert) alert(`GitHub 동기화 실패: ${error.message}\n변경 이력은 로컬 대기열에 유지됩니다.${fallback.downloadedCount ? `\n대기 변경 XLSB ${fallback.downloadedCount}개를 PC에 저장했습니다.` : '\nXLSB 다운로드를 시작하지 못했습니다.'}`);
+                if (showAlert && !cancelled) alert(`GitHub 동기화 실패: ${error.message}\n변경 이력은 로컬 대기열에 유지됩니다.${fallback.downloadedCount ? `\n대기 변경 XLSB ${fallback.downloadedCount}개를 PC에 저장했습니다.` : '\nXLSB 다운로드를 시작하지 못했습니다.'}`);
                 return { ok: false, error };
             } finally {
                 saveBtn.textContent = originalBtnText;
@@ -4159,6 +4354,7 @@
             }
             meetingGithubCredential = MeetingGithubCredential.configure({
                 tokenConsumer: meetingStore,
+                defaultPin: '2026xlsb',
                 github: {
                     repo: githubApi.repo,
                     branch: githubApi.branch,
@@ -4479,7 +4675,10 @@
             document.querySelectorAll('[data-edit-action]').forEach(button => {
                 button.addEventListener('click', () => handleMemoEditAction(button.dataset.editAction));
             });
-            document.getElementById('memoFocusEditTextarea').addEventListener('input', event => {
+            initializeMemoToolbars();
+            const memoFocusEditor = document.getElementById('memoFocusEditTextarea');
+            memoFocusEditor.addEventListener('keydown', handleMemoEditorKeydown);
+            memoFocusEditor.addEventListener('input', event => {
                 if (!memoFocusState) return;
                 memoFocusState.draft = event.target.value;
                 updateMemoFocusCount();

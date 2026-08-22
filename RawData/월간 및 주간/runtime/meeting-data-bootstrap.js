@@ -2,7 +2,7 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "f142f3d9a991f8f88f74d2d444b026adc103a20007e291c6be880d46c7d7d4e6",
+  "sourceSha256": "53780078081887ecfa1b53e52fd5e734ef7715d4887e1aae5f6228075a1fa201",
   "status": {
     "rows": [
       {
@@ -3777,10 +3777,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 8,
         "week": 2,
-        "summary": "KKK",
-        "updatedAt": "2026-08-22T10:10:37.000Z",
-        "source": "웹 저장 · GitHub XLSB",
-        "revision": 2
+        "summary": "yyy",
+        "updatedAt": "2026-08-22T22:33:08.000Z",
+        "source": "웹 저장 · 충돌 대기열 복구 · local-after-review · 0cd852fa-3d2c-4aa6-8c15-",
+        "revision": 6
       }
     ],
     "history": [
@@ -3816,6 +3816,83 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "source": "웹 저장 · GitHub XLSB",
         "syncStatus": "완료",
         "revision": 2
+      },
+      {
+        "eventId": "9f4b3071-7eec-4465-9c89-b7f4ee50a876",
+        "changedAt": "2026-08-22T16:38:16.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "KKK",
+        "afterValue": "K",
+        "source": "웹 회의 요약 편집 · client:a33cec2f-5dd · session:255ebd8e · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료",
+        "revision": 3
+      },
+      {
+        "eventId": "69a7c5a5-0f19-4e7a-909e-a35a2a11e501",
+        "changedAt": "2026-08-22T16:38:17.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "K",
+        "afterValue": "",
+        "source": "웹 회의 요약 편집 · client:a33cec2f-5dd · session:255ebd8e · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료",
+        "revision": 4
+      },
+      {
+        "eventId": "0924290e-d263-4054-8a7b-f7da8230702c",
+        "changedAt": "2026-08-22T16:38:19.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "",
+        "afterValue": "gg",
+        "source": "웹 회의 요약 편집 · client:a33cec2f-5dd · session:255ebd8e · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료",
+        "revision": 1
+      },
+      {
+        "eventId": "2b7ef213-fe7e-46ca-b024-b29e7d6646ac",
+        "changedAt": "2026-08-22T22:32:30.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "KKK",
+        "afterValue": "y",
+        "source": "웹 회의 요약 편집 · client:a33cec2f-5dd · session:5aa5a183 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료",
+        "revision": 3
+      },
+      {
+        "eventId": "2e58f0d3-048f-4da6-8e26-a6ca4c887341",
+        "changedAt": "2026-08-22T22:32:31.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "y",
+        "afterValue": "yyy",
+        "source": "웹 회의 요약 편집 · client:a33cec2f-5dd · session:5aa5a183 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료",
+        "revision": 4
+      },
+      {
+        "eventId": "0cd852fa-3d2c-4aa6-8c15-bede6faea62d",
+        "changedAt": "2026-08-22T22:32:36.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "yyy",
+        "afterValue": "yyy",
+        "source": "웹 저장 · GitHub XLSB · client:a33cec2f-5dd · session:5aa5a183 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료",
+        "revision": 5
+      },
+      {
+        "eventId": "f165a53b-b2a9-4f49-92e7-9de6a8fbe7b8",
+        "changedAt": "2026-08-22T22:33:08.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "KKK",
+        "afterValue": "yyy",
+        "source": "웹 저장 · 충돌 대기열 복구 · local-after-review · 0cd852fa-3d2c-4aa6-8c15-",
+        "syncStatus": "완료",
+        "revision": 6
       }
     ]
   }

@@ -5,13 +5,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const dataRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const root = path.resolve(dataRoot, '..', '..');
 const htmlPath = path.join(root, '월간 및 주간 회의.html');
-const storePath = path.join(root, 'meeting-data-store.js');
-const credentialPath = path.join(root, 'meeting-github-credential.js');
-const bootstrapPath = path.join(root, 'meeting-data-bootstrap.js');
-const statusXlsbPath = path.join(root, 'RawData', '월간 및 주간', '회의_안건_현황.xlsb');
-const memoXlsbPath = path.join(root, 'RawData', '월간 및 주간', '회의_요약_메모.xlsb');
+const storePath = path.join(dataRoot, 'runtime', 'meeting-data-store.js');
+const credentialPath = path.join(dataRoot, 'runtime', 'meeting-github-credential.js');
+const bootstrapPath = path.join(dataRoot, 'runtime', 'meeting-data-bootstrap.js');
+const statusXlsbPath = path.join(dataRoot, '회의_안건_현황.xlsb');
+const memoXlsbPath = path.join(dataRoot, '회의_요약_메모.xlsb');
 const html = await fs.readFile(htmlPath, 'utf8');
 const store = await fs.readFile(storePath, 'utf8');
 const credential = await fs.readFile(credentialPath, 'utf8');
@@ -93,10 +94,10 @@ for (const pattern of staleTooltipPatterns) {
 }
 
 const required = [
-  './vendor/xlsx.full.min.js',
-  './meeting-data-store.js',
-  './meeting-github-credential.js',
-  './meeting-data-bootstrap.js',
+  './RawData/월간 및 주간/vendor/xlsx.full.min.js',
+  './RawData/월간 및 주간/runtime/meeting-data-store.js',
+  './RawData/월간 및 주간/runtime/meeting-github-credential.js',
+  './RawData/월간 및 주간/runtime/meeting-data-bootstrap.js',
   'RawData/월간 및 주간/회의_안건_현황.xlsb',
   'RawData/월간 및 주간/회의_요약_메모.xlsb',
   'memoFocusRegisterBtn',
@@ -120,7 +121,20 @@ const required = [
   '미도래 · 공식 집계 제외',
   'Counter and card visibility flags must match',
   'rebase-if-remote-empty',
-  'local-after-review'
+  'local-after-review',
+  "defaultPin: '2026xlsb'",
+  'CREDENTIAL_CANCELLED',
+  'GitHub 웹 저장이 취소되었습니다. XLSB는 다운로드하지 않았습니다.',
+  '[권위 데이터]',
+  'data-read-action="line-height"',
+  'data-read-action="width"',
+  'data-edit-action="indent"',
+  'data-edit-action="outdent"',
+  'data-edit-action="bullet"',
+  'data-edit-action="number"',
+  'data-edit-action="manual-number"',
+  'handleMemoEditorKeydown',
+  'initializeMemoToolbars'
 ];
 for (const pattern of required) {
   if (!html.includes(pattern) && !store.includes(pattern) && !credential.includes(pattern)) throw new Error(`required integration pattern missing: ${pattern}`);
@@ -135,6 +149,20 @@ const requiredMemoPersistencePatterns = [
 ];
 for (const pattern of requiredMemoPersistencePatterns) {
   if (!html.includes(pattern)) throw new Error(`memo persistence safety pattern missing: ${pattern}`);
+}
+
+const persistMemoActionStart = html.indexOf('async function persistMemoAction(key, action)');
+const persistMemoActionEnd = html.indexOf('async function handleSaveAllChanges()', persistMemoActionStart);
+if (persistMemoActionStart < 0 || persistMemoActionEnd < 0) throw new Error('persistMemoAction source block could not be isolated');
+const persistMemoActionSource = html.slice(persistMemoActionStart, persistMemoActionEnd);
+const cancelledGuardIndex = persistMemoActionSource.indexOf("error?.code === 'CREDENTIAL_CANCELLED'");
+const fallbackDownloadIndex = persistMemoActionSource.indexOf('downloadPendingXlsbFallback({');
+if (cancelledGuardIndex < 0 || fallbackDownloadIndex < 0 || cancelledGuardIndex > fallbackDownloadIndex) {
+  throw new Error('credential cancel/Escape can still trigger an XLSB fallback download');
+}
+if (!credential.includes("defaultPin: '2026xlsb'")
+  || !credential.includes("'CREDENTIAL_UNLOCK_FAILED'")) {
+  throw new Error('the default combination key or explicit unlock-failure boundary is missing');
 }
 
 const openMemoFocusStart = html.indexOf('function openMemoFocus(key, mode)');
@@ -261,7 +289,7 @@ if (consumerTokenReady || credentialApi.hasSessionToken()) {
 }
 
 const require = createRequire(import.meta.url);
-globalThis.XLSX = require(path.join(root, 'vendor', 'xlsx.full.min.js'));
+globalThis.XLSX = require(path.join(dataRoot, 'vendor', 'xlsx.full.min.js'));
 require(storePath);
 const [status, memo] = await Promise.all([
   globalThis.MeetingDataStore.parseXlsb('status', statusBytes),

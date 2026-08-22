@@ -8,6 +8,7 @@
         localVaultKey: 'codex_gh_token_vault_v1',
         rememberedPinKey: 'codex_gh_token_pin_remember_v1',
         legacyTokenKey: 'github_pat',
+        defaultPin: '2026xlsb',
         fetchTimeoutMs: 12000
     });
 
@@ -281,7 +282,7 @@
     }
 
     function requestTokenUnlock(source, vault) {
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             global.document.getElementById('meetingGithubPatPrompt')?.remove();
             const { overlay, panel } = createPromptShell(390);
             const remote = source === 'remote';
@@ -295,15 +296,19 @@
             if (remembered) {
                 input.value = remembered;
                 remember.checked = true;
+            } else if (validPin(config.defaultPin)) {
+                input.value = String(config.defaultPin);
             }
             let done = false;
-            const close = value => {
+            const finish = (value, error) => {
                 if (done) return;
                 done = true;
                 input.value = '';
                 overlay.remove();
-                resolve(value || '');
+                if (error) reject(error);
+                else resolve(value || '');
             };
+            const close = value => finish(value, null);
             panel.querySelector('[data-cancel]').addEventListener('click', () => close(''));
             panel.querySelector('[data-reset]')?.addEventListener('click', () => {
                 try { storage()?.removeItem(config.localVaultKey); } catch (_) { /* no-op */ }
@@ -317,13 +322,15 @@
                     setRememberedPin(pin, remember.checked);
                     close(token);
                 } catch (_) {
-                    help.textContent = '간편키가 맞지 않거나 PAT 암호문을 열 수 없습니다.';
-                    help.style.display = 'block';
+                    finish('', new MeetingGithubCredentialError(
+                        '조합키가 맞지 않거나 GitHub PAT 암호문을 열 수 없습니다.',
+                        'CREDENTIAL_UNLOCK_FAILED'
+                    ));
                 }
             });
             input.addEventListener('keydown', event => {
-                if (event.key === 'Enter') { event.preventDefault(); panel.querySelector('[data-confirm]').click(); }
-                if (event.key === 'Escape') close('');
+                if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); panel.querySelector('[data-confirm]').click(); }
+                if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(''); }
             });
             global.setTimeout(() => input.focus(), 0);
         });
@@ -342,7 +349,12 @@
             hardenSecretInput(pinInput, 'setup_pin');
             bindPinToggle(panel, pinInput);
             const remembered = getRememberedPin();
-            if (remembered) { pinInput.value = remembered; remember.checked = true; }
+            if (remembered) {
+                pinInput.value = remembered;
+                remember.checked = true;
+            } else if (validPin(config.defaultPin)) {
+                pinInput.value = String(config.defaultPin);
+            }
             let done = false;
             const close = value => {
                 if (done) return;
@@ -365,8 +377,8 @@
                 }
             });
             [tokenInput, pinInput].forEach(input => input.addEventListener('keydown', event => {
-                if (event.key === 'Enter') { event.preventDefault(); panel.querySelector('[data-confirm]').click(); }
-                if (event.key === 'Escape') close('');
+                if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); panel.querySelector('[data-confirm]').click(); }
+                if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(''); }
             }));
             global.setTimeout(() => tokenInput.focus(), 0);
         });
