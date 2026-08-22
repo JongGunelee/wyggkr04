@@ -1,15 +1,20 @@
+<!DOCTYPE html>
 <html lang="ko">
 
 <head>
     <meta charset="UTF-8">
     <title>월간 및 주간 회의 자료</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script defer src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+    <script defer src="./vendor/xlsx.full.min.js"></script>
+    <script defer src="./meeting-data-store.js"></script>
+    <script defer src="./meeting-data-bootstrap.js"></script>
     <style>
         :root {
             /* 2025 트렌드: 미니멀 감성 컨러 + 에코 UI + WCAG 접근성 */
@@ -310,7 +315,6 @@
             background-color: #f8d7da;
             color: #721c24;
         }
-
 
         #year-navigator {
             display: flex;
@@ -1438,367 +1442,11 @@
         body.dark-mode .report-card:hover {
             box-shadow: -6px 15px 30px rgba(0, 0, 0, 0.4);
         }
-    </style>
-    <style type="text/css">
-        #screenShotContainer {
-            cursor: crosshair;
-            left: 0;
-            position: absolute;
-            top: 0
-        }
 
-        #toolPanel {
-            background: #fff;
-            border-radius: 6px;
-            box-sizing: content-box;
-            height: 24px;
-            left: 0;
-            min-width: 392px;
-            padding: 6px 14px;
-            position: absolute;
-            top: 0;
-            z-index: 9999
-        }
-
-        #toolPanel .item-panel {
-            float: left;
-            height: 24px;
-            margin-right: 15px;
-            width: 24px
-        }
-
-        #toolPanel .item-panel:last-child {
-            margin-right: 0
-        }
-
-        #toolPanel .square {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAHfSURBVHgB7ZpNboJAFMffY2hK/EhYWl3U3sSeQG/gEeoNxBvYI/QGeoLak9SVdSeNxlKFeR2atPEjDGiaCNP3S1jAvCHzG4ZhwR+AYRiGyS8I5+DUmnBpnMAH3/fhRLILO7WWEFZXdekAkAu5AJUwjaJIDiCYTzP1yFJklep9RPAgxxCBJ9ezQVqdSCsogmyMGmMLr6pA2+WLtk7XGL+rahm/QoFAlPfhaj5Jard1nZVs//iG9GiHNIQLEwnhElJHLeW9MRLF+wxM4BxEubEQ5Tr9HHal7kHOsCuN4e4Y1bHQ1VuJLW7TPdyNw8/tCHJGGEaHq80F5+Y2qT5ZOAiOPz3C1s5eEbDgn8HCpsPCpsPCpsPCpsPCpsPCpsPCpsPCpsPCpsPCpsPCpsPCpsPCpsPCpsPCplN8YSGO/2M7H+9J5Zof4nHuCfeCX7aAHuQMi6h9cEkbWNOGWojkGBG7v+eAPatU9+V2O1Yze3IK7q+xhHhAoMOHoI1laGNLdqXWIrKeoUBEkbzTpfK0wTS5WU3FdTWelBYUAEQYyPWb9gmnJvHkZjkpgnQsG65mXmodZOU7lYeeeo/bGEeDcgCpDUqNZYQon3Tpu13Oiw+7rusEzsWlg4wJWoZhGKYofAHzGYh5VvrALQAAAABJRU5ErkJggg==");
-            background-size: cover
-        }
-
-        #toolPanel .square-active,
-        #toolPanel .square:active,
-        #toolPanel .square:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAGzSURBVHgB7ZpBSsNAFIb/GYq6zA3Um+gJ9Abisoi0nqDJCVSKdCOIN2hPYI/gDfQGVtyUQjO+qRaaNDOZFqGT5/sWhWTmlfmGycsiPyAIgiDEi8I2DMwRds0UE9yoCTYkXLhvTtDCBeY4p6oEMWBIWmGIGTKSfw8pCRN+MD36TREzmtbXVlndtHrhJsguCZD2C9/Ss7qHNzSJHKe4VmPXcMtXS7K9irv3tJN32DU59ZGc+okurVFTnwHGrjK/MOgPi2S4Uini4ZWaaUKSnZV7ds2XrgLtGqDjbDtxuRsPERuttdOW4NEcuqa7hQ8qXj37+EDD0fhniDB3RJg7IswdEeaOCHNHhLkjwtwRYe6IMHdEmDsizB0R5o4Ic0eEuSPC3Gm+cF7xHfsLn67pbuH2IvdUDH7N0EV8nJWuvYE1f8bDYAS1CIksr7sYmAnt6oi2auMU3J9j0FmsqYg3luGPLdn0ncYLmoTG8e/pdAz7sHmnHLXptojIfLKWsOhh36Rreaj4CIpUhYdLbYJ2jpQqbJOII1z601SHdAqffem7VbaLDz+ZBNMIpNthCVpBEAShKXwDKrBaATx5xUUAAAAASUVORK5CYII=")
-        }
-
-        #toolPanel .round {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAVoSURBVHgB7Zq9UiNHEMd7ZiWBETbrq3IVB8neG4jM2UHmzFzo6LgnAEcOBU9geIITkS9DhI4QT2De4NaBT1Q5sKhDcMdqpt2zaxntaPZL2pWWK/0iGM3s6q/u+epugAULFix4QjCYBdXvGlCzGhy5wxmuITA7eDn2JLIbCXgF3sAF7+8rKJhiBNu2zT9/tcc4/AjAGwBopx+MHRpzKoTowKdrF3ImX8HL69uWxZr02G3IA8S2kHhCwjuQE/kIzlvoGNgRAt/kYfHpBCvX9epNmosHSV0R0WUMXHql+9gINjC0aU436Iskuj2953jQ7/4MUzC54OV1x+L8gp7gmD5GgB49vA0gL0X1Uxt6vV7i8yzYDryEvY7p6Qohdya19mSCfRe2zkyLkRLKGZwMKnfHiSKjn++LR2RNxphj6NFjTL4a3Gaf25kFW/VN+vWxZXwYg6OphBqorG4cIkLT/KncE/3rU8hANsG+ZcmNNRDQlcBfQf+vYvZRsjjn7MJkbbL0ThZL87QdAzdTbqyDp7J6v1WYWAXNV1lb2qJftj32duRn6rtBSlJb2FrZeD++QOGp6Hf3YIZY9ectw6LmiurdVpqpZEEKeH3zV5qfP4Qa6dcWd92fYMagd9vmtdUXJLox0mxbsrIsvdvfk8YnW9h3Zf4+9FI1Z5Ub57g4ZcJ2bP7w+Q99TqeZz4lzmE5Qb/U2KXBnbmIVPbdnMVokNdQ2ljQ0XjCtyvpxUW09RRzqs+LRIknb1VG4lW1XVtV3jiZWMJ2k9kf/V648uP1wCCVB1mrHJDLkaUlWjhaslnoGu6NNdJY9gjJBrk1n9JNwI3kknfGjhkQKpj13W28TAjpQMkxWVnfxqP4xLi31va5Vhrk7hm9leT7aFAQezMQI1u+28hJKCmO8o7U0ovqaBdc3xwaU0Z2HiGpVP3LafhzNgFGwxaWjNfVK6c5DfLdWwYVHrFotvWAUuktg4dHEaWEM3dH/afV2TP14xOjwso5wAyWHLPxnqIGZI6VmwSjDnRn7B54YDNiaqT39ffgLIcKl+fwuBhOiW5SOwcZpGOHSqAk2LwClQp+zyIxGMwqme6artThQenhoZ2EwMO4sRsECQO/sxB3I544f0wpbWHjhbWqI2aX9gFzYJSyvvgslxXTRicpExl0etAH4EkqL/t1UBtJMpGCUcK417ZbSrYMQ7V64ESOD85GC5dJSS2uiwNnKAZSMrPf2aJemA7nuGhTP2i+dlRGb2v/ncRed2JMWHcj1kE6prMxXNpp6coBxPI4bkxiXpkj/hR4M4OBtef3i6zFiMcTL/cR5v7sTNyzxLG2wMkions3Vtendfm5aw68SSCAx1SIfbl1r6Ztv6c/vR1/JZXUdvY/nMAcs/uw38s3R76MMcyLvrt8ljU2XTItIbRAt0f+Q+KvmCa9vvGXaNuSnfvrdF6nGp+mkVmwpKb0CYwfyPWvl+WzcW9WTGMVCz0/9pCRTQlylMSgfe2H4aKq6i0QoqGghnpnqSbImxFOlS4eo+cxrdQqlMP1cbVOG/oBVv6Z05sf8wrnKqvzZL5zBOxI75kUc2JtBv9vO8siJiloCS5uLWgiXHns0VSWdEvqwsk9rxkF04cyMilr+J6buYoQWveIylXi1DnjLuxbwl4EHmYNw/gKl5uxMy5ZGqKxuHlNIdD+5p1rw6AaGFONmo4sfOhRxdBJ+uOAJtPUMKveH0+Sm8yo9dILEeXGlh+oANIkL6+Qj+D/8uS0pp6ylWScnP6FDiikffiwjfJ3F6kG5Il6pu7hcum8VUVYxkwLxKu2jkvJVKoXDg2LSteDleCMpukh7qcvBuvKKrPVasGDBgqfIvzowNmTgJi8YAAAAAElFTkSuQmCC");
-            background-size: cover
-        }
-
-        #toolPanel .round-active,
-        #toolPanel .round:active,
-        #toolPanel .round:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAASrSURBVHgB7VrrUdtAEN6TB5Pn4BKUDuwKAhUEKsD8jJMMUAFQgfEQw8+YCoAKgAqgA5QKYn4SYl1272Kw7qGHJVlHRt+Mx/b5LN2n3dvbF0CNGjVqvCAwWASGvA0TaOPdfGjACr63xDiHMY7f46db8CCAL+wWSkY5hPu8BUvQRRKfIBREW6n/y+AKH8Qp/Mb3XRZAwSiW8BFfRQnu4YJXoQgwOEcNGMA3dgUFoRjCRRNVQVJ/gK0iJJ6PMKnusiC6k2J2gPMCvGMwM9bCsRaOtcXnJDA4hB7bhRyYn3Cf+9CES/zkW2aM8UUqeQ3v8X2LjWOvd4LXC1FDSEsYbMbMDHB/r80r7fkIkwozOLMYozEufADvUBpJJG2YkmdCe3zLPTbm2dvZCR/zTVzEyPhbCAe5iJpwxPfR2u8Zf2N4EvTYKWRANsIkWU+osXoV2p8bpZ2jJHGO9zVJO0T1ziBpL+1EsWdJjVXQmfkaOqU6DZ9xvz7gPeiYUuHhmmhtKZFewkN+B6qBIrJfWRcWie98ZDBqZMg6aMgSt1I6CR/zPujW+HzhZAl0T3rQUfjieEyBZMJ9sX+i5yzt2TfoCFSFR1xP9DwHsUayMQlIJrwMP7QxhoaiSEucFaS6ZCRVNJKlHE+YnpjuLh4II1I1yEjSMTgLWmuClOMJe7Ad+c5ECLcPruAPnvnSo3tGgpTthKWpX4+MceWJVg1SbfLqZkFSJh/fAjvhpiHy8TBqcQ0mKVMsboGdsH7WjZzYuyqkAbuIjFHiwQI7Yd1YXYOrCBXN4yLcNMJMmHJQ+swrcBUTzeVsGTmAjXCoeVVjJ9V5CulSBpGxCWQgDMpkBqVnE3ND9byYOTFhIxw161ykUt1GCD8j3z1zyshMWM9k/IKXhxXTYPp4+D+BmTCH6gKDecE0iRq3oU3CY+ViPrgOdRuGZqHZJBwo331wHbqzYTxZzIQb2mQ/ziGvHDLQia7PU4T2NGyCTMipYdc6uApToGNJKsYFD9E/NOAjuIvo2pjdDbYTDpUIhGJjF9VaqnM3MqYn+Z5gJ/yoVRdaqDo74Boyxu12wuSQ66qx7aCU1ZTORVygE+9pTbSUjltSHnIi60fGQpEBsSK58nDMLw3JgM4i+jFiIcu1d5Ex0sgeW4v7W7IvPTEm7s4qVW26d9NY1EssDiQTpsqcmhkkNWpCH6pCUxQHfGV0kCZJka6YJlsbbgwu5ghVe7EllyEnst3IGAX/PfYhzd/TVw9lVf4GVBeOSpiy4aTcCEuqMWlVV/lljHraSZuCKqYgnrPvIhF9TMg1RW3a134rrSBOkBc2qbC0mCc8VckyNUiqdM2m0CzfMGMra5/H/E0tnnjiJksdABXc8nTSEdFX6ORMRFnU1jizoKaWKeL6Lp4xAkrgpyFPJCkiW8JAYILvtnZFJnq91uZNG+fvxDvih1qV0QQujIsMO9lM6EkPTD40H5IxwEL8fp7adDGthyTtCZ6NrKTWQy4aTg+K6LkshvAUcm+TtItJFhRIdIpiCU/x3Ea4mVHqVAkktb+At7j/S2irKIewCipsyXpV+19FYJpSvRfZRUoaUh6t6oCkRo0aNVzDX2qpg7pu/G77AAAAAElFTkSuQmCC")
-        }
-
-        #toolPanel .right-top {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAGcSURBVHgB7dk/TsMwFMfx33M6RCoLG4Kl3KRH4Ah0ZOMKnABu0HIDbkC5AUfIAnTMQFGl/jF5MkMRKpIT59mu3met6qev0liNAyillFJKKRUEQVp5NkIIq0WFFuSCm9DCmOdm4ghhVES7yeZzMff5koGQoqBpwFg2stZM4UksGJZqJEAs2BDdWWsrRCa+aZWem9aabwXQ+MDH1Xb5fgkPAwhbeeyuZng+ba7IGAHJ3cOefmKvEViSwYdj7SM6Si74UKwBTbZbO0NHSQX/F7tevs0QQDLBErFuvQRIxbo1I5OMdetGJB3r1o4kRqxbP4JYsW6GsJixbo6g2LFulpAUYt08iSGJxLqZfQ8IGVuWr82z8f7JyRyeej0A6OXKNgcIg4JuQVRvBl8PqGuvo6PeglP6Ge/rJTjVWBY8OOVYFjQ49VgWLDiHWBYkOJdY1jk4p1jWKTi3WNY6OMdY1io411jm/V/aDC/uc41l/g8P1l79XSSPWOYdTPT7lWdOsayAJ1ucvBiD0+YFd0Vmd7NZfjxBKaWUUkopdfS+ASmNvgIGrsXnAAAAAElFTkSuQmCC");
-            background-size: cover
-        }
-
-        #toolPanel .right-top-active,
-        #toolPanel .right-top:active,
-        #toolPanel .right-top:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAF3SURBVHgB7dpBSsNAFMbxb4roRvAK9SY9gkewSymCR9ATVBfq0noSewSPkCP0ANJxvropaISXvLx5A+8HbUpDAn8yCWESIIQQQgghBBUJ1l7zHBpuUocB7ILXJfQUH+XXHDo67LHEbdpKNprByhneoBeLw75mh32K2AVn7OCAXTDwUE6gDpX5v2jlMmwzFj1rO6zSJQROYE1ydX3OPEcXUGQ5pGV+Yq+hzGdwX2zGO0byF9x/ZJcleIORfAX/F7tKGyjwE2wQSz6CjWKpfrBhLNUNNo6lesEVYqlOcKVYsg+uGEu2wZVjyS7YQSzZBDuJpemDNWO/8Fm+j2dOthCadgJgiiPLCYQ97spnh3M8YplEU0fTBTsaxsemCXYaS/rBjmNJN9h5LOkFNxBLOsGNxNL44IZiaVxwY7E0PLjBWBoW3Ggsye+lX/IajcaSPDjj6o9/m4glefDvR57NxJL86WEqgXvcl+VFWT5JXzkIIYQQQgghtOkb2FSXUxZQW5sAAAAASUVORK5CYII=")
-        }
-
-        #toolPanel .brush {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAALESURBVHgB7ZlLbtswEECHpOykcQoIBQok6UY9QZsT1D5BkhMkOUpPEPQEcU+QLLtzdt26J6g2RQt0US0qRLBCMTMGHMiybJPyjwT4VtJoCPOZ1FCiADwej8fj8Xg8m4GB5YjOuytQxZkC+MgYxNjh4ZNUXyD7E0MD7BUOw1Dkr+6wi92aqzGH/CJP/w7BEDuFUTbIDwY0qguyEpTumUrbJ6wnO8FYmoNNzJHF8wSguMaD+2qLAlqDVuetzp8zxp4RXiBbAOtB+ms8iqJz3MduX1ZaJ1IWpzqFTIANaMqOY/n/e94+fI/S5dx9xoHhtW/Lfmr3U9pAdoJMf19hxtdyjAE7Aw12K7ygQDGurutkJ0ip+pVQBBrsTnhZNS7YDewfRXPbCn5TDilQWpV6N8J6S08kBB/MSM9pi1PaUuEF96xSKq5kT0vPbatirNKfQYPtLkvLCpSUCedswBiLKi1jOcovgnbrtk62kKqn+2y9PWHdaoyjOUd6BlNZYjvCpkuPhnQTWWLz93CDdZYkivbeKebUFqKmssRmhZvIvpDUdm4VWWJzU3oV2QXVeBVZYjPClsoS6xe2WJZYr7DlssT6hB2QJdYj7IgssbqwQ7LEasKOyRLNhR2UJZoJOypLmAs7LEsY71oG4s13V2UJo5cH8fr43GVZwkhYSea0LGEkzJj6NB3BvWGHZAnD92Fe2SlUTskS+sJhFGJ3w3JIjmS9sKWyhL5wls3uIec1nyktliUC3UTOeXc6oh5eDlES0lbEg6DLc3ZpqyyhLYxPKB/K5wpYKDont7h53mU5i6A9iU9jkyyh/aQlDk5+YnYEBtgmS+gJY8ES+egfGGCjLKE3pbMsBLG8vtG3Idw8f1CF+lHsPfYhTRKwDJMpfYfZ55PzshwXavgUZENI7BOsYvS2FBwedZkSSd5KYxfkPB6Px+Px2MUzbTi7WUXRE4wAAAAASUVORK5CYII=");
-            background-size: cover
-        }
-
-        #toolPanel .brush-active,
-        #toolPanel .brush:active,
-        #toolPanel .brush:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAJySURBVHgB7ZnRbdswEIZ/qUFbBH3ICN6g7gR1J0g6QZPHon1oR+gEQZEGeUwyQbpBMoKzgTaIXxMgZu58cGDLknwnWfYR4AfQtiiS9meSR9oEEolEIpFIJBL9kME75+GYPuUhAob0XFDOGI/4i99ZgRb4FT4NB3iHGxIdVdwtKH3Fj2wMIz6FWfYtbunVsKHUhNIXq7Q/YZ3sHLN0Dk/Uy07wjBPqnv+l/ANKtzTPNV/ODD893CS72Iv/whV96m8rZZ7wSRPIfPSwVpb5mR1TILsuleP6v6Bg98IW2TnV0odQsFvhpgA1pTnbFIwCrko5AyjYnfC6aJzjlMoMauvy/WVUkXo3wrqlZzArU5aur+tUuGnOytZxkWXpurpcL8cfKNjusrQuQOX0HOh+WJmPBXgrCVyiSjajut91e+vtCWuj8QX1ZrX0KkZZqbINrEuPRrqFLNP/HG6zzrLEI+2c6gJRS1mmX+E2suvoICvV+6KLbFM07iArTfSBU1lpZtM4lpWmNolzWWluU0QgK01ugkhkpdmuRCQrTXchMllpvi0RyspbtCFSWXkbKxHLMva9dMSyjE34LBwhYlnG2sNRyzI24Tf4XMq5jkmWsQkHwz+FDmUZvTALyOHVIuPasg5lGb3wXsV/yFXD2bEss2coO1q6ynD3+lokB7PTejnZcynL6IVzfFy6DjS8L8IlnQGNMD/XqdrGOJJlLD08XLmerjmldybL6LaWMmQfYMGhLKPr4fc0fKeqkgWlOxru99in48yTbAJn6H88nIcbejxayCkwlwu0PH2g5FCwjO3X0lkYzQ689kk2ArlEIpFIJBK+eAGdRGPGDQz7SwAAAABJRU5ErkJggg==")
-        }
-
-        #toolPanel .mosaicPen {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAOtJREFUaAXtmckNwjAQRcNSBg3QCkVRIXQBZxogghlxQ7Zl8YKSSG8kX2bx8r4PtmYYNAlIQAJLJXCOjT1jvGYet1j/FKNom6L348zN7xrx3tC1N7GSdwz/I8ahEq+6pyJfXaAzcIm83EvRtkXvipweYG6xVEAFIAGvEASIy1UAI4QTqAAEiMtVACOEE6xegdb58w2eb3Fqf/1XrF4BD0DvF61XAUqQ1qsAJUjrVYASpPUqQAnSehWgBGm9ClCCtH7fmOAesWwuTPEnaCzTFRq7sr6Ssq2T7Z2pPiS/zpOdomx3aRKQgAQWSOANmudym8Lt+O8AAAAASUVORK5CYII=");
-            background-size: cover
-        }
-
-        #toolPanel .mosaicPen:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAXxJREFUaAXtWU1Kw0AUfm90UeyuIih4Add6ATeinkP0TIrnqOLGC+gtFASxu0o2zpgpSUngvaTtS6YtfFkl37zf78tiZh4RHjAABsDAOhlgLfnBS3btvX8MIRxpNilwJv50O+72+2IwlvLtSmDEiuIPtfVlcGZ6X8a+ZhvoxP/5hxw7ruHFh9pAhfkxDfhucr73IQVowkZP0xDXfy6HZ012TWv7z9O3EOhUs3Hawhxfsfi5f88vrQ2swnzPNdfCtzZQs97ADzSwblGgABQwMoBfyEig2R0KmCk0BoACRgLN7uqBptwKmzN0FGByNRRr3fpfSD3QROLiScpyGClV1NhbRJwyhma79QqgAU3aVDgUSMW0lgcKaMykwqFAKqa1PFBAYyYVDgX6ZHr0+iteqVdzbqwCs+KzcF8tVnpXt9NxMkL5cCHez0uOi2D5vf7sadsSi7GywpkoMPOXaJODagNxrBMnI03DBS1ol3gs3jl302VMxAIDYAAMdMfAP+EdVKaWg/p6AAAAAElFTkSuQmCC")
-        }
-
-        #toolPanel .mosaicPen-active,
-        #toolPanel .mosaicPen:active {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAV9JREFUaAXtmU1KBDEQhauiC9GdIih4Add6BhnmHOKhxHOoeAY9hjAgLkfcTGo6Mo2ZpivW2F3GgZdNJ5VKVfK9XuSHCAUEQAAEahJgLfnx0+c0xngnIqeaz1/Ymfg17ISbt6u9+758u33GZFtN/kTr38TOTC+b+K/5Cp3HRbxtbGdr9lVDXcA3ef4gkv2+wVbb++Tg0urb9Tt6nD+L0EXX3rZDW9G/wyavxx2nx7CAcRJ5RcECvMha40IBKykvPyjgRdYaFwpYSXn5QQEvsta4UMBKystP3U6PmfDwYS6/jddspYtl63+hogLpJDXkMDKEfBF71rn1CmABmZpVqlCgCvYsKRTIYFSpQoEq2LOkUCCDUaUKBapgz5L+cwXS1X65qNvp9DJCzeNCup8vh9B7fzqM6CPbnq+rfWHmWWvpftUFpGed9DJSelzoBvNop8mHEK49YiMmCIAACAwnsARsm0C5E2sdIAAAAABJRU5ErkJggg==")
-        }
-
-        #toolPanel .separateLine {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAA2CAYAAADgQzjYAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAApSURBVHgB7cixEQAABARBr3H6NEJ9IFWA6C+6WcgUWQ6F7aucCATCLzSr6QQMe0nWygAAAABJRU5ErkJggg==");
-            background-size: cover;
-            width: 1px
-        }
-
-        #toolPanel .text {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAANiSURBVHgB7ZnfUdtAEMZ37zAQlMyIh8zw5yGmA5egVBA6wB0QKiDpADqADuwK4hLoAL8k8BY9xEyIo7usTAzW6Yyc094lk7nfDMx4Ldn+dKvdT3sAkUgkEolE/hYIgRFbe6eIOqOvHheduxPI8xz+V2Sy35fJnp7/iWT3DAITdIXl1t41fWN3IZTTKh+EXGUBoUj2e4bYklTcv+hDQIIJlqCPbXEU8A4CEm6FNWT2NzBbe7mTQSDCCN4kQfV0fkRpPIRABBEspTh67n0EPII0TSEA/gWn3VJIv+koOU2CrLJ3wXI6rQnRSp/Uj1TPZgEXAVK6LkRpPSDZo2oUM+i87oFn/Are3OnOhFQgod9vx2QvP5qHi07He1p7FSzQVn31Zfn/57fbEV2MisNChGPwjFfBiGgKyIvJ7cX8hdb63Hg/9d2T/Qm2W8nB4guFODBP0xpPwSPeBNusJKK6rAQmn6+sxctjT/a3woaV1KDHD/etcZiCoRkTP7begye8CJavdg8t6Ty0Has2Ni5CFi8/K6yw9gSkCm1/2M/HuQa4NKLeihe/4FnvrVpJSuersvcuO0VgEax4sQuWUmZmDKHWfio83NthipeHlK5byaKAUdNZoYoXr2CbldR6+Fw6z7EVL4H80xBWwVYriXqw0smW4kWve9zFi1Vwk5Vs/DGW4sU9DeETbB/jrLa6vymLF63q1WKMexqyBkzYxjg09O7JZPcT/BHYnSXzE7NRroKcZWjPNoi3DNkZ0aNicvMWGGBJ6SVWkhG+US7PPWyxktxwFa/2KU29l+7f68UQ3YE59d9W+0VU8btGiGUfqnXRerCSlSJDV1GdFHertyMbtK36gZ6aFv00S/FiSGk3K9n4qevrNWEc+1DtBLewko2Q8/Ixym0lWAjRrwVXtZIr4GOU26pomb23HOOoyc0BMCKT/a/0yYtOi+zql21wxH2FLVaSbOAImOEe5ToLtlpJcyrJAPco1zmlQ6Tz43fN/Hi1OFJP3nbpyU4rbLWSGtlX9/GjGachbildYH1HUKkL8MSSUa7T9qqT4HISYURGLL13GUtGueCAk2Dqj+NqRHtL5zmqKM6oYo+ffgOcgwNuRSvtpnJ6X1q/N3TFhtPJDcvDeSOzBxXISKx12yYSiUQikci/zS+amzngvBJLrAAAAABJRU5ErkJggg==");
-            background-size: cover
-        }
-
-        #toolPanel .text-active,
-        #toolPanel .text:active,
-        #toolPanel .text:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAALxSURBVHgB7ZnfcRoxEMa/498zqSDnDijhOkg6CK+Jk0mowE4FNsMQv5IOSAVxCXQQOgh5tRMUifPZ3GnhjLS7ftFvxnhOcMCHVrufVkAikUgkEomXIoM2N+YCBoX9W+MOE0yyDRTpQZO5GWOLy8frAf7Yxy9QpANdLhrX73BlhlBET/DcjOxj3hgdoo8xFNGc4c+gv8EbKKIpuCBHXQKbmQJK6AguBeU4/C3eQgkdwR2bnI6jlrzkBZdCxi2vGqKrM8vyggeEEGMNR5NeaxSwIC84I4R0sbTjt7Uxl7zK0iWKrOArk++E7OOEvs/W+IevxB3iYS0ruE+G8/fd/0/ZrX1s+mi6VjMiKzjzBGxwni0er7aYNp4fStdkOcG0lVyi/ulL776u57dZkZxhPzy3D+FccZ6tyOQlWJMlBRe1q8zuf8t1W2eLH97YQG7LKCN4ZlyyymtjhhDmuMcCislLRjC1A+rgmnyt63g0Q10wefELdrXXt5KrXe09jFry4hc8ILeB06P3uLWtlLz4BVNWstMQQ6GUvHgFU1YSVsjxcC6hkxd7N4RXcJ/0wks8Bzp5jbiTF6/gNivZjv/jMHdD+ATTbZznzW5FaUxWjVHWbghfI55u44zwzfzEKWztj1Y/D6lauddggPPkoSDGRjaJnQZ1+FMaGRbBPCFNWUlOGFu5PII1mulMySv+9NDV3gF+NUY38GvqqeTee97hLPa0MX4N01ZycmI58pmZSzur+36aJXnFh3SolWzjLyGMYenECY6xkm240BVo5cYJ7pEnCqeZjWMItHLjktbcuGSV773bGh+yM3AyN7/h1u8Tzq6+QiDhM0xZScOwdpswt3LDBVNW0t/txMPcyo1Zw0Xt6lBXMhbmVm6YYLoryT+7FYzdkDDBHbL2LiAF3Q0JOl4NDel6LaxOBKU41MoNIEywW6/7SIZzRc86r/rnThFAWB12CaO/s36v4ZzVx4xlr9rKjXV29zZhSSXIRCKRSCQSovwHybzXUxgaB2wAAAAASUVORK5CYII=")
-        }
-
-        #toolPanel .save {
-            background-size: cover
-        }
-
-        #toolPanel .save,
-        #toolPanel .save:active,
-        #toolPanel .save:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAK8SURBVHgB7ZpRTtswGMf/tgsrpUzRnlqeshtwhPYG2xF2grGnPVJuUE6wM+wEYyeAPe6J8LCBtIdFKmhdS+PZliaaVK0TJ3ZK8E8CtV+b2L/Yce3PATwej+cJweCaIAgoffWR7XbfJKz7HQ93MRzSgmPYrHMBgpCLf4zhaAEM4RACl7R7IWP0ajm0WPAQ05trOILimeGFm44XbjpeuOl44abjhZuOF246Xjg3YiGv/lxTslwjYbrXf8/m+1ds3vlNO4cncESq3L3+MQwoLhyEAaFkDHB1lQnByIW0LCNVLiUnJi1t2KVJKg9lW1rJijIyYaNuXVw4jmKO5DQbtiW9RlaWd4o4LpwANGrh5P5mrApcrUSl0ptkH+5+jmCA8SgtC7QpbUNWnRclsCVtS1adGyWpWtqmrDo/KqAqaduyqgxURFlpF7KSSveWktnknL04kLsZg+W4qPSA7ByAc/6NUpKaIXGOMd19eexCVlL5ZtpGaUoC8cFRKi5jBCvTRBuyEr2wwW7fWumM7NpYEdmC9dPuHpru9skKt7qHsssWGqmLtmzR+m3ePaxgt09Ij/JKF+7GBvWzngBYN3pnsXXPZnGS8dBJu5KVOEvxbPiddiYrcZrTWpbmYqFJwT+4lJU4f8ZDCQbBWL5ODNazZXEurKhB9D8+TZtiehtlQ60Wf43tIVyJaOYIOVqYn6feceIsLauDUfpp+T0Hv9Qdo72HheBXOfF/jJAB2+9/ETMaOdpGqAcxw1IXPlwOEvAz3YH6B9NEHprO/l4QQkJsMaJ1I5Fc1N5u+i4t0rKM0LfZXPQ2IX/TE8g66sk1Ss/vf1yKLw7FAj7ClqFaFmQIUcc838+dAEjmk1vOup9bFNeigJ64F3qoEXnxRfbkbLHz5x0mv6K8x5V6uLQtlmeogWl7Gtc5efF4PB6PpyL+AYIPPUb9sB23AAAAAElFTkSuQmCC")
-        }
-
-        #toolPanel .close {
-            background-size: cover
-        }
-
-        #toolPanel .close,
-        #toolPanel .close:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAG2SURBVHgB7dpBboMwEIVhiLquyqLXibhZ6c1QLtIDdEFPAOUtkKIEkMee95zF/FKUKk0FX4xU7LhpoiiKoiiKoqhOP33/gUdTudzzuFjePF2vX+/LMuGBn5tKlZxHm/rGaf005/UA969dlmXobrfvRhiAc9sO969d2rbrxvEv5e9NI/wYDqwc6T2stWQwPsH1YE+jqUIfYXFOqaOLki/prd++H9ZL+QnIvLzPsJ/jODSGzGCkRHtiURYYKdDeWJQNRkw0A4uKwIiBZmFRMRh5oplY5AJGHmg2FrmBUQlagUWuYJSDVmGROxhZ0EosooBRClqNRTQwOkPjWY1FVDA6Qu/FxiI6GKWgFVgkAaMztAqLihYALL3N85LzO+8kI5yyUqFaLqKDLcsyCjQVfPZ/Fs/qlRNEA6fcVNRYLqKALXdQarQ7OOd2UYl2BZfcG6vQbmCPiYAC7QL2nPWw0cVgxhSPiS4CM+ezLHQ2WDF5Z6CzwMqVCm+0GVxjWcYTbQLXwG55oYt2ACDl5P0QLdwBIMMiHGvvS3lL2TsA1NitR7R1B4A5XNrTC2xbepXziKIoiqIoOuwfOs4hnf5I1CMAAAAASUVORK5CYII=")
-        }
-
-        #toolPanel .undo,
-        #toolPanel .undo-disabled {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAMVSURBVHgB7ZrPbtNAEMa/3bVj3CQUNWmjtqoa7vTEiT4AvbSvyUNwoZyQEOXSikNEJTi0ARqQkBunTuwd1hEtdkOzzl850f5u9nq8/ry7s+MZAwaDwWAwGAxzgmFSVqqbgL2FiHsILhrIORYmoFCqPQsl3+8fCAlZrDlofz9FjuEYE8vdfnEn9hbCLnLOGCO8XhKudSCZrAy28SZyzoiCH68Jlx8QQ/l+iyR+is7FCXJOZqeVWq/JG0gKIkEf8752b8kkOF6vagrvDRgz6kYRjlEKf2JetDYC4FMXY6IVbDkbL6UQdeQIRsxjJJvhTfQBuLoexVYMb96uwGH7yBsMDjFW4Zaok4smut1OVlPNtrTqqWkbIKcQo7KQxSOUy5WsNpoRvoqIFSXjbAe5hQkunR0Kdxrx82qvRhbUG1Rv8pCIOSnjvtNib1Dq/cK8CIKCiFb2CXwzeVoCJ/Cb2m1xhFi6WhauOCTGB/dgwY/hzTeOFiu1o6To/stvr73SeXDNlE7idyl0v3KL1dXd0yNNVLfsMmTvem6RFvXcJrNFYqtkggp+B732j2F2IwiOiUXvNrjt11QHqZEmYIsKxa6uw+nhd7ld3Eo+BzEZqf7Ph1mNKDhGObJeu0HWakFNo1qyJUuH04S4C8b/xQichKDQOxtmM/bXkoqb3/UdRRJpe5gngZOK8OJtSmcyxggnUGuW+COPRDyl+Tk6l+8xVxwrvY7Vc6w+asD3H3RcEyUA+gStBgLkPtNxy/hTekExgpcdI3jZMYKXHSN42TGClx0jeKFYQWngXKs19BN1sQVH6RpXnNfSmSy0YAv20+RxBHmps1lgweslKe7Vo0P7i85qYQXHNeqBk0GgzZpOnvEYRrWqzTGNjI+SgHiusqSp8oqUpLIuLW1ObUaC478E+BH5fPqC0U8Jp4iribjpZSrGz0awW9hTKduZiL1PvyB/c/0a8DJlTGc7pWdMPLJ/xWYuyE+Wpn2I0Pn9v5LMtJAkPVUfPqNO8S3wbaRc+OQ/pg1jFk6r9UQFF59zW7M2GAwGg8FguOMPg6ATjq272toAAAAASUVORK5CYII=");
-            background-size: cover
-        }
-
-        #toolPanel .undo:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAKwSURBVHgB7ZphbtowFMef7aajjTTxZVJLv2QnGL0BnID1BvQEYydoe4K2N2hPwG4AO8G2Eyz70FFpXyINOiaw356RJlHDcBJIlkT+SfkQO8/4j59fbL8AOBwOh8PhcOSEgG2pHbX4/ssuXQHOfn6GKsMPjt8Jv4F/L7rvQcHhkBLun1wzzm6WyxiHDhScPUhK7SjYE7yPgE2zijH2EQoOS/S0f9IUiH2yClYaYng7H4+q49KL+Qr4yRSLABEHfF8GsZpYI7yYr4DrBEXA8VzOML/oXJtGEEURpMQqWBw2tAu/hWIR0jWUUl3B9DFMYrhZsJ6z2o2LS8hhdjab/IjtYZvnsOeF9J+kdp8cCBR4A89/1YxrsFlwFEYI5DbFpk6i+1Cv1+M8HCtoeeTaCmBAMdlsdBG0vByDlhSCBKpr6npruRwRrtTT90ubffz3MC04OGcDWlwEq5WqKyeP95Ajwj8eGKIj6T29tkXw+EtLioZKYRsRwzXN3PHDxgXkiJR4bhTV+e+Drs0u2Vpai95/cUoONDSrGIPLXDcPi9fR835QH1o2s+SbBwpkcjJqk2vfmlVxfnC38HujA2+sFpCS+fihRwKfRXDaLYWQIxLADJaBzSbZ5mENwj/qAvIOif0yH9uj5E6hQCoE/7pcRHM7gOno279Mthb8X0khOLVLlxUnuOo4wVXHCa46TnDVcYKrjhNcMoKVkg0bB02pBQshAqPIeqRc7hFG7Bj31uxleQXTXnglBcTwg82stIJ1jtoskxKGVjvIEj0Ku4dOOdgFpWnN9MpdnMRaNoL10Qvng3WJ8yxAwFBJjJUSysSluRC9/MRCpICfxU2bljpKL0YWWBsmDztKl6ZESXmzPiWzG3Tb+kxceb9Ok4jVZHpMW8sgaE23/OTB4XA4HA6HIzf+AELL5fDBKGTPAAAAAElFTkSuQmCC")
-        }
-
-        #toolPanel .confirm {
-            background-size: cover
-        }
-
-        #toolPanel .confirm,
-        #toolPanel .confirm:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAALrSURBVHgB7ZlNctpAEIV7RPhx8IIjeGviVMEJHG5grxKchcUJQk4QcgI7JzAsAtk5N8CcAKfKga2PwAJVDJQ06Ra2y4hBaIRURlR/O3pGo3makfSeAGAYhmEYhmEYhmEYELBD5O9+mpAyjsF2etbR56aqz84IfjvsfBMSGs8Fx6mpRBuwAyyJJWilFbyBhJMfts/BK5awoafqn+gtjfdsCQyj763jan8fv6s2VMckdkvPxYquty5A/lgldt6eQHL9zoGRhS5O/sDT1LKKVdPv2MQJXi1W3FrFT+V1xydqS/us7H168q8SZIzErHChf1WYZnN9lVhbQOXhsHofZJzErPAsu9fdVCyRCMH5YecKQJY8ZW2xxNYLzg9+XaCxMBercoTW8VRXLLHVgskyorj6UoMjK+iTbyEEWytY6Y8JB2phxRJbKXiVWLKM1lG1CRuw8rVEr4FZOnNiz4ybh7L+vRKWeRgQTW/dzx/roBRML/hUVqIpFwW3kw2V8fvqDcRMmDCgi3JLp9L0oJiLJWRKXLuTiZGwYUAXpWAp8LG/WCnglb+mlYcYoHEljv/yIj/SGhfP6hAhSsGZ6fQSRXqfhLjNoRu1aP8w4J98wqAUPCrXRunJpBK36CjCgC6+4SE3xAlJ9dWnCdGFgZBEFQZ08X0P00kdPLnESSy2yBKZeZo0hCSqMKDLWuPhKzqTu4AQRBkGdAnktGgSAs26a9pfIsB0zb0GUYcBXQJbS/Kvwhanyy2yPjf564kjDOii5aVdt4Xm3Vsn37tOdFxhQBft8OCad0d+9dZJzN6grTQJcYYBXUJ/09r/22lIAcurKgzTOvzYevoZdxjQZaOPeKtESxC/Qdp/hIH/70j4sHTSVxLrnhs2ZP+ufSkN8SVofzcMROyPdYjkM21+0G7iUOcBurbi8Mc6RPLFwyqembRN/fq4D6hXFuvOAyKEvLeQ8kSAcYxbt4D38kiC08tOJs1NfDfDMAzDMAyTBP4D55plBOlQMmwAAAAASUVORK5CYII=")
-        }
-
-        .__screenshot-lock-scroll {
-            height: 100% !important;
-            margin: 0;
-            overflow: hidden !important
-        }
-
-        .ico-panel {
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-top: 6px solid #fff;
-            height: 0;
-            left: 23px;
-            position: absolute;
-            top: 0;
-            transform: rotate(180deg);
-            width: 0;
-            z-index: 9999
-        }
-
-        .ico-panel img {
-            height: 100%;
-            width: 100%
-        }
-
-        #optionPanel {
-            background: #fff;
-            border-radius: 5px;
-            box-sizing: content-box;
-            height: 20px;
-            left: 0;
-            padding: 10px;
-            position: absolute;
-            top: 6px;
-            z-index: 9999
-        }
-
-        #optionPanel .brush-select-panel {
-            float: left;
-            height: 20px
-        }
-
-        #optionPanel .brush-select-panel .item-panel {
-            float: left;
-            height: 20px;
-            margin-right: 18px;
-            width: 20px
-        }
-
-        #optionPanel .brush-select-panel .item-panel:first-child {
-            margin-left: 2px
-        }
-
-        #optionPanel .brush-select-panel .item-panel:last-child {
-            margin-right: 0
-        }
-
-        #optionPanel .brush-select-panel .brush-small {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAKlJREFUeNrs18EKgkAUhWEnwmW1amObHqKeo0ftOfIh3OSmlba0xXSEK4SICAoz4X/gINwL8sE4C533Pok5myTyAAQIECBAgAAB/jdwO/cFO3dsH3v1qmY2LtWHWr/9KyxQOag3Nf2ZnQ17V6vQR3zp4bqktgv+DWYjuxO3eELKkd0zBmCuNgPzxnbBgZXd1kL9WIslbnAbx38xQIAAAQIECBDgqoFfAQYAhLQbgzDvXkAAAAAASUVORK5CYII=");
-            background-size: cover
-        }
-
-        #optionPanel .brush-select-panel .brush-small-active,
-        #optionPanel .brush-select-panel .brush-small:active,
-        #optionPanel .brush-select-panel .brush-small:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAALhJREFUeNpi/P//P8NgBkwMgxyMOnDUgaMOHHXgqANHHTjqwFEHDm0HslBqAB+jGIhSBeIOIHaBCu8B4gogvv3p/yuKzGektMEKdKA6kDoBxAJoUh+A2ALowJsDHcVtWBzHABVro9RwaoTgRxCFQ/oLMAR5R3MxAbAHj9yuweDAamiGYMCSSaoHgwNvgHIrEK8D4s9QvA4qdmPAM8loVTfqwFEHjjpw1IGjDhx14KgDRx04pB0IEGAAHeMoHW2kl/cAAAAASUVORK5CYII=")
-        }
-
-        #optionPanel .brush-select-panel .brush-medium {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAS9JREFUeNrs2EsLgkAQB/BWupQQHXpczbp36/EB6ptH1M2D17RLhx6XQG9lszCBxEa5zoTQDPxvjv52RR1UWZbVqlxOreIlQAEKUID/Dqx/e2BL9d4t0MP0IS7kBkkgZ0iMub82XrMjLdBQGjXTdgO6jRlpC2QDiX51ixVkClkacMbNhyywR/0COIGMLfrG2MsK9C1xeaTPBdTHzgkezHmR6zoFd88lAOpzDDmAHuHrzeMA9giBXQ5ggxDY5ADeq/4tTgmvm3IAL4TAEwcwJgTGHMAdTillK8FzsTwkawLgGkcylm+xXnlQAhcU2T3baWYLCS36QuzlmahzpX/mrCAHnPE+zYRXhO1strzMRK0n5D0OEQNIJzdMPEf+CGHWL3klf7cEKEABClCApeohwADD8zb9WRTsHgAAAABJRU5ErkJggg==");
-            background-size: cover
-        }
-
-        #optionPanel .brush-select-panel .brush-medium-active,
-        #optionPanel .brush-select-panel .brush-medium:active,
-        #optionPanel .brush-select-panel .brush-medium:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAU9JREFUeNpi/P//P8NgBkwMgxyMOnDUgaMOHHXgSHcgC7EK+RjFsAmzAXEAFFsCsRQQ/wLiJ0B8HojXA/FGqBgK+PT/FVH2MhJb1WFxYCAQdwGxCgGtd4C4HIjXkeNAcqKYGYg7oRaqEKEepGYtVA8zzaIYCbQBcRkZ+mB6ymmZSULIdByyI0NI0UBKGgRliLtALENhxnwKxErANPiL2iEYSgXHgYA0EIfRIooDqFi8BdDCgaZUdKAJLRwoQUUHStLCgb8YBgCQ4sDnVLT3OS0ceImKDjxDCwduoKIDN9DCgauhrRRKwVOoWTTJJEVUcGAhEP+kVV0M8nk3BY7rJiX0yG1uVQLxFDL0TYXqpXmT/y8Q50JbJXeIUH8HWo/nQPWSBChpUcOa/KHQ1rUxtCEAywhnoU3+1XRp8o/26kYdOOrAUQeOOnDUgVgBQIABAPYuSgtJpajwAAAAAElFTkSuQmCC")
-        }
-
-        #optionPanel .brush-select-panel .brush-big {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAaNJREFUeNrcmMFKw0AQhpOqRdGUCloD2lMv1T6B6RMI4sOK4BM0b1Clh56skFahpVaUaln/wBQkzKYmTbJTB75TSPJlN7uzM7ZSypIc9sYIVuxa0nsdUAcuqIIDUKZrczADExCAJ/CW5OFTNUolaIMGaIGThB80BF3QByoPwVPQptFaJ8JR7YDnrAS3gAfOM/69HoEPFusI7oIrcJzTGngB9+AzjWAod5PBlP5lym+jkqsEt8E1qBW0m4Q2d+A7KljS3OAVKGfRuzzuQkmzWpsG9uQmvTtW0KatxFS0yUEr2ChgUcRFlRy0ghcC0m9LJ+hQXjUdYQqtcIJ1QYeYM07QFSTocoKHggSrnOC+IEGHEywLEtyJyySi4rfgXJDXFyf4LkhwxgmOBQmOOcFAkGDACQ4ECQ44wamQURySC7vNPAgQ7MYdt/pUxJiKCTloBRUV1abCj3YduEwSVvw9A3I9bqHqUl2HSsGiYqSbuY0t3JexR62Po5zkXqn18ZG2N7PsMlxaQptH0TrBs7Jpv/mrMte/bGByx/LiWsBSQ7zgjwADAPqYqQ1c9nN+AAAAAElFTkSuQmCC");
-            background-size: cover
-        }
-
-        #optionPanel .brush-select-panel .brush-big-active,
-        #optionPanel .brush-select-panel .brush-big:active,
-        #optionPanel .brush-select-panel .brush-big:hover {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAhRJREFUeNrUmLtPAkEQh+/UghCxw06JNuCjJURBK+OjsNVEW4KF6P+iYKGF9rYWhmClKKGg8wGNRu2kA4M25PyNGRKFPb0Fjlsm+SKG3MyXLLezs7phGJrK0acpHgP1D0P6sOyzY2AJRMAE8AEPf1cBz+ABZEAKPMkkLxtv33/1+hJbFOwHayAOZuh5i/WoSBYkwSmo2SG4ABIg0OaqFcAOuLAiaOU36AKHIN0BOY1zpDmnq92XxAsuQcyG33+Mc3tbFaQHr0DQxpc0yDW8soJucAb8XdhJ/FzLLSO4B0Jd3O5CXNOSIL2tUQf25CjX/lOQ/t93sHEkeK81FVznruBUBLgRmApuK9B+42aC1FtnFRCkFjouElyW6K12hs6HkCbBsEKnrLBIcEohwUmR4IhCgj6RoEchwcGeOfL/FKwo5PUuEnxVSPBFJHivkOCdSDCjkOC1SDDF05fTYbBLk+AjuFFAMMsuwm3mQAHB5K/G3DAX02HxtkPjZasz8zQN9mZzcY2Haqdit/HWQdRJaOI/cUDumAd6S1MdnWpzXZTLma2cmWAVrIJiF+SKXKsqe7NQAvMgb6NcnmuUWrn6oKBXaQ4c2SBHOSNcQ2tVkOIDbIHFDi15kXNRzk+Z49Z/keaxYIN3e9m2SM9sco605QlK8oZVaxhTV3iZaGMfpTT8XZmPTAU+hJxr7V4B98KJWsn4EmAAKPJ2SXt/mW0AAAAASUVORK5CYII=")
-        }
-
-        #optionPanel .right-panel {
-            align-items: center;
-            display: flex;
-            float: left;
-            margin-left: 39px
-        }
-
-        #optionPanel .right-panel .color-panel {
-            background: #fff;
-            border: 1px solid #e5e6e5;
-            border-radius: 5px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            position: absolute;
-            right: 28px;
-            top: -225px;
-            width: 72px
-        }
-
-        #optionPanel .right-panel .color-panel .color-item {
-            height: 20px;
-            margin-bottom: 5px;
-            width: 62px
-        }
-
-        #optionPanel .right-panel .color-panel .color-item:first-child {
-            background: #f53440;
-            margin-top: 5px
-        }
-
-        #optionPanel .right-panel .color-panel .color-item:nth-child(2) {
-            background: #f65e95
-        }
-
-        #optionPanel .right-panel .color-panel .color-item:nth-child(3) {
-            background: #d254cf
-        }
-
-        #optionPanel .right-panel .color-panel .color-item:nth-child(4) {
-            background: #12a9d7
-        }
-
-        #optionPanel .right-panel .color-panel .color-item:nth-child(5) {
-            background: #30a345
-        }
-
-        #optionPanel .right-panel .color-panel .color-item:nth-child(6) {
-            background: #facf50
-        }
-
-        #optionPanel .right-panel .color-panel .color-item:nth-child(7) {
-            background: #f66632
-        }
-
-        #optionPanel .right-panel .color-panel .color-item:nth-child(8) {
-            background: #989998
-        }
-
-        #optionPanel .right-panel .color-panel .color-item:nth-child(9) {
-            background: #000
-        }
-
-        #optionPanel .right-panel .color-panel .color-item:nth-child(10) {
-            background: #feffff;
-            border: 1px solid #e5e6e5
-        }
-
-        #optionPanel .right-panel .color-select-panel {
-            background: #f53340;
-            border: 1px solid #e5e6e5;
-            height: 20px;
-            width: 62px
-        }
-
-        #optionPanel .right-panel .pull-down-arrow {
-            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAQCAYAAAABOs/SAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAANNJREFUeNq01TEKwjAUxvHXOAhKJ3Fwc9PVzbWipxCdHLyMV9AD6A2EegRdvYBOnd3E70ELIcT2JU0C/1BI4AeB8pKUhlMiOqAtKijuGqEj2ne61D/jY1V2QZ+IaI7maKywrdETzdAVDSKi/Lp3tGP4hRYRcRPlly1Uech4FgG3onygtEvvwDijNxtqwiHxCp3YUBscAm9E/8FtcBFaB/vgYrQJdsGdUAkswZ1RKVyH6+hDivJKMCTa/CY9DV26DBlX2MTJB/WFK/yEvmjjM05/AgwANuZSRB8r5twAAAAASUVORK5CYII=");
-            background-size: cover;
-            height: 8px;
-            margin-left: 10px;
-            width: 15px
-        }
-
-        #cutBoxSizePanel {
-            align-items: center;
-            background: rgba(0, 0, 0, .4);
-            border-radius: 3px;
-            color: #fff;
-            display: flex;
-            font-size: 14px;
-            height: 25px;
-            justify-content: center;
-            width: 85px
-        }
-
-        #cutBoxSizePanel,
-        #textInputPanel {
-            left: 0;
-            position: absolute;
-            top: 0;
-            z-index: 9999
-        }
-
-        #textInputPanel {
-            border: none;
-            box-sizing: border-box;
-            font-weight: 700;
-            margin: 0;
-            min-height: 20px;
-            min-width: 20px;
-            outline: none;
-            padding: 0
-        }
-
-        .hidden-screen-shot-scroll {
-            height: 100vh;
-            overflow: hidden;
-            width: 100vw
-        }
     </style>
 </head>
 
 <body>
-    <div></div>
-
-
     <div id="dashboard-container">
         <header>
             <h1>
@@ -2007,57 +1655,40 @@
             <fieldset>
                 <legend>메모 및 미작성 데이터 관리</legend>
                 <div class="settings-mode-selector">
-                    <label><input type="radio" name="dataManagementMode" value="embedded"> 내장 데이터 모드 (기본값)</label>
-                    <label><input type="radio" name="dataManagementMode" value="manual"> GitHub 수동 업데이트 모드</label>
-                    <label><input type="radio" name="dataManagementMode" value="api"> GitHub API 자동 업데이트 모드</label>
+                    <label><input type="radio" name="dataManagementMode" value="manual"> XLSB 수동 관리</label>
+                    <label><input type="radio" name="dataManagementMode" value="api"> GitHub XLSB 자동 동기화</label>
                 </div>
 
                 <div id="extractDataBtnContainer">
-                    <button id="extractDataForGithubBtn">내장 데이터로부터 GitHub용 JSON 파일 생성</button>
-                    <p>현재 HTML에 저장된 모든 데이터를 GitHub 관리용 <code>memos.json</code>과 <code>skipped.json</code> 파일로
-                        다운로드합니다.<br>GitHub 모드로 처음 전환할 때 이 기능을 사용하세요.</p>
+                    <button id="extractDataForGithubBtn">두 XLSB 다운로드</button>
+                    <button id="exportOfflineTxtBtn">오프라인 이력 TXT 다운로드</button>
+                    <button id="importOfflineTxtBtn">오프라인 이력 TXT 가져오기</button>
+                    <button id="importLocalXlsbBtn">로컬 XLSB 가져오기</button>
+                    <button id="syncPendingBtn">대기 변경 GitHub 동기화</button>
+                    <input id="offlineTxtFileInput" type="file" accept=".txt,text/plain" hidden>
+                    <input id="localXlsbFileInput" type="file" accept=".xlsb,application/vnd.ms-excel.sheet.binary.macroEnabled.12" multiple hidden>
+                    <p id="dataSyncStatus" role="status" aria-live="polite">XLSB 데이터 연결 준비 중…</p>
+                    <p>상태·미작성 이력과 회의 요약은 서로 다른 XLSB로 관리됩니다. 편집 내용은 먼저 이 브라우저에 보관되며,
+                        온라인이면 GitHub에 병합됩니다.</p>
                 </div>
             </fieldset>
 
-            <div id="embeddedModeFields" style="display: block;">
-                <details>
-                    <summary>내장 데이터 모드 사용법 및 작동 방식</summary>
-                    <p>현재 사용 중인 기본 방식입니다. <strong>모든 메모와 미작성 날짜 데이터가 이 HTML 파일 안에 직접 저장</strong>됩니다.</p>
-                    <ul>
-                        <li><b>데이터 불러오기:</b> 페이지 로딩 시, HTML 파일 내의 <code>HARDCODED_MEETING_MEMOS</code> 변수와
-                            <code>HARDCODED_SKIPPED_DATES</code> 변수에서 데이터를 직접 읽어옵니다.
-                        </li>
-                        <li><b>데이터 저장하기:</b> <strong>[모든 변경사항 저장]</strong> 버튼을 누르면, 현재 메모와 미작성 날짜 변경사항이 적용된 <strong>새로운
-                                HTML 파일 전체를 다운로드</strong>합니다. 이 새 파일을 열어서 계속 사용하시면 됩니다.</li>
-                    </ul>
-                </details>
-            </div>
-
-            <div id="manualUpdateFields" style="display: none;">
-                <h4>GitHub 수동 업데이트 설정</h4>
+            <div id="manualUpdateFields" style="display: block;">
+                <h4>XLSB 수동 관리 설정</h4>
                 <div class="config-grid">
-                    <label for="confMemosJsonUrl">메모 데이터 URL</label> <input type="text" id="confMemosJsonUrl"
-                        placeholder="예: https://raw.githubusercontent.com/.../memos.json">
-                    <label for="confSkippedJsonUrl">미작성 데이터 URL</label> <input type="text" id="confSkippedJsonUrl"
-                        placeholder="예: https://raw.githubusercontent.com/.../skipped.json">
+                    <label for="confSkippedJsonUrl">안건 현황 XLSB URL</label> <input type="text" id="confSkippedJsonUrl"
+                        placeholder="예: https://raw.githubusercontent.com/.../회의_안건_현황.xlsb">
+                    <label for="confMemosJsonUrl">회의 요약 XLSB URL</label> <input type="text" id="confMemosJsonUrl"
+                        placeholder="예: https://raw.githubusercontent.com/.../회의_요약_메모.xlsb">
                 </div>
                 <details>
-                    <summary>GitHub 수동 업데이트 모드 사용법 및 작동 방식</summary>
-                    <p>데이터를 GitHub 저장소의 <strong>별도 JSON 파일</strong>로 관리하여 HTML 파일과 분리하는 방식입니다. <strong>메모와 미작성 날짜 데이터는
-                            항상 한 쌍으로 함께 처리됩니다.</strong></p>
-                    <ol>
-                        <li><b>준비:</b> GitHub 저장소에 <code>memos.json</code>과 <code>skipped.json</code> 파일을 생성합니다. (내장
-                            데이터를 사용했다면, 위의 <strong>[JSON 파일 생성]</strong> 버튼으로 파일을 먼저 만드세요.)</li>
-                        <li><b>설정:</b> 위 입력칸에 각 파일의 <strong>Raw URL</strong>을 붙여넣습니다. (GitHub에서 파일 보기 &gt; 'Raw' 버튼 클릭 후
-                            주소 복사)</li>
-                        <li><b>데이터 불러오기:</b> 페이지 로딩 시, 위에서 설정한 두 URL에서 각각 <strong>메모</strong>와 <strong>미작성 날짜</strong>
-                            데이터를 가져와 화면에 표시합니다.</li>
-                        <li><b>데이터 저장하기:</b> <strong>[모든 변경사항 저장]</strong> 버튼을 누르면, 현재 변경된 메모와 미작성 날짜 데이터로
-                            <code>memos.json</code>과 <code>skipped.json</code> <strong>두 개의 파일을 다운로드</strong>합니다.
-                        </li>
-                        <li><b>업데이트:</b> 다운로드된 두 파일을 GitHub 저장소에 <strong>덮어쓰기(업로드)하고 commit</strong>하면 변경사항이 영구적으로
-                            저장됩니다.</li>
-                    </ol>
+                    <summary>수동·오프라인 사용법</summary>
+                    <ul>
+                        <li>Raw URL 또는 로컬 파일에서 두 XLSB를 불러옵니다.</li>
+                        <li>변경 내용은 IndexedDB 대기열에 즉시 보관됩니다.</li>
+                        <li>인터넷이 없으면 UTF-8 JSONL TXT를 내려받아 나중에 다시 가져오거나 GitHub 업로드에 사용합니다.</li>
+                        <li>XLSB는 사용 중인 행·열만 압축 재생성하여 반복 저장으로 인한 용량 누적을 방지합니다.</li>
+                    </ul>
                 </details>
             </div>
 
@@ -2068,28 +1699,21 @@
                         placeholder="예: jonggunelee/wyggkr04">
                     <label for="confApiBranch">브랜치</label> <input type="text" id="confApiBranch" value="main"
                         placeholder="예: main 또는 master">
-                    <label for="confApiMemosPath">메모 파일 경로</label> <input type="text" id="confApiMemosPath"
-                        placeholder="예: data/memos.json">
-                    <label for="confApiSkippedPath">미작성 파일 경로</label> <input type="text" id="confApiSkippedPath"
-                        placeholder="예: data/skipped.json">
+                    <label for="confApiSkippedPath">안건 현황 XLSB 경로</label> <input type="text" id="confApiSkippedPath"
+                        placeholder="RawData/월간 및 주간/회의_안건_현황.xlsb">
+                    <label for="confApiMemosPath">회의 요약 XLSB 경로</label> <input type="text" id="confApiMemosPath"
+                        placeholder="RawData/월간 및 주간/회의_요약_메모.xlsb">
                     <label for="confApiToken">Personal Access Token</label> <input type="password" id="confApiToken"
-                        placeholder="보안: 토큰은 여기에 저장되지 않습니다.">
+                        autocomplete="off" placeholder="세션에만 유지되며 파일·브라우저 저장소에는 기록하지 않습니다.">
                 </div>
                 <details>
-                    <summary>GitHub API 모드 사용법 및 작동 방식 (고급)</summary>
-                    <p><strong>⚠️ 경고:</strong> Personal Access Token(PAT)은 비밀번호와 같습니다. 노출되지 않도록 각별히 주의하세요. 이 방식 역시
-                        <strong>메모와 미작성 날짜 데이터를 한 쌍으로 함께 처리합니다.</strong>
-                    </p>
-                    <ol>
-                        <li><b>준비:</b> GitHub 저장소에 <code>memos.json</code>과 <code>skipped.json</code> 파일을 미리 생성해 둡니다.
-                            (위의 <strong>[JSON 파일 생성]</strong> 버튼으로 파일을 먼저 만드세요.)</li>
-                        <li><b>토큰 발급:</b> GitHub에서 저장소 접근 권한(<code>repo</code> 스코프)이 있는 PAT를 발급받습니다.</li>
-                        <li><b>설정:</b> 위 설정값들을 모두 정확하게 입력합니다. (토큰은 페이지를 새로고침하면 보안을 위해 사라집니다)</li>
-                        <li><b>데이터 불러오기:</b> 수동 모드와 마찬가지로, GitHub 저장소의 파일 경로를 기반으로 <strong>메모</strong>와 <strong>미작성
-                                날짜</strong> 데이터를 원격으로 불러옵니다.</li>
-                        <li><b>데이터 저장하기:</b> 변경사항 발생 2초 후 <strong>자동으로 저장</strong>됩니다. 또는 <strong>[모든 변경사항 저장]</strong>
-                            버튼으로 즉시 강제 저장할 수 있습니다.</li>
-                    </ol>
+                    <summary>GitHub 동기화 보안·충돌 처리</summary>
+                    <ul>
+                        <li>저장소 하나의 Contents 읽기/쓰기만 허용한 fine-grained PAT를 사용하세요.</li>
+                        <li>PAT은 현재 세션 메모리에만 유지되며 설정, TXT, XLSB에 포함되지 않습니다.</li>
+                        <li>각 XLSB를 최신 SHA로 다시 읽고 변경 이력을 병합한 뒤 순차 업로드합니다.</li>
+                        <li>충돌·권한·네트워크 오류 시 대기열을 지우지 않아 수동 복구할 수 있습니다.</li>
+                    </ul>
                 </details>
             </div>
 
@@ -2159,7 +1783,7 @@
             </div>
             <div class="creation-form-group">
                 <label for="newMeetingDate">회의 날짜</label>
-                <input type="text" id="newMeetingDate" class="flatpickr-input" readonly="readonly">
+                <input type="text" id="newMeetingDate">
             </div>
             <button id="createNewMeetingBtn">생성하기 &amp; 다운로드</button>
         </div>
@@ -2219,7 +1843,6 @@
                             <option value="3">3주</option>
                             <option value="4">4주</option>
                             <option value="5">5주</option>
-                            <option value="6">6주</option>
                         </select>
                     </div>
                 </div>
@@ -2227,6 +1850,10 @@
                     <button id="batchMarkSkippedBtn">선택 항목 '미작성' 처리</button>
                     <button id="batchMarkWrittenBtn">선택 항목 '작성됨'으로 복원</button>
                 </div>
+                <details id="unmappedHistoryDetails">
+                    <summary>카드 미매핑 기존 이력 <span id="unmappedHistoryCount">0</span>건 (카운터 제외)</summary>
+                    <ul id="unmappedHistoryList"></ul>
+                </details>
             </div>
         </div>
     </div>
@@ -2244,69 +1871,6 @@
         </div>
     </div>
 
-    <script id="hardcoded-memos" type="application/json">{}</script>
-    <script id="hardcoded-skipped" type="application/json">[
-    "2023-10-4",
-    "2023-10-5",
-    "2023-10-6",
-    "2023-11-4",
-    "2023-11-5",
-    "2023-4-5",
-    "2023-6-5",
-    "2023-7-5",
-    "2023-7-6",
-    "2023-9-5",
-    "2024-1-1",
-    "2024-1-5",
-    "2024-10-2",
-    "2024-11-1",
-    "2024-11-5",
-    "2024-12-2",
-    "2024-12-5",
-    "2024-12-6",
-    "2024-2-5",
-    "2024-3-5",
-    "2024-4-5",
-    "2024-6-5",
-    "2024-8-5",
-    "2024-9-3",
-    "2024-9-5",
-    "2024-9-6",
-    "2025-1-2",
-    "2025-1-5",
-    "2025-10-1",
-    "2025-10-2",
-    "2025-11-1",
-    "2025-12-1",
-    "2025-2-1",
-    "2025-2-5",
-    "2025-3-1",
-    "2025-3-5",
-    "2025-3-6",
-    "2025-4-2",
-    "2025-5-1",
-    "2025-5-2",
-    "2025-5-5",
-    "2025-6-2",
-    "2025-6-5",
-    "2025-6-6",
-    "2025-7-1",
-    "2025-8-1",
-    "2025-9-2",
-    "2025-9-5",
-    "2026-1-1",
-    "2026-1-3",
-    "2026-2-1",
-    "2026-2-2",
-    "2026-2-3",
-    "2026-3-1",
-    "2026-4-1",
-    "2026-5-1",
-    "2026-6-1",
-    "2026-7-1",
-    "2026-8-1"
-]</script>
-
     <script>
         let WEEKLY_TEMPLATE_HTML = `(주간 회의 템플릿 로딩 중...)`;
         let MONTHLY_TEMPLATE_HTML = `(월간 회의 템플릿 로딩 중...)`;
@@ -2317,17 +1881,16 @@
         const URL_DEFAULT_CONFIG = {
             configMode: 'url',
             dataManagement: {
-                mode: 'embedded',
+                mode: 'api',
                 githubManual: {
-                    memosJsonUrl: '',
-                    skippedJsonUrl: ''
+                    memosJsonUrl: './RawData/월간 및 주간/회의_요약_메모.xlsb',
+                    skippedJsonUrl: './RawData/월간 및 주간/회의_안건_현황.xlsb'
                 },
                 githubApi: {
                     repo: 'JongGunelee/wyggkr04',
                     branch: 'main',
-                    memosPath: 'RawData/memos.json',
-                    skippedPath: 'RawData/skipped.json',
-                    token: '' // SECURITY: Token is now empty by default
+                    memosPath: 'RawData/월간 및 주간/회의_요약_메모.xlsb',
+                    skippedPath: 'RawData/월간 및 주간/회의_안건_현황.xlsb'
                 }
             },
             weekly: {
@@ -2346,20 +1909,48 @@
         let dashboardConfig = {};
         let currentYear;
         let currentMonth = null;
+        let meetingStore = null;
+        let meetingStatusRows = [];
+        let meetingMemoRows = [];
         let tempMeetingMemos = {};
         let tempSkippedDates = [];
-        let initialMemosString = '';
-        let initialSkippedDatesString = '';
 
         const debounce = (func, delay) => {
             let timeout;
             return (...args) => {
                 clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), delay);
+                timeout = setTimeout(() => func(...args), delay);
             };
         };
 
-        /* --- 개선: ISO 8601 주차 계산 함수 --- */
+        function applyStoreSnapshot(snapshot = {}) {
+            meetingStatusRows = Array.isArray(snapshot.status?.rows)
+                ? snapshot.status.rows
+                : (Array.isArray(snapshot.statusRows) ? snapshot.statusRows : []);
+            meetingMemoRows = Array.isArray(snapshot.memo?.rows)
+                ? snapshot.memo.rows
+                : (Array.isArray(snapshot.memoRows) ? snapshot.memoRows : []);
+            tempSkippedDates = meetingStatusRows
+                .filter(row => row.status === '미작성' && row.cardVisible === 'Y')
+                .map(row => row.key);
+            tempMeetingMemos = Object.fromEntries(
+                meetingMemoRows
+                    .filter(row => row.summary || row.memo)
+                    .map(row => [row.key, row.summary || row.memo])
+            );
+            const pending = Number(snapshot.pendingCount || 0);
+            const statusText = pending
+                ? `브라우저에 저장됨 · GitHub 동기화 대기 ${pending}건`
+                : 'XLSB와 동기화됨 · 대기 변경 없음';
+            updateDataSyncStatus(statusText, pending ? 'waiting' : 'saved');
+        }
+
+        function updateDataSyncStatus(message, state = '') {
+            const settingsStatus = document.getElementById('dataSyncStatus');
+            if (settingsStatus) settingsStatus.textContent = message;
+            setAutoSaveStatus(state, message);
+        }
+
         /* --- 개선: ISO 8601 주차 계산 함수 --- */
         function getISOWeekInfo(date) {
             // 복사본 생성 및 시간 정규화 (낮 12시로 설정하여 DST/타임존 이슈 방지)
@@ -2400,16 +1991,21 @@
 
         /* 특정 월에 속하는 모든 주차 정보를 반환 (ISO 기준) */
         function getWeeksBelongingToMonth(year, month) {
+            const storedWeeks = meetingStatusRows
+                .filter(row => row.type === '주간' && row.year === Number(year) && row.month === Number(month) && row.cardVisible === 'Y')
+                .sort((a, b) => Number(a.week) - Number(b.week));
+            const now = getISOWeekInfo(new Date());
+            const isClosedMonth = Number(year) < now.isoYear || (Number(year) === now.isoYear && Number(month) < now.isoMonth);
+            if (storedWeeks.length && isClosedMonth) {
+                return storedWeeks.map(row => ({
+                    isoYear: Number(row.year),
+                    isoMonth: Number(row.month),
+                    weekOfMonth: Number(row.week),
+                    thursdayDate: row.referenceDate ? new Date(`${row.referenceDate}T12:00:00`) : null
+                }));
+            }
+
             const weeks = [];
-            // 해당 월의 1일
-            const firstDay = new Date(year, month - 1, 1);
-            // 해당 월의 마지막 날 (대략적인 범위 설정을 위해)
-            const lastDay = new Date(year, month, 0);
-
-            // 검색 범위를 1일의 1주 전부터 말일의 1주 후까지 넉넉하게 잡고 순회
-            // (1일이 속한 주가 전 달일 수도 있고, 이번 달일 수도 있으므로)
-            // 하지만 우리는 "목요일이 이 달에 속하는지"만 확인하면 됨.
-
             // 해당 월의 첫 목요일 찾기
             const current = new Date(year, month - 1, 1);
             let dayDiff = 4 - current.getDay();
@@ -2431,42 +2027,19 @@
                 weekCount++;
             }
 
-            // 깃허브 업로드 내역과의 동기화를 위한 5주차 예외 하드코딩
-            const exceptions = [
-                { y: 2023, m: 5 },
-                { y: 2023, m: 12 },
-                { y: 2024, m: 7 },
-                { y: 2025, m: 4 },
-                { y: 2025, m: 12 }
-            ];
-            
-            if (exceptions.some(ex => ex.y === year && ex.m === month) && weeks.length === 4) {
-                weeks.push({
-                    isoYear: year,
-                    isoMonth: month,
-                    weekOfMonth: 5,
-                    thursdayDate: new Date(year, month - 1, 28) // 가상의 목요일
-                });
-            }
-
             return weeks;
         }
-
-        /* 하위 호환성 및 기존 코드 연결을 위한 래퍼 (필요 시) */
-        /* 하위 호환성 및 기존 코드 연결을 위한 래퍼 (필요 시) */
-        const getWeekOfMonth = (date) => getISOWeekInfo(date).isoWeekOfMonth; // 번호 반환
-
 
         /* --- 테마 관리 기능 추가 --- */
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         function applyTheme(theme) {
             if (theme === 'dark') {
                 document.body.classList.add('dark-mode');
-                themeToggleBtn.innerHTML = '☀️';
+                themeToggleBtn.textContent = '☀️';
                 themeToggleBtn.title = '라이트 모드 전환';
             } else {
                 document.body.classList.remove('dark-mode');
-                themeToggleBtn.innerHTML = '🌙';
+                themeToggleBtn.textContent = '🌙';
                 themeToggleBtn.title = '다크 모드 전환';
             }
         }
@@ -2489,23 +2062,33 @@
             return `${cleanedBase}/${cleanedTemplate}`;
         }
 
+        function createMemoTextarea(key, placeholder) {
+            const textarea = document.createElement('textarea');
+            textarea.dataset.key = key;
+            textarea.placeholder = placeholder;
+            textarea.value = tempMeetingMemos[key] || '';
+            return textarea;
+        }
+
         function renderYearView(year, skippedDates) {
             currentYear = year;
             document.getElementById('currentYearSpan').textContent = `${year}년`;
             const yearGrid = document.getElementById('year-grid');
-            yearGrid.innerHTML = '';
+            yearGrid.replaceChildren();
             const now = new Date();
             const isoNow = getISOWeekInfo(now);
             const todayYear = isoNow.isoYear;
             const todayMonth = isoNow.isoMonth;
+            const skippedDateSet = new Set(skippedDates);
             for (let i = 1; i <= 12; i++) {
                 const card = document.createElement('div');
                 card.className = 'month-card';
                 card.textContent = `${i}월`;
                 const key = `${year}-${i}`;
-                const isManuallySkipped = skippedDates.includes(key);
+                const isManuallySkipped = skippedDateSet.has(key);
                 if (isManuallySkipped) {
                     card.classList.add('not-written');
+                    if (meetingStatusRows.some(row => row.key === key && row.cardVisible === 'Y')) card.dataset.month = i;
                     card.dataset.tooltip = '수동으로 미작성 처리됨';
                 } else {
                     const isFuture = year > todayYear || (year === todayYear && i > todayMonth);
@@ -2527,6 +2110,8 @@
         }
 
         function showMonthView(month, year, skippedDates) {
+            month = Number.parseInt(month, 10);
+            year = Number.parseInt(year, 10);
             currentYear = year;
             currentMonth = month;
             document.getElementById('currentYearSpan').textContent = `${year}년`;
@@ -2535,16 +2120,17 @@
             const monthlyCard = document.getElementById('monthly-report-card');
             const monthlyMemoWrapper = document.getElementById('monthly-memo-wrapper');
             const weeklyContainer = document.getElementById('weekly-cards-container');
-            monthlyCard.innerHTML = '';
-            monthlyMemoWrapper.innerHTML = '';
-            weeklyContainer.innerHTML = '';
+            monthlyCard.replaceChildren();
+            monthlyMemoWrapper.replaceChildren();
+            weeklyContainer.replaceChildren();
             const now = new Date();
             const isoNow = getISOWeekInfo(now);
             const todayYear = isoNow.isoYear;
             const todayMonth = isoNow.isoMonth;
             const todayWeek = isoNow.isoWeekOfMonth;
-            const monthlyKey = `${year}-${parseInt(month, 10)}`;
-            const isMonthlyManuallySkipped = skippedDates.includes(monthlyKey);
+            const skippedDateSet = new Set(skippedDates);
+            const monthlyKey = `${year}-${month}`;
+            const isMonthlyManuallySkipped = skippedDateSet.has(monthlyKey);
             const monthlyCardText = document.createElement('span');
             monthlyCardText.textContent = "월간 회의 안건 보기";
             monthlyCard.appendChild(monthlyCardText);
@@ -2590,9 +2176,18 @@
                     memoToggleBtn.textContent = '+';
                     memoToggleBtn.title = '회의 요약 보기/숨기기';
                     monthlyCard.appendChild(memoToggleBtn);
-                    const memoText = tempMeetingMemos[monthlyKey] || '';
-                    monthlyMemoWrapper.innerHTML = `<textarea data-key="${monthlyKey}" placeholder="월간 회의 요약 내용을 입력하세요...">${memoText}</textarea>`;
+                    monthlyMemoWrapper.appendChild(createMemoTextarea(monthlyKey, '월간 회의 요약 내용을 입력하세요...'));
                 }
+            }
+            const monthlyStatusRow = meetingStatusRows.find(row => row.key === monthlyKey && row.cardVisible === 'Y');
+            if (monthlyStatusRow?.status === '작성' && !monthlyCard.classList.contains('not-written') && !monthlyCard.querySelector('.memo-toggle-btn')) {
+                const memoToggleBtn = document.createElement('button');
+                memoToggleBtn.className = 'memo-toggle-btn';
+                memoToggleBtn.dataset.key = monthlyKey;
+                memoToggleBtn.textContent = '+';
+                memoToggleBtn.title = '회의 요약 보기/숨기기';
+                monthlyCard.appendChild(memoToggleBtn);
+                monthlyMemoWrapper.appendChild(createMemoTextarea(monthlyKey, '월간 회의 요약 내용을 입력하세요...'));
             }
             monthlyCard.style.animation = 'slideInCascade 0.5s 0.1s ease-out backwards';
 
@@ -2606,12 +2201,7 @@
                 container.style.animation = `slideInCascade 0.5s ${0.15 + index * 0.05}s ease-out backwards`;
                 const weeklyCard = document.createElement('div');
                 weeklyCard.className = 'report-card week-card';
-                let isWeeklyManuallySkipped = skippedDates.includes(weeklyKey);
-                
-                // 2026년 7월 1주차 주간 미작성 예외 처리
-                if (parseInt(year) === 2026 && parseInt(month) === 7 && w === 1) {
-                    isWeeklyManuallySkipped = true;
-                }
+                const isWeeklyManuallySkipped = skippedDateSet.has(weeklyKey);
 
                 if (isWeeklyManuallySkipped) {
                     weeklyCard.classList.add('not-written');
@@ -2651,15 +2241,15 @@
                 const memoWrapper = document.createElement('div');
                 memoWrapper.className = 'memo-wrapper hidden';
                 memoWrapper.id = `memo-${weeklyKey}`;
-                if (!weeklyCard.classList.contains('not-written')) {
+                const weeklyStatusRow = meetingStatusRows.find(row => row.key === weeklyKey && row.cardVisible === 'Y');
+                if (weeklyStatusRow?.status === '작성' && !weeklyCard.classList.contains('not-written')) {
                     const memoToggleBtn = document.createElement('button');
                     memoToggleBtn.className = 'memo-toggle-btn';
                     memoToggleBtn.dataset.key = weeklyKey;
                     memoToggleBtn.textContent = '+';
                     memoToggleBtn.title = '회의 요약 보기/숨기기';
                     weeklyCard.appendChild(memoToggleBtn);
-                    const memoText = tempMeetingMemos[weeklyKey] || '';
-                    memoWrapper.innerHTML = `<textarea data-key="${weeklyKey}" placeholder="주간 회의 요약 내용을 입력하세요...">${memoText}</textarea>`;
+                    memoWrapper.appendChild(createMemoTextarea(weeklyKey, '주간 회의 요약 내용을 입력하세요...'));
                 }
                 container.appendChild(weeklyCard);
                 container.appendChild(memoWrapper);
@@ -2681,119 +2271,71 @@
             const yearSelect = document.getElementById('batchYearSelect');
             const monthSelect = document.getElementById('batchMonthSelect');
             const weekSelect = document.getElementById('batchWeekSelect');
-            yearSelect.innerHTML = '';
-            for (let y = new Date().getFullYear() - 5; y <= new Date().getFullYear() + 5; y++) {
+            const thisYear = new Date().getFullYear();
+            yearSelect.replaceChildren();
+            for (let y = thisYear - 5; y <= thisYear + 5; y++) {
                 const option = document.createElement('option');
                 option.value = y;
                 option.textContent = `${y}년`;
                 yearSelect.appendChild(option);
             }
             yearSelect.value = currentYear;
-            monthSelect.innerHTML = '';
+            monthSelect.replaceChildren();
             for (let m = 1; m <= 12; m++) {
                 const option = document.createElement('option');
                 option.value = m;
                 option.textContent = `${m}월`;
                 monthSelect.appendChild(option);
             }
-            weekSelect.innerHTML = '';
-            for (let w = 1; w <= 6; w++) {
+            weekSelect.replaceChildren();
+            for (let w = 1; w <= 5; w++) {
                 const option = document.createElement('option');
                 option.value = w;
                 option.textContent = `${w}주`;
                 weekSelect.appendChild(option);
             }
+            const unmappedRows = meetingStatusRows.filter(row => row.counterIncluded !== 'Y');
+            document.getElementById('unmappedHistoryCount').textContent = unmappedRows.length;
+            const unmappedList = document.getElementById('unmappedHistoryList');
+            unmappedList.replaceChildren(...unmappedRows.map(row => {
+                const item = document.createElement('li');
+                item.textContent = `${row.key} · ${row.status} · ${row.exceptionCode || '예외'}`;
+                return item;
+            }));
         }
 
         /* --- 개선 1: 툴팁 정보 강화 --- */
-        function updateAnalyticsTooltip(skippedDates) {
-            let totalMonthlyPossible = 0, skippedMonthlyCount = 0, lastWrittenMonthly = null;
-            let totalWeeklyPossible = 0, skippedWeeklyCount = 0, lastWrittenWeekly = null;
+        function updateAnalyticsTooltip() {
+            const activeRows = meetingStatusRows.filter(row => row.counterIncluded === 'Y');
+            const unmappedRows = meetingStatusRows.filter(row => row.counterIncluded !== 'Y');
+            const rowOrder = row => Number(row.year) * 1000 + Number(row.month) * 10 + Number(row.week || 0);
+            const label = row => row.type === '월간'
+                ? `${row.year}-${String(row.month).padStart(2, '0')}`
+                : `${row.year}-${String(row.month).padStart(2, '0')} (${row.week}주차)`;
+            const summarize = type => {
+                const rows = activeRows.filter(row => row.type === type).sort((a, b) => rowOrder(a) - rowOrder(b));
+                const writtenRows = rows.filter(row => row.status === '작성');
+                return {
+                    total: rows.length,
+                    written: writtenRows.length,
+                    skipped: rows.filter(row => row.status === '미작성').length,
+                    first: writtenRows.length ? label(writtenRows[0]) : '없음',
+                    last: writtenRows.length ? label(writtenRows[writtenRows.length - 1]) : '없음'
+                };
+            };
+            const monthly = summarize('월간');
+            const weekly = summarize('주간');
 
-            const REFERENCE_DATE = new Date();
-            const startYear = 2023;
-            const refIso = getISOWeekInfo(REFERENCE_DATE);
-            const refYear = refIso.isoYear;
-            const refMonth = refIso.isoMonth;
-            const refWeek = refIso.isoWeekOfMonth;
-
-            // 1. 마지막 작성일 찾기 (역순으로 탐색)
-            for (let y = refYear; y >= startYear; y--) {
-                const startM = (y === refYear) ? refMonth : 12;
-                for (let m = startM; m >= 1; m--) {
-                    if (y === startYear && m < 3) continue;
-
-                    // 마지막 월간 작성일
-                    if (!lastWrittenMonthly && !skippedDates.includes(`${y}-${m}`)) {
-                        lastWrittenMonthly = `${y}-${String(m).padStart(2, '0')}`;
-                    }
-
-                    // 마지막 주간 작성일
-                    if (!lastWrittenWeekly) {
-                        const startW = (y === refYear && m === refMonth) ? refWeek : getNumberOfWeeksInMonth(y, m);
-                        for (let w = startW; w >= 1; w--) {
-                            let isSkipped = skippedDates.includes(`${y}-${m}-${w}`);
-                            if (y === 2026 && m === 7 && w === 1) isSkipped = true;
-                            
-                            if (!isSkipped) {
-                                lastWrittenWeekly = `${y}-${String(m).padStart(2, '0')} (${w}주차)`;
-                                break;
-                            }
-                        }
-                    }
-                    if (lastWrittenMonthly && lastWrittenWeekly) break;
-                }
-                if (lastWrittenMonthly && lastWrittenWeekly) break;
-            }
-
-            // 2. 총 대상 건수 및 경과 기간 계산 (정순으로 탐색)
-            for (let y = startYear; y <= refYear; y++) {
-                for (let m = 1; m <= 12; m++) {
-                    const isLegacyMonth = (y === startYear && m < 3);
-                    const isFutureMonth = (y > refYear) || (y === refYear && m > refMonth);
-
-                    if (!isLegacyMonth && !isFutureMonth) {
-                        totalMonthlyPossible++;
-                        if (skippedDates.includes(`${y}-${m}`)) skippedMonthlyCount++;
-                    }
-
-                    const weeksInMonth = getNumberOfWeeksInMonth(y, m);
-                    for (let w = 1; w <= weeksInMonth; w++) {
-                        const isLegacyWeek = (y < 2023) || (y === 2023 && m < 3);
-                        const isFutureWeek = (y > refYear) || (y === refYear && m > refMonth) || (y === refYear && m === refMonth && w > refWeek);
-
-                        if (!isLegacyWeek && !isFutureWeek) {
-                            totalWeeklyPossible++;
-                            let isSkipped = skippedDates.includes(`${y}-${m}-${w}`);
-                            if (y === 2026 && m === 7 && w === 1) isSkipped = true;
-                            if (isSkipped) skippedWeeklyCount++;
-                        }
-                    }
-                }
-            }
-
-            const finalMonthlyCount = totalMonthlyPossible - skippedMonthlyCount;
-            const finalWeeklyCount = totalWeeklyPossible - skippedWeeklyCount;
-            const firstMonthlyDate = '2023-03';
-            const firstWeeklyDate = '2023-03 (1주차)';
-
-            const tooltipText = `최초 작성 (월간): ${firstMonthlyDate}\n` +
-                `마지막 작성 (월간): ${lastWrittenMonthly || '없음'}\n` +
-                `최초 작성 (주간): ${firstWeeklyDate}\n` +
-                `마지막 작성 (주간): ${lastWrittenWeekly || '없음'}\n` +
+            const tooltipText = `최초 작성 (월간): ${monthly.first}\n` +
+                `마지막 작성 (월간): ${monthly.last}\n` +
+                `최초 작성 (주간): ${weekly.first}\n` +
+                `마지막 작성 (주간): ${weekly.last}\n` +
                 `--------------------\n` +
-                `[경과 기간]\n` +
-                `- 월간: ${totalMonthlyPossible}개월 경과\n` +
-                `- 주간: ${totalWeeklyPossible}주 경과\n\n` +
-                `[월간 안건]\n` +
-                `- 총 대상: ${totalMonthlyPossible}건\n` +
-                `- 미작성: ${skippedMonthlyCount}건\n` +
-                `= 최종 작성: ${finalMonthlyCount}건\n` +
-                `\n` +
-                `[주간 안건]\n` +
-                `- 총 대상: ${totalWeeklyPossible}건\n` +
-                `- 미작성: ${skippedWeeklyCount}건\n` +
-                `= 최종 작성: ${finalWeeklyCount}건`;
+                `[누적 대상 카드]\n` +
+                `- 월간: ${monthly.total}건 (작성 ${monthly.written} / 미작성 ${monthly.skipped})\n` +
+                `- 주간: ${weekly.total}건 (작성 ${weekly.written} / 미작성 ${weekly.skipped})\n\n` +
+                `[감사 예외]\n` +
+                `- 카드 미매핑 보존 이력: ${unmappedRows.length}건 (공식 카운터 제외)`;
 
             const manageSkippedBtn = document.getElementById('manageSkippedBtn');
             manageSkippedBtn.dataset.tooltip = tooltipText;
@@ -2881,7 +2423,6 @@
         }
 
         function toggleDataManagementMode(mode) {
-            document.getElementById('embeddedModeFields').style.display = mode === 'embedded' ? 'block' : 'none';
             document.getElementById('manualUpdateFields').style.display = mode === 'manual' ? 'block' : 'none';
             document.getElementById('apiUpdateFields').style.display = mode === 'api' ? 'block' : 'none';
         }
@@ -2924,10 +2465,27 @@
                 return { ...target, ...source };
             };
             dashboardConfig = mergeDeep(URL_DEFAULT_CONFIG, savedConfig);
+            const manualConfig = dashboardConfig.dataManagement.githubManual;
+            const apiConfig = dashboardConfig.dataManagement.githubApi;
+            if (!manualConfig.memosJsonUrl || /\.json(?:$|\?)/i.test(manualConfig.memosJsonUrl)) {
+                manualConfig.memosJsonUrl = URL_DEFAULT_CONFIG.dataManagement.githubManual.memosJsonUrl;
+            }
+            if (!manualConfig.skippedJsonUrl || /\.json(?:$|\?)/i.test(manualConfig.skippedJsonUrl)) {
+                manualConfig.skippedJsonUrl = URL_DEFAULT_CONFIG.dataManagement.githubManual.skippedJsonUrl;
+            }
+            if (!apiConfig.memosPath || /\.json$/i.test(apiConfig.memosPath)) {
+                apiConfig.memosPath = URL_DEFAULT_CONFIG.dataManagement.githubApi.memosPath;
+            }
+            if (!apiConfig.skippedPath || /\.json$/i.test(apiConfig.skippedPath)) {
+                apiConfig.skippedPath = URL_DEFAULT_CONFIG.dataManagement.githubApi.skippedPath;
+            }
 
             // document.getElementById('confApiToken').value = dashboardConfig.dataManagement.githubApi.token;
 
-            const dataMode = dashboardConfig.dataManagement.mode;
+            const dataMode = ['manual', 'api'].includes(dashboardConfig.dataManagement.mode)
+                ? dashboardConfig.dataManagement.mode
+                : 'api';
+            dashboardConfig.dataManagement.mode = dataMode;
             document.querySelector(`input[name="dataManagementMode"][value="${dataMode}"]`).checked = true;
             toggleDataManagementMode(dataMode);
             document.getElementById('confMemosJsonUrl').value = dashboardConfig.dataManagement.githubManual.memosJsonUrl;
@@ -2973,38 +2531,47 @@
             location.reload();
         }
 
+        let autoSaveStatusTimer = null;
         function setAutoSaveStatus(status, message) {
             const statusEl = document.getElementById('autoSaveStatus');
             if (!statusEl) return;
 
+            clearTimeout(autoSaveStatusTimer);
             statusEl.className = status;
             statusEl.textContent = message;
+            if (status === 'saved') {
+                autoSaveStatusTimer = setTimeout(() => {
+                    statusEl.className = '';
+                    statusEl.textContent = '⚪ 변경사항 없음';
+                }, 2000);
+            }
         }
 
-        function checkForUnsavedChanges() {
+        async function checkForUnsavedChanges() {
             const saveBtn = document.getElementById('saveAllChangesBtn');
-            if (!saveBtn) return;
-
-            const currentMemosString = JSON.stringify(tempMeetingMemos, Object.keys(tempMeetingMemos).sort());
-            const currentSkippedDatesString = JSON.stringify([...tempSkippedDates].sort());
-            const hasChanges = currentMemosString !== initialMemosString || currentSkippedDatesString !== initialSkippedDatesString;
-
-            if (hasChanges) {
-                saveBtn.disabled = false;
-                saveBtn.style.backgroundColor = 'var(--current-month-color)';
-                saveBtn.style.cursor = 'pointer';
-                if (dashboardConfig.dataManagement.mode === 'api') {
-                    setAutoSaveStatus('waiting', '🟡 저장 대기 중...');
-                    debouncedSave();
-                }
-            } else {
-                saveBtn.disabled = true;
-                saveBtn.style.backgroundColor = '';
-                saveBtn.style.cursor = 'not-allowed';
-                if (dashboardConfig.dataManagement.mode === 'api') {
-                    // Do nothing, let the success message linger for a bit.
-                }
+            if (!saveBtn || !meetingStore) return 0;
+            const pending = await meetingStore.pendingCount();
+            saveBtn.disabled = pending === 0;
+            saveBtn.style.backgroundColor = pending ? 'var(--current-month-color)' : '';
+            saveBtn.style.cursor = pending ? 'pointer' : 'not-allowed';
+            const message = pending
+                ? `브라우저에 저장됨 · GitHub 동기화 대기 ${pending}건`
+                : 'XLSB와 동기화됨 · 대기 변경 없음';
+            updateDataSyncStatus(message, pending ? 'waiting' : 'saved');
+            const token = document.getElementById('confApiToken')?.value.trim();
+            if (pending && dashboardConfig.dataManagement.mode === 'api' && token) {
+                meetingStore.setSessionToken(token);
+                debouncedSync();
             }
+            return pending;
+        }
+
+        const pendingMemoTimers = new Map();
+        async function persistMemoChange(key, value) {
+            pendingMemoTimers.delete(key);
+            await meetingStore.setMemo(key, value, { source: '웹 회의 요약 편집' });
+            applyStoreSnapshot(meetingStore.getSnapshot());
+            await checkForUnsavedChanges();
         }
 
         function handleMemoInput(e) {
@@ -3013,161 +2580,120 @@
             const key = textarea.dataset.key;
             if (textarea.value.trim()) { tempMeetingMemos[key] = textarea.value; }
             else { delete tempMeetingMemos[key]; }
-            checkForUnsavedChanges();
+            clearTimeout(pendingMemoTimers.get(key));
+            pendingMemoTimers.set(key, setTimeout(() => {
+                persistMemoChange(key, textarea.value).catch(error => {
+                    console.error('메모 저장 실패:', error);
+                    updateDataSyncStatus(`메모 로컬 저장 실패: ${error.message}`, 'error');
+                });
+            }, 400));
         }
 
-        function handleSaveAllChanges() {
-            if (dashboardConfig.dataManagement.mode === 'api') {
-                saveDataToGithubAPI(true);
-            } else {
-                switch (dashboardConfig.dataManagement.mode) {
-                    case 'embedded': saveChangesToHtmlFile(); break;
-                    case 'manual': downloadJsonFiles(); break;
-                }
+        async function flushMemoChanges() {
+            const textareas = [...document.querySelectorAll('.memo-wrapper textarea')];
+            const tasks = [];
+            for (const textarea of textareas) {
+                const key = textarea.dataset.key;
+                if (!pendingMemoTimers.has(key)) continue;
+                clearTimeout(pendingMemoTimers.get(key));
+                tasks.push(persistMemoChange(key, textarea.value));
+            }
+            await Promise.all(tasks);
+        }
+
+        async function handleSaveAllChanges() {
+            await flushMemoChanges();
+            if (dashboardConfig.dataManagement.mode === 'api') await syncPendingChanges(true);
+            else {
+                downloadCurrentXlsb();
+                await meetingStore.exportOfflineTxt({ download: true });
             }
         }
 
-        function saveChangesToHtmlFile() {
-            closeAllOpenElements();
-            setTimeout(() => {
-                document.getElementById('hardcoded-memos').textContent = JSON.stringify(tempMeetingMemos, null, 4);
-                document.getElementById('hardcoded-skipped').textContent = JSON.stringify([...tempSkippedDates].sort(), null, 4);
-
-                let fullHtml = document.documentElement.outerHTML;
-                const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                const now = new Date();
-                const isoNow = getISOWeekInfo(now);
-                const year = isoNow.isoYear;
-                const month = isoNow.isoMonth;
-                const week = isoNow.isoWeekOfMonth;
-                link.download = `041 월간 및 주간 회의_${year}년 ${month}월 ${week}주차.html`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(link.href);
-                alert("모든 변경사항이 저장된 새 HTML 파일이 다운로드됩니다.\n\n저장 후 새 파일을 열어 변경사항을 확인하세요.");
-                initialMemosString = JSON.stringify(tempMeetingMemos, Object.keys(tempMeetingMemos).sort());
-                initialSkippedDatesString = JSON.stringify([...tempSkippedDates].sort());
-                checkForUnsavedChanges();
-            }, 100);
+        function downloadCurrentXlsb() {
+            if (!meetingStore) return;
+            meetingStore.downloadXlsb('status', '회의_안건_현황.xlsb');
+            meetingStore.downloadXlsb('memo', '회의_요약_메모.xlsb');
+            updateDataSyncStatus('현재 현황을 압축 XLSB 두 파일로 다운로드했습니다.', 'saved');
         }
 
-        function downloadJsonFiles() {
-            closeAllOpenElements();
-            const memosBlob = new Blob([JSON.stringify(tempMeetingMemos, null, 2)], { type: 'application/json' });
-            const memosLink = document.createElement('a');
-            memosLink.href = URL.createObjectURL(memosBlob);
-            memosLink.download = 'memos.json';
-            memosLink.click();
-            URL.revokeObjectURL(memosLink.href);
-            const skippedBlob = new Blob([JSON.stringify([...tempSkippedDates].sort(), null, 2)], { type: 'application/json' });
-            const skippedLink = document.createElement('a');
-            skippedLink.href = URL.createObjectURL(skippedBlob);
-            skippedLink.download = 'skipped.json';
-            skippedLink.click();
-            URL.revokeObjectURL(skippedLink.href);
-            alert("memos.json과 skipped.json 파일이 다운로드됩니다.\n이 파일들을 GitHub 저장소에 업로드(덮어쓰기)하여 변경사항을 저장하세요.");
-            initialMemosString = JSON.stringify(tempMeetingMemos, Object.keys(tempMeetingMemos).sort());
-            initialSkippedDatesString = JSON.stringify([...tempSkippedDates].sort());
+        function refreshDashboardFromStore() {
+            applyStoreSnapshot(meetingStore.getSnapshot());
+            updateAnalyticsTooltip();
+            if (currentYear) {
+                if (currentMonth) showMonthView(currentMonth, currentYear, tempSkippedDates);
+                else renderYearView(currentYear, tempSkippedDates);
+            }
             checkForUnsavedChanges();
         }
 
-        function extractDataAsJsonFiles() {
-            if (!confirm("현재 대시보드에 있는 모든 메모와 미작성 데이터를 GitHub 업로드용 JSON 파일로 추출하시겠습니까?\n이 작업은 현재 설정을 변경하지 않습니다.")) {
-                return;
-            }
-            const memosBlob = new Blob([JSON.stringify(tempMeetingMemos, null, 2)], { type: 'application/json' });
-            const memosLink = document.createElement('a');
-            memosLink.href = URL.createObjectURL(memosBlob);
-            memosLink.download = 'memos.json';
-            memosLink.click();
-            URL.revokeObjectURL(memosLink.href);
-
-            const skippedBlob = new Blob([JSON.stringify([...tempSkippedDates].sort(), null, 2)], { type: 'application/json' });
-            const skippedLink = document.createElement('a');
-            skippedLink.href = URL.createObjectURL(skippedBlob);
-            skippedLink.download = 'skipped.json';
-            skippedLink.click();
-            URL.revokeObjectURL(skippedLink.href);
-
-            alert("memos.json과 skipped.json 파일이 다운로드되었습니다.\n\n이 두 파일을 GitHub 저장소의 데이터 폴더에 업로드한 후, 'GitHub 수동/API 업데이트 모드'로 전환하여 사용하세요.");
-        }
-
-        async function saveDataToGithubAPI(isForced = false) {
-            closeAllOpenElements();
+        async function syncPendingChanges(showAlert = false) {
+            if (!meetingStore) return;
+            await flushMemoChanges();
             const saveBtn = document.getElementById('saveAllChangesBtn');
             const originalBtnText = saveBtn.textContent;
             saveBtn.disabled = true;
-            if (isForced) { saveBtn.textContent = '저장 중...'; }
-            setAutoSaveStatus('waiting', '🔵 저장 중...');
-
-            const { repo, branch, memosPath, skippedPath } = dashboardConfig.dataManagement.githubApi;
-            const token = document.getElementById('confApiToken').value;
-            if (!repo || !branch || !memosPath || !skippedPath || !token) {
-                const errorMsg = 'GitHub API 설정이 올바르지 않습니다.';
-                if (isForced) alert(errorMsg);
-                setAutoSaveStatus('error', `🔴 ${errorMsg}`);
-                saveBtn.disabled = false;
-                if (isForced) { saveBtn.textContent = originalBtnText; }
-                return;
-            }
-            const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' };
-
-            const updateFile = async (filePath, content) => {
-                const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`;
-                try {
-                    const getResponse = await fetch(apiUrl, { headers, cache: "no-store" });
-                    const fileData = await getResponse.json();
-                    if (!getResponse.ok && getResponse.status !== 404) { throw new Error(`파일(${filePath}) 정보 조회 실패: ${fileData.message || getResponse.statusText}`); }
-                    const sha = fileData.sha;
-                    const putResponse = await fetch(apiUrl, {
-                        method: 'PUT',
-                        headers,
-                        body: JSON.stringify({
-                            message: `[Dashboard] Update ${filePath}`,
-                            content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
-                            sha: sha,
-                            branch: branch
-                        })
-                    });
-                    if (!putResponse.ok) { const errorData = await putResponse.json(); throw new Error(`파일(${filePath}) 업데이트 실패: ${errorData.message || putResponse.statusText}`); }
-                    return { success: true, path: filePath };
-                } catch (error) { console.error(error); return { success: false, path: filePath, error: error.message }; }
-            };
-
+            saveBtn.textContent = '동기화 중...';
+            updateDataSyncStatus('GitHub 최신 XLSB와 병합·업로드 중…', 'waiting');
             try {
-                const memoResult = await updateFile(memosPath, tempMeetingMemos);
-                const skippedResult = await updateFile(skippedPath, [...tempSkippedDates].sort());
-                const results = [memoResult, skippedResult];
-                const failures = results.filter(r => !r.success);
-
-                if (failures.length > 0) {
-                    const errorMsg = `일부 파일 저장 실패:\n${failures.map(f => `${f.path}: ${f.error}`).join('\n')}`;
-                    if (isForced) alert(errorMsg);
-                    setAutoSaveStatus('error', `🔴 저장 실패`);
-                } else {
-                    if (isForced) alert('모든 변경사항이 GitHub에 성공적으로 저장되었습니다.');
-                    setAutoSaveStatus('saved', '🔵 저장 완료');
-                    initialMemosString = JSON.stringify(tempMeetingMemos, Object.keys(tempMeetingMemos).sort());
-                    initialSkippedDatesString = JSON.stringify([...tempSkippedDates].sort());
-                    checkForUnsavedChanges();
-                    setTimeout(() => setAutoSaveStatus('', '⚪ 변경사항 없음'), 2000);
-                }
-            } catch (e) {
-                if (isForced) alert(`저장 중 심각한 오류 발생: ${e.message}`);
-                setAutoSaveStatus('error', `🔴 오류 발생`);
+                const token = document.getElementById('confApiToken')?.value.trim() || '';
+                if (token) meetingStore.setSessionToken(token);
+                if (!meetingStore.hasSessionToken()) throw new Error('현재 세션의 GitHub PAT를 입력해주세요.');
+                const result = await meetingStore.sync(token
+                    ? { token, publishMissing: true }
+                    : { publishMissing: true });
+                refreshDashboardFromStore();
+                if (!result.ok) throw new Error('일부 XLSB 동기화가 실패했습니다. 로컬 대기 이력은 유지됩니다.');
+                updateDataSyncStatus('GitHub XLSB 동기화 완료', 'saved');
+                if (showAlert) alert('상태와 회의 요약 XLSB가 GitHub에 동기화되었습니다.');
+                return result;
+            } catch (error) {
+                console.error('GitHub 동기화 실패:', error);
+                updateDataSyncStatus(`동기화 실패 · 로컬 이력 유지: ${error.message}`, 'error');
+                if (showAlert) alert(`GitHub 동기화 실패: ${error.message}\n오프라인 이력은 브라우저에 유지됩니다.`);
+                return { ok: false, error };
             } finally {
-                const hasUnsavedChanges = (JSON.stringify(tempMeetingMemos, Object.keys(tempMeetingMemos).sort()) !== initialMemosString) || (JSON.stringify([...tempSkippedDates].sort()) !== initialSkippedDatesString);
-                saveBtn.disabled = !hasUnsavedChanges;
-                if (isForced) { saveBtn.textContent = originalBtnText; }
+                saveBtn.textContent = originalBtnText;
+                checkForUnsavedChanges();
             }
         }
 
-        const debouncedSave = debounce(() => {
-            saveDataToGithubAPI(false);
+        const debouncedSync = debounce(() => {
+            syncPendingChanges(false);
         }, 2000);
+
+        async function importOfflineHistory(file) {
+            const result = await meetingStore.importOfflineTxt(file);
+            refreshDashboardFromStore();
+            alert(`오프라인 이력 ${result.accepted}건을 적용했습니다.\n중복 건너뜀: ${result.duplicateEventIds.length}건`);
+        }
+
+        async function importSelectedXlsbFiles(fileList) {
+            const selected = {};
+            for (const file of [...fileList]) {
+                try {
+                    await meetingStore.parseXlsb('status', file);
+                    if (selected.status) throw new Error('안건 현황 XLSB는 한 번에 하나만 선택할 수 있습니다.');
+                    selected.status = file;
+                    continue;
+                } catch (statusError) {
+                    try {
+                        await meetingStore.parseXlsb('memo', file);
+                        if (selected.memo) throw new Error('회의 요약 XLSB는 한 번에 하나만 선택할 수 있습니다.');
+                        selected.memo = file;
+                    } catch (memoError) {
+                        throw new Error(`${file.name}: 지원하는 회의 XLSB 형식이 아닙니다.`);
+                    }
+                }
+            }
+            await meetingStore.importXlsbFiles(selected, {
+                queueForSync: true,
+                mode: 'replace',
+                source: '로컬 XLSB 수동 가져오기'
+            });
+            refreshDashboardFromStore();
+            alert(`로컬 XLSB ${Object.keys(selected).length}개를 적용하고 GitHub 동기화 대기열에 기록했습니다.`);
+        }
 
         async function fetchTemplateFromURL(url, type) {
             try {
@@ -3177,11 +2703,30 @@
             } catch (error) { console.error(`'${type}' 템플릿 로딩 중 네트워크 오류. URL: ${url}`, error); return ``; }
         }
 
+        function appendHighlightedText(container, text, regex) {
+            let lastIndex = 0;
+            regex.lastIndex = 0;
+            for (let match = regex.exec(text); match; match = regex.exec(text)) {
+                container.append(document.createTextNode(text.slice(lastIndex, match.index)));
+                const strong = document.createElement('strong');
+                strong.textContent = match[0];
+                container.append(strong);
+                lastIndex = regex.lastIndex;
+            }
+            container.append(document.createTextNode(text.slice(lastIndex)));
+        }
+
         function performSearch(e) {
             const searchTerm = e.target.value.trim();
             const resultsContainer = document.getElementById('searchResultsContainer');
-            resultsContainer.innerHTML = '';
-            if (!searchTerm) { resultsContainer.innerHTML = '<p class="search-placeholder">메모 내용에서 검색합니다.</p>'; return; }
+            resultsContainer.replaceChildren();
+            if (!searchTerm) {
+                const placeholder = document.createElement('p');
+                placeholder.className = 'search-placeholder';
+                placeholder.textContent = '메모 내용에서 검색합니다.';
+                resultsContainer.appendChild(placeholder);
+                return;
+            }
             const searchRegex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
             let found = false;
             const sortedKeys = Object.keys(tempMeetingMemos).sort().reverse();
@@ -3195,12 +2740,20 @@
                     resultItem.dataset.key = key;
                     resultItem.dataset.year = year;
                     resultItem.dataset.month = month;
-                    const highlightedMemo = tempMeetingMemos[key].replace(searchRegex, (match) => `<strong>${match}</strong>`);
-                    resultItem.innerHTML = `<h5>${locationText}</h5><p>${highlightedMemo}</p>`;
+                    const heading = document.createElement('h5');
+                    heading.textContent = locationText;
+                    const memo = document.createElement('p');
+                    appendHighlightedText(memo, tempMeetingMemos[key], searchRegex);
+                    resultItem.append(heading, memo);
                     resultsContainer.appendChild(resultItem);
                 }
             }
-            if (!found) { resultsContainer.innerHTML = '<p class="no-results">검색 결과가 없습니다.</p>'; }
+            if (!found) {
+                const noResults = document.createElement('p');
+                noResults.className = 'no-results';
+                noResults.textContent = '검색 결과가 없습니다.';
+                resultsContainer.appendChild(noResults);
+            }
         }
 
         function handleSearchResultClick(e) {
@@ -3236,56 +2789,117 @@
             }, 200);
         }
 
-        function loadEmbeddedData() {
-            try {
-                tempMeetingMemos = JSON.parse(document.getElementById('hardcoded-memos').textContent);
-                tempSkippedDates = JSON.parse(document.getElementById('hardcoded-skipped').textContent);
-            } catch (e) {
-                console.warn("내장 데이터 파싱 오류.", e);
-                tempMeetingMemos = {}; tempSkippedDates = [];
-                alert("내장된 데이터를 불러오는 데 실패했습니다.");
-            }
-            initializeDashboard();
+        async function fetchWorkbookFile(url, label) {
+            if (!url) return null;
+            const response = await fetch(url, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`${label}(${response.status}) 로딩 실패`);
+            return new File([await response.arrayBuffer()], label, {
+                type: 'application/vnd.ms-excel.sheet.binary.macroEnabled.12'
+            });
         }
 
-        async function loadDataFromRemote() {
-            const { mode, githubManual, githubApi } = dashboardConfig.dataManagement;
-            let memosUrl, skippedUrl;
-            if (mode === 'manual') {
-                memosUrl = githubManual.memosJsonUrl;
-                skippedUrl = githubManual.skippedUrl;
-            } else if (mode === 'api') {
-                const { repo, branch, memosPath, skippedPath } = githubApi;
-                if (repo && branch && memosPath && skippedPath) {
-                    const baseUrl = `https://raw.githubusercontent.com/${repo}/${branch}`;
-                    memosUrl = `${baseUrl}/${memosPath}`;
-                    skippedUrl = `${baseUrl}/${skippedPath}`;
+        async function importInitialXlsbFiles(statusUrl, memoUrl) {
+            const files = {};
+            const results = await Promise.allSettled([
+                fetchWorkbookFile(statusUrl, '회의_안건_현황.xlsb'),
+                fetchWorkbookFile(memoUrl, '회의_요약_메모.xlsb')
+            ]);
+            if (results[0].status === 'fulfilled' && results[0].value) files.status = results[0].value;
+            if (results[1].status === 'fulfilled' && results[1].value) files.memo = results[1].value;
+            if (Object.keys(files).length) {
+                await meetingStore.importXlsbFiles(files, { queueForSync: false, mode: 'replace' });
+            }
+            return results;
+        }
+
+        async function ensureRosterThroughToday() {
+            const snapshot = meetingStore.getSnapshot();
+            const activeMonthly = snapshot.status.rows
+                .filter(row => row.type === '월간' && row.counterIncluded === 'Y')
+                .sort((a, b) => Number(a.year) - Number(b.year) || Number(a.month) - Number(b.month));
+            if (!activeMonthly.length) return;
+            const latest = activeMonthly[activeMonthly.length - 1];
+            const nowInfo = getISOWeekInfo(new Date());
+            let year = Number(latest.year);
+            let month = Number(latest.month);
+            while (year < nowInfo.isoYear || (year === nowInfo.isoYear && month <= nowInfo.isoMonth)) {
+                const monthKey = `${year}-${month}`;
+                if (!meetingStore.getRows('status').some(row => row.key === monthKey)) {
+                    await meetingStore.upsertStatus({
+                        key: monthKey,
+                        status: '작성',
+                        counterIncluded: 'Y',
+                        cardVisible: 'Y',
+                        referenceDate: `${year}-${String(month).padStart(2, '0')}-01`
+                    }, { source: '현재 기간 자동 등록' });
                 }
+                const monthWeeks = getWeeksBelongingToMonth(year, month);
+                const maxWeek = year === nowInfo.isoYear && month === nowInfo.isoMonth
+                    ? nowInfo.isoWeekOfMonth
+                    : Number.POSITIVE_INFINITY;
+                for (const weekInfo of monthWeeks.filter(info => info.weekOfMonth <= maxWeek)) {
+                    const key = `${year}-${month}-${weekInfo.weekOfMonth}`;
+                    if (meetingStore.getRows('status').some(row => row.key === key)) continue;
+                    const date = weekInfo.thursdayDate;
+                    await meetingStore.upsertStatus({
+                        key,
+                        status: '작성',
+                        counterIncluded: 'Y',
+                        cardVisible: 'Y',
+                        referenceDate: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                    }, { source: '현재 기간 자동 등록' });
+                }
+                month += 1;
+                if (month > 12) { month = 1; year += 1; }
             }
-            if (!memosUrl || !skippedUrl) {
-                alert("GitHub 데이터 경로가 올바르게 설정되지 않았습니다. 설정(⚙️)에서 확인해주세요.");
-                tempMeetingMemos = {}; tempSkippedDates = [];
-                initializeDashboard();
-                return;
+        }
+
+        async function initializeMeetingData() {
+            updateDataSyncStatus('XLSB 및 오프라인 이력을 불러오는 중…', 'waiting');
+            if (!window.XLSX || !window.MeetingDataStore) {
+                throw new Error('로컬 XLSB 처리 모듈을 불러오지 못했습니다. vendor 파일을 확인해주세요.');
             }
-            try {
-                const [memosResponse, skippedResponse] = await Promise.all([fetch(memosUrl, { cache: "no-store" }), fetch(skippedUrl, { cache: "no-store" })]);
-                if (!memosResponse.ok) throw new Error(`메모 데이터(${memosResponse.status}) 로딩 실패`);
-                if (!skippedResponse.ok) throw new Error(`미작성 데이터(${skippedResponse.status}) 로딩 실패`);
-                tempMeetingMemos = await memosResponse.json();
-                tempSkippedDates = await skippedResponse.json();
-            } catch (e) {
-                console.error("원격 데이터 로딩 오류:", e);
-                alert(`원격 데이터를 불러오는 데 실패했습니다: ${e.message}\n기본값으로 시작합니다.`);
-                tempMeetingMemos = {}; tempSkippedDates = [];
+            const { mode, githubManual, githubApi } = dashboardConfig.dataManagement;
+            meetingStore = await MeetingDataStore.create({
+                github: {
+                    repo: githubApi.repo,
+                    branch: githubApi.branch,
+                    statusPath: githubApi.skippedPath,
+                    memoPath: githubApi.memosPath
+                }
+            });
+
+            const pending = await meetingStore.pendingCount();
+            if (mode === 'api' && pending === 0) {
+                await meetingStore.load({ throwOnError: false });
+            } else if (mode === 'manual' && pending === 0) {
+                await importInitialXlsbFiles(githubManual.skippedJsonUrl, githubManual.memosJsonUrl);
             }
+
+            let snapshot = meetingStore.getSnapshot();
+            if (!snapshot.status.rows.length) {
+                await importInitialXlsbFiles(
+                    URL_DEFAULT_CONFIG.dataManagement.githubManual.skippedJsonUrl,
+                    URL_DEFAULT_CONFIG.dataManagement.githubManual.memosJsonUrl
+                );
+                snapshot = meetingStore.getSnapshot();
+            }
+            if (!snapshot.status.rows.length && window.MEETING_DATA_BOOTSTRAP) {
+                await meetingStore.replaceLocalData(window.MEETING_DATA_BOOTSTRAP, { force: false });
+                snapshot = meetingStore.getSnapshot();
+                updateDataSyncStatus('오프라인 XLSB 기준 데이터로 복구했습니다.', 'saved');
+            }
+            if (!snapshot.status.rows.length) {
+                throw new Error('안건 현황 XLSB를 원격·캐시·로컬 어느 곳에서도 찾지 못했습니다.');
+            }
+            await ensureRosterThroughToday();
+            snapshot = meetingStore.getSnapshot();
+            applyStoreSnapshot({ ...snapshot, pendingCount: await meetingStore.pendingCount() });
             initializeDashboard();
         }
 
         function initializeDashboard() {
-            initialMemosString = JSON.stringify(tempMeetingMemos, Object.keys(tempMeetingMemos).sort());
-            initialSkippedDatesString = JSON.stringify([...tempSkippedDates].sort());
-            updateAnalyticsTooltip(tempSkippedDates);
+            updateAnalyticsTooltip();
             const now = new Date();
             const isoNow = getISOWeekInfo(now);
             currentYear = isoNow.isoYear;
@@ -3319,13 +2933,11 @@
             themeToggleBtn.addEventListener('click', toggleTheme);
 
             loadSettings();
-
-            const dataMode = dashboardConfig.dataManagement.mode;
-            if (dataMode === 'manual' || dataMode === 'api') {
-                loadDataFromRemote();
-            } else {
-                loadEmbeddedData();
-            }
+            initializeMeetingData().catch(error => {
+                console.error('회의 XLSB 초기화 실패:', error);
+                updateDataSyncStatus(`데이터 초기화 실패: ${error.message}`, 'error');
+                alert(`회의 데이터를 불러오지 못했습니다: ${error.message}\n설정에서 XLSB 경로를 확인하거나 로컬 XLSB 가져오기를 사용해주세요.`);
+            });
 
             Promise.all([
                 fetchTemplateFromURL(TEMPLATE_URL_WEEKLY, '주간'),
@@ -3338,31 +2950,53 @@
 
             document.getElementById('manageSkippedBtn').addEventListener('click', () => { populateSkipSelector(); openModal('manageSkippedModal'); });
 
-            const processBatchUpdate = (markAsSkip) => {
+            const processBatchUpdate = async (markAsSkip) => {
                 const selYears = Array.from(document.getElementById('batchYearSelect').selectedOptions).map(opt => opt.value);
                 const selMonths = Array.from(document.getElementById('batchMonthSelect').selectedOptions).map(opt => opt.value);
                 const selWeeks = Array.from(document.getElementById('batchWeekSelect').selectedOptions).map(opt => opt.value);
                 if (selYears.length === 0 || selMonths.length === 0) { alert("연도와 월을 하나 이상 선택해주세요."); return; }
-                let keysToUpdate = [];
+                const keysToUpdate = [];
                 selYears.forEach(year => selMonths.forEach(month => {
                     if (selWeeks.length === 0) { keysToUpdate.push(`${year}-${parseInt(month, 10)}`); }
                     else { selWeeks.forEach(week => keysToUpdate.push(`${year}-${parseInt(month, 10)}-${week}`)); }
                 }));
-                if (markAsSkip) { tempSkippedDates = [...new Set([...tempSkippedDates, ...keysToUpdate])]; }
-                else { tempSkippedDates = tempSkippedDates.filter(item => !keysToUpdate.includes(item)); }
-                if (currentMonth) showMonthView(currentMonth, currentYear, tempSkippedDates); else renderYearView(currentYear, tempSkippedDates);
-                updateAnalyticsTooltip(tempSkippedDates);
-                checkForUnsavedChanges();
-                alert("선택한 항목이 임시 적용되었습니다.");
+                const targetStatus = markAsSkip ? '미작성' : '작성';
+                try {
+                    for (const key of keysToUpdate) {
+                        const existing = meetingStatusRows.find(row => row.key === key);
+                        if (existing) {
+                            await meetingStore.setStatus(key, targetStatus, { source: '미작성 안건 수동 관리' });
+                        } else {
+                            await meetingStore.upsertStatus({
+                                key,
+                                status: targetStatus,
+                                counterIncluded: 'N',
+                                cardVisible: 'N',
+                                exceptionCode: 'MANUAL_OUT_OF_ROSTER',
+                                note: '카드 로스터 밖 수동 입력 — 검토 후 포함 여부 결정'
+                            }, { source: '미작성 안건 수동 관리' });
+                        }
+                    }
+                    refreshDashboardFromStore();
+                    const pending = await meetingStore.pendingCount();
+                    alert(`선택한 ${keysToUpdate.length}개 항목을 '${targetStatus}'으로 로컬 이력에 저장했습니다.\nGitHub 동기화 대기: ${pending}건`);
+                } catch (error) {
+                    console.error('안건 상태 변경 실패:', error);
+                    updateDataSyncStatus(`상태 저장 실패: ${error.message}`, 'error');
+                    alert(`상태를 저장하지 못했습니다: ${error.message}`);
+                }
             };
 
-            document.getElementById('batchMarkSkippedBtn').addEventListener('click', () => { processBatchUpdate(true); checkForUnsavedChanges(); });
-            document.getElementById('batchMarkWrittenBtn').addEventListener('click', () => { processBatchUpdate(false); checkForUnsavedChanges(); });
+            document.getElementById('batchMarkSkippedBtn').addEventListener('click', () => processBatchUpdate(true));
+            document.getElementById('batchMarkWrittenBtn').addEventListener('click', () => processBatchUpdate(false));
             document.getElementById('prevYearBtn').addEventListener('click', () => { currentYear--; if (currentMonth) showMonthView(currentMonth, currentYear, tempSkippedDates); else renderYearView(currentYear, tempSkippedDates); });
             document.getElementById('nextYearBtn').addEventListener('click', () => { currentYear++; if (currentMonth) showMonthView(currentMonth, currentYear, tempSkippedDates); else renderYearView(currentYear, tempSkippedDates); });
             document.getElementById('prevMonthBtnInView').addEventListener('click', () => { if (!currentMonth) return; currentMonth--; if (currentMonth < 1) { currentMonth = 12; currentYear--; } showMonthView(currentMonth, currentYear, tempSkippedDates); });
             document.getElementById('nextMonthBtnInView').addEventListener('click', () => { if (!currentMonth) return; currentMonth++; if (currentMonth > 12) { currentMonth = 1; currentYear++; } showMonthView(currentMonth, currentYear, tempSkippedDates); });
-            document.getElementById('year-grid').addEventListener('click', e => { const card = e.target.closest('.month-card'); if (card && !card.classList.contains('not-written')) { showMonthView(card.dataset.month, currentYear, tempSkippedDates); } });
+            document.getElementById('year-grid').addEventListener('click', e => {
+                const card = e.target.closest('.month-card');
+                if (card?.dataset.month) showMonthView(card.dataset.month, currentYear, tempSkippedDates);
+            });
             document.getElementById('back-to-year-view-btn').addEventListener('click', () => showYearView(tempSkippedDates));
             document.getElementById('go-to-today-btn').addEventListener('click', navigateToToday);
             document.getElementById('goToTodayBtnYearView').addEventListener('click', navigateToToday);
@@ -3400,7 +3034,32 @@
             document.querySelectorAll('.modal-overlay').forEach(overlay => { overlay.addEventListener('click', e => { if (e.target === overlay && !e.target.querySelector('.modal-content.dragging')) { closeModal(overlay.id); } }); });
             document.querySelectorAll('input[name="dataManagementMode"]').forEach(radio => radio.addEventListener('change', (e) => toggleDataManagementMode(e.target.value)));
             document.querySelectorAll('input[name="configMode"]').forEach(radio => radio.addEventListener('change', (e) => toggleConfigMode(e.target.value)));
-            document.getElementById('extractDataForGithubBtn').addEventListener('click', extractDataAsJsonFiles);
+            document.getElementById('extractDataForGithubBtn').addEventListener('click', downloadCurrentXlsb);
+            document.getElementById('exportOfflineTxtBtn').addEventListener('click', async () => {
+                try { await meetingStore.exportOfflineTxt({ download: true }); }
+                catch (error) { alert(`오프라인 이력 내보내기 실패: ${error.message}`); }
+            });
+            document.getElementById('importOfflineTxtBtn').addEventListener('click', () => document.getElementById('offlineTxtFileInput').click());
+            document.getElementById('offlineTxtFileInput').addEventListener('change', async event => {
+                const [file] = event.target.files;
+                if (!file) return;
+                try { await importOfflineHistory(file); }
+                catch (error) { alert(`오프라인 이력 가져오기 실패: ${error.message}`); }
+                finally { event.target.value = ''; }
+            });
+            document.getElementById('importLocalXlsbBtn').addEventListener('click', () => document.getElementById('localXlsbFileInput').click());
+            document.getElementById('localXlsbFileInput').addEventListener('change', async event => {
+                if (!event.target.files.length) return;
+                try { await importSelectedXlsbFiles(event.target.files); }
+                catch (error) { alert(`로컬 XLSB 가져오기 실패: ${error.message}`); }
+                finally { event.target.value = ''; }
+            });
+            document.getElementById('syncPendingBtn').addEventListener('click', () => syncPendingChanges(true));
+            document.getElementById('confApiToken').addEventListener('change', async event => {
+                if (!meetingStore) return;
+                meetingStore.setSessionToken(event.target.value);
+                if (event.target.value.trim()) syncPendingChanges(false);
+            });
             document.getElementById('selectFolderBtn').addEventListener('click', selectLocalFolder);
             document.getElementById('loadWeeklyTemplateBtn').addEventListener('click', () => loadTemplateFromFile('weekly'));
             document.getElementById('loadMonthlyTemplateBtn').addEventListener('click', () => loadTemplateFromFile('monthly'));
@@ -3427,9 +3086,22 @@
                 if (card && card.dataset.href) { window.open(card.dataset.href, '_blank'); }
             });
             document.getElementById('month-view').addEventListener('input', handleMemoInput);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') flushMemoChanges().catch(console.error);
+            });
+            window.addEventListener('online', async () => {
+                const token = document.getElementById('confApiToken')?.value.trim();
+                if (token && meetingStore) syncPendingChanges(false);
+            });
             document.getElementById('searchInput').addEventListener('input', performSearch);
             document.getElementById('searchResultsContainer').addEventListener('click', handleSearchResultClick);
-            flatpickr("#newMeetingDate", { defaultDate: new Date(), locale: "ko" });
+            if (window.flatpickr) {
+                flatpickr("#newMeetingDate", { defaultDate: new Date(), locale: "ko" });
+            } else {
+                const dateInput = document.getElementById('newMeetingDate');
+                dateInput.type = 'date';
+                dateInput.value = new Date().toISOString().slice(0, 10);
+            }
 
             function makeModalDraggable(modalId) {
                 const modal = document.getElementById(modalId);
@@ -3479,289 +3151,6 @@
         });
     </script>
 
-    <div class="flatpickr-calendar animate" tabindex="-1">
-        <div class="flatpickr-months"><span class="flatpickr-prev-month"><svg version="1.1"
-                    xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 17 17">
-                    <g></g>
-                    <path d="M5.207 8.471l7.146 7.147-0.707 0.707-7.853-7.854 7.854-7.853 0.707 0.707-7.147 7.146z">
-                    </path>
-                </svg></span>
-            <div class="flatpickr-month">
-                <div class="flatpickr-current-month"><select class="flatpickr-monthDropdown-months" aria-label="Month"
-                        tabindex="-1">
-                        <option class="flatpickr-monthDropdown-month" value="0" tabindex="-1">1월</option>
-                        <option class="flatpickr-monthDropdown-month" value="1" tabindex="-1">2월</option>
-                        <option class="flatpickr-monthDropdown-month" value="2" tabindex="-1">3월</option>
-                        <option class="flatpickr-monthDropdown-month" value="3" tabindex="-1">4월</option>
-                        <option class="flatpickr-monthDropdown-month" value="4" tabindex="-1">5월</option>
-                        <option class="flatpickr-monthDropdown-month" value="5" tabindex="-1">6월</option>
-                        <option class="flatpickr-monthDropdown-month" value="6" tabindex="-1">7월</option>
-                        <option class="flatpickr-monthDropdown-month" value="7" tabindex="-1">8월</option>
-                        <option class="flatpickr-monthDropdown-month" value="8" tabindex="-1">9월</option>
-                        <option class="flatpickr-monthDropdown-month" value="9" tabindex="-1">10월</option>
-                        <option class="flatpickr-monthDropdown-month" value="10" tabindex="-1">11월</option>
-                        <option class="flatpickr-monthDropdown-month" value="11" tabindex="-1">12월</option>
-                    </select>
-                    <div class="numInputWrapper"><input class="numInput cur-year" type="number" tabindex="-1"
-                            aria-label="Year"><span class="arrowUp"></span><span class="arrowDown"></span></div>
-                </div>
-            </div><span class="flatpickr-next-month"><svg version="1.1" xmlns="http://www.w3.org/2000/svg"
-                    xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 17 17">
-                    <g></g>
-                    <path d="M13.207 8.472l-7.854 7.854-0.707-0.707 7.146-7.146-7.146-7.148 0.707-0.707 7.854 7.854z">
-                    </path>
-                </svg></span>
-        </div>
-        <div class="flatpickr-innerContainer">
-            <div class="flatpickr-rContainer">
-                <div class="flatpickr-weekdays">
-                    <div class="flatpickr-weekdaycontainer">
-                        <span class="flatpickr-weekday">
-                            일</span><span class="flatpickr-weekday">월</span><span
-                            class="flatpickr-weekday">화</span><span class="flatpickr-weekday">수</span><span
-                            class="flatpickr-weekday">목</span><span class="flatpickr-weekday">금</span><span
-                            class="flatpickr-weekday">토
-                        </span>
-                    </div>
-                </div>
-                <div class="flatpickr-days" tabindex="-1">
-                    <div class="dayContainer"><span class="flatpickr-day prevMonthDay" aria-label="6월 29, 2025"
-                            tabindex="-1">29</span><span class="flatpickr-day prevMonthDay" aria-label="6월 30, 2025"
-                            tabindex="-1">30</span><span class="flatpickr-day" aria-label="7월 1, 2025"
-                            tabindex="-1">1</span><span class="flatpickr-day" aria-label="7월 2, 2025"
-                            tabindex="-1">2</span><span class="flatpickr-day" aria-label="7월 3, 2025"
-                            tabindex="-1">3</span><span class="flatpickr-day" aria-label="7월 4, 2025"
-                            tabindex="-1">4</span><span class="flatpickr-day" aria-label="7월 5, 2025"
-                            tabindex="-1">5</span><span class="flatpickr-day" aria-label="7월 6, 2025"
-                            tabindex="-1">6</span><span class="flatpickr-day today selected" aria-label="7월 7, 2025"
-                            aria-current="date" tabindex="-1">7</span><span class="flatpickr-day"
-                            aria-label="7월 8, 2025" tabindex="-1">8</span><span class="flatpickr-day"
-                            aria-label="7월 9, 2025" tabindex="-1">9</span><span class="flatpickr-day"
-                            aria-label="7월 10, 2025" tabindex="-1">10</span><span class="flatpickr-day"
-                            aria-label="7월 11, 2025" tabindex="-1">11</span><span class="flatpickr-day"
-                            aria-label="7월 12, 2025" tabindex="-1">12</span><span class="flatpickr-day"
-                            aria-label="7월 13, 2025" tabindex="-1">13</span><span class="flatpickr-day"
-                            aria-label="7월 14, 2025" tabindex="-1">14</span><span class="flatpickr-day"
-                            aria-label="7월 15, 2025" tabindex="-1">15</span><span class="flatpickr-day"
-                            aria-label="7월 16, 2025" tabindex="-1">16</span><span class="flatpickr-day"
-                            aria-label="7월 17, 2025" tabindex="-1">17</span><span class="flatpickr-day"
-                            aria-label="7월 18, 2025" tabindex="-1">18</span><span class="flatpickr-day"
-                            aria-label="7월 19, 2025" tabindex="-1">19</span><span class="flatpickr-day"
-                            aria-label="7월 20, 2025" tabindex="-1">20</span><span class="flatpickr-day"
-                            aria-label="7월 21, 2025" tabindex="-1">21</span><span class="flatpickr-day"
-                            aria-label="7월 22, 2025" tabindex="-1">22</span><span class="flatpickr-day"
-                            aria-label="7월 23, 2025" tabindex="-1">23</span><span class="flatpickr-day"
-                            aria-label="7월 24, 2025" tabindex="-1">24</span><span class="flatpickr-day"
-                            aria-label="7월 25, 2025" tabindex="-1">25</span><span class="flatpickr-day"
-                            aria-label="7월 26, 2025" tabindex="-1">26</span><span class="flatpickr-day"
-                            aria-label="7월 27, 2025" tabindex="-1">27</span><span class="flatpickr-day"
-                            aria-label="7월 28, 2025" tabindex="-1">28</span><span class="flatpickr-day"
-                            aria-label="7월 29, 2025" tabindex="-1">29</span><span class="flatpickr-day"
-                            aria-label="7월 30, 2025" tabindex="-1">30</span><span class="flatpickr-day"
-                            aria-label="7월 31, 2025" tabindex="-1">31</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="8월 1, 2025" tabindex="-1">1</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="8월 2, 2025" tabindex="-1">2</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="8월 3, 2025" tabindex="-1">3</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="8월 4, 2025" tabindex="-1">4</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="8월 5, 2025" tabindex="-1">5</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="8월 6, 2025" tabindex="-1">6</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="8월 7, 2025" tabindex="-1">7</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="8월 8, 2025" tabindex="-1">8</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="8월 9, 2025" tabindex="-1">9</span></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="flatpickr-calendar animate" tabindex="-1">
-        <div class="flatpickr-months"><span class="flatpickr-prev-month"><svg version="1.1"
-                    xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 17 17">
-                    <g></g>
-                    <path d="M5.207 8.471l7.146 7.147-0.707 0.707-7.853-7.854 7.854-7.853 0.707 0.707-7.147 7.146z">
-                    </path>
-                </svg></span>
-            <div class="flatpickr-month">
-                <div class="flatpickr-current-month"><select class="flatpickr-monthDropdown-months" aria-label="Month"
-                        tabindex="-1">
-                        <option class="flatpickr-monthDropdown-month" value="0" tabindex="-1">1월</option>
-                        <option class="flatpickr-monthDropdown-month" value="1" tabindex="-1">2월</option>
-                        <option class="flatpickr-monthDropdown-month" value="2" tabindex="-1">3월</option>
-                        <option class="flatpickr-monthDropdown-month" value="3" tabindex="-1">4월</option>
-                        <option class="flatpickr-monthDropdown-month" value="4" tabindex="-1">5월</option>
-                        <option class="flatpickr-monthDropdown-month" value="5" tabindex="-1">6월</option>
-                        <option class="flatpickr-monthDropdown-month" value="6" tabindex="-1">7월</option>
-                        <option class="flatpickr-monthDropdown-month" value="7" tabindex="-1">8월</option>
-                        <option class="flatpickr-monthDropdown-month" value="8" tabindex="-1">9월</option>
-                        <option class="flatpickr-monthDropdown-month" value="9" tabindex="-1">10월</option>
-                        <option class="flatpickr-monthDropdown-month" value="10" tabindex="-1">11월</option>
-                        <option class="flatpickr-monthDropdown-month" value="11" tabindex="-1">12월</option>
-                    </select>
-                    <div class="numInputWrapper"><input class="numInput cur-year" type="number" tabindex="-1"
-                            aria-label="Year"><span class="arrowUp"></span><span class="arrowDown"></span></div>
-                </div>
-            </div><span class="flatpickr-next-month"><svg version="1.1" xmlns="http://www.w3.org/2000/svg"
-                    xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 17 17">
-                    <g></g>
-                    <path d="M13.207 8.472l-7.854 7.854-0.707-0.707 7.146-7.146-7.146-7.148 0.707-0.707 7.854 7.854z">
-                    </path>
-                </svg></span>
-        </div>
-        <div class="flatpickr-innerContainer">
-            <div class="flatpickr-rContainer">
-                <div class="flatpickr-weekdays">
-                    <div class="flatpickr-weekdaycontainer">
-                        <span class="flatpickr-weekday">
-                            일</span><span class="flatpickr-weekday">월</span><span
-                            class="flatpickr-weekday">화</span><span class="flatpickr-weekday">수</span><span
-                            class="flatpickr-weekday">목</span><span class="flatpickr-weekday">금</span><span
-                            class="flatpickr-weekday">토
-                        </span>
-                    </div>
-                </div>
-                <div class="flatpickr-days" tabindex="-1">
-                    <div class="dayContainer"><span class="flatpickr-day prevMonthDay" aria-label="7월 27, 2025"
-                            tabindex="-1">27</span><span class="flatpickr-day prevMonthDay" aria-label="7월 28, 2025"
-                            tabindex="-1">28</span><span class="flatpickr-day prevMonthDay" aria-label="7월 29, 2025"
-                            tabindex="-1">29</span><span class="flatpickr-day prevMonthDay" aria-label="7월 30, 2025"
-                            tabindex="-1">30</span><span class="flatpickr-day prevMonthDay" aria-label="7월 31, 2025"
-                            tabindex="-1">31</span><span class="flatpickr-day today selected" aria-label="8월 1, 2025"
-                            aria-current="date" tabindex="-1">1</span><span class="flatpickr-day"
-                            aria-label="8월 2, 2025" tabindex="-1">2</span><span class="flatpickr-day"
-                            aria-label="8월 3, 2025" tabindex="-1">3</span><span class="flatpickr-day"
-                            aria-label="8월 4, 2025" tabindex="-1">4</span><span class="flatpickr-day"
-                            aria-label="8월 5, 2025" tabindex="-1">5</span><span class="flatpickr-day"
-                            aria-label="8월 6, 2025" tabindex="-1">6</span><span class="flatpickr-day"
-                            aria-label="8월 7, 2025" tabindex="-1">7</span><span class="flatpickr-day"
-                            aria-label="8월 8, 2025" tabindex="-1">8</span><span class="flatpickr-day"
-                            aria-label="8월 9, 2025" tabindex="-1">9</span><span class="flatpickr-day"
-                            aria-label="8월 10, 2025" tabindex="-1">10</span><span class="flatpickr-day"
-                            aria-label="8월 11, 2025" tabindex="-1">11</span><span class="flatpickr-day"
-                            aria-label="8월 12, 2025" tabindex="-1">12</span><span class="flatpickr-day"
-                            aria-label="8월 13, 2025" tabindex="-1">13</span><span class="flatpickr-day"
-                            aria-label="8월 14, 2025" tabindex="-1">14</span><span class="flatpickr-day"
-                            aria-label="8월 15, 2025" tabindex="-1">15</span><span class="flatpickr-day"
-                            aria-label="8월 16, 2025" tabindex="-1">16</span><span class="flatpickr-day"
-                            aria-label="8월 17, 2025" tabindex="-1">17</span><span class="flatpickr-day"
-                            aria-label="8월 18, 2025" tabindex="-1">18</span><span class="flatpickr-day"
-                            aria-label="8월 19, 2025" tabindex="-1">19</span><span class="flatpickr-day"
-                            aria-label="8월 20, 2025" tabindex="-1">20</span><span class="flatpickr-day"
-                            aria-label="8월 21, 2025" tabindex="-1">21</span><span class="flatpickr-day"
-                            aria-label="8월 22, 2025" tabindex="-1">22</span><span class="flatpickr-day"
-                            aria-label="8월 23, 2025" tabindex="-1">23</span><span class="flatpickr-day"
-                            aria-label="8월 24, 2025" tabindex="-1">24</span><span class="flatpickr-day"
-                            aria-label="8월 25, 2025" tabindex="-1">25</span><span class="flatpickr-day"
-                            aria-label="8월 26, 2025" tabindex="-1">26</span><span class="flatpickr-day"
-                            aria-label="8월 27, 2025" tabindex="-1">27</span><span class="flatpickr-day"
-                            aria-label="8월 28, 2025" tabindex="-1">28</span><span class="flatpickr-day"
-                            aria-label="8월 29, 2025" tabindex="-1">29</span><span class="flatpickr-day"
-                            aria-label="8월 30, 2025" tabindex="-1">30</span><span class="flatpickr-day"
-                            aria-label="8월 31, 2025" tabindex="-1">31</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="9월 1, 2025" tabindex="-1">1</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="9월 2, 2025" tabindex="-1">2</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="9월 3, 2025" tabindex="-1">3</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="9월 4, 2025" tabindex="-1">4</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="9월 5, 2025" tabindex="-1">5</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="9월 6, 2025" tabindex="-1">6</span></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="" data-v-6275cb=""><!----></div>
-    <div id="wp-extension" data-id="dpadflhmiohjfhhaehelneimpllfbpcg"></div>
-
-
-    <div class="flatpickr-calendar animate" tabindex="-1">
-        <div class="flatpickr-months"><span class="flatpickr-prev-month"><svg version="1.1"
-                    xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 17 17">
-                    <g></g>
-                    <path d="M5.207 8.471l7.146 7.147-0.707 0.707-7.853-7.854 7.854-7.853 0.707 0.707-7.147 7.146z">
-                    </path>
-                </svg></span>
-            <div class="flatpickr-month">
-                <div class="flatpickr-current-month"><select class="flatpickr-monthDropdown-months" aria-label="Month"
-                        tabindex="-1">
-                        <option class="flatpickr-monthDropdown-month" value="0" tabindex="-1">1월</option>
-                        <option class="flatpickr-monthDropdown-month" value="1" tabindex="-1">2월</option>
-                        <option class="flatpickr-monthDropdown-month" value="2" tabindex="-1">3월</option>
-                        <option class="flatpickr-monthDropdown-month" value="3" tabindex="-1">4월</option>
-                        <option class="flatpickr-monthDropdown-month" value="4" tabindex="-1">5월</option>
-                        <option class="flatpickr-monthDropdown-month" value="5" tabindex="-1">6월</option>
-                        <option class="flatpickr-monthDropdown-month" value="6" tabindex="-1">7월</option>
-                        <option class="flatpickr-monthDropdown-month" value="7" tabindex="-1">8월</option>
-                        <option class="flatpickr-monthDropdown-month" value="8" tabindex="-1">9월</option>
-                        <option class="flatpickr-monthDropdown-month" value="9" tabindex="-1">10월</option>
-                        <option class="flatpickr-monthDropdown-month" value="10" tabindex="-1">11월</option>
-                        <option class="flatpickr-monthDropdown-month" value="11" tabindex="-1">12월</option>
-                    </select>
-                    <div class="numInputWrapper"><input class="numInput cur-year" type="number" tabindex="-1"
-                            aria-label="Year"><span class="arrowUp"></span><span class="arrowDown"></span></div>
-                </div>
-            </div><span class="flatpickr-next-month"><svg version="1.1" xmlns="http://www.w3.org/2000/svg"
-                    xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 17 17">
-                    <g></g>
-                    <path d="M13.207 8.472l-7.854 7.854-0.707-0.707 7.146-7.146-7.146-7.148 0.707-0.707 7.854 7.854z">
-                    </path>
-                </svg></span>
-        </div>
-        <div class="flatpickr-innerContainer">
-            <div class="flatpickr-rContainer">
-                <div class="flatpickr-weekdays">
-                    <div class="flatpickr-weekdaycontainer">
-                        <span class="flatpickr-weekday">
-                            일</span><span class="flatpickr-weekday">월</span><span
-                            class="flatpickr-weekday">화</span><span class="flatpickr-weekday">수</span><span
-                            class="flatpickr-weekday">목</span><span class="flatpickr-weekday">금</span><span
-                            class="flatpickr-weekday">토
-                        </span>
-                    </div>
-                </div>
-                <div class="flatpickr-days" tabindex="-1">
-                    <div class="dayContainer"><span class="flatpickr-day" aria-label="2월 1, 2026"
-                            tabindex="-1">1</span><span class="flatpickr-day" aria-label="2월 2, 2026"
-                            tabindex="-1">2</span><span class="flatpickr-day" aria-label="2월 3, 2026"
-                            tabindex="-1">3</span><span class="flatpickr-day" aria-label="2월 4, 2026"
-                            tabindex="-1">4</span><span class="flatpickr-day today selected" aria-label="2월 5, 2026"
-                            aria-current="date" tabindex="-1">5</span><span class="flatpickr-day"
-                            aria-label="2월 6, 2026" tabindex="-1">6</span><span class="flatpickr-day"
-                            aria-label="2월 7, 2026" tabindex="-1">7</span><span class="flatpickr-day"
-                            aria-label="2월 8, 2026" tabindex="-1">8</span><span class="flatpickr-day"
-                            aria-label="2월 9, 2026" tabindex="-1">9</span><span class="flatpickr-day"
-                            aria-label="2월 10, 2026" tabindex="-1">10</span><span class="flatpickr-day"
-                            aria-label="2월 11, 2026" tabindex="-1">11</span><span class="flatpickr-day"
-                            aria-label="2월 12, 2026" tabindex="-1">12</span><span class="flatpickr-day"
-                            aria-label="2월 13, 2026" tabindex="-1">13</span><span class="flatpickr-day"
-                            aria-label="2월 14, 2026" tabindex="-1">14</span><span class="flatpickr-day"
-                            aria-label="2월 15, 2026" tabindex="-1">15</span><span class="flatpickr-day"
-                            aria-label="2월 16, 2026" tabindex="-1">16</span><span class="flatpickr-day"
-                            aria-label="2월 17, 2026" tabindex="-1">17</span><span class="flatpickr-day"
-                            aria-label="2월 18, 2026" tabindex="-1">18</span><span class="flatpickr-day"
-                            aria-label="2월 19, 2026" tabindex="-1">19</span><span class="flatpickr-day"
-                            aria-label="2월 20, 2026" tabindex="-1">20</span><span class="flatpickr-day"
-                            aria-label="2월 21, 2026" tabindex="-1">21</span><span class="flatpickr-day"
-                            aria-label="2월 22, 2026" tabindex="-1">22</span><span class="flatpickr-day"
-                            aria-label="2월 23, 2026" tabindex="-1">23</span><span class="flatpickr-day"
-                            aria-label="2월 24, 2026" tabindex="-1">24</span><span class="flatpickr-day"
-                            aria-label="2월 25, 2026" tabindex="-1">25</span><span class="flatpickr-day"
-                            aria-label="2월 26, 2026" tabindex="-1">26</span><span class="flatpickr-day"
-                            aria-label="2월 27, 2026" tabindex="-1">27</span><span class="flatpickr-day"
-                            aria-label="2월 28, 2026" tabindex="-1">28</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 1, 2026" tabindex="-1">1</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 2, 2026" tabindex="-1">2</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 3, 2026" tabindex="-1">3</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 4, 2026" tabindex="-1">4</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 5, 2026" tabindex="-1">5</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 6, 2026" tabindex="-1">6</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 7, 2026" tabindex="-1">7</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 8, 2026" tabindex="-1">8</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 9, 2026" tabindex="-1">9</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 10, 2026" tabindex="-1">10</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 11, 2026" tabindex="-1">11</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 12, 2026" tabindex="-1">12</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 13, 2026" tabindex="-1">13</span><span class="flatpickr-day nextMonthDay"
-                            aria-label="3월 14, 2026" tabindex="-1">14</span></div>
-                </div>
-            </div>
-        </div>
-    </div>
 </body>
 
 </html>
