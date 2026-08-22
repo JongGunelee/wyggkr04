@@ -801,9 +801,31 @@
             white-space: nowrap;
         }
 
-        /* 텍스트 라벨 (툴팁 대체) */
+        /* 항상 보이는 짧은 이름 + 포커스/호버 시 보이는 활용 의도 */
+        .control-btn::before {
+            content: attr(data-short-label);
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            z-index: 2;
+            min-width: 24px;
+            padding: 0 2px;
+            transform: translateX(-50%);
+            border: 0;
+            background: rgba(9, 30, 66, 0.38);
+            color: #fff;
+            font-family: '맑은 고딕', 'Segoe UI', sans-serif;
+            font-size: 8px;
+            font-weight: 700;
+            line-height: 1.25;
+            letter-spacing: -0.2px;
+            text-align: center;
+            pointer-events: none;
+            transition: opacity 0.18s ease;
+        }
+
         .control-btn::after {
-            content: attr(data-tooltip);
+            content: attr(data-menu-label);
             position: absolute;
             left: 42px;
             /* 텍스트를 아이콘에 가깝게 당김 (기존 55px -> 42px) */
@@ -829,20 +851,28 @@
         }
 
         /* 호버 시 확장 애니메이션 */
-        .control-btn:hover {
-            width: 185px;
-            /* 모든 글자가 보이도록 너비를 충분히 길게 확장 (기존 155px -> 185px) */
+        .control-btn:hover,
+        .control-btn:focus-visible {
+            width: 235px;
+            /* 이름과 활용 의도를 한 줄로 읽을 수 있는 폭 */
             background-color: var(--current-month-color);
             box-shadow: 0 0 22px rgba(96, 165, 250, 0.45), 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
-        body.dark-mode .control-btn:hover {
+        body.dark-mode .control-btn:hover,
+        body.dark-mode .control-btn:focus-visible {
             box-shadow: 0 0 22px rgba(239, 68, 68, 0.45), 0 4px 15px rgba(0, 0, 0, 0.5);
         }
 
-        .control-btn:hover::after {
+        .control-btn:hover::after,
+        .control-btn:focus-visible::after {
             opacity: 1;
             transition-delay: 0.1s;
+        }
+
+        .control-btn:hover::before,
+        .control-btn:focus-visible::before {
+            opacity: 0;
         }
 
         .btn-icon {
@@ -852,7 +882,9 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            font-size: 20px;
+            padding-bottom: 7px;
+            box-sizing: border-box;
+            font-size: 19px;
         }
 
         .control-btn svg {
@@ -861,6 +893,23 @@
             display: block;
             flex-shrink: 0;
         }
+
+        .batch-update-status {
+            min-height: 20px;
+            margin: 10px 0 0;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .batch-update-status[data-state='saving'] { color: #9a6700; }
+        .batch-update-status[data-state='saved'] { color: #137333; }
+        .batch-update-status[data-state='error'] { color: #b42318; }
+
+        body.dark-mode .batch-update-status { color: #cbd5e1; }
+        body.dark-mode .batch-update-status[data-state='saving'] { color: #facc15; }
+        body.dark-mode .batch-update-status[data-state='saved'] { color: #4ade80; }
+        body.dark-mode .batch-update-status[data-state='error'] { color: #f87171; }
 
         .modal-overlay {
             position: fixed;
@@ -2050,18 +2099,23 @@
         <span class="btn-group-label">📌 관리</span>
         <div class="btn-divider"></div>
         <!-- 🗓 회의 관리 -->
-        <button class="control-btn" id="creationPanelToggleBtn" title="새 회의 안건 작성" data-tooltip="새 회의 안건 작성"><span
+        <button class="control-btn" id="creationPanelToggleBtn" title="새 회의 안건 작성" aria-label="작성 · 새 회의록 만들기"
+            data-short-label="작성" data-menu-label="작성 · 새 회의록 만들기" data-tooltip="새 회의 안건 작성"><span
                 class="btn-icon">+</span></button>
         <button class="control-btn" id="manageSkippedBtn" title="XLSB 현황 계산 중…"
+            aria-label="현황 · 작성 및 미작성 관리" data-short-label="현황" data-menu-label="현황 · 작성/미작성 관리"
             data-tooltip="XLSB 현황 계산 중…"><span class="btn-icon">📅</span></button>
-        <button class="control-btn" id="searchToggleBtn" title="요약 검색" data-tooltip="요약 검색"><span
+        <button class="control-btn" id="searchToggleBtn" title="요약 검색" aria-label="검색 · 회의 요약 찾기"
+            data-short-label="검색" data-menu-label="검색 · 회의 요약 찾기" data-tooltip="요약 검색"><span
                 class="btn-icon">🔍</span></button>
         <!-- 구분선 -->
         <div class="btn-divider"></div>
         <!-- 🏗 시설·유틸리티 -->
-        <button class="control-btn" id="dataExtractBtn" title="데이터 추출" data-tooltip="데이터 추출"><span
+        <button class="control-btn" id="dataExtractBtn" title="데이터 추출" aria-label="추출 · XLSB 내려받기"
+            data-short-label="추출" data-menu-label="추출 · XLSB 내려받기" data-tooltip="데이터 추출"><span
                 class="btn-icon">📤</span></button>
-        <button class="control-btn" id="parkingStatusBtn" title="주차장 주차면 현황" data-tooltip="주차장 주차면 현황">
+        <button class="control-btn" id="parkingStatusBtn" title="주차장 주차면 현황" aria-label="주차 · 주차면 현황 열기"
+            data-short-label="주차" data-menu-label="주차 · 주차면 현황 열기" data-tooltip="주차장 주차면 현황">
             <span class="btn-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24">
                     <path fill="currentColor"
@@ -2071,7 +2125,8 @@
             </span>
         </button>
         <!-- ⚙ 시스템 -->
-        <button class="control-btn" id="settingsToggleBtn" title="설정" data-tooltip="설정"><span
+        <button class="control-btn" id="settingsToggleBtn" title="설정" aria-label="설정 · 데이터 연결 관리"
+            data-short-label="설정" data-menu-label="설정 · 데이터 연결 관리" data-tooltip="설정"><span
                 class="btn-icon">🛠️</span></button>
     </div>
 
@@ -2080,19 +2135,24 @@
         <span class="btn-group-label">📊 분석·도구</span>
         <div class="btn-divider"></div>
         <!-- 💵 예산·비용·계획 -->
-        <button class="control-btn" id="budgetPlanningBtn" title="예산 분석" data-tooltip="예산 분석" aria-label="예산 분석"><span
+        <button class="control-btn" id="budgetPlanningBtn" title="예산 분석" aria-label="예산 · 예산 분석 열기"
+            data-short-label="예산" data-menu-label="예산 · 예산 분석 열기" data-tooltip="예산 분석"><span
                 class="btn-icon">💰</span></button>
-        <button class="control-btn" id="annualPlanBtn" title="연간계획 항목" data-tooltip="연간계획 항목" aria-label="연간계획 항목"
+        <button class="control-btn" id="annualPlanBtn" title="연간계획 항목" aria-label="계획 · 연간 항목 보기"
+            data-short-label="계획" data-menu-label="계획 · 연간 항목 보기" data-tooltip="연간계획 항목"
             onclick="window.open('https://jonggunelee.github.io/wyggkr04/RawData/26년 연간계획 검토-1차.html', '_blank')"><span
                 class="btn-icon">🎯</span></button>
-        <button class="control-btn" id="cumulativeReportBtn" title="월간 누적" data-tooltip="월간 누적"><span
+        <button class="control-btn" id="cumulativeReportBtn" title="월간 누적" aria-label="누적 · 월간 누계 보기"
+            data-short-label="누적" data-menu-label="누적 · 월간 누계 보기" data-tooltip="월간 누적"><span
                 class="btn-icon">📈</span></button>
         <!-- 구분선 -->
         <div class="btn-divider"></div>
         <!-- 📊 보고서 -->
-        <button class="control-btn" id="savingsReportBtn" title="절감 현황" data-tooltip="절감 현황"><span
+        <button class="control-btn" id="savingsReportBtn" title="절감 현황" aria-label="절감 · 비용 절감 현황"
+            data-short-label="절감" data-menu-label="절감 · 비용 절감 현황" data-tooltip="절감 현황"><span
                 class="btn-icon">📉</span></button>
-        <button class="control-btn" id="analysisBtn" title="집행비 분석" data-tooltip="집행비 분석">
+        <button class="control-btn" id="analysisBtn" title="집행비 분석" aria-label="집행 · 집행비 분석"
+            data-short-label="집행" data-menu-label="집행 · 집행비 분석" data-tooltip="집행비 분석">
             <span class="btn-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
                     <path
@@ -2104,7 +2164,8 @@
                 </svg>
             </span>
         </button>
-        <button class="control-btn" id="processControlBtn" title="공정 관리" data-tooltip="공정 관리" aria-label="공정 관리">
+        <button class="control-btn" id="processControlBtn" title="공정 관리" aria-label="공정 · 공정 관리 열기"
+            data-short-label="공정" data-menu-label="공정 · 공정 관리 열기" data-tooltip="공정 관리">
             <span class="btn-icon">
                 <svg width="34" height="34" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img"
                     aria-hidden="false" focusable="false" style="display:block;">
@@ -2300,8 +2361,7 @@
                 <h4>다중 선택 일괄 처리</h4>
                 <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
                     Ctrl(Cmd) 키를 누른 채 여러 항목을 선택할 수 있습니다.<br>
-                    <strong style="color: var(--accent-color);">변경사항은 설정(⚙️) 메뉴에서 현재 설정된 데이터 관리 방식에 따라 일괄
-                        저장됩니다.</strong>
+                    <strong style="color: var(--accent-color);">웹 모드에서는 변경 직후 GitHub XLSB에 자동 저장하고, 저장 결과가 확인된 뒤 완료로 표시합니다.</strong>
                 </p>
                 <div class="selector-group">
                     <div>
@@ -2352,6 +2412,8 @@
                     <button id="batchMarkSkippedBtn">선택 항목 '미작성' 처리</button>
                     <button id="batchMarkWrittenBtn">선택 항목 '작성됨'으로 복원</button>
                 </div>
+                <p id="batchUpdateStatus" class="batch-update-status" role="status" aria-live="polite"
+                    data-state="ready">상태 변경 대기 중</p>
                 <details id="unmappedHistoryDetails">
                     <summary>카드 미매핑 기존 이력 <span id="unmappedHistoryCount">0</span>건 (카운터 제외)</summary>
                     <ul id="unmappedHistoryList"></ul>
@@ -3984,6 +4046,109 @@
             checkForUnsavedChanges();
         }
 
+        function setBatchUpdateStatus(message, state = 'ready') {
+            const status = document.getElementById('batchUpdateStatus');
+            if (!status) return;
+            status.textContent = message;
+            status.dataset.state = state;
+        }
+
+        async function syncPendingStatusChanges(keys, targetStatus) {
+            const expectedKeys = [...new Set((keys || []).map(key => String(key)))];
+            const expectedStatus = targetStatus === '미작성' ? '미작성' : '작성';
+            const desiredRowsByKey = new Map(
+                meetingStore.getSnapshot().status.rows
+                    .filter(row => expectedKeys.includes(row.key))
+                    .map(row => [row.key, { ...row }])
+            );
+            setBatchUpdateStatus('GitHub 최신 현황과 병합·저장 중…', 'saving');
+            updateDataSyncStatus('안건 상태를 GitHub XLSB에 자동 저장 중…', 'waiting');
+            try {
+                let pendingBeforeSync = await meetingStore.pendingCount('status');
+                if (!pendingBeforeSync) {
+                    const remoteCheck = await meetingStore.load({
+                        dataset: 'status',
+                        overlayPending: false,
+                        throwOnError: true
+                    });
+                    recordRemoteLoadResults(remoteCheck);
+                    const remoteRows = meetingStore.getSnapshot().status.rows;
+                    const remoteMismatches = expectedKeys.filter(key => {
+                        return remoteRows.find(row => row.key === key)?.status !== expectedStatus;
+                    });
+                    for (const key of remoteMismatches) {
+                        const desiredRow = desiredRowsByKey.get(key);
+                        if (desiredRow) {
+                            await meetingStore.upsertStatus({ ...desiredRow, status: expectedStatus }, {
+                                source: auditSource('원격 확인 후 안건 상태 재적용')
+                            });
+                        } else {
+                            await meetingStore.setStatus(key, expectedStatus, {
+                                source: auditSource('원격 확인 후 안건 상태 재적용')
+                            });
+                        }
+                    }
+                    pendingBeforeSync = await meetingStore.pendingCount('status');
+                }
+
+                const result = pendingBeforeSync
+                    ? await runWithMeetingGithubCredential(token => meetingStore.syncDataset('status', {
+                        token,
+                        publishMissing: false,
+                        allowRemoteCreate: false,
+                        message: `[MeetingData] 안건 ${expectedStatus} 상태 자동 저장`
+                    }))
+                    : { ok: true, skipped: true, reason: 'already-confirmed' };
+                if (!result?.ok) throw new Error('안건 현황 XLSB 저장 결과를 확인하지 못했습니다.');
+
+                const snapshot = meetingStore.getSnapshot();
+                const mismatchedKeys = expectedKeys.filter(key => {
+                    return snapshot.status.rows.find(row => row.key === key)?.status !== expectedStatus;
+                });
+                const remainingStatusChanges = await meetingStore.pendingCount('status');
+                if (mismatchedKeys.length || remainingStatusChanges) {
+                    const verificationError = new Error(
+                        mismatchedKeys.length
+                            ? `GitHub 저장 후 상태 검증 불일치: ${mismatchedKeys.join(', ')}`
+                            : `GitHub 저장 후 미처리 상태 이력 ${remainingStatusChanges}건이 남았습니다.`
+                    );
+                    verificationError.code = 'STATUS_SYNC_VERIFICATION_FAILED';
+                    throw verificationError;
+                }
+
+                remoteDatasetState.status = 'github';
+                refreshDashboardFromStore();
+                const confirmedAt = formatAuditDateTime(new Date());
+                setBatchUpdateStatus(`GitHub XLSB 저장 확인 · ${confirmedAt}`, 'saved');
+                updateDataSyncStatus(`안건 상태 GitHub 저장 확인 · ${confirmedAt}`, 'saved');
+                return { ok: true, result, confirmedAt };
+            } catch (error) {
+                if (error?.code === 'CREDENTIAL_CANCELLED') {
+                    setBatchUpdateStatus('웹 저장 취소 · 로컬 대기 이력 유지', 'saving');
+                    updateDataSyncStatus('안건 상태 웹 저장 취소 · XLSB 다운로드 안 함', 'waiting');
+                    return { ok: false, cancelled: true, error };
+                }
+                console.error('안건 상태 GitHub 자동 저장 실패:', error);
+                let fallback = { downloadedCount: 0, files: [], errors: [] };
+                try {
+                    fallback = await downloadPendingXlsbFallback({
+                        dataset: 'status',
+                        changedAt: new Date().toISOString(),
+                        suffix: '상태동기화_대기'
+                    });
+                } catch (fallbackError) {
+                    console.error('안건 상태 실패 XLSB 다운로드 오류:', fallbackError);
+                }
+                const downloaded = fallback.downloadedCount > 0;
+                setBatchUpdateStatus(downloaded ? '웹 저장 실패 · 복구 XLSB PC 저장됨' : '웹 저장 실패 · 로컬 대기 이력 유지', 'error');
+                updateDataSyncStatus(`안건 상태 웹 저장 실패${downloaded ? ' · 복구 XLSB PC 저장됨' : ''}: ${error.message}`, 'error');
+                alert(`안건 상태 GitHub 저장 실패: ${error.message}\n변경 이력은 로컬 대기열에 유지됩니다.${downloaded ? '\n현재 변경 이력이 포함된 XLSB를 PC에 저장했습니다.' : ''}`);
+                return { ok: false, cancelled: false, error, fallback };
+            } finally {
+                await checkForUnsavedChanges({ autoSync: false });
+            }
+        }
+
         async function syncPendingChanges(showAlert = false) {
             if (!meetingStore) return;
             await flushMemoChanges();
@@ -4471,6 +4636,11 @@
                 const selMonths = Array.from(document.getElementById('batchMonthSelect').selectedOptions).map(opt => opt.value);
                 const selWeeks = Array.from(document.getElementById('batchWeekSelect').selectedOptions).map(opt => opt.value);
                 if (selYears.length === 0 || selMonths.length === 0) { alert("연도와 월을 하나 이상 선택해주세요."); return; }
+                const actionButtons = [
+                    document.getElementById('batchMarkSkippedBtn'),
+                    document.getElementById('batchMarkWrittenBtn')
+                ];
+                actionButtons.forEach(button => { button.disabled = true; });
                 const keysToUpdate = [];
                 selYears.forEach(year => selMonths.forEach(month => {
                     if (selWeeks.length === 0) { keysToUpdate.push(`${year}-${parseInt(month, 10)}`); }
@@ -4478,6 +4648,7 @@
                 }));
                 const targetStatus = markAsSkip ? '미작성' : '작성';
                 try {
+                    setBatchUpdateStatus(`선택한 ${keysToUpdate.length}개 항목을 로컬 이력에 기록 중…`, 'saving');
                     for (const key of keysToUpdate) {
                         const existing = meetingStatusRows.find(row => row.key === key);
                         if (existing) {
@@ -4495,11 +4666,24 @@
                     }
                     refreshDashboardFromStore();
                     const pending = await meetingStore.pendingCount();
-                    alert(`선택한 ${keysToUpdate.length}개 항목을 '${targetStatus}'으로 로컬 이력에 저장했습니다.\nGitHub 동기화 대기: ${pending}건`);
+                    if (dashboardConfig.dataManagement.mode === 'api') {
+                        const syncResult = await syncPendingStatusChanges(keysToUpdate, targetStatus);
+                        if (syncResult.ok) {
+                            alert(`선택한 ${keysToUpdate.length}개 항목을 '${targetStatus}'으로 변경하고 GitHub XLSB 저장을 확인했습니다.\n시스템을 다시 열어도 같은 상태가 유지됩니다.`);
+                        } else if (syncResult.cancelled) {
+                            alert(`선택한 상태는 로컬 대기열에만 남아 있습니다.\nGitHub 저장이 취소되어 시스템을 다시 열면 원격 상태가 표시됩니다.`);
+                        }
+                    } else {
+                        setBatchUpdateStatus(`로컬 이력 저장 완료 · 동기화 대기 ${pending}건`, 'saved');
+                        alert(`선택한 ${keysToUpdate.length}개 항목을 '${targetStatus}'으로 로컬 이력에 저장했습니다.\n동기화 대기: ${pending}건`);
+                    }
                 } catch (error) {
                     console.error('안건 상태 변경 실패:', error);
+                    setBatchUpdateStatus(`상태 저장 실패 · ${error.message}`, 'error');
                     updateDataSyncStatus(`상태 저장 실패: ${error.message}`, 'error');
                     alert(`상태를 저장하지 못했습니다: ${error.message}`);
+                } finally {
+                    actionButtons.forEach(button => { button.disabled = false; });
                 }
             };
 

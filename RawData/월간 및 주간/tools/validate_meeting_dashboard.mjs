@@ -134,7 +134,12 @@ const required = [
   'data-edit-action="number"',
   'data-edit-action="manual-number"',
   'handleMemoEditorKeydown',
-  'initializeMemoToolbars'
+  'initializeMemoToolbars',
+  'batchUpdateStatus',
+  'syncPendingStatusChanges',
+  "meetingStore.syncDataset('status'",
+  'data-short-label="현황"',
+  'data-menu-label="현황 · 작성/미작성 관리"'
 ];
 for (const pattern of required) {
   if (!html.includes(pattern) && !store.includes(pattern) && !credential.includes(pattern)) throw new Error(`required integration pattern missing: ${pattern}`);
@@ -187,6 +192,17 @@ for (const refreshPattern of ['refreshDashboardFromStore()', 'applyStoreSnapshot
   if (refreshIndex < syncResultCheck) {
     throw new Error(`syncPendingChanges refreshes via ${refreshPattern} before validating result.ok`);
   }
+}
+
+const batchUpdateStart = html.indexOf('const processBatchUpdate = async (markAsSkip) =>');
+const batchUpdateEnd = html.indexOf("document.getElementById('batchMarkSkippedBtn').addEventListener", batchUpdateStart);
+if (batchUpdateStart < 0 || batchUpdateEnd < 0) throw new Error('processBatchUpdate source block could not be isolated');
+const batchUpdateSource = html.slice(batchUpdateStart, batchUpdateEnd);
+const localStatusWrite = batchUpdateSource.indexOf('await meetingStore.setStatus(');
+const automaticStatusSync = batchUpdateSource.indexOf('await syncPendingStatusChanges(keysToUpdate, targetStatus)');
+const confirmedSuccessMessage = batchUpdateSource.indexOf('GitHub XLSB 저장을 확인했습니다.');
+if (localStatusWrite < 0 || automaticStatusSync < localStatusWrite || confirmedSuccessMessage < automaticStatusSync) {
+  throw new Error('manual status update can claim completion without the automatic GitHub status sync boundary');
 }
 
 const initializeMeetingStart = html.indexOf('async function initializeMeetingData()');
@@ -571,6 +587,78 @@ function createStoreHarness(fetch) {
   if (harnessStore === store) throw new Error('validator-only store seeding hook could not be installed');
   vm.runInNewContext(harnessStore, context, { filename: storePath });
   return context.MeetingDataStore;
+}
+
+const restartStatusKey = '2026-7-4';
+const restartStatusSource = status.rows.find(row => row.key === restartStatusKey);
+if (!restartStatusSource || restartStatusSource.status !== '작성') {
+  throw new Error(`${restartStatusKey} must be a written weekly row for the restart status regression fixture`);
+}
+const restartStatusMock = createGitHubMemoMock(statusBytes);
+const initializeStatusRestartHarness = async () => {
+  const api = createStoreHarness(restartStatusMock.fetch);
+  await api.init({
+    storage: 'memory',
+    fetch: restartStatusMock.fetch,
+    github: {
+      repo: 'validator/meeting-data',
+      branch: 'main',
+      memoPath: 'RawData/월간 및 주간/회의_요약_메모.xlsb',
+      statusPath: 'RawData/월간 및 주간/회의_안건_현황.xlsb',
+      mutationDelayMs: 0
+    }
+  });
+  const loaded = await api.load({ dataset: 'status', overlayPending: false, throwOnError: true });
+  if (!loaded.status?.ok || !loaded.status.exists) throw new Error('status restart fixture could not load its GitHub XLSB');
+  return api;
+};
+
+const statusWriterApi = await initializeStatusRestartHarness();
+const missingChange = await statusWriterApi.setStatus(restartStatusKey, '미작성', {
+  source: '검증용 다른 주 미작성 자동 저장',
+  changedAt: '2026-08-23T01:02:03.000Z'
+});
+if (!missingChange.changed || !missingChange.event) throw new Error('status restart fixture did not create a missing-status event');
+statusWriterApi.setSessionToken('validator-session-token');
+const missingSync = await statusWriterApi.syncDataset('status', {
+  publishMissing: false,
+  allowRemoteCreate: false,
+  message: '[validator] persist missing status across restart'
+});
+if (!missingSync.ok || missingSync.uploadedEvents !== 1 || restartStatusMock.putRequests.length !== 1) {
+  throw new Error(`missing status did not upload exactly once: ${JSON.stringify(missingSync)}`);
+}
+
+const freshMissingApi = await initializeStatusRestartHarness();
+const freshMissingRow = freshMissingApi.getSnapshot().status.rows.find(row => row.key === restartStatusKey);
+if (freshMissingRow?.status !== '미작성' || await freshMissingApi.pendingCount('status') !== 0) {
+  throw new Error(`fresh restart did not preserve the GitHub missing status: ${JSON.stringify(freshMissingRow)}`);
+}
+const restoredChange = await freshMissingApi.setStatus(restartStatusKey, '작성', {
+  source: '검증용 다른 주 작성 복원 자동 저장',
+  changedAt: '2026-08-23T01:03:04.000Z'
+});
+freshMissingApi.setSessionToken('validator-session-token');
+const restoredSync = await freshMissingApi.syncDataset('status', {
+  publishMissing: false,
+  allowRemoteCreate: false,
+  message: '[validator] restore written status across restart'
+});
+if (!restoredChange.changed || !restoredSync.ok || restoredSync.uploadedEvents !== 1 || restartStatusMock.putRequests.length !== 2) {
+  throw new Error(`written status restore did not upload exactly once: ${JSON.stringify(restoredSync)}`);
+}
+
+const freshRestoredApi = await initializeStatusRestartHarness();
+const freshRestoredSnapshot = freshRestoredApi.getSnapshot();
+const freshRestoredRow = freshRestoredSnapshot.status.rows.find(row => row.key === restartStatusKey);
+const restartEventIds = new Set([missingChange.event.eventId, restoredChange.event.eventId]);
+const restartHistory = freshRestoredSnapshot.status.history.filter(row => restartEventIds.has(row.eventId));
+if (freshRestoredRow?.status !== '작성'
+  || restartHistory.length !== 2
+  || new Set(restartHistory.map(row => row.eventId)).size !== 2
+  || restartHistory.some(row => row.syncStatus !== '완료')
+  || await freshRestoredApi.pendingCount('status') !== 0) {
+  throw new Error(`second fresh restart did not preserve the restored status/history: ${JSON.stringify({ freshRestoredRow, restartHistory })}`);
 }
 
 const targetMemoKey = '2026-8-2';
@@ -1557,6 +1645,14 @@ console.log(JSON.stringify({
     flagMismatch: flagMismatchRows.length,
     weeklyRoster: { regular: regularWeeklyRows.length, forcedWeek5: forcedWeek5Rows.length },
     writtenReferenceRanges
+  },
+  statusRestartAudit: {
+    key: restartStatusKey,
+    missingAfterFreshRestart: freshMissingRow.status,
+    restoredAfterSecondRestart: freshRestoredRow.status,
+    completedHistoryEvents: restartHistory.length,
+    putRequests: restartStatusMock.putRequests.length,
+    pendingAfterRestart: await freshRestoredApi.pendingCount('status')
   },
   startupMappingAudit: {
     authoritativePendingIsolated: authoritativeLoad.memo.pendingCount,
