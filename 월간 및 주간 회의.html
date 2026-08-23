@@ -225,6 +225,45 @@
             height: 100vh;
         }
 
+        #browserCornerClock {
+            position: fixed;
+            top: max(8px, env(safe-area-inset-top));
+            left: max(8px, env(safe-area-inset-left));
+            z-index: 10005;
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 4px 10px;
+            border: 1px solid rgba(30, 58, 95, 0.16);
+            border-radius: 999px;
+            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.86);
+            color: var(--accent-color);
+            box-shadow: 0 3px 12px rgba(30, 58, 95, 0.09);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            font-size: 12px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.2px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        #browserCornerClock::before {
+            content: '●';
+            margin-right: 6px;
+            color: #16a34a;
+            font-size: 9px;
+        }
+
+        body.dark-mode #browserCornerClock {
+            border-color: rgba(148, 163, 184, 0.26);
+            background: rgba(30, 39, 54, 0.9);
+            color: #bfdbfe;
+            box-shadow: 0 3px 14px rgba(0, 0, 0, 0.32);
+        }
+
         #dashboard-container {
             width: 100%;
             height: 100%;
@@ -571,6 +610,79 @@
             opacity: 0.5;
         }
 
+        .card-status-toggle {
+            position: absolute;
+            top: 50%;
+            left: 7px;
+            z-index: 7;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            min-width: 30px;
+            padding: 0;
+            border: 2px solid currentColor;
+            border-radius: 999px;
+            box-sizing: border-box;
+            box-shadow: 0 2px 7px rgba(15, 23, 42, 0.2);
+            transform: translateY(-50%);
+            font-family: 'Noto Sans KR', '맑은 고딕', sans-serif;
+            font-size: 15px;
+            font-weight: 900;
+            line-height: 1;
+            cursor: pointer;
+            opacity: 1;
+            transition: color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .card-status-toggle:hover,
+        .card-status-toggle:focus-visible {
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3), 0 3px 9px rgba(15, 23, 42, 0.24);
+            outline: none;
+        }
+
+        .card-status-toggle[data-status="written"] {
+            border-color: #15803d;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .card-status-toggle[data-status="missing"] {
+            border-color: #dc2626;
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .card-status-toggle[data-sync-state="saving"] {
+            border-color: #2563eb;
+            background: #dbeafe;
+            color: #1d4ed8;
+            cursor: wait;
+            animation: statusToggleSpin 0.9s linear infinite;
+        }
+
+        .card-status-toggle[data-sync-state="pending"] {
+            border-color: #d97706;
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .card-status-toggle[data-sync-state="error"] {
+            border-color: #be123c;
+            background: #ffe4e6;
+            color: #9f1239;
+        }
+
+        .not-written>.card-status-toggle {
+            cursor: pointer;
+            opacity: 1;
+        }
+
+        @keyframes statusToggleSpin {
+            to { transform: translateY(-50%) rotate(360deg); }
+        }
+
         .not-written:hover::before {
             content: attr(data-tooltip);
             position: absolute;
@@ -609,6 +721,283 @@
             width: 100%;
             max-width: 1400px;
             padding: 10px;
+        }
+
+        #meetingProgressInsights {
+            width: min(100%, 1400px);
+            margin: 0 auto 70px;
+            padding: 0 10px 24px;
+            box-sizing: border-box;
+        }
+
+        .progress-insights-heading {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+
+        .progress-insights-heading h3 {
+            margin: 0;
+            color: var(--accent-color);
+            font-size: 1.05rem;
+        }
+
+        #progressInsightsPeriod {
+            color: #64748b;
+            font-size: 11px;
+            text-align: right;
+        }
+
+        #progressInsightsGrid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .progress-insight-card {
+            min-width: 0;
+            min-height: 158px;
+            padding: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 16px;
+            box-sizing: border-box;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.9));
+            box-shadow: 0 8px 24px rgba(30, 58, 95, 0.07);
+            overflow: hidden;
+        }
+
+        .progress-insight-kicker {
+            display: block;
+            margin-bottom: 8px;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .progress-insight-title {
+            margin: 0;
+            color: var(--text-color);
+            font-size: 15px;
+            line-height: 1.35;
+        }
+
+        .progress-insight-summary {
+            margin: 8px 0 0;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .progress-rate-layout {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 10px;
+        }
+
+        .progress-rate-ring {
+            --progress-rate: 0;
+            position: relative;
+            display: grid;
+            place-items: center;
+            width: 72px;
+            height: 72px;
+            flex: 0 0 72px;
+            border-radius: 50%;
+            background: conic-gradient(#2563eb calc(var(--progress-rate) * 1%), #e2e8f0 0);
+        }
+
+        .progress-rate-ring::before {
+            content: '';
+            position: absolute;
+            inset: 8px;
+            border-radius: 50%;
+            background: var(--card-bg);
+        }
+
+        .progress-rate-ring strong {
+            position: relative;
+            z-index: 1;
+            color: var(--accent-color);
+            font-size: 17px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .progress-rate-copy {
+            min-width: 0;
+        }
+
+        .progress-rate-copy strong {
+            display: block;
+            color: var(--text-color);
+            font-size: 18px;
+        }
+
+        .progress-rate-copy span {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 11px;
+        }
+
+        .insight-bar-row {
+            margin-top: 11px;
+        }
+
+        .insight-bar-label {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 4px;
+            color: #475569;
+            font-size: 11px;
+        }
+
+        .insight-bar-track {
+            height: 7px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .insight-bar-fill {
+            display: block;
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #2563eb, #38bdf8);
+        }
+
+        .insight-trend-track {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 5px;
+            margin-top: 16px;
+        }
+
+        .insight-trend-item {
+            min-width: 0;
+            text-align: center;
+        }
+
+        .insight-trend-dot {
+            display: block;
+            width: 16px;
+            height: 16px;
+            margin: 0 auto 6px;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px rgba(100, 116, 139, 0.35);
+        }
+
+        .insight-trend-item[data-status="written"] .insight-trend-dot {
+            background: #22c55e;
+        }
+
+        .insight-trend-item[data-status="missing"] .insight-trend-dot {
+            background: #ef4444;
+        }
+
+        .insight-trend-label {
+            display: block;
+            overflow: hidden;
+            color: #64748b;
+            font-size: 9px;
+            line-height: 1.2;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .insight-attention-list {
+            display: grid;
+            gap: 6px;
+            margin: 10px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .insight-attention-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 9px;
+            background: rgba(254, 226, 226, 0.68);
+            color: #991b1b;
+            font-size: 11px;
+        }
+
+        .insight-attention-list li span:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .insight-attention-list li strong {
+            flex: 0 0 auto;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .insight-empty-state {
+            display: grid;
+            place-items: center;
+            min-height: 82px;
+            margin-top: 8px;
+            border: 1px dashed rgba(34, 197, 94, 0.45);
+            border-radius: 12px;
+            background: rgba(220, 252, 231, 0.55);
+            color: #166534;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        body.dark-mode .progress-insight-card {
+            border-color: #334155;
+            background: linear-gradient(145deg, rgba(30, 39, 54, 0.98), rgba(19, 25, 32, 0.94));
+            box-shadow: 0 8px 26px rgba(0, 0, 0, 0.28);
+        }
+
+        body.dark-mode .progress-insight-kicker,
+        body.dark-mode .progress-insight-summary,
+        body.dark-mode .progress-rate-copy span,
+        body.dark-mode .insight-trend-label,
+        body.dark-mode #progressInsightsPeriod {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .insight-bar-label {
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .insight-bar-track,
+        body.dark-mode .progress-rate-ring {
+            background-color: #334155;
+        }
+
+        body.dark-mode .insight-trend-dot {
+            border-color: #1e2736;
+        }
+
+        body.dark-mode .insight-attention-list li {
+            background: rgba(127, 29, 29, 0.32);
+            color: #fecaca;
+        }
+
+        body.dark-mode .insight-empty-state {
+            background: rgba(22, 101, 52, 0.22);
+            color: #bbf7d0;
+        }
+
+        @media (max-width: 1100px) {
+            #progressInsightsGrid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
 
         .week-card-container {
@@ -811,8 +1200,8 @@
             /* 둥근 아이콘 영역 정렬을 위해 패딩 제거 */
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            overflow: hidden;
+            transition: background-color 0.24s ease, box-shadow 0.24s ease, transform 0.24s ease;
+            overflow: visible;
             white-space: nowrap;
             touch-action: none;
         }
@@ -839,14 +1228,13 @@
                 box-shadow 0.16s ease-out, background-color 0.2s ease;
         }
 
-        .control-btn.bubble-positioned::after,
         .control-btn.bubble-dragging::after {
-            display: none;
+            opacity: 0 !important;
         }
 
         .control-btn.bubble-positioned:hover::before,
         .control-btn.bubble-positioned:focus-visible::before {
-            opacity: 1;
+            opacity: 0;
         }
 
         .control-btn.bubble-dragging {
@@ -907,14 +1295,27 @@
         .control-btn::after {
             content: attr(data-menu-label);
             position: absolute;
-            left: 42px;
-            /* 텍스트를 아이콘에 가깝게 당김 (기존 55px -> 42px) */
+            top: 50%;
+            left: calc(100% + 10px);
+            z-index: 4;
+            width: max-content;
+            max-width: min(240px, calc(100vw - 86px));
+            padding: 7px 10px;
+            transform: translateY(-50%) scale(0.96);
+            border: 1px solid rgba(148, 163, 184, 0.36);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.96);
+            color: #1e293b;
+            box-shadow: 0 7px 20px rgba(15, 23, 42, 0.16);
             opacity: 0;
             font-size: 13px;
             font-family: '맑은 고딕', 'Segoe UI', sans-serif;
             font-weight: 600;
-            letter-spacing: 0.5px;
-            transition: opacity 0.3s;
+            line-height: 1.35;
+            letter-spacing: 0;
+            white-space: normal;
+            text-align: left;
+            transition: opacity 0.18s ease, transform 0.18s ease;
             pointer-events: none;
         }
 
@@ -926,17 +1327,30 @@
 
         .control-btn-group-right .control-btn::after {
             left: auto;
-            right: 42px;
-            /* 텍스트를 아이콘에 가깝게 당김 */
+            right: calc(100% + 10px);
+            text-align: right;
         }
 
-        /* 호버 시 확장 애니메이션 */
+        .control-btn[data-menu-side="left"]::after {
+            right: calc(100% + 10px);
+            left: auto;
+            text-align: right;
+        }
+
+        .control-btn[data-menu-side="right"]::after {
+            right: auto;
+            left: calc(100% + 10px);
+            text-align: left;
+        }
+
+        /* 원형 위치를 고정한 채 풀네임은 브라우저 안쪽 툴팁으로 표시 */
         .control-btn:hover,
+        .control-btn:focus,
         .control-btn:focus-visible {
-            width: 235px;
-            /* 이름과 활용 의도를 한 줄로 읽을 수 있는 폭 */
+            width: 43px;
             background-color: var(--current-month-color);
             box-shadow: 0 0 22px rgba(96, 165, 250, 0.45), 0 4px 15px rgba(0, 0, 0, 0.2);
+            transform: scale(1.06);
         }
 
         body.dark-mode .control-btn:hover,
@@ -945,14 +1359,23 @@
         }
 
         .control-btn:hover::after,
+        .control-btn:focus::after,
         .control-btn:focus-visible::after {
             opacity: 1;
-            transition-delay: 0.1s;
+            transform: translateY(-50%) scale(1);
         }
 
         .control-btn:hover::before,
+        .control-btn:focus::before,
         .control-btn:focus-visible::before {
             opacity: 0;
+        }
+
+        body.dark-mode .control-btn::after {
+            border-color: #475569;
+            background: rgba(30, 39, 54, 0.98);
+            color: #e2e8f0;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.42);
         }
 
         .btn-icon {
@@ -1760,6 +2183,40 @@
             display: flex;
         }
 
+        .memo-focus-restore-btn {
+            position: fixed;
+            top: max(10px, env(safe-area-inset-top));
+            right: max(12px, env(safe-area-inset-right));
+            z-index: 11002;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 8px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.48);
+            border-radius: 999px;
+            background: rgba(30, 58, 95, 0.9);
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.24);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .memo-focus-overlay.immersive .memo-focus-restore-btn:not([hidden]) {
+            display: inline-flex;
+        }
+
+        .memo-focus-restore-btn:hover,
+        .memo-focus-restore-btn:focus-visible {
+            background: var(--accent-color);
+            outline: 3px solid rgba(96, 165, 250, 0.38);
+            outline-offset: 2px;
+        }
+
         body.memo-focus-open {
             overflow: hidden;
         }
@@ -1864,7 +2321,7 @@
 
         .memo-focus-options {
             display: grid;
-            grid-template-columns: auto minmax(0, 1fr);
+            grid-template-columns: auto auto minmax(0, 1fr);
             align-items: start;
             gap: 8px;
             flex: 0 0 auto;
@@ -1899,7 +2356,15 @@
         }
 
         .memo-focus-options.collapsed {
-            grid-template-columns: auto;
+            grid-template-columns: auto auto;
+        }
+
+        .memo-focus-primary-action {
+            align-self: start;
+            border-color: #2563eb;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 800;
         }
 
         .memo-focus-toolstrip {
@@ -1978,6 +2443,38 @@
             min-width: 0;
         }
 
+        .memo-focus-overlay.immersive .memo-focus-header,
+        .memo-focus-overlay.immersive .memo-focus-tabs,
+        .memo-focus-overlay.immersive .memo-focus-options,
+        .memo-focus-overlay.immersive .memo-focus-footer {
+            display: none;
+        }
+
+        .memo-focus-overlay.immersive .memo-focus-main {
+            width: 100%;
+            height: 100%;
+        }
+
+        .memo-focus-overlay.immersive .memo-focus-panel.active {
+            width: 100%;
+            max-width: none;
+            height: 100%;
+            padding: 0;
+        }
+
+        .memo-focus-overlay.immersive #memoFocusReadContent,
+        .memo-focus-overlay.immersive #memoFocusEditTextarea {
+            width: 100%;
+            max-width: none;
+            height: 100%;
+            margin: 0;
+            padding: max(62px, calc(env(safe-area-inset-top) + 52px)) max(24px, 4vw)
+                max(24px, env(safe-area-inset-bottom));
+            border: 0;
+            border-radius: 0;
+            outline-offset: -3px;
+        }
+
         body.dark-mode .memo-focus-header,
         body.dark-mode .memo-focus-tabs,
         body.dark-mode .memo-focus-options-toggle,
@@ -2024,6 +2521,58 @@
 
             #weekly-cards-container {
                 box-sizing: border-box;
+            }
+
+            #browserCornerClock {
+                top: max(6px, env(safe-area-inset-top));
+                left: max(6px, env(safe-area-inset-left));
+                min-height: 24px;
+                padding: 3px 8px;
+                font-size: 10px;
+            }
+
+            #meetingProgressInsights {
+                width: calc(100% - 150px);
+                min-width: 210px;
+                max-width: 280px;
+                margin-bottom: 90px;
+                padding: 0 0 18px;
+            }
+
+            .progress-insights-heading {
+                display: block;
+                margin-bottom: 9px;
+                padding: 0;
+            }
+
+            .progress-insights-heading h3 {
+                font-size: 14px;
+            }
+
+            #progressInsightsPeriod {
+                display: block;
+                margin-top: 3px;
+                text-align: left;
+            }
+
+            #progressInsightsGrid {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 10px;
+            }
+
+            .progress-insight-card {
+                min-height: 0;
+                padding: 13px;
+            }
+
+            .progress-rate-ring {
+                width: 64px;
+                height: 64px;
+                flex-basis: 64px;
+            }
+
+            .insight-trend-track {
+                gap: 3px;
             }
 
             .control-btn-group-left,
@@ -2128,21 +2677,25 @@
                 padding: 7px 8px max(8px, env(safe-area-inset-bottom));
             }
 
-            .memo-focus-options {
-                display: block;
+            .memo-focus-options,
+            .memo-focus-options.collapsed {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                gap: 6px;
                 padding-bottom: 6px;
             }
 
             .memo-focus-options-toggle {
-                width: 100%;
+                width: auto;
                 min-height: 32px;
                 padding: 5px 8px;
                 text-align: left;
             }
 
             .memo-focus-toolstrip {
+                grid-column: 1 / -1;
                 gap: 6px;
-                margin-top: 6px;
+                margin-top: 0;
                 padding-bottom: 2px;
                 overflow-x: auto;
                 overflow-y: hidden;
@@ -2196,12 +2749,27 @@
             .memo-focus-audit-help {
                 display: none;
             }
+
+            .memo-focus-restore-btn {
+                top: max(7px, env(safe-area-inset-top));
+                right: max(8px, env(safe-area-inset-right));
+                min-height: 38px;
+                padding: 7px 11px;
+                font-size: 12px;
+            }
+
+            .memo-focus-overlay.immersive #memoFocusReadContent,
+            .memo-focus-overlay.immersive #memoFocusEditTextarea {
+                padding: max(56px, calc(env(safe-area-inset-top) + 48px)) max(14px, 4vw)
+                    max(16px, env(safe-area-inset-bottom));
+            }
         }
 
     </style>
 </head>
 
 <body>
+    <time id="browserCornerClock" role="status" aria-live="off" aria-label="현재 날짜와 시간"></time>
     <div id="dashboard-container">
         <header>
             <h1>
@@ -2277,6 +2845,13 @@
                         <div class="memo-wrapper hidden" id="memo-2026-2-4"></div>
                     </div>
                 </div>
+                <section id="meetingProgressInsights" aria-labelledby="progressInsightsTitle">
+                    <div class="progress-insights-heading">
+                        <h3 id="progressInsightsTitle">월간·주간 진행 인사이트</h3>
+                        <span id="progressInsightsPeriod">XLSB 현황 매핑 중…</span>
+                    </div>
+                    <div id="progressInsightsGrid" aria-live="polite"></div>
+                </section>
             </div>
         </div>
     </div>
@@ -2627,6 +3202,8 @@
     </div>
 
     <section id="memoFocusOverlay" class="memo-focus-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-label="회의 요약 전체 화면" inert>
+        <button id="memoFocusRestoreBtn" class="memo-focus-restore-btn" type="button" hidden
+            aria-label="집중 화면에서 이전 회의 요약 화면으로 복원">↩ 이전 화면</button>
         <header class="memo-focus-header">
             <div class="memo-focus-heading">
                 <strong id="memoFocusTitle">회의 요약</strong>
@@ -2648,12 +3225,13 @@
                         data-memo-options-toggle="read" aria-expanded="true" aria-controls="memoReadTools">
                         읽기 옵션 <span class="memo-focus-options-state" aria-hidden="true">접기</span>
                     </button>
+                    <button class="memo-focus-btn memo-focus-primary-action" type="button" data-read-action="width"
+                        title="다른 화면 요소를 숨기고 브라우저 전체에서 읽기">읽기 집중</button>
                     <div id="memoReadTools" class="memo-focus-toolstrip" role="toolbar" aria-label="회의 요약 읽기 도구">
                         <button class="memo-focus-btn" type="button" data-read-action="smaller" title="글자 크기 10% 축소">글자 −</button>
                         <button class="memo-focus-btn" type="button" data-read-action="reset" title="글자 크기와 줄 간격 초기화">기본</button>
                         <button class="memo-focus-btn" type="button" data-read-action="larger" title="글자 크기 10% 확대, 최대 200%">글자 +</button>
                         <button class="memo-focus-btn" type="button" data-read-action="line-height" title="줄 간격 1.5, 1.8, 2.1 순환">줄 간격</button>
-                        <button class="memo-focus-btn" type="button" data-read-action="width" title="편안한 읽기 폭과 넓은 폭 전환">읽기 폭</button>
                         <button class="memo-focus-btn" type="button" data-read-action="copy">내용 복사</button>
                         <span id="memoReadDisplayStatus" class="memo-focus-tool-status" aria-live="polite">100% · 줄 간격 1.8</span>
                     </div>
@@ -2666,6 +3244,8 @@
                         data-memo-options-toggle="edit" aria-expanded="true" aria-controls="memoEditTools">
                         입력 옵션 <span class="memo-focus-options-state" aria-hidden="true">접기</span>
                     </button>
+                    <button class="memo-focus-btn memo-focus-primary-action" type="button" data-edit-action="focus-width"
+                        title="다른 화면 요소를 숨기고 브라우저 전체에서 내용 입력">입력 집중</button>
                     <div id="memoEditTools" class="memo-focus-toolstrip" role="toolbar" aria-label="회의 요약 내용 입력 도구">
                         <button class="memo-focus-btn" type="button" data-edit-action="undo">실행 취소</button>
                         <button class="memo-focus-btn" type="button" data-edit-action="redo">다시 실행</button>
@@ -2742,13 +3322,14 @@
         let tempMeetingMemos = {};
         let tempSkippedDates = [];
         const memoIndicatorStates = new Map();
+        const cardStatusSyncStates = new Map();
+        const cardStatusTogglePromises = new Map();
         const sessionEditedMemoKeys = new Set();
         const remoteDatasetState = { status: 'cache', memo: 'cache' };
         const remoteRefreshPromises = new Map();
         let memoFocusState = null;
         let memoReadScale = 1;
         let memoReadLineHeight = 1.8;
-        let memoReadWide = false;
         let memoClockInterval = null;
         const MEMO_FOCUS_OPTIONS_KEY = 'meetingMemoFocusOptionsV1';
 
@@ -2988,6 +3569,14 @@
             }).format(date);
         }
 
+        function formatCornerDateTime(date = new Date()) {
+            const safeDate = date instanceof Date && !Number.isNaN(date.getTime()) ? date : new Date();
+            const pad = number => String(number).padStart(2, '0');
+            const weekday = ['일', '월', '화', '수', '목', '금', '토'][safeDate.getDay()];
+            return `${safeDate.getFullYear()}-${pad(safeDate.getMonth() + 1)}-${pad(safeDate.getDate())}` +
+                `(${weekday}) ${pad(safeDate.getHours())}:${pad(safeDate.getMinutes())}:${pad(safeDate.getSeconds())}`;
+        }
+
         function formatAuditDateTime(value = new Date()) {
             const date = value instanceof Date ? value : new Date(value);
             const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
@@ -3030,10 +3619,16 @@
         }
 
         function updateMemoClocks() {
-            const nowText = formatCurrentDateTime();
+            const now = new Date();
+            const nowText = formatCurrentDateTime(now);
             document.querySelectorAll('[data-memo-clock]').forEach(clock => { clock.textContent = nowText; });
             const focusClock = document.getElementById('memoFocusClock');
             if (focusClock) focusClock.textContent = nowText;
+            const cornerClock = document.getElementById('browserCornerClock');
+            if (cornerClock) {
+                cornerClock.textContent = formatCornerDateTime(now);
+                cornerClock.dateTime = now.toISOString();
+            }
         }
 
         function getMemoLabel(key) {
@@ -3153,10 +3748,106 @@
             const content = document.getElementById('memoFocusReadContent');
             content.style.setProperty('--memo-read-scale', memoReadScale);
             content.style.setProperty('--memo-read-line-height', memoReadLineHeight);
-            content.style.setProperty('--memo-read-width', memoReadWide ? '100%' : '72ch');
+            content.style.setProperty('--memo-read-width', '72ch');
             const status = document.getElementById('memoReadDisplayStatus');
-            status.textContent = `${Math.round(memoReadScale * 100)}% · 줄 간격 ${memoReadLineHeight.toFixed(1)} · ${memoReadWide ? '넓은 폭' : '읽기 폭'}`;
-            document.querySelector('[data-read-action="width"]')?.setAttribute('aria-pressed', String(memoReadWide));
+            status.textContent = `${Math.round(memoReadScale * 100)}% · 줄 간격 ${memoReadLineHeight.toFixed(1)}`;
+        }
+
+        function captureMemoViewportState(target, mode) {
+            const scrollRange = Math.max(0, target.scrollHeight - target.clientHeight);
+            const state = {
+                scrollRatio: scrollRange ? target.scrollTop / scrollRange : 0
+            };
+            if (mode === 'edit') {
+                state.selectionStart = target.selectionStart;
+                state.selectionEnd = target.selectionEnd;
+                state.selectionDirection = target.selectionDirection;
+            }
+            return state;
+        }
+
+        function restoreMemoViewportState(target, mode, state, focusTarget = false) {
+            if (!target || !state) return;
+            const scrollRange = Math.max(0, target.scrollHeight - target.clientHeight);
+            target.scrollTop = Math.min(scrollRange, Math.max(0, state.scrollRatio * scrollRange));
+            if (mode === 'edit' && Number.isInteger(state.selectionStart) && Number.isInteger(state.selectionEnd)) {
+                target.setSelectionRange(state.selectionStart, state.selectionEnd, state.selectionDirection || 'none');
+            }
+            if (focusTarget) target.focus({ preventScroll: true });
+        }
+
+        function isolateMemoImmersiveBackground(overlay) {
+            return [...document.body.children]
+                .filter(element => element !== overlay && !['SCRIPT', 'STYLE'].includes(element.tagName))
+                .map(element => {
+                    const snapshot = {
+                        element,
+                        inert: element.inert,
+                        ariaHidden: element.getAttribute('aria-hidden')
+                    };
+                    element.inert = true;
+                    element.setAttribute('aria-hidden', 'true');
+                    return snapshot;
+                });
+        }
+
+        function restoreMemoImmersiveBackground(snapshots = []) {
+            for (const snapshot of snapshots) {
+                if (!snapshot.element?.isConnected) continue;
+                snapshot.element.inert = snapshot.inert;
+                if (snapshot.ariaHidden === null) snapshot.element.removeAttribute('aria-hidden');
+                else snapshot.element.setAttribute('aria-hidden', snapshot.ariaHidden);
+            }
+        }
+
+        function enterMemoImmersiveMode(mode) {
+            if (!memoFocusState || memoFocusState.mode !== mode || memoFocusState.immersive) return false;
+            const overlay = document.getElementById('memoFocusOverlay');
+            const target = document.getElementById(mode === 'read' ? 'memoFocusReadContent' : 'memoFocusEditTextarea');
+            const restoreButton = document.getElementById('memoFocusRestoreBtn');
+            memoFocusState.immersive = {
+                mode,
+                returnFocus: document.activeElement,
+                viewport: captureMemoViewportState(target, mode),
+                backgroundSnapshots: isolateMemoImmersiveBackground(overlay)
+            };
+            overlay.classList.add('immersive');
+            overlay.dataset.immersiveMode = mode;
+            overlay.setAttribute('aria-label', mode === 'read' ? '회의 요약 집중 읽기' : '회의 요약 집중 내용 입력');
+            restoreButton.hidden = false;
+            restoreButton.textContent = '↩ 이전 화면';
+            restoreButton.setAttribute('aria-label', `${mode === 'read' ? '읽기' : '내용 입력'} 집중 화면에서 이전 화면으로 복원`);
+            requestAnimationFrame(() => {
+                restoreMemoViewportState(target, mode, memoFocusState?.immersive?.viewport, true);
+            });
+            return true;
+        }
+
+        function exitMemoImmersiveMode(options = {}) {
+            if (!memoFocusState?.immersive) return false;
+            const immersive = memoFocusState.immersive;
+            const overlay = document.getElementById('memoFocusOverlay');
+            const target = document.getElementById(immersive.mode === 'read' ? 'memoFocusReadContent' : 'memoFocusEditTextarea');
+            const currentViewport = captureMemoViewportState(target, immersive.mode);
+            const restoreButton = document.getElementById('memoFocusRestoreBtn');
+            memoFocusState.immersive = null;
+            overlay.classList.remove('immersive');
+            overlay.removeAttribute('data-immersive-mode');
+            overlay.setAttribute('aria-label', '회의 요약 전체 화면');
+            restoreButton.hidden = true;
+            restoreMemoImmersiveBackground(immersive.backgroundSnapshots);
+            applyMemoFocusOptionState(immersive.mode);
+            if (options.restoreFocus === false) return true;
+            requestAnimationFrame(() => {
+                restoreMemoViewportState(target, immersive.mode, currentViewport, false);
+                const returnFocus = immersive.returnFocus;
+                const returnFocusVisible = returnFocus?.isConnected
+                    && !returnFocus.closest('[hidden]')
+                    && returnFocus.getClientRects().length > 0;
+                if (returnFocusVisible) returnFocus.focus({ preventScroll: true });
+                else target.focus({ preventScroll: true });
+            });
+            return true;
         }
 
         function getMemoFocusViewportMode() {
@@ -3237,6 +3928,7 @@
 
         function renderMemoFocusMode(mode) {
             if (!memoFocusState) return;
+            if (memoFocusState.immersive) exitMemoImmersiveMode({ restoreFocus: false });
             memoFocusState.mode = mode;
             document.querySelectorAll('.memo-focus-tab').forEach(tab => {
                 const active = tab.dataset.focusMode === mode;
@@ -3280,6 +3972,7 @@
                 mode,
                 draft,
                 readSnapshot: getConfirmedMemoValue(key),
+                immersive: null,
                 returnFocus: document.activeElement
             };
             const editor = document.getElementById('memoFocusEditTextarea');
@@ -3292,6 +3985,8 @@
                 button.dataset.memoKey = key;
             });
             const overlay = document.getElementById('memoFocusOverlay');
+            overlay.classList.remove('immersive');
+            overlay.removeAttribute('data-immersive-mode');
             overlay.classList.add('open');
             overlay.setAttribute('aria-hidden', 'false');
             overlay.inert = false;
@@ -3303,6 +3998,7 @@
         function closeMemoFocus() {
             if (!memoFocusState) return;
             const { key, draft, returnFocus } = memoFocusState;
+            exitMemoImmersiveMode({ restoreFocus: false });
             const source = findMemoTextarea(key);
             if (source && source.value !== draft) source.value = draft;
             const overlay = document.getElementById('memoFocusOverlay');
@@ -3337,6 +4033,10 @@
         }
 
         function handleMemoReadAction(action) {
+            if (action === 'width') {
+                enterMemoImmersiveMode('read');
+                return;
+            }
             if (action === 'copy') {
                 copyMemoReadContent();
                 return;
@@ -3344,7 +4044,6 @@
             if (action === 'reset') {
                 memoReadScale = 1;
                 memoReadLineHeight = 1.8;
-                memoReadWide = false;
             }
             if (action === 'smaller') memoReadScale = Math.max(0.8, memoReadScale - 0.1);
             if (action === 'larger') memoReadScale = Math.min(2, memoReadScale + 0.1);
@@ -3353,7 +4052,6 @@
                 const currentIndex = choices.findIndex(value => Math.abs(value - memoReadLineHeight) < 0.01);
                 memoReadLineHeight = choices[(currentIndex + 1) % choices.length];
             }
-            if (action === 'width') memoReadWide = !memoReadWide;
             updateMemoReadPresentation();
         }
 
@@ -3456,6 +4154,10 @@
 
         function handleMemoEditAction(action) {
             const editor = document.getElementById('memoFocusEditTextarea');
+            if (action === 'focus-width') {
+                enterMemoImmersiveMode('edit');
+                return;
+            }
             editor.focus();
             if (action === 'insert-time') {
                 const stamp = `[${formatCurrentDateTime()}]`;
@@ -3486,6 +4188,312 @@
             }
         }
 
+        function getVisibleMeetingStatusRow(key) {
+            return meetingStatusRows.find(row => row.key === String(key) && row.cardVisible === 'Y') || null;
+        }
+
+        function createCardStatusToggle(key, statusRow, cardLabel) {
+            if (!statusRow || statusRow.cardVisible !== 'Y') return null;
+            const status = statusRow.status === '미작성' ? '미작성' : '작성';
+            const nextStatus = status === '작성' ? '미작성' : '작성';
+            const syncState = cardStatusSyncStates.get(key) || null;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'card-status-toggle';
+            button.dataset.statusKey = key;
+            button.dataset.currentStatus = status;
+            button.dataset.status = status === '작성' ? 'written' : 'missing';
+            button.dataset.syncState = syncState?.state || 'idle';
+            button.setAttribute('aria-pressed', String(status === '작성'));
+            button.setAttribute('aria-live', 'polite');
+            button.disabled = syncState?.state === 'saving';
+            if (syncState?.state === 'saving') {
+                button.textContent = '↻';
+                button.title = `${cardLabel}을(를) '${syncState.targetStatus}' 상태로 전환하고 GitHub XLSB에 저장 중입니다.`;
+                button.setAttribute('aria-label', button.title);
+                button.setAttribute('aria-busy', 'true');
+            } else if (syncState?.state === 'pending') {
+                button.textContent = '↑';
+                button.title = `${cardLabel}은(는) 로컬에서 '${status}' 상태이며 GitHub 동기화를 기다리고 있습니다. 클릭하면 '${nextStatus}'으로 전환합니다.`;
+                button.setAttribute('aria-label', button.title);
+            } else if (syncState?.state === 'error') {
+                button.textContent = '!';
+                button.title = `${cardLabel}의 GitHub 동기화가 실패했습니다. 로컬 상태는 '${status}'입니다. 클릭하면 '${nextStatus}'으로 전환합니다.`;
+                button.setAttribute('aria-label', button.title);
+            } else {
+                button.textContent = status === '작성' ? '✓' : '—';
+                button.title = `${cardLabel}: 현재 '${status}'. 클릭하면 '${nextStatus}'으로 즉시 전환하고 GitHub XLSB에 동기화합니다.`;
+                button.setAttribute('aria-label', button.title);
+            }
+            return button;
+        }
+
+        function attachCardStatusToggle(card, key, statusRow, cardLabel) {
+            const button = createCardStatusToggle(key, statusRow, cardLabel);
+            if (button) card.prepend(button);
+        }
+
+        function focusCardStatusToggle(key) {
+            requestAnimationFrame(() => {
+                const button = [...document.querySelectorAll('.card-status-toggle')]
+                    .find(item => item.dataset.statusKey === String(key));
+                button?.focus({ preventScroll: true });
+            });
+        }
+
+        async function handleCardStatusToggle(button) {
+            const key = String(button?.dataset.statusKey || '');
+            if (!key || !meetingStore || cardStatusTogglePromises.has(key)) return;
+            const operation = (async () => {
+                const currentRow = meetingStore.getSnapshot().status.rows
+                    .find(row => row.key === key && row.cardVisible === 'Y');
+                if (!currentRow) throw new Error(`카드 상태 행을 찾을 수 없습니다: ${key}`);
+                const targetStatus = currentRow.status === '미작성' ? '작성' : '미작성';
+                cardStatusSyncStates.set(key, { state: 'saving', targetStatus });
+                await meetingStore.setStatus(key, targetStatus, {
+                    source: auditSource('카드 원클릭 상태 전환')
+                });
+                refreshDashboardFromStore();
+                focusCardStatusToggle(key);
+
+                if (dashboardConfig.dataManagement.mode === 'api') {
+                    const result = await syncPendingStatusChanges([key], targetStatus);
+                    if (result.ok) cardStatusSyncStates.delete(key);
+                    else cardStatusSyncStates.set(key, {
+                        state: result.cancelled ? 'pending' : 'error',
+                        targetStatus
+                    });
+                } else {
+                    cardStatusSyncStates.set(key, { state: 'pending', targetStatus });
+                    updateDataSyncStatus(`안건 상태 '${targetStatus}' 로컬 저장 완료 · GitHub 동기화 대기`, 'waiting');
+                }
+                refreshDashboardFromStore();
+            })();
+            cardStatusTogglePromises.set(key, operation);
+            try {
+                await operation;
+            } catch (error) {
+                console.error('카드 원클릭 상태 전환 실패:', error);
+                cardStatusSyncStates.set(key, { state: 'error', targetStatus: button.dataset.currentStatus });
+                if (meetingStore) refreshDashboardFromStore();
+                updateDataSyncStatus(`카드 상태 전환 실패: ${error.message}`, 'error');
+                alert(`카드 상태를 전환하지 못했습니다: ${error.message}`);
+            } finally {
+                cardStatusTogglePromises.delete(key);
+                focusCardStatusToggle(key);
+            }
+        }
+
+        function buildMeetingProgressInsightModel(rows, year, month, now = new Date()) {
+            const sourceRows = Array.isArray(rows) ? rows : [];
+            const selectedYear = Number(year);
+            const selectedMonth = Number(month);
+            const visibleRows = sourceRows.filter(row => row.cardVisible === 'Y');
+            const monthRows = visibleRows.filter(row => Number(row.year) === selectedYear && Number(row.month) === selectedMonth);
+            const yearRows = visibleRows.filter(row => Number(row.year) === selectedYear);
+            const countRows = targetRows => {
+                const written = targetRows.filter(row => row.status === '작성').length;
+                return {
+                    total: targetRows.length,
+                    written,
+                    missing: targetRows.length - written,
+                    rate: targetRows.length ? Math.round((written / targetRows.length) * 100) : 0
+                };
+            };
+            const rowOrder = row => {
+                const parsedReference = Date.parse(`${row.referenceDate || ''}T00:00:00`);
+                if (Number.isFinite(parsedReference)) return parsedReference;
+                return new Date(Number(row.year), Number(row.month) - 1, row.type === '월간' ? 1 : Math.min(28, Number(row.week || 1) * 7)).getTime();
+            };
+            const rowLabel = row => row.type === '월간'
+                ? `${Number(row.month)}월 월간`
+                : `${Number(row.month)}월 ${Number(row.week)}주`;
+            const today = now instanceof Date && !Number.isNaN(now.getTime()) ? now : new Date();
+            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+            const elapsedDays = row => {
+                const reference = Date.parse(`${row.referenceDate || ''}T00:00:00`);
+                return Number.isFinite(reference) ? Math.max(0, Math.floor((todayStart - reference) / 86400000)) : null;
+            };
+            const monthlyYearRows = yearRows.filter(row => row.type === '월간');
+            const weeklyYearRows = yearRows.filter(row => row.type === '주간');
+            const recent = yearRows
+                .filter(row => Number(row.month) <= selectedMonth)
+                .slice()
+                .sort((first, second) => rowOrder(first) - rowOrder(second))
+                .slice(-6)
+                .map(row => ({
+                    key: row.key,
+                    label: rowLabel(row),
+                    status: row.status === '작성' ? '작성' : '미작성',
+                    referenceDate: row.referenceDate || ''
+                }));
+            const attention = monthRows
+                .filter(row => row.status === '미작성')
+                .map(row => ({
+                    key: row.key,
+                    label: rowLabel(row),
+                    elapsedDays: elapsedDays(row),
+                    referenceDate: row.referenceDate || ''
+                }))
+                .sort((first, second) => (second.elapsedDays ?? -1) - (first.elapsedDays ?? -1));
+            const monthStatus = countRows(monthRows);
+            const yearStatus = countRows(yearRows);
+            const latestUpdatedAt = visibleRows
+                .map(row => Date.parse(row.updatedAt || ''))
+                .filter(Number.isFinite)
+                .sort((first, second) => second - first)[0] || null;
+            return {
+                year: selectedYear,
+                month: selectedMonth,
+                monthStatus,
+                yearStatus,
+                yearMonthly: countRows(monthlyYearRows),
+                yearWeekly: countRows(weeklyYearRows),
+                comparisonDelta: monthStatus.rate - yearStatus.rate,
+                recent,
+                attention,
+                latestUpdatedAt: latestUpdatedAt ? new Date(latestUpdatedAt).toISOString() : ''
+            };
+        }
+
+        function createProgressInsightCard(kicker, title) {
+            const card = document.createElement('article');
+            card.className = 'progress-insight-card';
+            const kickerNode = document.createElement('span');
+            kickerNode.className = 'progress-insight-kicker';
+            kickerNode.textContent = kicker;
+            const titleNode = document.createElement('h4');
+            titleNode.className = 'progress-insight-title';
+            titleNode.textContent = title;
+            card.append(kickerNode, titleNode);
+            return card;
+        }
+
+        function createInsightBar(label, counts) {
+            const row = document.createElement('div');
+            row.className = 'insight-bar-row';
+            const labelNode = document.createElement('div');
+            labelNode.className = 'insight-bar-label';
+            const name = document.createElement('span');
+            name.textContent = label;
+            const value = document.createElement('strong');
+            value.textContent = `${counts.written}/${counts.total} · ${counts.rate}%`;
+            labelNode.append(name, value);
+            const track = document.createElement('div');
+            track.className = 'insight-bar-track';
+            track.setAttribute('role', 'progressbar');
+            track.setAttribute('aria-label', `${label} 작성률`);
+            track.setAttribute('aria-valuemin', '0');
+            track.setAttribute('aria-valuemax', '100');
+            track.setAttribute('aria-valuenow', String(counts.rate));
+            const fill = document.createElement('span');
+            fill.className = 'insight-bar-fill';
+            fill.style.width = `${counts.rate}%`;
+            track.appendChild(fill);
+            row.append(labelNode, track);
+            return row;
+        }
+
+        function renderMeetingProgressInsights(year, month) {
+            const grid = document.getElementById('progressInsightsGrid');
+            const period = document.getElementById('progressInsightsPeriod');
+            if (!grid || !period) return;
+            const model = buildMeetingProgressInsightModel(meetingStatusRows, year, month);
+            const latestText = model.latestUpdatedAt ? formatAuditDateTime(model.latestUpdatedAt) : '업데이트 이력 없음';
+            period.textContent = `${model.year}년 ${model.month}월 · XLSB ${latestText}`;
+
+            const monthCard = createProgressInsightCard('SELECTED MONTH', `${model.month}월 완성도`);
+            const rateLayout = document.createElement('div');
+            rateLayout.className = 'progress-rate-layout';
+            const ring = document.createElement('div');
+            ring.className = 'progress-rate-ring';
+            ring.style.setProperty('--progress-rate', String(model.monthStatus.rate));
+            ring.setAttribute('role', 'img');
+            ring.setAttribute('aria-label', `${model.month}월 작성률 ${model.monthStatus.rate}%`);
+            const ringValue = document.createElement('strong');
+            ringValue.textContent = `${model.monthStatus.rate}%`;
+            ring.appendChild(ringValue);
+            const rateCopy = document.createElement('div');
+            rateCopy.className = 'progress-rate-copy';
+            const count = document.createElement('strong');
+            count.textContent = `${model.monthStatus.written}/${model.monthStatus.total}건 작성`;
+            const breakdown = document.createElement('span');
+            breakdown.textContent = `미작성 ${model.monthStatus.missing}건`;
+            rateCopy.append(count, breakdown);
+            rateLayout.append(ring, rateCopy);
+            const comparison = document.createElement('p');
+            comparison.className = 'progress-insight-summary';
+            comparison.textContent = model.comparisonDelta === 0
+                ? '연간 누적 작성률과 동일합니다.'
+                : `연간 누적보다 ${Math.abs(model.comparisonDelta)}%p ${model.comparisonDelta > 0 ? '높습니다.' : '낮습니다.'}`;
+            monthCard.append(rateLayout, comparison);
+
+            const yearCard = createProgressInsightCard('YEAR TO DATE', `${model.year}년 누적`);
+            yearCard.append(
+                createInsightBar('월간 안건', model.yearMonthly),
+                createInsightBar('주간 안건', model.yearWeekly)
+            );
+            const yearSummary = document.createElement('p');
+            yearSummary.className = 'progress-insight-summary';
+            yearSummary.textContent = `전체 ${model.yearStatus.total}건 중 작성 ${model.yearStatus.written}건 · 미작성 ${model.yearStatus.missing}건`;
+            yearCard.appendChild(yearSummary);
+
+            const trendCard = createProgressInsightCard('RECENT FLOW', '최근 6회 진행 흐름');
+            if (model.recent.length) {
+                const track = document.createElement('div');
+                track.className = 'insight-trend-track';
+                for (const item of model.recent) {
+                    const trendItem = document.createElement('div');
+                    trendItem.className = 'insight-trend-item';
+                    trendItem.dataset.status = item.status === '작성' ? 'written' : 'missing';
+                    trendItem.title = `${item.label} · ${item.status}${item.referenceDate ? ` · ${item.referenceDate}` : ''}`;
+                    const dot = document.createElement('span');
+                    dot.className = 'insight-trend-dot';
+                    const label = document.createElement('span');
+                    label.className = 'insight-trend-label';
+                    label.textContent = item.label;
+                    trendItem.append(dot, label);
+                    track.appendChild(trendItem);
+                }
+                const recentWritten = model.recent.filter(item => item.status === '작성').length;
+                const summary = document.createElement('p');
+                summary.className = 'progress-insight-summary';
+                summary.textContent = `작성 ${recentWritten}회 · 미작성 ${model.recent.length - recentWritten}회`;
+                trendCard.append(track, summary);
+            } else {
+                const empty = document.createElement('div');
+                empty.className = 'insight-empty-state';
+                empty.textContent = '표시할 진행 이력이 없습니다.';
+                trendCard.appendChild(empty);
+            }
+
+            const attentionCard = createProgressInsightCard('ACTION PRIORITY', '우선 확인할 미작성');
+            if (model.attention.length) {
+                const list = document.createElement('ul');
+                list.className = 'insight-attention-list';
+                for (const item of model.attention.slice(0, 3)) {
+                    const listItem = document.createElement('li');
+                    const label = document.createElement('span');
+                    label.textContent = item.label;
+                    const elapsed = document.createElement('strong');
+                    elapsed.textContent = item.elapsedDays === null ? '기준일 없음' : `${item.elapsedDays}일 경과`;
+                    listItem.append(label, elapsed);
+                    list.appendChild(listItem);
+                }
+                const summary = document.createElement('p');
+                summary.className = 'progress-insight-summary';
+                summary.textContent = `${model.month}월 미작성 ${model.attention.length}건 · 경과일이 긴 순서`;
+                attentionCard.append(list, summary);
+            } else {
+                const empty = document.createElement('div');
+                empty.className = 'insight-empty-state';
+                empty.textContent = `${model.month}월 표시 대상은 모두 작성되었습니다.`;
+                attentionCard.appendChild(empty);
+            }
+
+            grid.replaceChildren(monthCard, yearCard, trendCard, attentionCard);
+        }
+
         function renderYearView(year, skippedDates) {
             currentYear = year;
             document.getElementById('currentYearSpan').textContent = `${year}년`;
@@ -3501,10 +4509,11 @@
                 card.className = 'month-card';
                 card.textContent = `${i}월`;
                 const key = `${year}-${i}`;
+                const statusRow = getVisibleMeetingStatusRow(key);
                 const isManuallySkipped = skippedDateSet.has(key);
                 if (isManuallySkipped) {
                     card.classList.add('not-written');
-                    if (meetingStatusRows.some(row => row.key === key && row.cardVisible === 'Y')) card.dataset.month = i;
+                    if (statusRow) card.dataset.month = i;
                     card.dataset.tooltip = '수동으로 미작성 처리됨';
                 } else {
                     const isFuture = year > todayYear || (year === todayYear && i > todayMonth);
@@ -3520,6 +4529,7 @@
                         else if (year === todayYear && i === todayMonth) { card.classList.add('current'); }
                     }
                 }
+                attachCardStatusToggle(card, key, statusRow, `${year}년 ${i}월 안건`);
                 card.style.animation = `slideInCascade 0.5s ${i * 0.03}s ease-out backwards`;
                 yearGrid.appendChild(card);
             }
@@ -3550,6 +4560,7 @@
             const todayWeek = isoNow.isoWeekOfMonth;
             const skippedDateSet = new Set(skippedDates);
             const monthlyKey = `${year}-${month}`;
+            const monthlyStatusRow = getVisibleMeetingStatusRow(monthlyKey);
             const isMonthlyManuallySkipped = skippedDateSet.has(monthlyKey);
             const monthlyCardText = document.createElement('span');
             monthlyCardText.textContent = "월간 회의 안건 보기";
@@ -3599,7 +4610,6 @@
                     monthlyMemoWrapper.appendChild(createMemoEditor(monthlyKey, '월간 회의 요약 내용을 입력하세요...'));
                 }
             }
-            const monthlyStatusRow = meetingStatusRows.find(row => row.key === monthlyKey && row.cardVisible === 'Y');
             if (monthlyStatusRow?.status === '작성' && !monthlyCard.classList.contains('not-written') && !monthlyCard.querySelector('.memo-toggle-btn')) {
                 const memoToggleBtn = document.createElement('button');
                 memoToggleBtn.className = 'memo-toggle-btn';
@@ -3609,6 +4619,7 @@
                 monthlyCard.appendChild(memoToggleBtn);
                 monthlyMemoWrapper.appendChild(createMemoEditor(monthlyKey, '월간 회의 요약 내용을 입력하세요...'));
             }
+            attachCardStatusToggle(monthlyCard, monthlyKey, monthlyStatusRow, `${year}년 ${month}월 월간 안건`);
             monthlyCard.style.animation = 'slideInCascade 0.5s 0.1s ease-out backwards';
 
             const weeklyConf = dashboardConfig.weekly;
@@ -3663,7 +4674,8 @@
                 memoWrapper.id = `memo-${weeklyKey}`;
                 memoWrapper.setAttribute('aria-hidden', 'true');
                 memoWrapper.inert = true;
-                const weeklyStatusRow = meetingStatusRows.find(row => row.key === weeklyKey && row.cardVisible === 'Y');
+                const weeklyStatusRow = getVisibleMeetingStatusRow(weeklyKey);
+                attachCardStatusToggle(weeklyCard, weeklyKey, weeklyStatusRow, `${year}년 ${month}월 ${w}주차 안건`);
                 const isCurrentOfficialWeek = Boolean(weeklyStatusRow && weeklyCard.classList.contains('current'));
                 const canEditWeeklyMemo = Boolean(weeklyStatusRow && (
                     (weeklyStatusRow.status === '작성' && !weeklyCard.classList.contains('not-written'))
@@ -3682,6 +4694,7 @@
                 container.appendChild(memoWrapper);
                 weeklyContainer.appendChild(container);
             });
+            renderMeetingProgressInsights(year, month);
             document.getElementById('year-view').classList.add('hidden');
             document.getElementById('month-view').classList.add('visible');
         }
@@ -4958,6 +5971,16 @@
             };
         }
 
+        function updateControlMenuLabelSide(button) {
+            const rect = getControlBubbleVisualRect(button);
+            const centerX = rect.left + (CONTROL_BUBBLE_DIAMETER / 2);
+            button.dataset.menuSide = centerX >= (window.innerWidth / 2) ? 'left' : 'right';
+        }
+
+        function updateControlMenuLabelSides(buttons) {
+            for (const button of buttons) updateControlMenuLabelSide(button);
+        }
+
         function controlBubbleRectsOverlap(first, second, gap = CONTROL_BUBBLE_GAP) {
             const firstCenterX = first.left + (CONTROL_BUBBLE_DIAMETER / 2);
             const firstCenterY = first.top + (CONTROL_BUBBLE_DIAMETER / 2);
@@ -5031,6 +6054,7 @@
                 positionControlBubbleFromRecord(button, records[button.id]);
             }
             settleControlBubbleCollisions(buttons);
+            updateControlMenuLabelSides(buttons);
         }
 
         function persistControlBubblePosition(button) {
@@ -5044,6 +6068,7 @@
             };
             button.style.left = `${clamped.left}px`;
             button.style.top = `${clamped.top}px`;
+            updateControlMenuLabelSide(button);
             writeControlBubbleLayout(layout);
         }
 
@@ -5060,6 +6085,7 @@
             button.style.left = `${position.left}px`;
             button.style.top = `${position.top}px`;
             persistControlBubblePosition(button);
+            updateControlMenuLabelSide(button);
             animateControlBubble(button, 'bubble-ejected');
             return true;
         }
@@ -5085,6 +6111,7 @@
             writeControlBubbleLayout(layout);
             resetControlBubbleElement(button);
             resolveControlBubbleCollisions(button, buttons, buttons.filter(other => other !== button));
+            updateControlMenuLabelSides(buttons);
             button.blur();
         }
 
@@ -5104,6 +6131,7 @@
             for (const anchorButton of groupButtons) {
                 resolveControlBubbleCollisions(anchorButton, buttons, movableButtons);
             }
+            updateControlMenuLabelSides(buttons);
             resetButton?.blur();
         }
 
@@ -5171,6 +6199,7 @@
                     }
                     persistControlBubblePosition(button);
                     resolveControlBubbleCollisions(button, buttons, buttons.filter(other => other !== button));
+                    updateControlMenuLabelSides(buttons);
                     animateControlBubble(button, 'bubble-drop', 320);
                 };
 
@@ -5326,6 +6355,11 @@
             document.getElementById('prevMonthBtnInView').addEventListener('click', () => { if (!currentMonth) return; currentMonth--; if (currentMonth < 1) { currentMonth = 12; currentYear--; } showMonthView(currentMonth, currentYear, tempSkippedDates); });
             document.getElementById('nextMonthBtnInView').addEventListener('click', () => { if (!currentMonth) return; currentMonth++; if (currentMonth > 12) { currentMonth = 1; currentYear++; } showMonthView(currentMonth, currentYear, tempSkippedDates); });
             document.getElementById('year-grid').addEventListener('click', e => {
+                const statusToggle = e.target.closest('.card-status-toggle');
+                if (statusToggle) {
+                    handleCardStatusToggle(statusToggle);
+                    return;
+                }
                 const card = e.target.closest('.month-card');
                 if (card?.dataset.month) showMonthView(card.dataset.month, currentYear, tempSkippedDates);
             });
@@ -5404,6 +6438,11 @@
             document.getElementById('createNewMeetingBtn').addEventListener('click', createNewMeetingFile);
             document.getElementById('saveAllChangesBtn').addEventListener('click', handleSaveAllChanges);
             document.getElementById('month-view').addEventListener('click', async (e) => {
+                const statusToggle = e.target.closest('.card-status-toggle');
+                if (statusToggle) {
+                    handleCardStatusToggle(statusToggle);
+                    return;
+                }
                 const persistBtn = e.target.closest('.memo-persist-btn');
                 if (persistBtn) {
                     persistMemoAction(persistBtn.dataset.memoKey, persistBtn.dataset.memoAction);
@@ -5476,6 +6515,7 @@
             });
             document.getElementById('month-view').addEventListener('input', handleMemoInput);
             document.getElementById('memoFocusCloseBtn').addEventListener('click', closeMemoFocus);
+            document.getElementById('memoFocusRestoreBtn').addEventListener('click', () => exitMemoImmersiveMode());
             document.getElementById('memoFocusRegisterBtn').addEventListener('click', event => {
                 persistMemoAction(event.currentTarget.dataset.memoKey, 'register');
             });
@@ -5512,7 +6552,9 @@
             memoClockInterval = setInterval(updateMemoClocks, 1000);
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden') flushMemoChanges().catch(console.error);
+                else updateMemoClocks();
             });
+            window.addEventListener('focus', updateMemoClocks);
             window.addEventListener('online', async () => {
                 if (!meetingStore) return;
                 updateDataSyncStatus('GitHub 최신 XLSB를 다시 매핑하는 중…', 'waiting');

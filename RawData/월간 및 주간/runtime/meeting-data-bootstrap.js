@@ -2,7 +2,7 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "53780078081887ecfa1b53e52fd5e734ef7715d4887e1aae5f6228075a1fa201",
+  "sourceSha256": "9735d4606d1e79418e18626e560b3a8c06ed27bc7dc85573b4f424ac1ab12985",
   "status": {
     "rows": [
       {
@@ -3735,8 +3735,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-08-13",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
-        "source": "기존 현황 마이그레이션",
+        "updatedAt": "2026-08-23T00:35:44.000Z",
+        "source": "미작성 안건 수동 관리 · client:f36e5365-509 · session:e57146d1 · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": ""
       },
@@ -3765,6 +3765,66 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "beforeValue": "HTML 하드코딩",
         "afterValue": "XLSB 현황",
         "source": "초기 전환",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "2d9d1917-fac1-48b5-856c-fad79ddaf691",
+        "changedAt": "2026-08-22T23:35:47.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "미작성 안건 수동 관리 · client:a33cec2f-5dd · session:3c14ff5a · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "80c752a9-2a11-4a06-83e7-f204133f5212",
+        "changedAt": "2026-08-22T23:36:37.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "미작성 안건 수동 관리 · client:a33cec2f-5dd · session:5d36385f · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "39ba188d-aa87-4543-8b53-4c3ec381e77d",
+        "changedAt": "2026-08-23T00:00:50.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "미작성 안건 수동 관리 · client:a33cec2f-5dd · session:71619c89 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "27572950-73d4-4ce7-8edf-b9f85007ddf4",
+        "changedAt": "2026-08-23T00:02:00.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "미작성 안건 수동 관리 · client:a33cec2f-5dd · session:734b3ecf · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "72be5f5f-2660-4f1f-bdf3-12f4d5c10680",
+        "changedAt": "2026-08-23T00:34:50.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "미작성 안건 수동 관리 · client:a33cec2f-5dd · session:af6a1a2c · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "af725244-c2cc-4dc2-a860-b377782438ab",
+        "changedAt": "2026-08-23T00:35:44.000Z",
+        "key": "2026-8-2",
+        "type": "주간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
+        "source": "미작성 안건 수동 관리 · client:f36e5365-509 · session:e57146d1 · Asia/Seoul UTC+09:00",
         "syncStatus": "완료"
       }
     ]

@@ -50,7 +50,12 @@ const requiredLayoutIds = [
   'month-view-title',
   'nextMonthBtnInView',
   'monthly-card-container',
-  'weekly-cards-container'
+  'weekly-cards-container',
+  'browserCornerClock',
+  'meetingProgressInsights',
+  'progressInsightsTitle',
+  'progressInsightsPeriod',
+  'progressInsightsGrid'
 ];
 const missingLayoutIds = requiredLayoutIds.filter(id => !ids.includes(id));
 if (missingLayoutIds.length) throw new Error(`original layout ids are missing: ${missingLayoutIds.join(', ')}`);
@@ -70,7 +75,9 @@ const forbidden = [
   '브라우저에 저장',
   '오프라인 TXT도 저장했습니다.',
   '회의_요약_등록대기_',
-  'exportOfflineTxtBtn'
+  'exportOfflineTxtBtn',
+  '읽기 폭',
+  '입력 폭'
 ];
 for (const pattern of forbidden) {
   if (html.includes(pattern)) throw new Error(`forbidden legacy pattern remains: ${pattern}`);
@@ -128,6 +135,18 @@ const required = [
   '[권위 데이터]',
   'data-read-action="line-height"',
   'data-read-action="width"',
+  '읽기 집중',
+  'memoFocusRestoreBtn',
+  'data-edit-action="focus-width"',
+  '입력 집중',
+  'enterMemoImmersiveMode',
+  'exitMemoImmersiveMode',
+  'captureMemoViewportState',
+  'isolateMemoImmersiveBackground',
+  'restoreMemoImmersiveBackground',
+  '.memo-focus-overlay.immersive .memo-focus-header',
+  '.memo-focus-overlay.immersive #memoFocusReadContent',
+  '.memo-focus-overlay.immersive #memoFocusEditTextarea',
   'data-edit-action="indent"',
   'data-edit-action="outdent"',
   'data-edit-action="bullet"',
@@ -160,7 +179,16 @@ const required = [
   "button.addEventListener('pointermove'",
   "button.addEventListener('pointerup'",
   "button.addEventListener('pointercancel'",
-  "button.addEventListener('contextmenu'"
+  "button.addEventListener('contextmenu'",
+  'card-status-toggle',
+  'handleCardStatusToggle',
+  "auditSource('카드 원클릭 상태 전환')",
+  'formatCornerDateTime',
+  'buildMeetingProgressInsightModel',
+  'renderMeetingProgressInsights',
+  'updateControlMenuLabelSide',
+  'data-menu-side="left"',
+  '월간·주간 진행 인사이트'
 ];
 for (const pattern of required) {
   if (!html.includes(pattern) && !store.includes(pattern) && !credential.includes(pattern)) throw new Error(`required integration pattern missing: ${pattern}`);
@@ -199,6 +227,44 @@ if (openMemoFocusStart < 0 || openMemoFocusEnd < 0) {
 const openMemoFocusSource = html.slice(openMemoFocusStart, openMemoFocusEnd);
 if (!/const\s+draft\s*=\s*sessionEditedMemoKeys\.has\(key\)\s*\?[\s\S]{0,240}:\s*getConfirmedMemoValue\(key\)/.test(openMemoFocusSource)) {
   throw new Error('openMemoFocus can freeze a stale card/cache value instead of the confirmed GitHub memo');
+}
+
+if (html.includes('memoReadWide')) {
+  throw new Error('the read-width action still only toggles an article-width flag instead of entering the immersive view');
+}
+
+if (!/data-memo-options-toggle="read"[\s\S]{0,220}<button[^>]*data-read-action="width"[^>]*>[\s\S]{0,40}읽기 집중<\/button>/.test(html)) {
+  throw new Error('the read-focus action is not immediately beside the read-options toggle');
+}
+if (!/data-memo-options-toggle="edit"[\s\S]{0,220}<button[^>]*data-edit-action="focus-width"[^>]*>[\s\S]{0,40}입력 집중<\/button>/.test(html)) {
+  throw new Error('the input-focus action is not immediately beside the input-options toggle');
+}
+
+const memoReadActionStart = html.indexOf('function handleMemoReadAction(action)');
+const memoReadActionEnd = html.indexOf('function dispatchMemoEditorInput(', memoReadActionStart);
+const memoReadActionSource = html.slice(memoReadActionStart, memoReadActionEnd);
+if (memoReadActionStart < 0
+  || memoReadActionEnd < 0
+  || !/action\s*===\s*'width'[\s\S]{0,120}enterMemoImmersiveMode\('read'\)/.test(memoReadActionSource)) {
+  throw new Error('the read-width button does not enter the full-browser immersive reading view');
+}
+
+const memoEditActionStart = html.indexOf('function handleMemoEditAction(action)');
+const memoEditActionEnd = html.indexOf('function renderYearView(', memoEditActionStart);
+const memoEditActionSource = html.slice(memoEditActionStart, memoEditActionEnd);
+if (memoEditActionStart < 0
+  || memoEditActionEnd < 0
+  || !/action\s*===\s*'focus-width'[\s\S]{0,120}enterMemoImmersiveMode\('edit'\)/.test(memoEditActionSource)) {
+  throw new Error('the input-width button does not enter the full-browser immersive editing view');
+}
+
+const closeMemoFocusStart = html.indexOf('function closeMemoFocus()');
+const closeMemoFocusEnd = html.indexOf('async function copyMemoReadContent()', closeMemoFocusStart);
+const closeMemoFocusSource = html.slice(closeMemoFocusStart, closeMemoFocusEnd);
+if (closeMemoFocusStart < 0
+  || closeMemoFocusEnd < 0
+  || !closeMemoFocusSource.includes('exitMemoImmersiveMode({ restoreFocus: false })')) {
+  throw new Error('closing the memo overlay can leave immersive display state behind');
 }
 
 const renderMemoFocusStart = html.indexOf('function renderMemoFocusMode(mode)');
@@ -245,6 +311,85 @@ const automaticStatusSync = batchUpdateSource.indexOf('await syncPendingStatusCh
 const confirmedSuccessMessage = batchUpdateSource.indexOf('GitHub XLSB 저장을 확인했습니다.');
 if (localStatusWrite < 0 || automaticStatusSync < localStatusWrite || confirmedSuccessMessage < automaticStatusSync) {
   throw new Error('manual status update can claim completion without the automatic GitHub status sync boundary');
+}
+
+const cardStatusToggleStart = html.indexOf('async function handleCardStatusToggle(button)');
+const cardStatusToggleEnd = html.indexOf('function renderYearView(', cardStatusToggleStart);
+if (cardStatusToggleStart < 0 || cardStatusToggleEnd < 0) {
+  throw new Error('one-click card status toggle source block could not be isolated');
+}
+const cardStatusToggleSource = html.slice(cardStatusToggleStart, cardStatusToggleEnd);
+const cardLocalWrite = cardStatusToggleSource.indexOf('await meetingStore.setStatus(key, targetStatus');
+const cardImmediateRefresh = cardStatusToggleSource.indexOf('refreshDashboardFromStore()', cardLocalWrite);
+const cardGithubSync = cardStatusToggleSource.indexOf('await syncPendingStatusChanges([key], targetStatus)', cardImmediateRefresh);
+if (cardLocalWrite < 0 || cardImmediateRefresh < cardLocalWrite || cardGithubSync < cardImmediateRefresh) {
+  throw new Error('card toggle does not render its preserved-row local change before the scoped GitHub sync');
+}
+for (const pattern of [
+  'attachCardStatusToggle(monthlyCard, monthlyKey, monthlyStatusRow',
+  'attachCardStatusToggle(weeklyCard, weeklyKey, weeklyStatusRow',
+  'attachCardStatusToggle(card, key, statusRow'
+]) {
+  if (!html.includes(pattern)) throw new Error(`card status indicator render path missing: ${pattern}`);
+}
+
+if (html.includes('width: 235px')) {
+  throw new Error('control buttons can still expand beyond the browser edge');
+}
+for (const pattern of [
+  '.control-btn[data-menu-side="left"]::after',
+  '.control-btn[data-menu-side="right"]::after',
+  "button.dataset.menuSide = centerX >= (window.innerWidth / 2) ? 'left' : 'right'",
+  'updateControlMenuLabelSides(buttons)'
+]) {
+  if (!html.includes(pattern)) throw new Error(`inward control-menu label boundary missing: ${pattern}`);
+}
+
+const insightModelStart = html.indexOf('function buildMeetingProgressInsightModel(rows, year, month, now = new Date())');
+const insightModelEnd = html.indexOf('function createProgressInsightCard(', insightModelStart);
+if (insightModelStart < 0 || insightModelEnd < 0) {
+  throw new Error('progress insight model source block could not be isolated');
+}
+const insightModelSource = html.slice(insightModelStart, insightModelEnd);
+if (!insightModelSource.includes("row.cardVisible === 'Y'")
+  || /meetingStore|setStatus|upsertStatus|syncDataset/.test(insightModelSource)) {
+  throw new Error('progress insight model is not a read-only projection of visible XLSB rows');
+}
+const buildProgressInsightModel = new Function(`${insightModelSource}; return buildMeetingProgressInsightModel;`)();
+const insightFixtureRows = [
+  { key: '2026-7-4', type: '주간', year: 2026, month: 7, week: 4, status: '작성', cardVisible: 'Y', referenceDate: '2026-07-23', updatedAt: '2026-08-01T00:00:00.000Z' },
+  { key: '2026-8', type: '월간', year: 2026, month: 8, week: null, status: '작성', cardVisible: 'Y', referenceDate: '2026-08-01', updatedAt: '2026-08-20T00:00:00.000Z' },
+  { key: '2026-8-1', type: '주간', year: 2026, month: 8, week: 1, status: '작성', cardVisible: 'Y', referenceDate: '2026-08-06', updatedAt: '2026-08-21T00:00:00.000Z' },
+  { key: '2026-8-2', type: '주간', year: 2026, month: 8, week: 2, status: '미작성', cardVisible: 'Y', referenceDate: '2026-08-13', updatedAt: '2026-08-22T00:00:00.000Z' },
+  { key: '2026-8-3', type: '주간', year: 2026, month: 8, week: 3, status: '작성', cardVisible: 'N', referenceDate: '2026-08-20', updatedAt: '2026-08-23T00:00:00.000Z' }
+];
+const progressInsightAudit = buildProgressInsightModel(insightFixtureRows, 2026, 8, new Date(2026, 7, 23, 12, 0, 0));
+if (progressInsightAudit.monthStatus.total !== 3
+  || progressInsightAudit.monthStatus.written !== 2
+  || progressInsightAudit.monthStatus.missing !== 1
+  || progressInsightAudit.yearStatus.total !== 4
+  || progressInsightAudit.yearStatus.written !== 3
+  || progressInsightAudit.attention[0]?.elapsedDays !== 10
+  || progressInsightAudit.recent.some(row => row.key === '2026-8-3')) {
+  throw new Error(`progress insight projection mismatch: ${JSON.stringify(progressInsightAudit)}`);
+}
+
+const cornerClockStart = html.indexOf('function formatCornerDateTime(date = new Date())');
+const cornerClockEnd = html.indexOf('function formatAuditDateTime(', cornerClockStart);
+if (cornerClockStart < 0 || cornerClockEnd < 0) throw new Error('corner clock formatter source block could not be isolated');
+const formatCornerClock = new Function(`${html.slice(cornerClockStart, cornerClockEnd)}; return formatCornerDateTime;`)();
+const cornerClockAudit = formatCornerClock(new Date(2026, 7, 23, 9, 8, 7));
+if (cornerClockAudit !== '2026-08-23(일) 09:08:07'
+  || !html.includes('cornerClock.dateTime = now.toISOString()')
+  || !html.includes("window.addEventListener('focus', updateMemoClocks)")) {
+  throw new Error(`browser corner clock boundary mismatch: ${cornerClockAudit}`);
+}
+
+const showMonthViewStart = html.indexOf('function showMonthView(month, year, skippedDates)');
+const showMonthViewEnd = html.indexOf('function showYearView(', showMonthViewStart);
+const showMonthViewSource = html.slice(showMonthViewStart, showMonthViewEnd);
+if (!showMonthViewSource.includes('renderMeetingProgressInsights(year, month)')) {
+  throw new Error('month view does not refresh the XLSB-derived progress insights');
 }
 
 const initializeMeetingStart = html.indexOf('async function initializeMeetingData()');
@@ -1798,6 +1943,16 @@ console.log(JSON.stringify({
     iterations: loadedVault.iterations,
     plaintextPersistent: false,
     authResetClearedSession: true
+  },
+  interfaceAudit: {
+    cornerClock: cornerClockAudit,
+    inwardMenuLabels: true,
+    progressInsights: {
+      month: progressInsightAudit.monthStatus,
+      year: progressInsightAudit.yearStatus,
+      attentionElapsedDays: progressInsightAudit.attention[0].elapsedDays,
+      hiddenRowsExcluded: !progressInsightAudit.recent.some(row => row.key === '2026-8-3')
+    }
   },
   statusAudit: {
     all: allCounter,
