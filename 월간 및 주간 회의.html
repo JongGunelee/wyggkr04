@@ -11578,6 +11578,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         let memoReadLetterSpacing = 0;
         let memoReadWordSpacing = 0;
         let memoClockInterval = null;
+        let lastMemoAvailabilityPeriodKey = '';
         const MEMO_FOCUS_OPTIONS_KEY = 'meetingMemoFocusOptionsV1';
         const MEMO_FOCUS_PREFERENCES_KEY = 'meetingMemoFocusPreferencesV1';
         async function ensureMeetingDataBootstrap() {
@@ -11752,6 +11753,30 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             };
         }
 
+        function isMeetingMemoPeriodAvailable(year, month, week = null, currentInfo = getISOWeekInfo(new Date())) {
+            const targetYear = Number(year);
+            const targetMonth = Number(month);
+            const targetWeek = week === null ? null : Number(week);
+            if (!Number.isInteger(targetYear) || !Number.isInteger(targetMonth) || targetMonth < 1 || targetMonth > 12) return false;
+            if (targetWeek !== null && (!Number.isInteger(targetWeek) || targetWeek < 1)) return false;
+
+            const isLegacyPeriod = targetYear < 2023 || (targetYear === 2023 && targetMonth < 3);
+            if (isLegacyPeriod) return false;
+            if (targetYear !== currentInfo.isoYear) return targetYear < currentInfo.isoYear;
+            if (targetMonth !== currentInfo.isoMonth) return targetMonth < currentInfo.isoMonth;
+            return targetWeek === null || targetWeek <= currentInfo.isoWeekOfMonth;
+        }
+
+        function syncMemoAvailabilityWithCalendar(now = new Date()) {
+            const currentInfo = getISOWeekInfo(now);
+            const periodKey = `${currentInfo.isoYear}-${currentInfo.isoMonth}-${currentInfo.isoWeekOfMonth}`;
+            const periodChanged = Boolean(lastMemoAvailabilityPeriodKey && lastMemoAvailabilityPeriodKey !== periodKey);
+            lastMemoAvailabilityPeriodKey = periodKey;
+            if (!periodChanged || !currentYear) return;
+            if (currentMonth) showMonthView(currentMonth, currentYear, tempSkippedDates);
+            else renderYearView(currentYear, tempSkippedDates);
+        }
+
         /* 특정 월에 속하는 모든 주차 정보를 반환 (ISO 기준) */
         function getWeeksBelongingToMonth(year, month) {
             const storedWeeks = meetingStatusRows
@@ -11883,6 +11908,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
         function updateMemoClocks() {
             const now = new Date();
+            syncMemoAvailabilityWithCalendar(now);
             const nowText = formatCurrentDateTime(now);
             document.querySelectorAll('[data-memo-clock]').forEach(clock => { clock.textContent = nowText; });
             const focusClock = document.getElementById('memoFocusClock');
@@ -12068,6 +12094,22 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             actionBar.appendChild(commitActions);
             shell.append(toolbar, textarea, actionBar);
             return shell;
+        }
+
+        function appendMemoControls(card, wrapper, key, placeholder) {
+            if (!card || !wrapper || card.querySelector(`.memo-toggle-btn[data-key="${key}"]`)) return false;
+            const memoToggleBtn = document.createElement('button');
+            memoToggleBtn.type = 'button';
+            memoToggleBtn.className = 'memo-toggle-btn';
+            memoToggleBtn.dataset.key = key;
+            memoToggleBtn.textContent = '+';
+            memoToggleBtn.title = '회의 요약 보기/숨기기';
+            memoToggleBtn.setAttribute('aria-label', `${getMemoLabel(key)} 보기/숨기기`);
+            memoToggleBtn.setAttribute('aria-expanded', 'false');
+            if (wrapper.id) memoToggleBtn.setAttribute('aria-controls', wrapper.id);
+            card.appendChild(memoToggleBtn);
+            wrapper.appendChild(createMemoEditor(key, placeholder));
+            return true;
         }
 
         function updateMemoFocusCount() {
@@ -13254,6 +13296,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             const monthlyKey = `${year}-${month}`;
             const monthlyStatusRow = getVisibleMeetingStatusRow(monthlyKey);
             const isMonthlyManuallySkipped = skippedDateSet.has(monthlyKey);
+            const isMonthlyMemoAvailable = isMeetingMemoPeriodAvailable(year, month, null, isoNow);
             const monthlyCardText = document.createElement('span');
             monthlyCardText.textContent = "월간 회의 안건 보기";
             monthlyCard.appendChild(monthlyCardText);
@@ -13293,23 +13336,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     const monthlyUrl = buildUrl(monthlyConf.baseURL, monthlyTemplate).replace(/{YYYY}/g, year).replace(/{YY}/g, String(year).slice(-2)).replace(/{MM}/g, String(month).padStart(2, '0')).replace(/{M}/g, parseInt(month, 10));
                     monthlyCard.dataset.href = monthlyUrl;
                     monthlyCard.removeAttribute('data-tooltip');
-                    const memoToggleBtn = document.createElement('button');
-                    memoToggleBtn.className = 'memo-toggle-btn';
-                    memoToggleBtn.dataset.key = monthlyKey;
-                    memoToggleBtn.textContent = '+';
-                    memoToggleBtn.title = '회의 요약 보기/숨기기';
-                    monthlyCard.appendChild(memoToggleBtn);
-                    monthlyMemoWrapper.appendChild(createMemoEditor(monthlyKey, '월간 회의 요약 내용을 입력하세요...'));
                 }
             }
-            if (monthlyStatusRow?.status === '작성' && !monthlyCard.classList.contains('not-written') && !monthlyCard.querySelector('.memo-toggle-btn')) {
-                const memoToggleBtn = document.createElement('button');
-                memoToggleBtn.className = 'memo-toggle-btn';
-                memoToggleBtn.dataset.key = monthlyKey;
-                memoToggleBtn.textContent = '+';
-                memoToggleBtn.title = '회의 요약 보기/숨기기';
-                monthlyCard.appendChild(memoToggleBtn);
-                monthlyMemoWrapper.appendChild(createMemoEditor(monthlyKey, '월간 회의 요약 내용을 입력하세요...'));
+            if (isMonthlyMemoAvailable) {
+                appendMemoControls(monthlyCard, monthlyMemoWrapper, monthlyKey, '월간 회의 요약 내용을 입력하세요...');
             }
             attachCardStatusToggle(monthlyCard, monthlyKey, monthlyStatusRow, `${year}년 ${month}월 월간 안건`);
             monthlyCard.style.animation = 'slideInCascade 0.5s 0.1s ease-out backwards';
@@ -13368,19 +13398,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 memoWrapper.inert = true;
                 const weeklyStatusRow = getVisibleMeetingStatusRow(weeklyKey);
                 attachCardStatusToggle(weeklyCard, weeklyKey, weeklyStatusRow, `${year}년 ${month}월 ${w}주차 안건`);
-                const isCurrentOfficialWeek = Boolean(weeklyStatusRow && weeklyCard.classList.contains('current'));
-                const canEditWeeklyMemo = Boolean(weeklyStatusRow && (
-                    (weeklyStatusRow.status === '작성' && !weeklyCard.classList.contains('not-written'))
-                    || isCurrentOfficialWeek
-                ));
-                if (canEditWeeklyMemo) {
-                    const memoToggleBtn = document.createElement('button');
-                    memoToggleBtn.className = 'memo-toggle-btn';
-                    memoToggleBtn.dataset.key = weeklyKey;
-                    memoToggleBtn.textContent = '+';
-                    memoToggleBtn.title = '회의 요약 보기/숨기기';
-                    weeklyCard.appendChild(memoToggleBtn);
-                    memoWrapper.appendChild(createMemoEditor(weeklyKey, '주간 회의 요약 내용을 입력하세요...'));
+                if (isMeetingMemoPeriodAvailable(year, month, w, isoNow)) {
+                    appendMemoControls(weeklyCard, memoWrapper, weeklyKey, '주간 회의 요약 내용을 입력하세요...');
                 }
                 container.appendChild(weeklyCard);
                 container.appendChild(memoWrapper);
