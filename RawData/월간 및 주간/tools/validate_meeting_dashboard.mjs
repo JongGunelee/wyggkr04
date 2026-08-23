@@ -135,11 +135,32 @@ const required = [
   'data-edit-action="manual-number"',
   'handleMemoEditorKeydown',
   'initializeMemoToolbars',
+  'meetingMemoFocusOptionsV1',
+  'data-memo-options-toggle="read"',
+  'data-memo-options-toggle="edit"',
+  'initializeMemoFocusOptionGroups',
+  'mobilePortrait: { read: false, edit: false }',
   'batchUpdateStatus',
   'syncPendingStatusChanges',
   "meetingStore.syncDataset('status'",
+  'keys: expectedKeys',
+  'STATUS_CONFLICT_FIELDS',
   'data-short-label="현황"',
-  'data-menu-label="현황 · 작성/미작성 관리"'
+  'data-menu-label="현황 · 작성/미작성 관리"',
+  'initializeDraggableControlButtons',
+  'meetingControlBubbleLayoutV1',
+  'control-btn-slot',
+  'bubble-positioned',
+  'bubble-ejected',
+  'resolveControlBubbleCollisions',
+  'restoreControlBubbleGroupDefault',
+  'data-bubble-reset-group="left"',
+  'data-bubble-reset-group="right"',
+  "button.addEventListener('pointerdown'",
+  "button.addEventListener('pointermove'",
+  "button.addEventListener('pointerup'",
+  "button.addEventListener('pointercancel'",
+  "button.addEventListener('contextmenu'"
 ];
 for (const pattern of required) {
   if (!html.includes(pattern) && !store.includes(pattern) && !credential.includes(pattern)) throw new Error(`required integration pattern missing: ${pattern}`);
@@ -178,6 +199,27 @@ if (openMemoFocusStart < 0 || openMemoFocusEnd < 0) {
 const openMemoFocusSource = html.slice(openMemoFocusStart, openMemoFocusEnd);
 if (!/const\s+draft\s*=\s*sessionEditedMemoKeys\.has\(key\)\s*\?[\s\S]{0,240}:\s*getConfirmedMemoValue\(key\)/.test(openMemoFocusSource)) {
   throw new Error('openMemoFocus can freeze a stale card/cache value instead of the confirmed GitHub memo');
+}
+
+const renderMemoFocusStart = html.indexOf('function renderMemoFocusMode(mode)');
+const renderMemoFocusEnd = html.indexOf('function openMemoFocus(key, mode)', renderMemoFocusStart);
+const renderMemoFocusSource = html.slice(renderMemoFocusStart, renderMemoFocusEnd);
+if (renderMemoFocusStart < 0
+  || renderMemoFocusEnd < 0
+  || !renderMemoFocusSource.includes('applyMemoFocusOptionState(mode)')) {
+  throw new Error('read/edit mode switching no longer restores its viewport-specific option visibility');
+}
+
+const finishBubbleDragStart = html.indexOf('const finishDrag = (event, cancelled = false) =>');
+const finishBubbleDragEnd = html.indexOf("button.addEventListener('pointerup'", finishBubbleDragStart);
+const finishBubbleDragSource = html.slice(finishBubbleDragStart, finishBubbleDragEnd);
+const persistDraggedBubbleIndex = finishBubbleDragSource.indexOf('persistControlBubblePosition(button)');
+const resolveBubbleCollisionIndex = finishBubbleDragSource.indexOf('resolveControlBubbleCollisions(button, buttons');
+if (finishBubbleDragStart < 0
+  || finishBubbleDragEnd < 0
+  || persistDraggedBubbleIndex < 0
+  || resolveBubbleCollisionIndex < persistDraggedBubbleIndex) {
+  throw new Error('a dropped control bubble is not persisted before overlapping peer bubbles are ejected');
 }
 
 const syncPendingStart = html.indexOf('async function syncPendingChanges(showAlert = false)');
@@ -505,7 +547,11 @@ function createGitHubMemoMock(initialBytes, options = {}) {
   return {
     fetch,
     putRequests,
-    getRemoteBytes: () => Uint8Array.from(remoteBytes)
+    getRemoteBytes: () => Uint8Array.from(remoteBytes),
+    setRemoteBytes: bytes => {
+      remoteBytes = Uint8Array.from(bytes);
+      shaSequence += 1;
+    }
   };
 }
 
@@ -659,6 +705,124 @@ if (freshRestoredRow?.status !== '작성'
   || restartHistory.some(row => row.syncStatus !== '완료')
   || await freshRestoredApi.pendingCount('status') !== 0) {
   throw new Error(`second fresh restart did not preserve the restored status/history: ${JSON.stringify({ freshRestoredRow, restartHistory })}`);
+}
+
+const metadataConflictKey = '2026-8-2';
+const unrelatedPendingStatusKey = '2026-7-4';
+const metadataConflictMock = createGitHubMemoMock(statusBytes);
+const metadataConflictApi = createStoreHarness(metadataConflictMock.fetch);
+await metadataConflictApi.init({
+  storage: 'memory',
+  fetch: metadataConflictMock.fetch,
+  github: {
+    repo: 'validator/meeting-data',
+    branch: 'main',
+    memoPath: 'RawData/월간 및 주간/회의_요약_메모.xlsb',
+    statusPath: 'RawData/월간 및 주간/회의_안건_현황.xlsb',
+    mutationDelayMs: 0
+  }
+});
+await metadataConflictApi.load({ dataset: 'status', overlayPending: false, throwOnError: true });
+const metadataTargetChange = await metadataConflictApi.setStatus(metadataConflictKey, '미작성', {
+  source: '검증용 현재 화면 상태 변경',
+  changedAt: '2026-08-23T01:04:05.000Z'
+});
+const unrelatedPendingStatusChange = await metadataConflictApi.setStatus(unrelatedPendingStatusKey, '미작성', {
+  source: '검증용 비관련 로컬 상태 대기',
+  changedAt: '2026-08-23T01:04:06.000Z'
+});
+if (!metadataTargetChange.changed || !unrelatedPendingStatusChange.changed) {
+  throw new Error('status metadata-conflict fixture did not create both pending events');
+}
+const metadataRemoteState = {
+  rows: status.rows.map(row => row.key === metadataConflictKey
+    ? { ...row, source: '검증용 다른 사용자의 원격 수정경로', updatedAt: '2026-08-23T01:04:04.000Z' }
+    : { ...row }),
+  history: status.history.map(row => ({ ...row }))
+};
+const metadataRemoteWorkbook = globalThis.MeetingDataStore.exportXlsb('status', metadataRemoteState);
+metadataConflictMock.setRemoteBytes(metadataRemoteWorkbook.bytes);
+metadataConflictApi.setSessionToken('validator-session-token');
+const metadataConflictResult = await metadataConflictApi.syncDataset('status', {
+  keys: [metadataConflictKey],
+  publishMissing: false,
+  allowRemoteCreate: false,
+  message: '[validator] ignore audit-source-only divergence and scope status sync'
+});
+const metadataConflictRemote = await globalThis.MeetingDataStore.parseXlsb('status', metadataConflictMock.getRemoteBytes());
+const metadataConflictRemoteTarget = metadataConflictRemote.rows.find(row => row.key === metadataConflictKey);
+const metadataConflictRemoteOther = metadataConflictRemote.rows.find(row => row.key === unrelatedPendingStatusKey);
+const metadataConflictOutbox = await metadataConflictApi.getOutbox('status');
+if (!metadataConflictResult.ok
+  || metadataConflictResult.uploadedEvents !== 1
+  || metadataConflictMock.putRequests.length !== 1
+  || metadataConflictRemoteTarget?.status !== '미작성'
+  || metadataConflictRemoteOther?.status !== '작성'
+  || metadataConflictRemote.history.filter(row => row.eventId === metadataTargetChange.event.eventId).length !== 1
+  || metadataConflictOutbox.length !== 1
+  || metadataConflictOutbox[0].eventId !== unrelatedPendingStatusChange.event.eventId) {
+  throw new Error(`status metadata-only divergence or scoped upload regressed: ${JSON.stringify({
+    metadataConflictResult,
+    putRequests: metadataConflictMock.putRequests.length,
+    target: metadataConflictRemoteTarget,
+    other: metadataConflictRemoteOther,
+    outbox: metadataConflictOutbox
+  })}`);
+}
+
+const semanticConflictMock = createGitHubMemoMock(statusBytes);
+const semanticConflictApi = createStoreHarness(semanticConflictMock.fetch);
+await semanticConflictApi.init({
+  storage: 'memory',
+  fetch: semanticConflictMock.fetch,
+  github: {
+    repo: 'validator/meeting-data',
+    branch: 'main',
+    memoPath: 'RawData/월간 및 주간/회의_요약_메모.xlsb',
+    statusPath: 'RawData/월간 및 주간/회의_안건_현황.xlsb',
+    mutationDelayMs: 0
+  }
+});
+await semanticConflictApi.load({ dataset: 'status', overlayPending: false, throwOnError: true });
+const semanticLocalChange = await semanticConflictApi.upsertStatus(metadataConflictKey, {
+  status: '미작성',
+  note: '검증용 현재 화면의 실제 비고'
+}, {
+  source: '검증용 실제 필드 충돌 로컬 변경',
+  changedAt: '2026-08-23T01:04:07.000Z'
+});
+const semanticRemoteState = {
+  rows: status.rows.map(row => row.key === metadataConflictKey
+    ? { ...row, note: '검증용 다른 사용자의 실제 비고', source: '검증용 다른 사용자', updatedAt: '2026-08-23T01:04:06.500Z' }
+    : { ...row }),
+  history: status.history.map(row => ({ ...row }))
+};
+semanticConflictMock.setRemoteBytes(globalThis.MeetingDataStore.exportXlsb('status', semanticRemoteState).bytes);
+semanticConflictApi.setSessionToken('validator-session-token');
+let semanticConflictError = null;
+try {
+  await semanticConflictApi.syncDataset('status', {
+    keys: [metadataConflictKey],
+    publishMissing: false,
+    allowRemoteCreate: false,
+    message: '[validator] preserve true status field conflicts'
+  });
+} catch (error) {
+  semanticConflictError = error;
+}
+const semanticConflictOutbox = await semanticConflictApi.getOutbox('status');
+if (!semanticLocalChange.changed
+  || semanticConflictError?.code !== 'DATA_CONFLICT'
+  || !semanticConflictError.conflicts?.some(conflict => conflict.fields?.some(field => field.field === 'note'))
+  || semanticConflictMock.putRequests.length !== 0
+  || semanticConflictOutbox.length !== 1
+  || semanticConflictOutbox[0].eventId !== semanticLocalChange.event.eventId) {
+  throw new Error(`a true status field conflict was not kept for user review: ${JSON.stringify({
+    code: semanticConflictError?.code,
+    conflicts: semanticConflictError?.conflicts,
+    putRequests: semanticConflictMock.putRequests.length,
+    outbox: semanticConflictOutbox
+  })}`);
 }
 
 const targetMemoKey = '2026-8-2';
@@ -1653,6 +1817,16 @@ console.log(JSON.stringify({
     completedHistoryEvents: restartHistory.length,
     putRequests: restartStatusMock.putRequests.length,
     pendingAfterRestart: await freshRestoredApi.pendingCount('status')
+  },
+  statusConflictAudit: {
+    key: metadataConflictKey,
+    auditSourceOnlyDivergenceMerged: metadataConflictRemoteTarget.status === '미작성',
+    scopedUploadedEvents: metadataConflictResult.uploadedEvents,
+    unrelatedRemoteStatusPreserved: metadataConflictRemoteOther.status,
+    unrelatedLocalPendingPreserved: metadataConflictOutbox.length,
+    targetHistoryExactlyOnce: metadataConflictRemote.history.filter(row => row.eventId === metadataTargetChange.event.eventId).length,
+    trueSemanticConflictProtected: semanticConflictError.code === 'DATA_CONFLICT',
+    trueSemanticConflictPutRequests: semanticConflictMock.putRequests.length
   },
   startupMappingAudit: {
     authoritativePendingIsolated: authoritativeLoad.memo.pendingCount,

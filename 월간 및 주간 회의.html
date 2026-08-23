@@ -756,6 +756,8 @@
         }
 
         .btn-group-label {
+            appearance: none;
+            border: 0;
             font-size: 10px;
             font-family: '맑은 고딕', 'Segoe UI', sans-serif;
             color: rgba(80, 100, 120, 0.75);
@@ -764,9 +766,22 @@
             border-radius: 10px;
             text-align: center;
             white-space: nowrap;
-            pointer-events: none;
             user-select: none;
             letter-spacing: 0.5px;
+        }
+
+        button.btn-group-label {
+            cursor: pointer;
+            transition: color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+        }
+
+        button.btn-group-label:hover,
+        button.btn-group-label:focus-visible {
+            color: var(--accent-color);
+            background-color: rgba(96, 165, 250, 0.18);
+            outline: 2px solid rgba(96, 165, 250, 0.42);
+            outline-offset: 2px;
+            transform: translateY(-1px);
         }
 
 
@@ -799,6 +814,71 @@
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             overflow: hidden;
             white-space: nowrap;
+            touch-action: none;
+        }
+
+        .control-btn-slot {
+            position: relative;
+            width: 43px;
+            height: 43px;
+            flex: 0 0 43px;
+        }
+
+        .control-btn.bubble-armed,
+        .control-btn.bubble-positioned,
+        .control-btn.bubble-dragging {
+            width: 43px !important;
+            touch-action: none;
+        }
+
+        .control-btn.bubble-positioned {
+            position: fixed;
+            z-index: 10012;
+            margin: 0;
+            transition: left 0.16s ease-out, top 0.16s ease-out, transform 0.16s ease-out,
+                box-shadow 0.16s ease-out, background-color 0.2s ease;
+        }
+
+        .control-btn.bubble-positioned::after,
+        .control-btn.bubble-dragging::after {
+            display: none;
+        }
+
+        .control-btn.bubble-positioned:hover::before,
+        .control-btn.bubble-positioned:focus-visible::before {
+            opacity: 1;
+        }
+
+        .control-btn.bubble-dragging {
+            cursor: grabbing;
+            transform: scale(1.1);
+            box-shadow: 0 0 0 5px rgba(96, 165, 250, 0.2), 0 10px 28px rgba(0, 0, 0, 0.32);
+            transition: none;
+        }
+
+        body.dark-mode .control-btn.bubble-dragging {
+            box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.2), 0 10px 28px rgba(0, 0, 0, 0.55);
+        }
+
+        .control-btn.bubble-drop {
+            animation: bubbleDrop 0.28s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+
+        .control-btn.bubble-ejected {
+            animation: bubbleEjected 0.52s cubic-bezier(0.16, 1.35, 0.4, 1);
+        }
+
+        @keyframes bubbleDrop {
+            0% { transform: scale(1.1); }
+            55% { transform: scale(0.94); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes bubbleEjected {
+            0% { transform: scale(1); }
+            38% { transform: scale(1.18) rotate(7deg); }
+            72% { transform: scale(0.92) rotate(-3deg); }
+            100% { transform: scale(1) rotate(0); }
         }
 
         /* 항상 보이는 짧은 이름 + 포커스/호버 시 보이는 활용 의도 */
@@ -1688,7 +1768,7 @@
             display: flex;
             align-items: center;
             gap: 16px;
-            padding: 14px 20px;
+            padding: 9px max(14px, env(safe-area-inset-right)) 9px max(14px, env(safe-area-inset-left));
             border-bottom: 1px solid rgba(30, 58, 95, 0.14);
             background: var(--card-bg);
             box-shadow: 0 4px 14px rgba(30, 58, 95, 0.06);
@@ -1738,14 +1818,14 @@
             display: flex;
             justify-content: center;
             gap: 8px;
-            padding: 10px 20px;
+            padding: 7px 14px;
             border-bottom: 1px solid rgba(30, 58, 95, 0.1);
             background: var(--card-bg);
         }
 
         .memo-focus-tab {
             min-width: 110px;
-            min-height: 38px;
+            min-height: 34px;
             border: 1px solid #94a3b8;
             border-radius: 9px;
             background: transparent;
@@ -1770,10 +1850,11 @@
         .memo-focus-panel {
             display: none;
             flex-direction: column;
-            width: min(1100px, 100%);
+            width: 100%;
+            max-width: none;
             height: 100%;
             margin: 0 auto;
-            padding: 16px 20px 20px;
+            padding: 10px max(14px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
             box-sizing: border-box;
         }
 
@@ -1781,12 +1862,56 @@
             display: flex;
         }
 
+        .memo-focus-options {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: start;
+            gap: 8px;
+            flex: 0 0 auto;
+            padding-bottom: 8px;
+        }
+
+        .memo-focus-options-toggle {
+            min-height: 34px;
+            padding: 6px 10px;
+            border: 1px solid #94a3b8;
+            border-radius: 9px;
+            background: var(--card-bg);
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .memo-focus-options-toggle:hover,
+        .memo-focus-options-toggle:focus-visible {
+            border-color: var(--accent-color);
+            outline: 2px solid rgba(96, 165, 250, 0.28);
+            outline-offset: 1px;
+        }
+
+        .memo-focus-options-state {
+            margin-left: 4px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .memo-focus-options.collapsed {
+            grid-template-columns: auto;
+        }
+
         .memo-focus-toolstrip {
             display: flex;
             align-items: center;
             gap: 8px;
             flex-wrap: wrap;
-            padding-bottom: 10px;
+            min-width: 0;
+        }
+
+        .memo-focus-toolstrip[hidden] {
+            display: none;
         }
 
         .memo-focus-tool-status {
@@ -1799,6 +1924,7 @@
 
         #memoFocusReadContent {
             flex: 1;
+            min-height: 0;
             width: min(var(--memo-read-width, 72ch), 100%);
             overflow: auto;
             margin: 0 auto;
@@ -1854,6 +1980,7 @@
 
         body.dark-mode .memo-focus-header,
         body.dark-mode .memo-focus-tabs,
+        body.dark-mode .memo-focus-options-toggle,
         body.dark-mode #memoFocusReadContent,
         body.dark-mode #memoFocusEditTextarea {
             background: #1e2736;
@@ -1866,9 +1993,42 @@
                 cursor: auto !important;
             }
 
+            h1 {
+                gap: 9px;
+                font-size: 1.72em;
+                white-space: nowrap;
+            }
+
             button,
             [role='button'] {
                 cursor: pointer !important;
+            }
+
+            #month-view {
+                overflow-x: hidden;
+            }
+
+            #month-view-header {
+                gap: 10px;
+            }
+
+            #month-view-title {
+                white-space: nowrap;
+                font-size: 1.25em;
+            }
+
+            #monthly-report-card {
+                width: calc(100% + 26px);
+                box-sizing: border-box;
+            }
+
+            #weekly-cards-container {
+                box-sizing: border-box;
+            }
+
+            .control-btn-group-left,
+            .control-btn-group-right {
+                bottom: 0;
             }
 
             .memo-wrapper:not(.hidden) {
@@ -1929,7 +2089,7 @@
                 grid-template-columns: minmax(0, 1fr) auto;
                 align-items: start;
                 gap: 7px 10px;
-                padding: 10px 12px;
+                padding: max(7px, env(safe-area-inset-top)) 10px 7px;
             }
 
             #memoFocusTitle {
@@ -1945,7 +2105,7 @@
                 grid-row: 2;
                 grid-column: 1 / -1;
                 justify-self: start;
-                max-width: calc(100vw - 24px);
+                max-width: calc(100vw - 20px);
             }
 
             #memoFocusCloseBtn {
@@ -1956,7 +2116,7 @@
             }
 
             .memo-focus-tabs {
-                padding: 8px 12px;
+                padding: 6px 10px;
             }
 
             .memo-focus-tab {
@@ -1965,19 +2125,40 @@
             }
 
             .memo-focus-panel {
-                padding: 10px 12px max(12px, env(safe-area-inset-bottom));
+                padding: 7px 8px max(8px, env(safe-area-inset-bottom));
+            }
+
+            .memo-focus-options {
+                display: block;
+                padding-bottom: 6px;
+            }
+
+            .memo-focus-options-toggle {
+                width: 100%;
+                min-height: 32px;
+                padding: 5px 8px;
+                text-align: left;
             }
 
             .memo-focus-toolstrip {
                 gap: 6px;
+                margin-top: 6px;
+                padding-bottom: 2px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                flex-wrap: nowrap;
+                overscroll-behavior-inline: contain;
+                scrollbar-width: thin;
             }
 
             .memo-focus-tool-status {
-                width: 100%;
-                margin-left: 0;
+                flex: 0 0 auto;
+                width: auto;
+                margin-left: 4px;
             }
 
             .memo-focus-btn {
+                flex: 0 0 auto;
                 min-height: 34px;
                 padding: 6px 9px;
             }
@@ -1996,18 +2177,24 @@
             }
 
             .memo-focus-footer {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 8px;
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                align-items: center;
+                gap: 6px;
+                padding-top: 5px;
             }
 
             .memo-focus-footer .memo-commit-actions {
-                width: 100%;
+                width: auto;
             }
 
             .memo-focus-footer .memo-persist-btn {
-                flex: 1;
-                min-height: 42px;
+                min-height: 38px;
+                padding-inline: 12px;
+            }
+
+            .memo-focus-audit-help {
+                display: none;
             }
         }
 
@@ -2096,7 +2283,9 @@
 
     <!-- ◀ 좌측 그룹: 관리 (회의 관리 + 시설·공정 관리) -->
     <div class="control-btn-group-left">
-        <span class="btn-group-label">📌 관리</span>
+        <button id="resetLeftControlBubblesBtn" class="btn-group-label" type="button"
+            data-bubble-reset-group="left" title="관리 메뉴를 현재 화면 모드의 기본 위치로 복원"
+            aria-label="관리 메뉴 전체를 기본 위치로 복원">📌 관리 · ↺</button>
         <div class="btn-divider"></div>
         <!-- 🗓 회의 관리 -->
         <button class="control-btn" id="creationPanelToggleBtn" title="새 회의 안건 작성" aria-label="작성 · 새 회의록 만들기"
@@ -2132,7 +2321,9 @@
 
     <!-- ▶ 우측 그룹: 분석·도구 (예산·비용 분석 + 데이터·시스템) -->
     <div class="control-btn-group-right">
-        <span class="btn-group-label">📊 분석·도구</span>
+        <button id="resetRightControlBubblesBtn" class="btn-group-label" type="button"
+            data-bubble-reset-group="right" title="분석·도구 메뉴를 현재 화면 모드의 기본 위치로 복원"
+            aria-label="분석 및 도구 메뉴 전체를 기본 위치로 복원">📊 도구 · ↺</button>
         <div class="btn-divider"></div>
         <!-- 💵 예산·비용·계획 -->
         <button class="control-btn" id="budgetPlanningBtn" title="예산 분석" aria-label="예산 · 예산 분석 열기"
@@ -2452,35 +2643,47 @@
         </nav>
         <main class="memo-focus-main">
             <section id="memoFocusReadPanel" class="memo-focus-panel" role="tabpanel" aria-labelledby="memoFocusReadTab" aria-hidden="true" inert>
-                <div class="memo-focus-toolstrip" role="toolbar" aria-label="회의 요약 읽기 도구">
-                    <button class="memo-focus-btn" type="button" data-read-action="smaller" title="글자 크기 10% 축소">글자 −</button>
-                    <button class="memo-focus-btn" type="button" data-read-action="reset" title="글자 크기와 줄 간격 초기화">기본</button>
-                    <button class="memo-focus-btn" type="button" data-read-action="larger" title="글자 크기 10% 확대, 최대 200%">글자 +</button>
-                    <button class="memo-focus-btn" type="button" data-read-action="line-height" title="줄 간격 1.5, 1.8, 2.1 순환">줄 간격</button>
-                    <button class="memo-focus-btn" type="button" data-read-action="width" title="편안한 읽기 폭과 넓은 폭 전환">읽기 폭</button>
-                    <button class="memo-focus-btn" type="button" data-read-action="copy">내용 복사</button>
-                    <span id="memoReadDisplayStatus" class="memo-focus-tool-status" aria-live="polite">100% · 줄 간격 1.8</span>
+                <div class="memo-focus-options" data-memo-options-mode="read">
+                    <button id="memoReadOptionsToggle" class="memo-focus-options-toggle" type="button"
+                        data-memo-options-toggle="read" aria-expanded="true" aria-controls="memoReadTools">
+                        읽기 옵션 <span class="memo-focus-options-state" aria-hidden="true">접기</span>
+                    </button>
+                    <div id="memoReadTools" class="memo-focus-toolstrip" role="toolbar" aria-label="회의 요약 읽기 도구">
+                        <button class="memo-focus-btn" type="button" data-read-action="smaller" title="글자 크기 10% 축소">글자 −</button>
+                        <button class="memo-focus-btn" type="button" data-read-action="reset" title="글자 크기와 줄 간격 초기화">기본</button>
+                        <button class="memo-focus-btn" type="button" data-read-action="larger" title="글자 크기 10% 확대, 최대 200%">글자 +</button>
+                        <button class="memo-focus-btn" type="button" data-read-action="line-height" title="줄 간격 1.5, 1.8, 2.1 순환">줄 간격</button>
+                        <button class="memo-focus-btn" type="button" data-read-action="width" title="편안한 읽기 폭과 넓은 폭 전환">읽기 폭</button>
+                        <button class="memo-focus-btn" type="button" data-read-action="copy">내용 복사</button>
+                        <span id="memoReadDisplayStatus" class="memo-focus-tool-status" aria-live="polite">100% · 줄 간격 1.8</span>
+                    </div>
                 </div>
                 <article id="memoFocusReadContent" tabindex="0"></article>
             </section>
             <section id="memoFocusEditPanel" class="memo-focus-panel" role="tabpanel" aria-labelledby="memoFocusEditTab" aria-hidden="true" inert>
-                <div class="memo-focus-toolstrip" role="toolbar" aria-label="회의 요약 내용 입력 도구">
-                    <button class="memo-focus-btn" type="button" data-edit-action="undo">실행 취소</button>
-                    <button class="memo-focus-btn" type="button" data-edit-action="redo">다시 실행</button>
-                    <button class="memo-focus-btn" type="button" data-edit-action="indent" title="선택 문단 들여쓰기 (Tab)">들여쓰기</button>
-                    <button class="memo-focus-btn" type="button" data-edit-action="outdent" title="선택 문단 내어쓰기 (Shift+Tab)">내어쓰기</button>
-                    <button class="memo-focus-btn" type="button" data-edit-action="bullet" title="글머리 기호 적용/해제 (Ctrl+Shift+8)">• 글머리</button>
-                    <button class="memo-focus-btn" type="button" data-edit-action="number" title="1부터 자동 번호 매기기 (Ctrl+Shift+7)">1. 자동 번호</button>
-                    <button class="memo-focus-btn" type="button" data-edit-action="manual-number" title="시작 번호를 지정해 번호 매기기">번호 지정</button>
-                    <button class="memo-focus-btn" type="button" data-edit-action="separator" title="문단 구분선 삽입">구분선</button>
-                    <button class="memo-focus-btn" type="button" data-edit-action="insert-time">현재 시각</button>
-                    <button class="memo-focus-btn" type="button" data-edit-action="select-all">전체 선택</button>
+                <div class="memo-focus-options" data-memo-options-mode="edit">
+                    <button id="memoEditOptionsToggle" class="memo-focus-options-toggle" type="button"
+                        data-memo-options-toggle="edit" aria-expanded="true" aria-controls="memoEditTools">
+                        입력 옵션 <span class="memo-focus-options-state" aria-hidden="true">접기</span>
+                    </button>
+                    <div id="memoEditTools" class="memo-focus-toolstrip" role="toolbar" aria-label="회의 요약 내용 입력 도구">
+                        <button class="memo-focus-btn" type="button" data-edit-action="undo">실행 취소</button>
+                        <button class="memo-focus-btn" type="button" data-edit-action="redo">다시 실행</button>
+                        <button class="memo-focus-btn" type="button" data-edit-action="indent" title="선택 문단 들여쓰기 (Tab)">들여쓰기</button>
+                        <button class="memo-focus-btn" type="button" data-edit-action="outdent" title="선택 문단 내어쓰기 (Shift+Tab)">내어쓰기</button>
+                        <button class="memo-focus-btn" type="button" data-edit-action="bullet" title="글머리 기호 적용/해제 (Ctrl+Shift+8)">• 글머리</button>
+                        <button class="memo-focus-btn" type="button" data-edit-action="number" title="1부터 자동 번호 매기기 (Ctrl+Shift+7)">1. 자동 번호</button>
+                        <button class="memo-focus-btn" type="button" data-edit-action="manual-number" title="시작 번호를 지정해 번호 매기기">번호 지정</button>
+                        <button class="memo-focus-btn" type="button" data-edit-action="separator" title="문단 구분선 삽입">구분선</button>
+                        <button class="memo-focus-btn" type="button" data-edit-action="insert-time">현재 시각</button>
+                        <button class="memo-focus-btn" type="button" data-edit-action="select-all">전체 선택</button>
+                    </div>
                 </div>
                 <textarea id="memoFocusEditTextarea" aria-label="회의 요약 내용 입력" spellcheck="true"></textarea>
                 <div class="memo-focus-footer">
                     <div class="memo-focus-footer-info">
                         <span id="memoFocusCount">0자 · 0단어 · 0줄</span>
-                        <span>웹 저장은 GitHub XLSB, PC 저장은 로컬 XLSB에 초 단위 이력으로 기록됩니다.</span>
+                        <span class="memo-focus-audit-help">웹 저장은 GitHub XLSB, PC 저장은 로컬 XLSB에 초 단위 이력으로 기록됩니다.</span>
                     </div>
                     <div class="memo-commit-actions" aria-label="회의 요약 웹 저장 및 PC 저장">
                         <button id="memoFocusRegisterBtn" class="memo-persist-btn" type="button"
@@ -2547,6 +2750,7 @@
         let memoReadLineHeight = 1.8;
         let memoReadWide = false;
         let memoClockInterval = null;
+        const MEMO_FOCUS_OPTIONS_KEY = 'meetingMemoFocusOptionsV1';
 
         const debounce = (func, delay) => {
             let timeout;
@@ -2955,6 +3159,82 @@
             document.querySelector('[data-read-action="width"]')?.setAttribute('aria-pressed', String(memoReadWide));
         }
 
+        function getMemoFocusViewportMode() {
+            return window.matchMedia('(max-width: 600px) and (orientation: portrait)').matches
+                ? 'mobilePortrait'
+                : 'desktop';
+        }
+
+        function readMemoFocusOptionLayout() {
+            const defaults = {
+                version: 1,
+                desktop: { read: true, edit: true },
+                mobilePortrait: { read: false, edit: false }
+            };
+            try {
+                const parsed = JSON.parse(localStorage.getItem(MEMO_FOCUS_OPTIONS_KEY) || 'null');
+                if (!parsed || parsed.version !== 1) return defaults;
+                for (const viewportMode of ['desktop', 'mobilePortrait']) {
+                    for (const memoMode of ['read', 'edit']) {
+                        if (typeof parsed?.[viewportMode]?.[memoMode] === 'boolean') {
+                            defaults[viewportMode][memoMode] = parsed[viewportMode][memoMode];
+                        }
+                    }
+                }
+            } catch (_) {
+                // 손상된 브라우저 설정은 화면 유형별 안전 기본값으로 복원한다.
+            }
+            return defaults;
+        }
+
+        function writeMemoFocusOptionLayout(layout) {
+            try {
+                localStorage.setItem(MEMO_FOCUS_OPTIONS_KEY, JSON.stringify(layout));
+            } catch (error) {
+                console.warn('회의 요약 옵션 표시 상태를 유지하지 못했습니다:', error);
+            }
+        }
+
+        function applyMemoFocusOptionState(mode) {
+            const toggle = document.querySelector(`[data-memo-options-toggle="${mode}"]`);
+            const group = document.querySelector(`[data-memo-options-mode="${mode}"]`);
+            const toolbar = document.getElementById(mode === 'read' ? 'memoReadTools' : 'memoEditTools');
+            if (!toggle || !group || !toolbar) return;
+            const layout = readMemoFocusOptionLayout();
+            const expanded = layout[getMemoFocusViewportMode()][mode];
+            toggle.setAttribute('aria-expanded', String(expanded));
+            toggle.querySelector('.memo-focus-options-state').textContent = expanded ? '접기' : '펴기';
+            group.classList.toggle('collapsed', !expanded);
+            toolbar.hidden = !expanded;
+            toolbar.inert = !expanded;
+        }
+
+        function setMemoFocusOptionState(mode, expanded) {
+            const layout = readMemoFocusOptionLayout();
+            layout[getMemoFocusViewportMode()][mode] = Boolean(expanded);
+            writeMemoFocusOptionLayout(layout);
+            applyMemoFocusOptionState(mode);
+        }
+
+        function initializeMemoFocusOptionGroups() {
+            document.querySelectorAll('[data-memo-options-toggle]').forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    const mode = toggle.dataset.memoOptionsToggle;
+                    setMemoFocusOptionState(mode, toggle.getAttribute('aria-expanded') !== 'true');
+                });
+            });
+            let resizeFrame = 0;
+            window.addEventListener('resize', () => {
+                cancelAnimationFrame(resizeFrame);
+                resizeFrame = requestAnimationFrame(() => {
+                    applyMemoFocusOptionState('read');
+                    applyMemoFocusOptionState('edit');
+                });
+            });
+            applyMemoFocusOptionState('read');
+            applyMemoFocusOptionState('edit');
+        }
+
         function renderMemoFocusMode(mode) {
             if (!memoFocusState) return;
             memoFocusState.mode = mode;
@@ -2972,6 +3252,7 @@
             readPanel.inert = mode !== 'read';
             editPanel.inert = mode !== 'edit';
             document.getElementById('memoFocusTitle').textContent = `${getMemoLabel(memoFocusState.key)} · ${mode === 'read' ? '읽기' : '내용 입력'}`;
+            applyMemoFocusOptionState(mode);
 
             if (mode === 'read') {
                 const content = document.getElementById('memoFocusReadContent');
@@ -4094,6 +4375,7 @@
                 const result = pendingBeforeSync
                     ? await runWithMeetingGithubCredential(token => meetingStore.syncDataset('status', {
                         token,
+                        keys: expectedKeys,
                         publishMissing: false,
                         allowRemoteCreate: false,
                         message: `[MeetingData] 안건 ${expectedStatus} 상태 자동 저장`
@@ -4105,7 +4387,8 @@
                 const mismatchedKeys = expectedKeys.filter(key => {
                     return snapshot.status.rows.find(row => row.key === key)?.status !== expectedStatus;
                 });
-                const remainingStatusChanges = await meetingStore.pendingCount('status');
+                const remainingStatusChanges = (await meetingStore.getOutbox('status'))
+                    .filter(event => expectedKeys.includes(event.key)).length;
                 if (mismatchedKeys.length || remainingStatusChanges) {
                     const verificationError = new Error(
                         mismatchedKeys.length
@@ -4589,6 +4872,354 @@
             checkForUnsavedChanges();
         }
 
+        const CONTROL_BUBBLE_LAYOUT_KEY = 'meetingControlBubbleLayoutV1';
+        const CONTROL_BUBBLE_MARGIN = 4;
+        const CONTROL_BUBBLE_DRAG_THRESHOLD = 6;
+        const CONTROL_BUBBLE_DIAMETER = 43;
+        const CONTROL_BUBBLE_GAP = 8;
+
+        function getControlBubbleViewportMode() {
+            return window.matchMedia('(max-width: 600px) and (orientation: portrait)').matches
+                ? 'mobilePortrait'
+                : 'desktop';
+        }
+
+        function readControlBubbleLayout() {
+            const empty = { version: 1, desktop: {}, mobilePortrait: {} };
+            try {
+                const parsed = JSON.parse(localStorage.getItem(CONTROL_BUBBLE_LAYOUT_KEY) || 'null');
+                if (!parsed || parsed.version !== 1) return empty;
+                return {
+                    version: 1,
+                    desktop: parsed.desktop && typeof parsed.desktop === 'object' ? parsed.desktop : {},
+                    mobilePortrait: parsed.mobilePortrait && typeof parsed.mobilePortrait === 'object' ? parsed.mobilePortrait : {}
+                };
+            } catch (_) {
+                return empty;
+            }
+        }
+
+        function writeControlBubbleLayout(layout) {
+            try {
+                localStorage.setItem(CONTROL_BUBBLE_LAYOUT_KEY, JSON.stringify(layout));
+                return true;
+            } catch (error) {
+                console.warn('메뉴 위치를 브라우저에 유지하지 못했습니다:', error);
+                return false;
+            }
+        }
+
+        function controlBubbleBounds(button) {
+            const width = CONTROL_BUBBLE_DIAMETER;
+            const height = CONTROL_BUBBLE_DIAMETER;
+            return {
+                width,
+                height,
+                rangeX: Math.max(0, window.innerWidth - width - (CONTROL_BUBBLE_MARGIN * 2)),
+                rangeY: Math.max(0, window.innerHeight - height - (CONTROL_BUBBLE_MARGIN * 2))
+            };
+        }
+
+        function clampControlBubble(button, left, top) {
+            const bounds = controlBubbleBounds(button);
+            return {
+                left: CONTROL_BUBBLE_MARGIN + Math.min(bounds.rangeX, Math.max(0, left - CONTROL_BUBBLE_MARGIN)),
+                top: CONTROL_BUBBLE_MARGIN + Math.min(bounds.rangeY, Math.max(0, top - CONTROL_BUBBLE_MARGIN)),
+                bounds
+            };
+        }
+
+        function resetControlBubbleElement(button) {
+            button.classList.remove('bubble-armed', 'bubble-positioned', 'bubble-dragging', 'bubble-drop', 'bubble-ejected');
+            button.style.removeProperty('left');
+            button.style.removeProperty('top');
+        }
+
+        function getControlBubbleVisualRect(button) {
+            if (!button.classList.contains('bubble-positioned') && button.parentElement?.classList.contains('control-btn-slot')) {
+                const slotRect = button.parentElement.getBoundingClientRect();
+                return {
+                    left: slotRect.left,
+                    top: slotRect.top,
+                    width: CONTROL_BUBBLE_DIAMETER,
+                    height: CONTROL_BUBBLE_DIAMETER,
+                    right: slotRect.left + CONTROL_BUBBLE_DIAMETER,
+                    bottom: slotRect.top + CONTROL_BUBBLE_DIAMETER
+                };
+            }
+            const rect = button.getBoundingClientRect();
+            return {
+                left: rect.left,
+                top: rect.top,
+                width: CONTROL_BUBBLE_DIAMETER,
+                height: CONTROL_BUBBLE_DIAMETER,
+                right: rect.left + CONTROL_BUBBLE_DIAMETER,
+                bottom: rect.top + CONTROL_BUBBLE_DIAMETER
+            };
+        }
+
+        function controlBubbleRectsOverlap(first, second, gap = CONTROL_BUBBLE_GAP) {
+            const firstCenterX = first.left + (CONTROL_BUBBLE_DIAMETER / 2);
+            const firstCenterY = first.top + (CONTROL_BUBBLE_DIAMETER / 2);
+            const secondCenterX = second.left + (CONTROL_BUBBLE_DIAMETER / 2);
+            const secondCenterY = second.top + (CONTROL_BUBBLE_DIAMETER / 2);
+            return Math.hypot(firstCenterX - secondCenterX, firstCenterY - secondCenterY)
+                < CONTROL_BUBBLE_DIAMETER + gap;
+        }
+
+        function controlBubblesOverlap(firstButton, secondButton) {
+            return controlBubbleRectsOverlap(
+                getControlBubbleVisualRect(firstButton),
+                getControlBubbleVisualRect(secondButton)
+            );
+        }
+
+        function controlBubbleIdAngle(button) {
+            const hash = [...button.id].reduce((value, character) => ((value * 31) + character.charCodeAt(0)) >>> 0, 0);
+            return (hash % 24) * (Math.PI / 12);
+        }
+
+        function isControlBubblePositionFree(button, left, top, blockers) {
+            const candidateRect = {
+                left,
+                top,
+                width: CONTROL_BUBBLE_DIAMETER,
+                height: CONTROL_BUBBLE_DIAMETER,
+                right: left + CONTROL_BUBBLE_DIAMETER,
+                bottom: top + CONTROL_BUBBLE_DIAMETER
+            };
+            return blockers.every(blocker => blocker === button
+                || !controlBubbleRectsOverlap(candidateRect, getControlBubbleVisualRect(blocker)));
+        }
+
+        function findCollisionFreeControlBubblePosition(button, blockers) {
+            const origin = getControlBubbleVisualRect(button);
+            const originCenterX = origin.left + (CONTROL_BUBBLE_DIAMETER / 2);
+            const originCenterY = origin.top + (CONTROL_BUBBLE_DIAMETER / 2);
+            const step = CONTROL_BUBBLE_DIAMETER + CONTROL_BUBBLE_GAP + 2;
+            const baseAngle = controlBubbleIdAngle(button);
+            const maxRadiusSteps = Math.max(2, Math.ceil(Math.hypot(window.innerWidth, window.innerHeight) / step));
+            for (let radiusStep = 1; radiusStep <= maxRadiusSteps; radiusStep += 1) {
+                const samples = Math.max(16, radiusStep * 10);
+                for (let sample = 0; sample < samples; sample += 1) {
+                    const angle = baseAngle + ((Math.PI * 2 * sample) / samples);
+                    const requestedLeft = originCenterX + (Math.cos(angle) * step * radiusStep) - (CONTROL_BUBBLE_DIAMETER / 2);
+                    const requestedTop = originCenterY + (Math.sin(angle) * step * radiusStep) - (CONTROL_BUBBLE_DIAMETER / 2);
+                    const candidate = clampControlBubble(button, requestedLeft, requestedTop);
+                    if (isControlBubblePositionFree(button, candidate.left, candidate.top, blockers)) return candidate;
+                }
+            }
+            return null;
+        }
+
+        function positionControlBubbleFromRecord(button, record) {
+            if (!record || !Number.isFinite(record.xRatio) || !Number.isFinite(record.yRatio)) return false;
+            const bounds = controlBubbleBounds(button);
+            const left = CONTROL_BUBBLE_MARGIN + Math.min(1, Math.max(0, record.xRatio)) * bounds.rangeX;
+            const top = CONTROL_BUBBLE_MARGIN + Math.min(1, Math.max(0, record.yRatio)) * bounds.rangeY;
+            button.classList.add('bubble-positioned');
+            button.style.left = `${left}px`;
+            button.style.top = `${top}px`;
+            return true;
+        }
+
+        function applySavedControlBubblePositions(buttons) {
+            const layout = readControlBubbleLayout();
+            const records = layout[getControlBubbleViewportMode()] || {};
+            for (const button of buttons) {
+                resetControlBubbleElement(button);
+                positionControlBubbleFromRecord(button, records[button.id]);
+            }
+            settleControlBubbleCollisions(buttons);
+        }
+
+        function persistControlBubblePosition(button) {
+            const rect = button.getBoundingClientRect();
+            const clamped = clampControlBubble(button, rect.left, rect.top);
+            const layout = readControlBubbleLayout();
+            const mode = getControlBubbleViewportMode();
+            layout[mode][button.id] = {
+                xRatio: clamped.bounds.rangeX ? (clamped.left - CONTROL_BUBBLE_MARGIN) / clamped.bounds.rangeX : 0,
+                yRatio: clamped.bounds.rangeY ? (clamped.top - CONTROL_BUBBLE_MARGIN) / clamped.bounds.rangeY : 0
+            };
+            button.style.left = `${clamped.left}px`;
+            button.style.top = `${clamped.top}px`;
+            writeControlBubbleLayout(layout);
+        }
+
+        function animateControlBubble(button, className, duration = 520) {
+            button.classList.remove(className);
+            requestAnimationFrame(() => button.classList.add(className));
+            setTimeout(() => button.classList.remove(className), duration);
+        }
+
+        function ejectControlBubble(button, buttons) {
+            const position = findCollisionFreeControlBubblePosition(button, buttons);
+            if (!position) return false;
+            button.classList.add('bubble-positioned');
+            button.style.left = `${position.left}px`;
+            button.style.top = `${position.top}px`;
+            persistControlBubblePosition(button);
+            animateControlBubble(button, 'bubble-ejected');
+            return true;
+        }
+
+        function resolveControlBubbleCollisions(anchorButton, buttons, movableButtons = buttons) {
+            for (const otherButton of movableButtons) {
+                if (otherButton === anchorButton || !controlBubblesOverlap(anchorButton, otherButton)) continue;
+                ejectControlBubble(otherButton, buttons);
+            }
+        }
+
+        function settleControlBubbleCollisions(buttons) {
+            for (let anchorIndex = 0; anchorIndex < buttons.length; anchorIndex += 1) {
+                const movableButtons = buttons.slice(anchorIndex + 1);
+                resolveControlBubbleCollisions(buttons[anchorIndex], buttons, movableButtons);
+            }
+        }
+
+        function restoreControlBubbleDefault(button, buttons) {
+            const layout = readControlBubbleLayout();
+            const mode = getControlBubbleViewportMode();
+            delete layout[mode][button.id];
+            writeControlBubbleLayout(layout);
+            resetControlBubbleElement(button);
+            resolveControlBubbleCollisions(button, buttons, buttons.filter(other => other !== button));
+            button.blur();
+        }
+
+        function restoreControlBubbleGroupDefault(groupName, buttons, resetButton) {
+            const groupSelector = groupName === 'right' ? '.control-btn-group-right' : '.control-btn-group-left';
+            const group = document.querySelector(groupSelector);
+            const groupButtons = buttons.filter(button => group?.contains(button));
+            const groupButtonSet = new Set(groupButtons);
+            const layout = readControlBubbleLayout();
+            const mode = getControlBubbleViewportMode();
+            for (const button of groupButtons) {
+                delete layout[mode][button.id];
+                resetControlBubbleElement(button);
+            }
+            writeControlBubbleLayout(layout);
+            const movableButtons = buttons.filter(button => !groupButtonSet.has(button));
+            for (const anchorButton of groupButtons) {
+                resolveControlBubbleCollisions(anchorButton, buttons, movableButtons);
+            }
+            resetButton?.blur();
+        }
+
+        function initializeDraggableControlButtons() {
+            const buttons = [...document.querySelectorAll('.control-btn')];
+            let activeDrag = null;
+            let resizeFrame = 0;
+
+            for (const button of buttons) {
+                if (!button.parentElement?.classList.contains('control-btn-slot')) {
+                    const slot = document.createElement('span');
+                    slot.className = 'control-btn-slot';
+                    button.parentNode.insertBefore(slot, button);
+                    slot.appendChild(button);
+                }
+                const originalTitle = button.title || button.dataset.menuLabel || '메뉴';
+                button.dataset.bubbleOriginalTitle = originalTitle;
+                button.title = `${originalTitle} · 드래그로 이동 · 이동 후 우클릭 시 기본 위치`;
+                button.setAttribute('aria-description', '마우스나 손가락으로 끌어 위치를 옮길 수 있습니다. 이동한 버튼은 우클릭하면 기본 위치로 돌아갑니다.');
+
+                button.addEventListener('pointerdown', event => {
+                    if (button.disabled || event.button !== 0 || activeDrag) return;
+                    button.classList.add('bubble-armed');
+                    const rect = button.getBoundingClientRect();
+                    activeDrag = {
+                        button,
+                        pointerId: event.pointerId,
+                        startX: event.clientX,
+                        startY: event.clientY,
+                        startLeft: rect.left,
+                        startTop: rect.top,
+                        dragged: false
+                    };
+                    button.setPointerCapture?.(event.pointerId);
+                });
+
+                button.addEventListener('pointermove', event => {
+                    if (!activeDrag || activeDrag.button !== button || activeDrag.pointerId !== event.pointerId) return;
+                    const deltaX = event.clientX - activeDrag.startX;
+                    const deltaY = event.clientY - activeDrag.startY;
+                    if (!activeDrag.dragged && Math.hypot(deltaX, deltaY) < CONTROL_BUBBLE_DRAG_THRESHOLD) return;
+                    event.preventDefault();
+                    if (!activeDrag.dragged) {
+                        activeDrag.dragged = true;
+                        button.classList.add('bubble-positioned', 'bubble-dragging');
+                        button.style.left = `${activeDrag.startLeft}px`;
+                        button.style.top = `${activeDrag.startTop}px`;
+                    }
+                    const position = clampControlBubble(button, activeDrag.startLeft + deltaX, activeDrag.startTop + deltaY);
+                    button.style.left = `${position.left}px`;
+                    button.style.top = `${position.top}px`;
+                });
+
+                const finishDrag = (event, cancelled = false) => {
+                    if (!activeDrag || activeDrag.button !== button || (event && activeDrag.pointerId !== event.pointerId)) return;
+                    const dragged = activeDrag.dragged;
+                    if (button.hasPointerCapture?.(activeDrag.pointerId)) button.releasePointerCapture(activeDrag.pointerId);
+                    button.classList.remove('bubble-armed', 'bubble-dragging');
+                    activeDrag = null;
+                    if (!dragged) return;
+                    button.dataset.suppressClickUntil = String(performance.now() + 500);
+                    if (cancelled) {
+                        applySavedControlBubblePositions(buttons);
+                        return;
+                    }
+                    persistControlBubblePosition(button);
+                    resolveControlBubbleCollisions(button, buttons, buttons.filter(other => other !== button));
+                    animateControlBubble(button, 'bubble-drop', 320);
+                };
+
+                button.addEventListener('pointerup', event => finishDrag(event, false));
+                button.addEventListener('pointercancel', event => finishDrag(event, true));
+                button.addEventListener('click', event => {
+                    const suppressUntil = Number(button.dataset.suppressClickUntil || 0);
+                    if (performance.now() < suppressUntil) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                    }
+                }, true);
+                button.addEventListener('contextmenu', event => {
+                    if (!button.classList.contains('bubble-positioned')) return;
+                    event.preventDefault();
+                    restoreControlBubbleDefault(button, buttons);
+                });
+                button.addEventListener('keydown', event => {
+                    if (event.key !== 'Home' || (!event.ctrlKey && !event.metaKey)) return;
+                    event.preventDefault();
+                    restoreControlBubbleDefault(button, buttons);
+                });
+            }
+
+            document.querySelectorAll('[data-bubble-reset-group]').forEach(resetButton => {
+                resetButton.addEventListener('click', () => {
+                    restoreControlBubbleGroupDefault(resetButton.dataset.bubbleResetGroup, buttons, resetButton);
+                });
+            });
+
+            document.addEventListener('keydown', event => {
+                if (event.key !== 'Escape' || !activeDrag) return;
+                event.preventDefault();
+                const button = activeDrag.button;
+                const pointerId = activeDrag.pointerId;
+                if (button.hasPointerCapture?.(pointerId)) button.releasePointerCapture(pointerId);
+                button.dataset.suppressClickUntil = String(performance.now() + 500);
+                activeDrag = null;
+                applySavedControlBubblePositions(buttons);
+            });
+            window.addEventListener('resize', () => {
+                cancelAnimationFrame(resizeFrame);
+                resizeFrame = requestAnimationFrame(() => {
+                    if (!activeDrag) applySavedControlBubblePositions(buttons);
+                });
+            });
+            applySavedControlBubblePositions(buttons);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // 테마 로드 (시간 기반 스위칭)
             const getThemeByTime = () => {
@@ -4614,6 +5245,7 @@
             themeToggleBtn.addEventListener('click', toggleTheme);
 
             loadSettings();
+            initializeDraggableControlButtons();
             initializeMeetingData().catch(error => {
                 console.error('회의 XLSB 초기화 실패:', error);
                 updateDataSyncStatus(`데이터 초기화 실패: ${error.message}`, 'error');
@@ -4859,6 +5491,7 @@
             document.querySelectorAll('[data-edit-action]').forEach(button => {
                 button.addEventListener('click', () => handleMemoEditAction(button.dataset.editAction));
             });
+            initializeMemoFocusOptionGroups();
             initializeMemoToolbars();
             const memoFocusEditor = document.getElementById('memoFocusEditTextarea');
             memoFocusEditor.addEventListener('keydown', handleMemoEditorKeydown);

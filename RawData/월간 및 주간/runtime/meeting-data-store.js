@@ -507,6 +507,7 @@
 
     const STATUS_FIELDS = new Set(['key', 'type', 'year', 'month', 'week', 'status', 'counterIncluded', 'cardVisible', 'referenceDate', 'updatedAt', 'source', 'exceptionCode', 'note']);
     const STATUS_MUTABLE_FIELDS = ['type', 'year', 'month', 'week', 'status', 'counterIncluded', 'cardVisible', 'referenceDate', 'source', 'exceptionCode', 'note'];
+    const STATUS_CONFLICT_FIELDS = new Set(STATUS_MUTABLE_FIELDS.filter((field) => field !== 'source'));
 
     function assertExcelCellText(value, field) {
         const text = cleanString(value);
@@ -886,7 +887,7 @@
         const base = event.base || {};
         const conflicts = [];
         for (const field of Object.keys(values)) {
-            if (!STATUS_FIELDS.has(field) || field === 'key' || field === 'updatedAt') continue;
+            if (!STATUS_CONFLICT_FIELDS.has(field)) continue;
             const currentValue = current ? current[field] : null;
             if (!sameValue(currentValue, values[field]) && !sameValue(currentValue, base[field])) {
                 conflicts.push({ field, base: base[field], remote: currentValue, local: values[field] });
@@ -2231,10 +2232,10 @@
         });
     }
 
-    function normalizeMemoSyncKeys(kind, settings) {
+    function normalizeSyncKeys(kind, settings) {
         if (settings.keys === undefined) return null;
-        if (kind !== DATASET_MEMO || !Array.isArray(settings.keys) || !settings.keys.length) {
-            throw new TypeError('keys must be a non-empty array for a memo dataset sync.');
+        if (!VALID_DATASETS.has(kind) || !Array.isArray(settings.keys) || !settings.keys.length) {
+            throw new TypeError('keys must be a non-empty array for a status or memo dataset sync.');
         }
         return new Set(settings.keys.map((key) => parseMeetingKey(key).key));
     }
@@ -2254,7 +2255,7 @@
         if (!MEMO_CONFLICT_STRATEGIES.has(memoConflictStrategy)) {
             throw new TypeError(`Unknown memo conflict strategy: ${memoConflictStrategy}`);
         }
-        const selectedKeys = normalizeMemoSyncKeys(kind, settings);
+        const selectedKeys = normalizeSyncKeys(kind, settings);
         const batch = await captureSyncBatch(kind);
         const captured = selectedKeys
             ? batch.allPending.filter((event) => selectedKeys.has(event.key))
@@ -2281,7 +2282,7 @@
                 };
             }
             if (!remote.exists && selectedKeys) {
-                throw new MeetingDataStoreError('A key-scoped memo sync requires the remote memo workbook to exist.', 'SCOPED_SYNC_REMOTE_MISSING', {
+                throw new MeetingDataStoreError(`A key-scoped ${kind} sync requires the remote workbook to exist.`, 'SCOPED_SYNC_REMOTE_MISSING', {
                     dataset: kind,
                     keys: [...selectedKeys]
                 });
