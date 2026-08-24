@@ -10096,11 +10096,31 @@
     let initialTotalUnitsPerDongStatic = {
       ...BUILT_IN_TOTAL_UNITS_REFERENCE,
     };
-    // [v4.94] 건물동별 외벽 세대수 초기값 기입 (7동: 10세대 기본값 지정)
-    let initialOuterUnitsPerDongStatic = {
-      "7동": 10
-    };
-    let outerUnitsPerDongStatic = {};
+    // XLSB에는 외벽 세대수 의미 열이 없으므로 사용자 검증값을 기준으로 보완한다.
+    // 양의 사용자 설정은 보존하되, 누락·공란·잘못된 값은 기준값으로 복구한다.
+    const BUILT_IN_OUTER_UNITS_REFERENCE_VERSION = 1;
+    const BUILT_IN_OUTER_UNITS_REFERENCE_SOURCE = "사용자 검증 기준 (7동 외벽 10세대)";
+    const BUILT_IN_OUTER_UNITS_REFERENCE = Object.freeze({ "7동": 10 });
+    function mergeBuiltInOuterUnitsReference(candidateMap) {
+      const candidate =
+        candidateMap && typeof candidateMap === "object"
+          ? cloneSerializableData(candidateMap)
+          : {};
+      Object.entries(BUILT_IN_OUTER_UNITS_REFERENCE).forEach(([dong, units]) => {
+        if (parsePositiveWholeNumber(candidate[dong]) === null) candidate[dong] = units;
+      });
+      window.__lastOuterUnitsIntegrityReport = {
+        status: Object.entries(BUILT_IN_OUTER_UNITS_REFERENCE).every(
+          ([dong, units]) => Number(candidate[dong]) === units,
+        ) ? "verified" : "overridden",
+        referenceVersion: BUILT_IN_OUTER_UNITS_REFERENCE_VERSION,
+        referenceSource: BUILT_IN_OUTER_UNITS_REFERENCE_SOURCE,
+        values: cloneSerializableData(candidate),
+      };
+      return candidate;
+    }
+    let initialOuterUnitsPerDongStatic = { ...BUILT_IN_OUTER_UNITS_REFERENCE };
+    let outerUnitsPerDongStatic = { ...BUILT_IN_OUTER_UNITS_REFERENCE };
     // [성능 최적화] 대시보드 필터링 및 요약 데이터 캐시
     let dashboardFilterCache = null;
     let summaryCache = null;
@@ -14043,8 +14063,8 @@
     // --- [v5.00] IndexedDB 기반 XLSB 완전 스냅샷 캐싱 (v2 아키텍처) ---
     const WYGGKR_DB_NAME = "WyggkrCacheDB";
     const WYGGKR_STORE_NAME = "xlsbDataStore";
-    // v6: 1·6·104동을 포함한 검증 기준 카탈로그 이전 캐시는 폐기한다.
-    const WYGGKR_DB_VERSION = 6;
+    // v7: 7동 외벽 10세대 기준이 없는 이전 캐시는 폐기한다.
+    const WYGGKR_DB_VERSION = 7;
 
     function initWyggkrCacheDB() {
       return new Promise((resolve, reject) => {
@@ -14076,7 +14096,7 @@
     function captureFullSnapshot() {
       try {
         return {
-          _snapshotVersion: 6,
+          _snapshotVersion: 7,
           masterRawEntries: cloneSerializableData(masterRawEntries),
           masterCsvHeaders: cloneSerializableData(masterCsvHeaders),
           allYearsGlobal: [...allYearsGlobal],
@@ -14145,7 +14165,9 @@
       dataDongFinanceAndCountRaw = snapshot.dataDongFinanceAndCountRaw;
       baseEstimateAmounts = snapshot.baseEstimateAmounts;
       totalUnitsPerDongStatic = snapshot.totalUnitsPerDongStatic;
-      outerUnitsPerDongStatic = snapshot.outerUnitsPerDongStatic || {};
+       outerUnitsPerDongStatic = mergeBuiltInOuterUnitsReference(
+         snapshot.outerUnitsPerDongStatic,
+       );
       activeFilterConfigs = snapshot.activeFilterConfigs;
       if (snapshot.yearDongBaseAmounts) {
         window.yearDongBaseAmounts = snapshot.yearDongBaseAmounts;
@@ -14339,7 +14361,7 @@
           // v2 스냅샷 형식인지 검증 및 다르면 비우기
           if (cached) {
             if (
-              cached._snapshotVersion === 6 &&
+            cached._snapshotVersion === 7 &&
               Array.isArray(cached.masterRawEntries) &&
               cached.mappingIntegrityReport?.status === "verified" &&
               cached.mappingIntegrityReport?.mismatchCount === 0 &&
@@ -24301,6 +24323,14 @@
         auditRows.push(["상충 동", unitsReport.conflictDongCount]);
         auditRows.push(["잘못된 비공란 값", unitsReport.invalidValueCount]);
       }
+      const outerUnitsReport = window.__lastOuterUnitsIntegrityReport || null;
+      if (outerUnitsReport) {
+        auditRows.push([]);
+        auditRows.push(["외벽 세대수 기준", "검증값"]);
+        auditRows.push(["외벽 기준 상태", outerUnitsReport.status]);
+        auditRows.push(["외벽 기준 출처", outerUnitsReport.referenceSource]);
+        auditRows.push(["7동 외벽 세대수", outerUnitsReport.values?.["7동"] ?? "N/A"]);
+      }
       const runtimeReport = report.runtimeFields ||
         window.__lastRuntimeHydrationReport || null;
       if (runtimeReport) {
@@ -24609,7 +24639,7 @@
       invalidateHeaderNameCache();
       invalidatePivotViewCache();
       totalUnitsPerDongStatic = cloneSerializableData(sourceTotalUnits);
-      outerUnitsPerDongStatic = cloneSerializableData(sourceOuterUnits || initialOuterUnitsPerDongStatic);
+      outerUnitsPerDongStatic = mergeBuiltInOuterUnitsReference(sourceOuterUnits);
       activeFilterConfigs = cloneSerializableData(sourceActiveFilterConfigs);
       // [성능 최적화] 데이터 업데이트 시 캐시 무효화
       invalidateFilteredEntriesCache();
@@ -25302,8 +25332,9 @@ function applyProcessingSnapshot(snapshot) {
   window.__lastTotalUnitsIntegrityReport = cloneSerializableData(
     snapshot.totalUnitsIntegrity || null,
   );
-  outerUnitsPerDongStatic =
-    cloneSerializableData(snapshot.outerUnitsPerDongStatic) || {};
+  outerUnitsPerDongStatic = mergeBuiltInOuterUnitsReference(
+    snapshot.outerUnitsPerDongStatic,
+  );
   baseEstimateAmounts =
     cloneSerializableData(snapshot.baseEstimateAmounts) || {};
 
@@ -28632,7 +28663,7 @@ async function processUploadedData(data, isExcel = false) {
     if (saveDongUnitsButton && dongUnitsModal) {
       saveDongUnitsButton.addEventListener("click", async () => {
         totalUnitsPerDongStatic = JSON.parse(JSON.stringify(tempDongUnits));
-        outerUnitsPerDongStatic = JSON.parse(JSON.stringify(tempOuterUnits));
+        outerUnitsPerDongStatic = mergeBuiltInOuterUnitsReference(tempOuterUnits);
         allDongsGlobal = [
           ...new Set([
             ...allDongsGlobal,
@@ -36786,7 +36817,9 @@ async function processUploadedData(data, isExcel = false) {
                 BUILT_IN_TOTAL_UNITS_REFERENCE_VERSION,
             },
           );
-          outerUnitsPerDongStatic = fastDeepClone(savedSettings.outerUnitsPerDongStatic || {});
+           outerUnitsPerDongStatic = mergeBuiltInOuterUnitsReference(
+             savedSettings.outerUnitsPerDongStatic,
+           );
           activeFilterConfigs = fastDeepClone(savedSettings.activeFilterConfigs);
 
           if (typeof savedSettings.isAutoExclusionActive !== "undefined") {
@@ -36976,9 +37009,9 @@ async function processUploadedData(data, isExcel = false) {
           totalUnitsPerDongStatic = cloneSerializableData(
             initialTotalUnitsPerDongStatic,
           );
-          outerUnitsPerDongStatic = cloneSerializableData(
-            initialOuterUnitsPerDongStatic,
-          );
+           outerUnitsPerDongStatic = mergeBuiltInOuterUnitsReference(
+             initialOuterUnitsPerDongStatic,
+           );
           activeFilterConfigs = cloneSerializableData(
             initialActiveFilterConfigs,
           );
@@ -37890,8 +37923,11 @@ async function processUploadedData(data, isExcel = false) {
                 masterRawEntries: [],
                 masterCsvHeaders: masterCsvHeaders,
                 totalUnitsPerDongStatic: totalUnitsPerDongStatic,
-                totalUnitsReferenceVersion:
-                  BUILT_IN_TOTAL_UNITS_REFERENCE_VERSION,
+                 totalUnitsReferenceVersion:
+                   BUILT_IN_TOTAL_UNITS_REFERENCE_VERSION,
+                 outerUnitsPerDongStatic: outerUnitsPerDongStatic,
+                 outerUnitsReferenceVersion:
+                   BUILT_IN_OUTER_UNITS_REFERENCE_VERSION,
                 isAutoExclusionActive: isAutoExclusionActive, // 필터링 규칙 상태 저장
                 isCompleteManualModeActive: isCompleteManualModeActive,
                 scenarioTargetOrderers: Array.isArray(
