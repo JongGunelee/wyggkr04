@@ -13361,6 +13361,7 @@
     }
     const ACCORDION_INDICATOR_KEY = "accordion-transition";
     let accordionIndicatorHideTimer = null;
+    let accordionIndicatorSafetyTimer = null;
     function showAccordionIndicator(
       message = "분석 패널 정리 중",
       subMessage = "선택한 섹션을 준비하고 있습니다.",
@@ -13369,24 +13370,42 @@
         clearTimeout(accordionIndicatorHideTimer);
         accordionIndicatorHideTimer = null;
       }
+      if (accordionIndicatorSafetyTimer) {
+        clearTimeout(accordionIndicatorSafetyTimer);
+        accordionIndicatorSafetyTimer = null;
+      }
       setProcessingIndicator(
         ACCORDION_INDICATOR_KEY,
         true,
         message,
         subMessage,
       );
+      // [무결성 보증] 비동기 타이밍 이슈로 인해 해제 콜백이 유실되더라도 최대 1000ms 후 자동 해제
+      accordionIndicatorSafetyTimer = setTimeout(() => {
+        setProcessingIndicator(ACCORDION_INDICATOR_KEY, false);
+        accordionIndicatorSafetyTimer = null;
+      }, 1000);
     }
     function hideAccordionIndicatorWithDelay(delay = 180) {
       if (accordionIndicatorHideTimer) {
         clearTimeout(accordionIndicatorHideTimer);
         accordionIndicatorHideTimer = null;
       }
+      if (accordionIndicatorSafetyTimer) {
+        clearTimeout(accordionIndicatorSafetyTimer);
+        accordionIndicatorSafetyTimer = null;
+      }
+      const safeDelay = Math.max(0, typeof delay === "number" ? delay : 0);
+      if (safeDelay === 0) {
+        setProcessingIndicator(ACCORDION_INDICATOR_KEY, false);
+        return;
+      }
       accordionIndicatorHideTimer = setTimeout(
         () => {
           setProcessingIndicator(ACCORDION_INDICATOR_KEY, false);
           accordionIndicatorHideTimer = null;
         },
-        Math.max(60, typeof delay === "number" ? delay : 60),
+        safeDelay,
       );
     }
     const LAYOUT_SWITCH_INDICATOR_KEY = "layout-switch";
@@ -14852,6 +14871,8 @@
               filteredEntries.length.toLocaleString("ko-KR") +
               "행",
           );
+          hideAccordionIndicatorWithDelay(0);
+          scheduleChartResize(50);
           populateDropletMenu({ expandedManualHeader: headerName });
           adjustDropletMenuPosition();
           window.dispatchEvent(
@@ -20611,6 +20632,16 @@
           popupChartInstance = chartInstance;
         } else {
           charts[chartId] = chartInstance;
+        }
+        // [무결성 보증] 아코디언 전개 또는 표시 전환 중 0x0 캔버스 크기 오류 방지 보정
+        if (typeof window.requestAnimationFrame === "function") {
+          window.requestAnimationFrame(() => {
+            try {
+              if (chartInstance && chartInstance.canvas && chartInstance.canvas.offsetParent !== null) {
+                chartInstance.resize();
+              }
+            } catch (_) { }
+          });
         }
 
         const legendContainer = document.getElementById(
@@ -32093,6 +32124,8 @@ async function processUploadedData(data, isExcel = false) {
               if (content.classList.contains("active")) {
                 content.style.maxHeight = "none";
                 content.style.contentVisibility = "";
+                scheduleChartResize(0);
+                hideAccordionIndicatorWithDelay(0);
               }
             }, 550);
             resizeScopeElements.push(content);
@@ -32134,6 +32167,8 @@ async function processUploadedData(data, isExcel = false) {
                         if (otherContent.classList.contains("active")) {
                           otherContent.style.maxHeight = "none";
                           otherContent.style.contentVisibility = "";
+                          scheduleChartResize(0);
+                          hideAccordionIndicatorWithDelay(0);
                         }
                       }, 550);
                       resizeScopeElements.push(otherContent);
@@ -42918,6 +42953,8 @@ async function processUploadedData(data, isExcel = false) {
                 if (content.classList.contains("active")) {
                   content.style.maxHeight = "none";
                   content.style.contentVisibility = "";
+                  scheduleChartResize(0);
+                  hideAccordionIndicatorWithDelay(0);
                 }
               }, 550);
               resizeScopeElements.push(content);
@@ -42956,6 +42993,8 @@ async function processUploadedData(data, isExcel = false) {
                           if (otherContent.classList.contains("active")) {
                             otherContent.style.maxHeight = "none";
                             otherContent.style.contentVisibility = "";
+                            scheduleChartResize(0);
+                            hideAccordionIndicatorWithDelay(0);
                           }
                         }, 550);
                         resizeScopeElements.push(otherContent);
