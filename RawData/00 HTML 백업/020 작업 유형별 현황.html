@@ -5149,8 +5149,9 @@
 
   .droplet-manual-filter-tools {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     gap: 6px;
+    align-items: center;
     margin-bottom: 6px;
   }
 
@@ -5174,16 +5175,47 @@
   .droplet-manual-filter-all-btn,
   .droplet-manual-filter-apply-btn {
     min-height: 30px;
+    min-width: 42px;
     padding: 4px 9px;
+    border: 1px solid #cbd5e1;
     border-radius: 6px;
+    color: #475569;
+    background-color: #f8fafc;
+    background-image: none;
     font-size: 10px;
     font-weight: 800;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   }
 
-  .droplet-manual-filter-all-btn {
-    border: 1px solid #cbd5e1;
-    color: #475569;
-    background: #f8fafc;
+  .droplet-manual-filter-all-btn:hover,
+  .droplet-manual-filter-apply-btn:hover:not(.is-pulse) {
+    background-color: #e2e8f0;
+    border-color: #94a3b8;
+    color: #1e293b;
+  }
+
+  @keyframes droplet-apply-red-pulse {
+    0%, 100% {
+      background-color: #ef4444;
+      border-color: #dc2626;
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    50% {
+      background-color: #dc2626;
+      border-color: #991b1b;
+      box-shadow: 0 0 10px 3px rgba(220, 38, 38, 0.65);
+    }
+  }
+
+  .droplet-manual-filter-apply-btn.is-pulse {
+    animation: droplet-apply-red-pulse 1s infinite alternate ease-in-out !important;
+    background-color: #ef4444 !important;
+    border-color: #dc2626 !important;
+    color: #ffffff !important;
+    font-weight: 900 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45) !important;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
   }
 
   .droplet-manual-filter-choices {
@@ -5233,10 +5265,7 @@
   }
 
   .droplet-manual-filter-apply-btn {
-    min-width: 54px;
-    border: 1px solid #0284c7;
-    color: #ffffff;
-    background: #0284c7;
+    min-width: 42px;
   }
 
   .droplet-manual-filter-apply-btn:disabled {
@@ -14945,20 +14974,62 @@
         const allButton = document.createElement("button");
         allButton.type = "button";
         allButton.className = "droplet-manual-filter-all-btn";
-        allButton.textContent = "전체";
+        allButton.textContent = "비움";
         allButton.title = "선택을 비워 전체 원본 범위로 설정";
-        tools.append(search, allButton);
+        const applyButton = document.createElement("button");
+        applyButton.type = "button";
+        applyButton.className = "droplet-manual-filter-apply-btn";
+        applyButton.textContent = "적용";
+        applyButton.title = meta.label + " 필터 선택 적용";
+        tools.append(search, allButton, applyButton);
 
         const choices = document.createElement("div");
         choices.className = "droplet-manual-filter-choices";
-        options.forEach((optionValue) => {
+
+        const updateApplyPulseState = () => {
+          const currentChecked = Array.from(
+            choices.querySelectorAll('input[type="checkbox"]:checked'),
+          ).map((cb) => String(cb.value));
+          const currentSet = new Set(currentChecked);
+          const isDirty =
+            currentSet.size !== selectedSet.size ||
+            currentChecked.some((val) => !selectedSet.has(val));
+          applyButton.classList.toggle("is-pulse", isDirty);
+        };
+
+        const reorderChoices = () => {
+          const labels = Array.from(
+            choices.querySelectorAll(".droplet-manual-filter-choice"),
+          );
+          labels.sort((a, b) => {
+            const aChecked = a.querySelector('input[type="checkbox"]')?.checked ? 1 : 0;
+            const bChecked = b.querySelector('input[type="checkbox"]')?.checked ? 1 : 0;
+            if (aChecked !== bChecked) {
+              return bChecked - aChecked;
+            }
+            return (Number(a.dataset.index) || 0) - (Number(b.dataset.index) || 0);
+          });
+          labels.forEach((lbl) => choices.appendChild(lbl));
+        };
+
+        options.forEach((optionValue, optIdx) => {
           const label = document.createElement("label");
           label.className = "droplet-manual-filter-choice";
+          label.dataset.index = String(optIdx);
           label.dataset.searchText = String(optionValue).toLocaleLowerCase("ko-KR");
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
           checkbox.value = optionValue;
           checkbox.checked = selectedSet.has(String(optionValue));
+          checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+              choices.prepend(label);
+              choices.scrollTop = 0;
+            } else {
+              reorderChoices();
+            }
+            updateApplyPulseState();
+          });
           const labelText = document.createElement("span");
           labelText.textContent =
             headerName === getHeaderName("작업유형")
@@ -14972,19 +15043,12 @@
           empty.className = "droplet-manual-filter-hint";
           empty.textContent = "현재 원본 데이터에 선택 가능한 값이 없습니다.";
           choices.appendChild(empty);
+        } else {
+          reorderChoices();
         }
+        updateApplyPulseState();
 
-        const footer = document.createElement("div");
-        footer.className = "droplet-manual-filter-footer";
-        const hint = document.createElement("span");
-        hint.className = "droplet-manual-filter-hint";
-        hint.textContent = "선택 없음 = 전체";
-        const applyButton = document.createElement("button");
-        applyButton.type = "button";
-        applyButton.className = "droplet-manual-filter-apply-btn";
-        applyButton.textContent = "적용";
-        footer.append(hint, applyButton);
-        panel.append(tools, choices, footer);
+        panel.append(tools, choices);
         item.append(toggle, panel);
         container.appendChild(item);
 
@@ -15031,10 +15095,13 @@
             .forEach((checkbox) => {
               checkbox.checked = false;
             });
+          reorderChoices();
+          updateApplyPulseState();
         });
         applyButton.addEventListener("click", async (event) => {
           event.preventDefault();
           event.stopPropagation();
+          applyButton.classList.remove("is-pulse");
           if (dropletManualFilterApplyPromise) return;
           applyButton.disabled = true;
           applyButton.setAttribute("aria-busy", "true");
