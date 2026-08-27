@@ -2755,6 +2755,387 @@
             color: #777;
         }
 
+        /* 다중 이미지 확대 배치 작업공간: 텍스트/단일 항목 확대와 독립적으로 동작 */
+        #selectionZoomOverlay.multi-image-layout {
+            display: flex !important;
+            z-index: 52000 !important;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            overflow: hidden;
+            cursor: default;
+            background: rgba(4, 12, 24, 0.97);
+        }
+
+        #selectionZoomOverlay.multi-image-layout #selectionZoomContent {
+            position: relative;
+            width: calc(100vw - 32px);
+            height: calc(100vh - 32px);
+            max-width: none;
+            max-height: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            box-sizing: border-box;
+            border: 1px solid rgba(148, 163, 184, 0.38);
+            border-radius: 16px;
+            background: radial-gradient(circle at 50% 35%, rgba(30, 64, 175, 0.18), rgba(2, 6, 23, 0.88) 68%);
+            box-shadow: 0 18px 55px rgba(0, 0, 0, 0.45);
+            touch-action: none;
+        }
+
+        #selectionZoomOverlay.multi-image-layout .close-selection-zoom-btn {
+            position: fixed;
+            top: max(10px, env(safe-area-inset-top));
+            right: max(10px, env(safe-area-inset-right));
+            width: 48px;
+            height: 48px;
+            padding: 0;
+            border-radius: 50%;
+            color: #ffffff;
+            background: rgba(15, 23, 42, 0.88);
+            z-index: 52010;
+        }
+
+        .multi-image-zoom-help {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            max-width: calc(100% - 130px);
+            padding: 8px 14px;
+            border-radius: 999px;
+            color: #e2e8f0;
+            background: rgba(15, 23, 42, 0.82);
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.35;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .multi-image-zoom-item {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 72px;
+            min-height: 54px;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            box-sizing: border-box;
+            border: 2px solid rgba(148, 163, 184, 0.72);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+            cursor: grab;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .multi-image-zoom-item.active {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.28), 0 12px 28px rgba(0, 0, 0, 0.48);
+        }
+
+        .multi-image-zoom-item.is-dragging {
+            cursor: grabbing;
+            transition: none;
+        }
+
+        .multi-image-zoom-item > img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            object-fit: contain;
+            pointer-events: none;
+            -webkit-user-drag: none;
+        }
+
+        .multi-image-zoom-index {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            padding: 0 7px;
+            border-radius: 999px;
+            color: #ffffff;
+            background: rgba(15, 23, 42, 0.88);
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        .zoom-editor-toolbar.multi-image-workspace-toolbar {
+            z-index: 52020 !important;
+        }
+
+        /* 다중 배치에서 선택한 이미지를 기존 단일 편집기로 안전하게 연결한다. */
+        body.multi-image-item-editing #selectionZoomOverlay.multi-image-layout {
+            pointer-events: none;
+            visibility: hidden;
+        }
+
+        body.selection-zoom-active.multi-image-item-editing.image-zoom-active #imageZoomOverlay {
+            z-index: 53000 !important;
+        }
+
+        body.multi-image-item-editing #imageCropOverlay {
+            z-index: 54000 !important;
+        }
+
+        body.selection-zoom-active #openFocusedEditorBtn {
+            display: none !important;
+        }
+
+        /* 로컬 file:// 실행에서도 달력 핵심 레이아웃을 보장하는 독립 안전망 */
+        .flatpickr-calendar {
+            position: absolute;
+            width: 307.875px;
+            padding: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            color: #334155;
+            background: #ffffff;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+            font-size: 14px;
+            line-height: 24px;
+            text-align: center;
+        }
+
+        .flatpickr-calendar:not(.open):not(.inline) {
+            display: none;
+            visibility: hidden;
+            opacity: 0;
+        }
+
+        .flatpickr-calendar.open {
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 99999 !important;
+        }
+
+        .flatpickr-months,
+        .flatpickr-weekdays,
+        .flatpickr-weekdaycontainer,
+        .flatpickr-days,
+        .dayContainer {
+            display: flex;
+            box-sizing: border-box;
+        }
+
+        .flatpickr-months {
+            position: relative;
+            align-items: center;
+            width: 100%;
+            height: 36px;
+        }
+
+        .flatpickr-months .flatpickr-month {
+            position: relative;
+            flex: 1 1 auto;
+            height: 36px;
+            overflow: hidden;
+        }
+
+        .flatpickr-current-month {
+            position: absolute;
+            left: 12.5%;
+            width: 75%;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .flatpickr-current-month .flatpickr-monthDropdown-months,
+        .flatpickr-current-month input.cur-year {
+            height: 28px;
+            box-sizing: border-box;
+            border: 0;
+            background: transparent;
+            font: inherit;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .flatpickr-current-month .numInputWrapper {
+            position: relative;
+            display: inline-block;
+            width: 64px;
+            height: 28px;
+        }
+
+        .flatpickr-current-month .numInputWrapper input {
+            width: 100%;
+        }
+
+        .flatpickr-prev-month,
+        .flatpickr-next-month {
+            position: absolute;
+            top: 0;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        .flatpickr-prev-month { left: 0; }
+        .flatpickr-next-month { right: 0; }
+        .flatpickr-prev-month svg,
+        .flatpickr-next-month svg { width: 14px; height: 14px; }
+
+        .flatpickr-weekdays {
+            width: 100%;
+            height: 28px;
+            align-items: center;
+        }
+
+        .flatpickr-weekdaycontainer {
+            width: 100%;
+        }
+
+        span.flatpickr-weekday {
+            flex: 1 1 14.2857%;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .flatpickr-innerContainer,
+        .flatpickr-rContainer {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .flatpickr-days,
+        .dayContainer {
+            width: 307.875px;
+            min-width: 307.875px;
+            max-width: 307.875px;
+        }
+
+        .dayContainer {
+            flex-wrap: wrap;
+            justify-content: space-around;
+        }
+
+        .flatpickr-day {
+            position: relative;
+            display: inline-flex;
+            flex: 0 0 14.2857%;
+            align-items: center;
+            justify-content: center;
+            width: 14.2857%;
+            max-width: 39px;
+            height: 39px;
+            margin: 0;
+            box-sizing: border-box;
+            border: 1px solid transparent;
+            border-radius: 999px;
+            line-height: 39px;
+            text-align: center;
+        }
+
+        @media (max-width: 340px) {
+            .flatpickr-calendar,
+            .flatpickr-days,
+            .dayContainer {
+                width: calc(100vw - 16px);
+                min-width: calc(100vw - 16px);
+                max-width: calc(100vw - 16px);
+            }
+        }
+
+        @media (max-width: 600px) and (orientation: portrait) {
+            body.multi-image-item-editing .zoom-editor-toolbar:not(.collapsed),
+            .zoom-editor-toolbar.multi-image-workspace-toolbar:not(.collapsed) {
+                left: 8px !important;
+                right: 8px !important;
+                top: auto !important;
+                bottom: max(12px, env(safe-area-inset-bottom)) !important;
+                width: calc(100vw - 16px) !important;
+                max-width: calc(100vw - 16px) !important;
+                transform: none !important;
+                box-sizing: border-box;
+            }
+
+            body.multi-image-item-editing .zoom-editor-toolbar:not(.collapsed),
+            .zoom-editor-toolbar.multi-image-workspace-toolbar:not(.collapsed) {
+                max-height: 116px !important;
+                overflow: hidden !important;
+            }
+
+            body.multi-image-item-editing .zoom-toolbar-actions,
+            .zoom-editor-toolbar.multi-image-workspace-toolbar .zoom-toolbar-actions {
+                flex-wrap: nowrap !important;
+                justify-content: flex-start !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                scrollbar-width: thin;
+            }
+
+            body.multi-image-item-editing .zoom-tool-btn,
+            .zoom-editor-toolbar.multi-image-workspace-toolbar .zoom-tool-btn {
+                flex: 0 0 auto;
+            }
+
+            body.multi-image-item-editing #annotationSettingsPanel.collapsed {
+                left: auto !important;
+                right: max(10px, env(safe-area-inset-right)) !important;
+                top: max(10px, env(safe-area-inset-top)) !important;
+                bottom: auto !important;
+                transform: none !important;
+            }
+
+            #selectionZoomOverlay.multi-image-layout {
+                padding: 8px;
+            }
+
+            #selectionZoomOverlay.multi-image-layout #selectionZoomContent {
+                width: calc(100vw - 16px);
+                height: calc(100vh - 16px);
+                height: calc(100dvh - 16px);
+                border-radius: 12px;
+            }
+
+            .multi-image-zoom-help {
+                top: 8px;
+                left: 10px;
+                right: 58px;
+                max-width: none;
+                transform: none;
+                padding: 7px 10px;
+                font-size: 11px;
+                text-align: left;
+            }
+
+            #selectionZoomOverlay.multi-image-layout .close-selection-zoom-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 24px;
+            }
+
+        }
+
         .custom-message-box {
             position: fixed;
             top: 20px;
@@ -4149,6 +4530,10 @@
             bottom: 90px !important;
         }
 
+        body.focused-editor-active #multiZoomTriggerBtn {
+            z-index: 32001 !important;
+        }
+
         body.focused-editor-active .floating-panel,
         body.focused-editor-active #annotationSettingsPanel {
             z-index: 32002 !important;
@@ -4161,6 +4546,10 @@
 
         body.image-zoom-active #imageZoomOverlay {
             z-index: 50000 !important;
+        }
+
+        body.focused-editor-active #imageCropOverlay {
+            z-index: 56000 !important;
         }
 
         body.focused-editor-active #appContainer {
@@ -4583,6 +4972,160 @@
     box-shadow: 0 6px 18px rgba(13, 148, 136, 0.5) !important;
 }
 /* --- END: 043 전용 입력창 근접 🔍 확대 편집 버튼 최상위 CSS --- */
+</style>
+<style id="zoom-toolbar-integrity-refactor">
+/* 판서 툴바 반응형 무결성 보강: 데스크탑 한 줄, 모바일 필요 시 줄바꿈 */
+@media (min-width: 601px) {
+    .zoom-editor-toolbar:not(.collapsed) {
+        width: max-content !important;
+        max-width: calc(100vw - 16px) !important;
+        flex-wrap: nowrap !important;
+        box-sizing: border-box;
+    }
+    .zoom-editor-toolbar:not(.collapsed) .zoom-toolbar-actions {
+        width: auto !important;
+        max-width: calc(100vw - 24px) !important;
+        flex-wrap: nowrap !important;
+        gap: clamp(2px, 0.45vw, 8px) !important;
+    }
+    .zoom-editor-toolbar:not(.collapsed) .zoom-tool-btn {
+        flex: 0 1 auto !important;
+        min-width: 0;
+        padding: clamp(5px, 0.55vw, 8px) clamp(5px, 0.72vw, 12px) !important;
+        font-size: clamp(10px, 0.92vw, 14px) !important;
+        white-space: nowrap;
+    }
+}
+@media (min-width: 601px) and (max-width: 720px) {
+    .zoom-editor-toolbar:not(.collapsed) {
+        padding: 6px !important;
+        gap: 4px !important;
+    }
+    .zoom-editor-toolbar:not(.collapsed) .zoom-toolbar-actions {
+        gap: 1px !important;
+    }
+    .zoom-editor-toolbar:not(.collapsed) .zoom-tool-btn {
+        padding: 4px 2px !important;
+        font-size: 9px !important;
+        gap: 1px !important;
+    }
+    .zoom-editor-toolbar:not(.collapsed) .toolbar-divider {
+        margin: 0 !important;
+    }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+    .zoom-editor-toolbar:not(.collapsed),
+    body.multi-image-item-editing .zoom-editor-toolbar:not(.collapsed),
+    .zoom-editor-toolbar.multi-image-workspace-toolbar:not(.collapsed) {
+        left: 8px !important;
+        right: 8px !important;
+        top: auto !important;
+        bottom: max(10px, env(safe-area-inset-bottom)) !important;
+        width: calc(100vw - 16px) !important;
+        max-width: calc(100vw - 16px) !important;
+        max-height: min(42vh, 320px) !important;
+        padding: 7px !important;
+        transform: none !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        box-sizing: border-box;
+    }
+    .zoom-editor-toolbar:not(.collapsed) .zoom-toolbar-actions,
+    body.multi-image-item-editing .zoom-toolbar-actions,
+    .zoom-editor-toolbar.multi-image-workspace-toolbar .zoom-toolbar-actions {
+        width: 100% !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 5px !important;
+        overflow: visible !important;
+    }
+    .zoom-editor-toolbar:not(.collapsed) .zoom-tool-btn,
+    body.multi-image-item-editing .zoom-tool-btn,
+    .zoom-editor-toolbar.multi-image-workspace-toolbar .zoom-tool-btn {
+        flex: 0 1 auto !important;
+        min-height: 38px;
+        padding: 7px 8px !important;
+        font-size: 12px !important;
+        white-space: nowrap;
+    }
+    .floating-bubble-toggle {
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+    }
+}
+
+/* 다중 이미지의 현재 선택과 손가락/마우스 리사이즈 지점 */
+.multi-image-zoom-item.active {
+    border: 4px solid #38bdf8 !important;
+    outline: 2px solid rgba(255, 255, 255, 0.96);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 7px rgba(14, 165, 233, 0.4), 0 14px 34px rgba(0, 0, 0, 0.58) !important;
+}
+.multi-image-zoom-item.is-resizing {
+    cursor: nwse-resize;
+    transition: none;
+}
+.multi-image-resize-handle {
+    position: absolute;
+    z-index: 6;
+    width: 18px;
+    height: 18px;
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+    background: #0284c7;
+    box-shadow: 0 2px 7px rgba(0, 0, 0, 0.65);
+    display: none;
+    box-sizing: border-box;
+    touch-action: none;
+}
+.multi-image-zoom-item.active .multi-image-resize-handle { display: block; }
+.multi-image-resize-handle[data-resize-direction="nw"] { left: 3px; top: 3px; cursor: nwse-resize; }
+.multi-image-resize-handle[data-resize-direction="ne"] { right: 3px; top: 3px; cursor: nesw-resize; }
+.multi-image-resize-handle[data-resize-direction="sw"] { left: 3px; bottom: 3px; cursor: nesw-resize; }
+.multi-image-resize-handle[data-resize-direction="se"] { right: 3px; bottom: 3px; cursor: nwse-resize; }
+.zoom-multi-image-number-badge {
+    position: fixed;
+    top: max(18px, env(safe-area-inset-top));
+    left: max(18px, env(safe-area-inset-left));
+    z-index: 53030;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 8px 16px;
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    border-radius: 999px;
+    color: #ffffff;
+    background: linear-gradient(145deg, rgba(14, 165, 233, 0.96), rgba(29, 78, 216, 0.96));
+    box-shadow: 0 8px 22px rgba(2, 8, 23, 0.55);
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1;
+    box-sizing: border-box;
+    pointer-events: none;
+    user-select: none;
+}
+.zoom-multi-image-number-badge[hidden] { display: none !important; }
+@media (max-width: 600px) and (orientation: portrait) {
+    .multi-image-resize-handle {
+        width: 24px;
+        height: 24px;
+        border-width: 4px;
+    }
+    .zoom-multi-image-number-badge {
+        top: max(10px, env(safe-area-inset-top));
+        left: max(10px, env(safe-area-inset-left));
+        min-height: 38px;
+        padding: 7px 12px;
+        font-size: 13px;
+    }
+    body.image-zoom-active #annotationSettingsPanel.collapsed {
+        top: max(72px, calc(env(safe-area-inset-top) + 62px)) !important;
+        right: max(10px, env(safe-area-inset-right)) !important;
+    }
+}
 </style>
 </head>
 
@@ -5284,6 +5827,7 @@
                     <button class="zoom-tool-btn" id="zoomPanBtn" title="화면 이동">✋ 이동</button>
                     <button class="zoom-tool-btn" id="zoomCropBtn" title="이미지 자르기">✂️ 자르기</button>
                     <button class="zoom-tool-btn" id="zoomCloneBtn" title="이미지 복제">📋 복제</button>
+                    <button class="zoom-tool-btn" id="zoomDownloadBtn" title="선택 이미지 다운로드" aria-label="선택 이미지 다운로드">⬇️ <span class="zoom-download-label">저장</span></button>
                     <button class="zoom-tool-btn" id="zoomDeleteBtn" title="이미지 삭제">🗑️ 삭제</button>
                 </div>
             </div>
@@ -5497,11 +6041,14 @@
             const persistence = {
                 resetRuntimeArtifacts(clonedDoc) {
                     if (!clonedDoc) return;
+                    clonedDoc.getElementById('selectedImageDownloadBtn')?.remove();
+                    cleanCurrentDocumentOfDuplicateToolbars(clonedDoc);
+                    restoreZoomEditorToolbarHome(clonedDoc);
 
                     clonedDoc.body?.classList.remove(
                         'true-fullscreen-active', 'screensaver-active',
                         'show-icons-all', 'show-icons-selected',
-                        'selection-zoom-active', 'image-zoom-active',
+                        'selection-zoom-active', 'image-zoom-active', 'multi-image-item-editing',
                         'compare-mode-active', 'comparison-view-active',
                         'item-selection-mode', 'item-deletion-mode',
                         'shift-pressed', 'ctrl-pressed', 'is-clicking',
@@ -5532,6 +6079,19 @@
                             element.classList.remove('interacting', 'visible', 'collapsed', 'is-dragging');
                         }
                     });
+
+                    const clonedSelectionZoomOverlay = clonedDoc.getElementById('selectionZoomOverlay');
+                    if (clonedSelectionZoomOverlay) {
+                        clonedSelectionZoomOverlay.classList.remove('multi-image-layout');
+                        clonedSelectionZoomOverlay.removeAttribute('aria-label');
+                    }
+                    const clonedSelectionZoomContent = clonedDoc.getElementById('selectionZoomContent');
+                    if (clonedSelectionZoomContent) {
+                        clonedSelectionZoomContent.innerHTML = '';
+                        clonedSelectionZoomContent.removeAttribute('style');
+                        clonedSelectionZoomContent.removeAttribute('role');
+                        clonedSelectionZoomContent.removeAttribute('aria-label');
+                    }
 
                     ['zoomToolbarCollapseToggle', 'annotationPanelCollapseToggle'].forEach(id => {
                         const toggle = clonedDoc.getElementById(id);
@@ -5869,6 +6429,7 @@
         let currentlySelectedElementForStyling = null;
         let currentlyActiveItemControlsElement = null;
         let elementsForMultiZoom = [];
+        const rememberedMultiZoomImages = new Set();
         let displayedYearInNav, displayedMonthInNav;
         let documentYear, documentMonth, documentWeek;
         let idleTimer = null;
@@ -5886,6 +6447,7 @@
 
         // --- START: 이미지 편집 고도화 관련 변수 ---
         let currentCroppingWrapper = null;
+        let returnToZoomAfterCrop = false;
         // --- END: 이미지 편집 고도화 관련 변수 ---
 
         // *** 개선 사항 1: 이미지 자유 삽입을 위한 전역 변수 추가 ***
@@ -6775,29 +7337,125 @@
 
         
         // --- START: 본문 내 오염된 중복 툴바 자동 정화 함수 ---
-        function cleanCurrentDocumentOfDuplicateToolbars() {
+        function getCanonicalZoomEditorToolbar(targetDoc = document) {
+            const overlay = targetDoc.querySelector('#appContainer > #imageZoomOverlay');
+            return overlay?.querySelector(':scope > #zoomEditorToolbar') ||
+                targetDoc.querySelector('body > #zoomEditorToolbar[data-multi-image-workspace="true"]') || null;
+        }
+
+        function restoreZoomEditorToolbarHome(targetDoc = document) {
+            const toolbar = getCanonicalZoomEditorToolbar(targetDoc);
+            const overlay = targetDoc.querySelector('#appContainer > #imageZoomOverlay');
+            if (!toolbar || !overlay) return toolbar;
+
+            if (toolbar.parentElement !== overlay) {
+                const zoomContent = overlay.querySelector(':scope > #imageZoomContent');
+                overlay.insertBefore(toolbar, zoomContent || null);
+            }
+            toolbar.querySelector(':scope > .multi-image-toolbar-status')?.remove();
+            toolbar.querySelectorAll('.zoom-tool-btn[data-multi-was-disabled]').forEach(button => {
+                button.disabled = button.dataset.multiWasDisabled === 'true';
+                if (button.dataset.multiOriginalTitle !== undefined) button.title = button.dataset.multiOriginalTitle;
+                delete button.dataset.multiWasDisabled;
+                delete button.dataset.multiOriginalTitle;
+                button.removeAttribute('aria-disabled');
+            });
+            const originalStyle = toolbar.dataset.multiOriginalStyle;
+            if (originalStyle !== undefined) {
+                if (originalStyle) toolbar.setAttribute('style', originalStyle);
+                else toolbar.removeAttribute('style');
+            }
+            toolbar.classList.remove('multi-image-workspace-toolbar', 'collapsed', 'is-dragging');
+            const collapseToggle = toolbar.querySelector('#zoomToolbarCollapseToggle, #zoomToolbarBubbleToggle');
+            if (collapseToggle) {
+                collapseToggle.textContent = '-';
+                collapseToggle.setAttribute('aria-expanded', 'true');
+            }
+            toolbar.removeAttribute('data-multi-image-workspace');
+            toolbar.removeAttribute('data-multi-original-style');
+            toolbar.removeAttribute('aria-label');
+            return toolbar;
+        }
+
+        function cleanCurrentDocumentOfDuplicateToolbars(targetDoc = document) {
             try {
                 // 본문 영역(#contentArea, .insert-area, .box 등) 내부에 오염/복제되어 들어간 서식 툴바 노드 전면 제거
-                const contentToolbars = document.querySelectorAll(
+                const contentToolbars = targetDoc.querySelectorAll(
                     '#contentArea .text-format-toolbar, #contentArea #textFormatToolbar, ' +
                     '#contentArea .mini-toolbar, #contentArea #miniToolbar, ' +
                     '.insert-area .text-format-toolbar, .insert-area #textFormatToolbar, ' +
-                    '.box .text-format-toolbar, .box #textFormatToolbar'
+                    '.box .text-format-toolbar, .box #textFormatToolbar, ' +
+                    '#content .zoom-editor-toolbar, #focusedEditorSurface .zoom-editor-toolbar, ' +
+                    '.insert-area .zoom-editor-toolbar, .box .zoom-editor-toolbar'
                 );
                 contentToolbars.forEach(el => el.remove());
 
-                // document.body 직계 자식으로 있는 본래 textFormatToolbar 1개 빼고 나머지 중복 서식 툴바 제거
-                const allTextFormatToolbars = document.querySelectorAll('#textFormatToolbar, .text-format-toolbar');
-                allTextFormatToolbars.forEach((el, index) => {
-                    if (el.parentNode !== document.body) {
-                        el.remove();
-                    } else if (index > 0) {
-                        el.remove();
-                    }
+                // appContainer/body 아래 정식 textFormatToolbar 1개만 보존
+                const canonicalTextToolbar = targetDoc.querySelector('#appContainer > #textFormatToolbar') ||
+                    targetDoc.querySelector('body > #textFormatToolbar');
+                const allTextFormatToolbars = targetDoc.querySelectorAll('#textFormatToolbar, .text-format-toolbar');
+                allTextFormatToolbars.forEach(el => {
+                    if (el !== canonicalTextToolbar) el.remove();
+                });
+
+                const canonicalZoomOverlay = targetDoc.querySelector('#appContainer > #imageZoomOverlay');
+                targetDoc.querySelectorAll('[id="imageZoomOverlay"]').forEach(overlay => {
+                    if (overlay !== canonicalZoomOverlay) overlay.remove();
+                });
+                const canonicalSelectionOverlay = targetDoc.querySelector('#appContainer > #selectionZoomOverlay');
+                targetDoc.querySelectorAll('[id="selectionZoomOverlay"]').forEach(overlay => {
+                    if (overlay !== canonicalSelectionOverlay) overlay.remove();
+                });
+                const canonicalZoomToolbar = getCanonicalZoomEditorToolbar(targetDoc);
+                targetDoc.querySelectorAll('[id="zoomEditorToolbar"], .zoom-editor-toolbar').forEach(toolbar => {
+                    if (toolbar !== canonicalZoomToolbar) toolbar.remove();
                 });
             } catch (e) {
                 console.error('툴바 정화 중 오류:', e);
             }
+        }
+
+        function stripRuntimeUiFromClone(clone) {
+            if (!clone?.querySelectorAll) return clone;
+            clone.querySelectorAll(
+                '.item-controls, .insert-area-toggle-btn, .box-toggle-btn, .resize-handle-img, ' +
+                '.text-format-toolbar, #textFormatToolbar, .mini-toolbar, #miniToolbar, ' +
+                '.zoom-editor-toolbar, [id="zoomEditorToolbar"], [id="imageZoomOverlay"], [id="selectionZoomOverlay"]'
+            ).forEach(element => element.remove());
+            return clone;
+        }
+
+        function showMultiImageWorkspaceToolbar(imageCount) {
+            const toolbar = ensureSingleZoomEditorToolbar();
+            if (!toolbar) return null;
+            if (!toolbar.hasAttribute('data-multi-original-style')) {
+                toolbar.dataset.multiOriginalStyle = toolbar.getAttribute('style') || '';
+            }
+
+            toolbar.querySelector(':scope > .multi-image-toolbar-status')?.remove();
+            toolbar.querySelectorAll('.zoom-tool-btn').forEach(button => {
+                if (!button.hasAttribute('data-multi-was-disabled')) {
+                    button.dataset.multiWasDisabled = String(button.disabled);
+                    button.dataset.multiOriginalTitle = button.title || '';
+                }
+                button.disabled = false;
+                button.removeAttribute('aria-disabled');
+                if (button.dataset.multiOriginalTitle !== undefined) button.title = button.dataset.multiOriginalTitle;
+            });
+
+            document.body.appendChild(toolbar);
+            toolbar.dataset.multiImageWorkspace = 'true';
+            toolbar.classList.add('multi-image-workspace-toolbar');
+            toolbar.setAttribute('aria-label', `판서 메뉴 · 선택된 ${imageCount}개 이미지 편집`);
+            toolbar.classList.remove('collapsed', 'is-dragging');
+            Object.assign(toolbar.style, {
+                display: 'flex', position: 'fixed', zIndex: '52020', pointerEvents: 'auto',
+                left: window.matchMedia('(max-width: 600px)').matches ? '8px' : '50%',
+                right: window.matchMedia('(max-width: 600px)').matches ? '8px' : 'auto',
+                top: 'auto', bottom: 'max(12px, env(safe-area-inset-bottom))',
+                transform: window.matchMedia('(max-width: 600px)').matches ? 'none' : 'translateX(-50%)'
+            });
+            return toolbar;
         }
         // --- END: 본문 내 오염된 중복 툴바 자동 정화 함수 ---
 
@@ -6974,12 +7632,14 @@ function hideTextFormatToolbar() {
 
         function triggerZoomOnElement(zoomTarget) {
             if (!zoomTarget || !appContainer.contains(zoomTarget) || selectionZoomOverlay.style.display === 'block') return;
+            cleanCurrentDocumentOfDuplicateToolbars();
+            resetSelectionZoomPresentation();
             const activeEl = document.activeElement;
             if (activeEl && activeEl !== zoomTarget && appContainer.contains(activeEl) && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName)) return;
             if (window.getSelection().toString().length > 0 && activeEl === zoomTarget && zoomTarget.isContentEditable) return;
 
             const clone = zoomTarget.cloneNode(true);
-            clone.querySelectorAll('.item-controls, .insert-area-toggle-btn, .resize-handle-img').forEach(ctrl => ctrl.remove());
+            stripRuntimeUiFromClone(clone);
             clone.classList.remove('controls-active', 'multi-zoom-selected', 'active');
             Object.assign(clone.style, { transform: 'none', cursor: 'auto' });
 
@@ -7008,8 +7668,390 @@ function hideTextFormatToolbar() {
             fullscreenChangeHandler();
         }
 
+        function resetSelectionZoomPresentation() {
+            if (selectionZoomOverlay) {
+                selectionZoomOverlay.classList.remove('multi-image-layout');
+                selectionZoomOverlay.removeAttribute('aria-label');
+            }
+            if (selectionZoomContent) {
+                selectionZoomContent.removeAttribute('style');
+                selectionZoomContent.removeAttribute('role');
+                selectionZoomContent.removeAttribute('aria-label');
+            }
+        }
+
+        function isImageOnlyZoomCollection(elements) {
+            return Array.isArray(elements) && elements.length > 1 && elements.every(element =>
+                element && element.isConnected && element.matches('.resizable-image-wrapper') && element.querySelector('img[src]')
+            );
+        }
+
+        function getActiveMultiImageZoomItem() {
+            return selectionZoomContent?.querySelector('.multi-image-zoom-item.active') ||
+                selectionZoomContent?.querySelector('.multi-image-zoom-item') || null;
+        }
+
+        function refreshMultiImageWorkspaceItems(preferredSourceImage = null) {
+            if (!selectionZoomContent) return [];
+            const previouslyActive = getActiveMultiImageZoomItem();
+            const connectedWrappers = [];
+
+            Array.from(selectionZoomContent.querySelectorAll('.multi-image-zoom-item')).forEach(item => {
+                const sourceImage = item.__sourceImageElement;
+                const sourceWrapper = item.__sourceImageWrapper;
+                if (!sourceImage?.isConnected || !sourceWrapper?.isConnected) {
+                    item.remove();
+                    return;
+                }
+                const previewImage = item.querySelector(':scope > img');
+                if (previewImage && previewImage.src !== sourceImage.src) previewImage.src = sourceImage.src;
+                connectedWrappers.push(sourceWrapper);
+            });
+
+            const items = Array.from(selectionZoomContent.querySelectorAll('.multi-image-zoom-item'));
+            const preferredItem = items.find(item => item.__sourceImageElement === preferredSourceImage) ||
+                (items.includes(previouslyActive) ? previouslyActive : items[0]) || null;
+            items.forEach((item, index) => {
+                const isActive = item === preferredItem;
+                item.dataset.multiImageIndex = String(index);
+                item.classList.toggle('active', isActive);
+                item.setAttribute('aria-pressed', String(isActive));
+                item.setAttribute('aria-label', `${index + 1}번 이미지. 드래그로 이동하고 모서리 조절점을 드래그해 크기 조정`);
+                const badge = item.querySelector('.multi-image-zoom-index');
+                if (badge) badge.textContent = String(index + 1);
+            });
+            selectionZoomContent.setAttribute('aria-label', `${items.length}개 이미지 배치 작업공간`);
+
+            elementsForMultiZoom = Array.from(new Set(connectedWrappers));
+            rememberedMultiZoomImages.clear();
+            elementsForMultiZoom.forEach(wrapper => rememberedMultiZoomImages.add(wrapper));
+            return items;
+        }
+
+        function resumeMultiImageWorkspaceFromEditor(preferredSourceImage = null) {
+            if (!multiImageItemEditorReturnState) return false;
+            hideMultiImageEditorNumberBadge();
+            multiImageItemEditorReturnState = null;
+            document.body.classList.remove('multi-image-item-editing');
+
+            const items = refreshMultiImageWorkspaceItems(preferredSourceImage);
+            if (!selectionZoomOverlay?.classList.contains('multi-image-layout') || items.length === 0) {
+                closeSelectionZoom();
+                return false;
+            }
+
+            selectionZoomOverlay.style.display = 'flex';
+            document.body.classList.add('selection-zoom-active');
+            document.body.style.overflow = 'hidden';
+            showMultiImageWorkspaceToolbar(items.length);
+            ensureMultiImageToolbarActionBridge();
+            fullscreenChangeHandler();
+            return true;
+        }
+
+        function handleMultiImageToolbarAction(event) {
+            const toolbar = event.currentTarget;
+            if (toolbar?.dataset.multiImageWorkspace !== 'true') return;
+            const actionButton = event.target.closest('.zoom-tool-btn');
+            if (!actionButton || !toolbar.contains(actionButton)) return;
+
+            const activeItem = getActiveMultiImageZoomItem();
+            const sourceImage = activeItem?.__sourceImageElement;
+            if (!sourceImage?.isConnected || !sourceImage.src) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                showMessage('편집할 이미지를 먼저 선택해 주세요.', 'warning');
+                return;
+            }
+
+            if (actionButton.id === 'zoomDownloadBtn') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                window.downloadMeetingImage?.(sourceImage);
+                return;
+            }
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            const activeNumber = Number(activeItem.dataset.multiImageIndex) + 1;
+            const totalImages = selectionZoomContent.querySelectorAll('.multi-image-zoom-item').length;
+            multiImageItemEditorReturnState = {
+                sourceImage,
+                sourceWrapper: activeItem.__sourceImageWrapper,
+                item: activeItem,
+                number: Number.isFinite(activeNumber) ? activeNumber : 1,
+                total: totalImages
+            };
+            document.body.classList.add('multi-image-item-editing');
+            openImageZoom(sourceImage);
+
+            const shouldCollapseMobileOptions = actionButton.id === 'zoomDrawBtn' &&
+                window.matchMedia('(max-width: 600px) and (orientation: portrait)').matches;
+            const collapseMobileOptions = () => {
+                if (shouldCollapseMobileOptions && document.body.classList.contains('multi-image-item-editing') && actionButton.classList.contains('active')) {
+                    setAnnotationPanelCollapsed(true);
+                }
+            };
+            const runRequestedAction = () => requestAnimationFrame(() => {
+                if (!document.body.classList.contains('multi-image-item-editing') || !actionButton.isConnected) return;
+                actionButton.click();
+                collapseMobileOptions();
+                setTimeout(collapseMobileOptions, 160);
+            });
+            const zoomImage = document.getElementById('imageZoomImg');
+            if (shouldCollapseMobileOptions) {
+                zoomImage?.addEventListener('load', () => requestAnimationFrame(collapseMobileOptions), { once: true });
+            }
+            if (zoomImage?.complete && zoomImage.naturalWidth > 0) runRequestedAction();
+            else zoomImage?.addEventListener('load', runRequestedAction, { once: true });
+        }
+
+        function ensureMultiImageToolbarActionBridge() {
+            const toolbar = getCanonicalZoomEditorToolbar();
+            if (!toolbar || multiImageToolbarBridgeBindings.has(toolbar)) return toolbar;
+            toolbar.addEventListener('click', handleMultiImageToolbarAction, true);
+            multiImageToolbarBridgeBindings.add(toolbar);
+            return toolbar;
+        }
+
+        function displayMultiImageZoom(elementsToZoom) {
+            const imageWrappers = Array.from(new Set(elementsToZoom)).filter(element =>
+                element && element.isConnected && element.matches('.resizable-image-wrapper') && element.querySelector('img[src]')
+            );
+            if (imageWrappers.length < 2) return false;
+
+            hideFocusedEditorButton();
+            window.hideSelectedImageDownloadButton?.();
+
+            hideMultiImageEditorNumberBadge();
+            multiImageItemEditorReturnState = null;
+            document.body.classList.remove('multi-image-item-editing');
+
+            const singleImageOverlay = document.getElementById('imageZoomOverlay');
+            if (singleImageOverlay) singleImageOverlay.style.display = 'none';
+            document.body.classList.remove('image-zoom-active');
+            cleanCurrentDocumentOfDuplicateToolbars();
+            const canonicalZoomToolbar = ensureSingleZoomEditorToolbar();
+            if (canonicalZoomToolbar) canonicalZoomToolbar.style.display = 'none';
+
+            resetSelectionZoomPresentation();
+            selectionZoomContent.innerHTML = '';
+            selectionZoomOverlay.classList.add('multi-image-layout');
+            selectionZoomOverlay.setAttribute('aria-label', '다중 이미지 확대 배치 모드');
+            selectionZoomContent.setAttribute('role', 'group');
+            selectionZoomContent.setAttribute('aria-label', `${imageWrappers.length}개 이미지 배치 작업공간`);
+
+            const help = document.createElement('div');
+            help.className = 'multi-image-zoom-help';
+            help.textContent = '이미지를 선택한 뒤 드래그하여 자유롭게 배치하세요. 키보드 방향키로도 이동할 수 있습니다.';
+            selectionZoomContent.appendChild(help);
+
+            let highestZIndex = 2;
+            const selectZoomItem = item => {
+                selectionZoomContent.querySelectorAll('.multi-image-zoom-item.active').forEach(other => {
+                    if (other !== item) {
+                        other.classList.remove('active');
+                        other.setAttribute('aria-pressed', 'false');
+                    }
+                });
+                item.classList.add('active');
+                item.setAttribute('aria-pressed', 'true');
+                item.style.zIndex = String(++highestZIndex);
+            };
+
+            const clampItemPosition = (item, nextLeft, nextTop) => {
+                const maxLeft = Math.max(0, selectionZoomContent.clientWidth - item.offsetWidth);
+                const maxTop = Math.max(50, selectionZoomContent.clientHeight - item.offsetHeight);
+                item.style.left = `${Math.min(Math.max(0, nextLeft), maxLeft)}px`;
+                item.style.top = `${Math.min(Math.max(50, nextTop), maxTop)}px`;
+            };
+
+            imageWrappers.forEach((wrapper, index) => {
+                const sourceImg = wrapper.querySelector('img[src]');
+                const item = document.createElement('div');
+                item.className = 'multi-image-zoom-item';
+                item.tabIndex = 0;
+                item.setAttribute('role', 'button');
+                item.setAttribute('aria-pressed', 'false');
+                item.setAttribute('aria-label', `${index + 1}번 이미지. 선택 후 드래그 또는 방향키로 이동`);
+                item.dataset.multiImageIndex = String(index);
+                item.__sourceImageElement = sourceImg;
+                item.__sourceImageWrapper = wrapper;
+
+                const img = document.createElement('img');
+                img.src = sourceImg.src;
+                img.alt = sourceImg.alt || `${index + 1}번 확대 이미지`;
+                img.draggable = false;
+
+                const indexBadge = document.createElement('span');
+                indexBadge.className = 'multi-image-zoom-index';
+                indexBadge.textContent = String(index + 1);
+                const resizeHandles = ['nw', 'ne', 'sw', 'se'].map(direction => {
+                    const handle = document.createElement('span');
+                    handle.className = 'multi-image-resize-handle';
+                    handle.dataset.resizeDirection = direction;
+                    handle.setAttribute('aria-hidden', 'true');
+                    return handle;
+                });
+                item.append(img, indexBadge, ...resizeHandles);
+                selectionZoomContent.appendChild(item);
+
+                item.addEventListener('pointerdown', event => {
+                    if (event.button !== undefined && event.button !== 0) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    selectZoomItem(item);
+                    item.focus({ preventScroll: true });
+                    const resizeHandle = event.target.closest('.multi-image-resize-handle');
+                    if (resizeHandle) {
+                        const direction = resizeHandle.dataset.resizeDirection || 'se';
+                        const startLeft = parseFloat(item.style.left) || 0;
+                        const startTop = parseFloat(item.style.top) || 50;
+                        const startWidth = item.offsetWidth;
+                        const startHeight = item.offsetHeight;
+                        const aspectRatio = startWidth / Math.max(startHeight, 1);
+                        const startX = event.clientX;
+                        const startY = event.clientY;
+                        item.classList.add('is-resizing');
+                        if (resizeHandle.setPointerCapture) {
+                            try { resizeHandle.setPointerCapture(event.pointerId); } catch (error) {}
+                        }
+
+                        const resizeItem = moveEvent => {
+                            if (moveEvent.cancelable) moveEvent.preventDefault();
+                            const deltaX = moveEvent.clientX - startX;
+                            const deltaY = moveEvent.clientY - startY;
+                            const horizontalChange = direction.includes('e') ? deltaX : -deltaX;
+                            const verticalChange = direction.includes('s') ? deltaY : -deltaY;
+                            const widthFromX = startWidth + horizontalChange;
+                            const widthFromY = (startHeight + verticalChange) * aspectRatio;
+                            let nextWidth = Math.abs(horizontalChange) >= Math.abs(verticalChange * aspectRatio)
+                                ? widthFromX : widthFromY;
+                            const minWidth = Math.max(72, 54 * aspectRatio);
+                            const horizontalLimit = direction.includes('w')
+                                ? startLeft + startWidth
+                                : selectionZoomContent.clientWidth - startLeft;
+                            const verticalLimit = direction.includes('n')
+                                ? startTop + startHeight - 50
+                                : selectionZoomContent.clientHeight - startTop;
+                            const maxWidth = Math.max(minWidth, Math.min(horizontalLimit, verticalLimit * aspectRatio));
+                            nextWidth = Math.min(maxWidth, Math.max(minWidth, nextWidth));
+                            const nextHeight = nextWidth / aspectRatio;
+                            const nextLeft = direction.includes('w') ? startLeft + startWidth - nextWidth : startLeft;
+                            const nextTop = direction.includes('n') ? startTop + startHeight - nextHeight : startTop;
+                            item.style.width = `${Math.round(nextWidth)}px`;
+                            item.style.height = `${Math.round(nextHeight)}px`;
+                            item.style.left = `${Math.round(nextLeft)}px`;
+                            item.style.top = `${Math.round(nextTop)}px`;
+                        };
+                        const endResize = endEvent => {
+                            item.classList.remove('is-resizing');
+                            resizeHandle.removeEventListener('pointermove', resizeItem);
+                            resizeHandle.removeEventListener('pointerup', endResize);
+                            resizeHandle.removeEventListener('pointercancel', endResize);
+                            if (resizeHandle.releasePointerCapture && resizeHandle.hasPointerCapture?.(endEvent.pointerId)) {
+                                resizeHandle.releasePointerCapture(endEvent.pointerId);
+                            }
+                        };
+                        resizeHandle.addEventListener('pointermove', resizeItem);
+                        resizeHandle.addEventListener('pointerup', endResize);
+                        resizeHandle.addEventListener('pointercancel', endResize);
+                        return;
+                    }
+                    const startLeft = parseFloat(item.style.left) || 0;
+                    const startTop = parseFloat(item.style.top) || 50;
+                    const startX = event.clientX;
+                    const startY = event.clientY;
+                    item.classList.add('is-dragging');
+                    if (item.setPointerCapture) {
+                        try { item.setPointerCapture(event.pointerId); } catch (error) {}
+                    }
+
+                    const moveItem = moveEvent => {
+                        if (moveEvent.cancelable) moveEvent.preventDefault();
+                        clampItemPosition(item, startLeft + moveEvent.clientX - startX, startTop + moveEvent.clientY - startY);
+                    };
+                    const endMove = endEvent => {
+                        item.classList.remove('is-dragging');
+                        item.removeEventListener('pointermove', moveItem);
+                        item.removeEventListener('pointerup', endMove);
+                        item.removeEventListener('pointercancel', endMove);
+                        if (item.releasePointerCapture && item.hasPointerCapture?.(endEvent.pointerId)) {
+                            item.releasePointerCapture(endEvent.pointerId);
+                        }
+                    };
+                    item.addEventListener('pointermove', moveItem);
+                    item.addEventListener('pointerup', endMove);
+                    item.addEventListener('pointercancel', endMove);
+                });
+
+                item.addEventListener('keydown', event => {
+                    const offsets = {
+                        ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]
+                    };
+                    if (!offsets[event.key]) return;
+                    event.preventDefault();
+                    selectZoomItem(item);
+                    const distance = event.shiftKey ? 20 : 5;
+                    const [xDirection, yDirection] = offsets[event.key];
+                    clampItemPosition(
+                        item,
+                        (parseFloat(item.style.left) || 0) + xDirection * distance,
+                        (parseFloat(item.style.top) || 50) + yDirection * distance
+                    );
+                });
+            });
+
+            selectionZoomOverlay.style.display = 'flex';
+            document.body.classList.add('selection-zoom-active');
+            document.body.style.overflow = 'hidden';
+            showMultiImageWorkspaceToolbar(imageWrappers.length);
+            ensureMultiImageToolbarActionBridge();
+
+            requestAnimationFrame(() => {
+                const items = Array.from(selectionZoomContent.querySelectorAll('.multi-image-zoom-item'));
+                const workspaceWidth = selectionZoomContent.clientWidth;
+                const workspaceHeight = selectionZoomContent.clientHeight;
+                const topInset = 58;
+                const gap = window.matchMedia('(max-width: 600px)').matches ? 8 : 16;
+                const usableHeight = Math.max(120, workspaceHeight - topInset - gap);
+                const columns = Math.max(1, Math.min(items.length, Math.ceil(Math.sqrt(items.length * workspaceWidth / Math.max(usableHeight, 1)))));
+                const rows = Math.ceil(items.length / columns);
+                const cellWidth = Math.max(80, (workspaceWidth - gap * (columns + 1)) / columns);
+                const cellHeight = Math.max(70, (usableHeight - gap * (rows + 1)) / rows);
+
+                items.forEach((item, index) => {
+                    const image = item.querySelector('img');
+                    const ratio = (image.naturalWidth || 4) / Math.max(image.naturalHeight || 3, 1);
+                    let itemWidth = Math.max(72, cellWidth * 0.9);
+                    let itemHeight = itemWidth / ratio;
+                    if (itemHeight > cellHeight * 0.9) {
+                        itemHeight = Math.max(54, cellHeight * 0.9);
+                        itemWidth = itemHeight * ratio;
+                    }
+                    itemWidth = Math.min(itemWidth, cellWidth * 0.94);
+                    itemHeight = Math.min(itemHeight, cellHeight * 0.94);
+                    const column = index % columns;
+                    const row = Math.floor(index / columns);
+                    item.style.width = `${Math.round(itemWidth)}px`;
+                    item.style.height = `${Math.round(itemHeight)}px`;
+                    clampItemPosition(
+                        item,
+                        gap + column * (cellWidth + gap) + (cellWidth - itemWidth) / 2,
+                        topInset + gap + row * (cellHeight + gap) + (cellHeight - itemHeight) / 2
+                    );
+                });
+                if (items[0]) selectZoomItem(items[0]);
+            });
+            fullscreenChangeHandler();
+            return true;
+        }
+
         function displayMultiZoom(elementsToZoom) {
             if (!elementsToZoom || elementsToZoom.length === 0 || selectionZoomOverlay.style.display === 'block') return;
+            cleanCurrentDocumentOfDuplicateToolbars();
+            if (isImageOnlyZoomCollection(elementsToZoom) && displayMultiImageZoom(elementsToZoom)) return;
+            resetSelectionZoomPresentation();
             selectionZoomContent.innerHTML = '';
 
             let isOriginalLayoutFlex = false;
@@ -7030,7 +8072,7 @@ function hideTextFormatToolbar() {
 
             elementsToZoom.forEach(originalEl => {
                 const clone = originalEl.cloneNode(true);
-                clone.querySelectorAll('.item-controls, .insert-area-toggle-btn, .resize-handle-img').forEach(ctrl => ctrl.remove());
+                stripRuntimeUiFromClone(clone);
                 clone.classList.remove('controls-active', 'multi-zoom-selected', 'active');
                 Object.assign(clone.style, { transform: 'none', cursor: 'auto' });
 
@@ -7064,15 +8106,108 @@ function hideTextFormatToolbar() {
             fullscreenChangeHandler();
         }
 
-        function handleMultiZoomTrigger() {
-            if (elementsForMultiZoom.length > 0) {
-                elementsForMultiZoom.length === 1 ? triggerZoomOnElement(elementsForMultiZoom[0]) : displayMultiZoom([...elementsForMultiZoom]);
+        function getLiveMultiZoomTargets() {
+            const rememberedImages = Array.from(rememberedMultiZoomImages).filter(element =>
+                element && element.isConnected && element.matches?.('.resizable-image-wrapper') && element.querySelector('img[src]')
+            );
+            const liveTargets = elementsForMultiZoom.filter(element => element && element.isConnected);
+            const visualImages = Array.from(document.querySelectorAll(
+                '.resizable-image-wrapper.multi-zoom-selected, .resizable-image-wrapper.selected, .resizable-image-wrapper.active'
+            )).filter(element => element.isConnected);
+            if (rememberedImages.length >= 2) {
+                return rememberedImages;
             }
+            if (visualImages.length >= 2) {
+                return Array.from(new Set(visualImages));
+            }
+            const targetsAreImages = liveTargets.length === 0 || liveTargets.every(element => element.matches?.('.resizable-image-wrapper'));
+            return Array.from(new Set(targetsAreImages ? [...rememberedImages, ...liveTargets, ...visualImages] : liveTargets));
+        }
+
+        function preserveMultiZoomTargetsForTrigger(event) {
+            elementsForMultiZoom = getLiveMultiZoomTargets();
+            if (elementsForMultiZoom.length > 0 && elementsForMultiZoom.every(element => element.matches?.('.resizable-image-wrapper'))) {
+                rememberedMultiZoomImages.clear();
+                elementsForMultiZoom.forEach(element => rememberedMultiZoomImages.add(element));
+            }
+            event.stopPropagation();
+        }
+
+        function recoverRelatedImagesForMultiZoom(targets) {
+            const uniqueTargets = Array.from(new Set(targets || []));
+            const imageTargets = uniqueTargets.filter(element =>
+                element?.isConnected && element.matches?.('.resizable-image-wrapper') && element.querySelector('img[src]')
+            );
+            if (imageTargets.length !== 1 || uniqueTargets.length !== 1) return uniqueTargets;
+
+            const anchor = imageTargets[0];
+            const focusedSurface = document.getElementById('focusedEditorOverlay')?.classList.contains('active')
+                ? document.getElementById('focusedEditorSurface')
+                : null;
+            const scopes = [
+                anchor.parentElement,
+                anchor.closest('.insert-area, [contenteditable="true"], .item-group, .action-item-block'),
+                focusedSurface
+            ].filter(Boolean);
+
+            for (const scope of Array.from(new Set(scopes))) {
+                const candidates = Array.from(scope.querySelectorAll('.resizable-image-wrapper')).filter(wrapper =>
+                    wrapper.isConnected && wrapper.querySelector('img[src]') && wrapper.getClientRects().length > 0
+                );
+                if (candidates.length >= 2) return Array.from(new Set(candidates));
+            }
+            return uniqueTargets;
+        }
+
+        function openMultiSelectedImagesIfAvailable(targetImg = null) {
+            const targets = getLiveMultiZoomTargets();
+            if (!isImageOnlyZoomCollection(targets)) return false;
+
+            const targetWrapper = targetImg?.closest?.('.resizable-image-wrapper') || null;
+            if (targetWrapper && !targets.includes(targetWrapper)) return false;
+
+            elementsForMultiZoom = Array.from(new Set(targets));
+            rememberedMultiZoomImages.clear();
+            elementsForMultiZoom.forEach(element => rememberedMultiZoomImages.add(element));
+            return displayMultiImageZoom([...elementsForMultiZoom]);
+        }
+
+        function openImageZoomFromUserGesture(targetImg) {
+            if (!targetImg?.src) return false;
+            if (openMultiSelectedImagesIfAvailable(targetImg)) return true;
+            openImageZoom(targetImg);
+            return true;
+        }
+
+        function handleMultiZoomTrigger() {
+            elementsForMultiZoom = recoverRelatedImagesForMultiZoom(getLiveMultiZoomTargets());
+            if (elementsForMultiZoom.length >= 2 && elementsForMultiZoom.every(element => element.matches?.('.resizable-image-wrapper'))) {
+                rememberedMultiZoomImages.clear();
+                elementsForMultiZoom.forEach(element => rememberedMultiZoomImages.add(element));
+            }
+            if (elementsForMultiZoom.length === 0) {
+                showMessage('먼저 이미지를 선택해 주세요.', 'info');
+                updateMultiZoomTriggerVisibility();
+                return;
+            }
+            if (elementsForMultiZoom.length === 1 && elementsForMultiZoom[0].matches?.('.resizable-image-wrapper')) {
+                const selectedImage = elementsForMultiZoom[0].querySelector('img[src]');
+                if (selectedImage) openImageZoom(selectedImage);
+                return;
+            }
+            elementsForMultiZoom.length === 1
+                ? triggerZoomOnElement(elementsForMultiZoom[0])
+                : displayMultiZoom([...elementsForMultiZoom]);
         }
 
         function closeSelectionZoom() {
+            hideMultiImageEditorNumberBadge();
+            multiImageItemEditorReturnState = null;
+            document.body.classList.remove('multi-image-item-editing');
+            restoreZoomEditorToolbarHome();
             selectionZoomOverlay.style.display = 'none';
             selectionZoomContent.innerHTML = '';
+            resetSelectionZoomPresentation();
             document.body.classList.remove('selection-zoom-active');
             document.body.style.overflow = '';
             fullscreenChangeHandler();
@@ -7253,6 +8388,10 @@ function hideTextFormatToolbar() {
 
         function generateItemControls(element) {
             if (!element) return;
+            if (element.dataset.editableType === 'button-text-label') {
+                element.querySelectorAll(':scope > .item-controls').forEach(ctrl => ctrl.remove());
+                return;
+            }
             // [원초적 해결] 이미지 래퍼(.resizable-image-wrapper)는 텍스트 안건용 item-controls 생성 100% 원천 차단
             if (element.matches && (element.matches('.resizable-image-wrapper') || element.closest('.resizable-image-wrapper'))) {
                 element.querySelectorAll('.item-controls').forEach(el => el.remove());
@@ -7262,6 +8401,7 @@ function hideTextFormatToolbar() {
             if (element.querySelector(':scope > .item-controls')) return;
             const controlsDiv = document.createElement('div');
             controlsDiv.className = 'item-controls';
+            controlsDiv.setAttribute('contenteditable', 'false');
 
             if (element.dataset.editableType === 'item' && element.closest('.column')?.dataset.columnType === 'this-week') {
                 const carryoverBtn = document.createElement('button');
@@ -7329,11 +8469,23 @@ function hideTextFormatToolbar() {
         }
 
         function cloneAndInsertElement(sourceElement) {
+            cleanCurrentDocumentOfDuplicateToolbars();
             let newItem = deepCloneWithState(sourceElement);
+            stripRuntimeUiFromClone(newItem);
             newItem.removeAttribute('id');
+            newItem.querySelectorAll('[id]').forEach(descendant => descendant.removeAttribute('id'));
             newItem.querySelectorAll('.item-controls, .insert-area-toggle-btn, .resize-handle-img').forEach(ctrl => ctrl.remove());
             newItem.classList.remove('controls-active', 'multi-zoom-selected', 'active');
                 delete newItem.dataset.draggableInitialized; /* draggable reset */
+
+            const clonedImageWrappers = [
+                ...(newItem.matches('.resizable-image-wrapper') ? [newItem] : []),
+                ...newItem.querySelectorAll('.resizable-image-wrapper')
+            ];
+            clonedImageWrappers.forEach((wrapper, index) => {
+                wrapper.dataset.imageId = `img_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 11)}`;
+                delete wrapper.dataset.draggableInitialized;
+            });
 
             const parentToInsert = sourceElement.parentNode;
             parentToInsert.insertBefore(newItem, sourceElement.nextSibling);
@@ -7367,21 +8519,30 @@ function hideTextFormatToolbar() {
 
         function toggleMultiZoomSelection(element) {
             const index = elementsForMultiZoom.indexOf(element);
-            if (index > -1) { elementsForMultiZoom.splice(index, 1); element.classList.remove('multi-zoom-selected'); }
-            else { elementsForMultiZoom.push(element); element.classList.add('multi-zoom-selected'); }
+            if (index > -1) {
+                elementsForMultiZoom.splice(index, 1);
+                element.classList.remove('multi-zoom-selected');
+                if (element.matches?.('.resizable-image-wrapper')) rememberedMultiZoomImages.delete(element);
+            } else {
+                elementsForMultiZoom.push(element);
+                element.classList.add('multi-zoom-selected');
+                if (element.matches?.('.resizable-image-wrapper')) rememberedMultiZoomImages.add(element);
+            }
             updateMultiZoomTriggerVisibility();
         }
 
         function updateMultiZoomTriggerVisibility() {
             if (multiZoomTriggerBtn) {
                 const isSelectionZoomActive = document.body.classList.contains('selection-zoom-active');
-                const shouldBeVisible = elementsForMultiZoom.length >= 1 && !isSelectionZoomActive && document.body.classList.contains('true-fullscreen-active');
+                elementsForMultiZoom = getLiveMultiZoomTargets();
+                const shouldBeVisible = elementsForMultiZoom.length >= 1 && !isSelectionZoomActive;
                 multiZoomTriggerBtn.style.display = shouldBeVisible ? 'block' : 'none';
             }
         }
 
         function clearMultiZoomSelectionVisuals() {
             elementsForMultiZoom.forEach(e => e.classList.remove('multi-zoom-selected'));
+            rememberedMultiZoomImages.clear();
             updateMultiZoomTriggerVisibility();
         }
         function toggleDeletionMode(button) {
@@ -7560,8 +8721,8 @@ function hideTextFormatToolbar() {
 
                 const img = clickedImageWrapper.querySelector('img');
                 
-                // 1. Ctrl + Click 시 pointerdown의 selectAndActivateImageWrapper에서 토글이 이미 처리되었으므로 중복 토글을 방지하고 이벤트 전파만 차단
-                if (event.ctrlKey || event.metaKey) {
+                // 1. Ctrl/Command/Shift + Click은 pointerdown 전역 엔진에서 이미 토글됨
+                if (event.ctrlKey || event.metaKey || event.shiftKey) {
                     event.preventDefault();
                     event.stopPropagation();
                     return;
@@ -7581,7 +8742,7 @@ function hideTextFormatToolbar() {
                         event.preventDefault();
                         event.stopPropagation();
                         if (img && img.src) {
-                            openImageZoom(img);
+                            openImageZoomFromUserGesture(img);
                         }
                         return;
                     }
@@ -8835,7 +9996,7 @@ function hideTextFormatToolbar() {
                 clonedBodyEl.classList.remove(
                     'true-fullscreen-active', 'screensaver-active',
                     'show-icons-all', 'show-icons-selected',
-                    'selection-zoom-active', 'image-zoom-active',
+                    'selection-zoom-active', 'image-zoom-active', 'multi-image-item-editing',
                     'compare-mode-active', 'comparison-view-active',
                     'item-selection-mode', 'item-deletion-mode',
                     'shift-pressed', 'ctrl-pressed', 'is-clicking',
@@ -9145,7 +10306,7 @@ function hideTextFormatToolbar() {
                 clonedBodyTpl.classList.remove(
                     'compare-mode-active', 'deletion-mode-active', 'selection-mode-active',
                     'show-icons-all', 'show-icons-selected',
-                    'selection-zoom-active', 'image-zoom-active',
+                    'selection-zoom-active', 'image-zoom-active', 'multi-image-item-editing',
                     'compare-mode-active', 'comparison-view-active',
                     'item-selection-mode', 'item-deletion-mode',
                     'shift-pressed', 'ctrl-pressed', 'is-clicking'
@@ -9618,8 +10779,9 @@ function hideTextFormatToolbar() {
             }, 0);
         }
 
-        function openCropUI(wrapper) {
+        function openCropUI(wrapper, options = {}) {
             currentCroppingWrapper = wrapper;
+            returnToZoomAfterCrop = !!options.returnToZoom;
             const img = wrapper.querySelector('img');
             const overlay = document.getElementById('imageCropOverlay');
             const cropImg = document.getElementById('imageCropImg');
@@ -9633,8 +10795,34 @@ function hideTextFormatToolbar() {
         }
 
         function closeCropUI() {
+            const targetImg = currentCroppingWrapper?.querySelector('img') || null;
+            const shouldReturnToZoom = returnToZoomAfterCrop && targetImg?.isConnected;
             document.getElementById('imageCropOverlay').style.display = 'none';
             currentCroppingWrapper = null;
+            returnToZoomAfterCrop = false;
+            if (shouldReturnToZoom) {
+                scheduleImageZoomRestore(targetImg);
+            } else if (multiImageItemEditorReturnState) {
+                resumeMultiImageWorkspaceFromEditor(targetImg);
+            }
+        }
+
+        function scheduleImageZoomRestore(targetImg) {
+            if (!targetImg?.isConnected) return false;
+            requestAnimationFrame(() => {
+                if (targetImg.isConnected) openImageZoom(targetImg);
+            });
+            return true;
+        }
+
+        function findAdjacentImageForZoom(wrapper, targetImg) {
+            if (!wrapper || !targetImg) return null;
+            const scope = wrapper.closest('#focusedEditorSurface, [contenteditable="true"]') || wrapper.parentElement;
+            if (!scope) return null;
+            const images = Array.from(scope.querySelectorAll('.resizable-image-wrapper img'));
+            const currentIndex = images.indexOf(targetImg);
+            if (currentIndex < 0) return null;
+            return images[currentIndex + 1] || images[currentIndex - 1] || null;
         }
 
         function initializeCropTool() {
@@ -10645,6 +11833,7 @@ function hideTextFormatToolbar() {
             annotationSettingsPanel.addEventListener('mousedown', handlePanelDragStart);
             initializePanelResizing(); // 리사이즈 핸들러 초기화
 
+            multiZoomTriggerBtn.addEventListener('pointerdown', preserveMultiZoomTargetsForTrigger);
             multiZoomTriggerBtn.addEventListener('click', handleMultiZoomTrigger);
             selectionZoomOverlay.addEventListener('click', handleSelectionZoomOverlayClick);
             const closeZoomBtn = document.getElementById('closeSelectionZoomBtn');
@@ -11373,13 +12562,15 @@ async function handleClipboardPaste(e, targetContainer) {
         function selectAndActivateImageWrapper(wrapper, isMultiSelect = false) {
             if (!wrapper) return;
             if (isMultiSelect) {
-                const isSelected = wrapper.classList.contains('selected') || wrapper.classList.contains('active');
+                const isSelected = rememberedMultiZoomImages.has(wrapper) || wrapper.classList.contains('multi-zoom-selected');
                 if (isSelected) {
                     wrapper.classList.remove('selected', 'active', 'multi-zoom-selected');
+                    rememberedMultiZoomImages.delete(wrapper);
                     const idx = typeof elementsForMultiZoom !== 'undefined' ? elementsForMultiZoom.indexOf(wrapper) : -1;
                     if (idx > -1) elementsForMultiZoom.splice(idx, 1);
                 } else {
                     wrapper.classList.add('selected', 'active', 'multi-zoom-selected');
+                    rememberedMultiZoomImages.add(wrapper);
                     if (typeof elementsForMultiZoom !== 'undefined' && !elementsForMultiZoom.includes(wrapper)) {
                         elementsForMultiZoom.push(wrapper);
                     }
@@ -11392,8 +12583,11 @@ async function handleClipboardPaste(e, targetContainer) {
                     }
                 });
                 wrapper.classList.add('selected', 'active');
+                rememberedMultiZoomImages.clear();
+                rememberedMultiZoomImages.add(wrapper);
                 if (typeof elementsForMultiZoom !== 'undefined') elementsForMultiZoom = [wrapper];
             }
+            if (typeof updateMultiZoomTriggerVisibility === 'function') updateMultiZoomTriggerVisibility();
             ensureImageWrapperStructure(wrapper);
         }
 
@@ -11463,9 +12657,14 @@ async function handleClipboardPaste(e, targetContainer) {
                 startGlobalImageResize(e, handle);
                 return;
             }
+            if (e.target.closest('.item-controls, #multiZoomTriggerBtn, #openFocusedEditorBtn, .zoom-editor-toolbar')) return;
             const wrapper = e.target.closest('.resizable-image-wrapper');
             if (wrapper) {
-                const isMultiSelect = e.ctrlKey || e.metaKey;
+                const isMultiSelect = e.ctrlKey || e.metaKey || e.shiftKey;
+                const image = e.target.closest('img');
+                const preserveForMultiZoom = !isMultiSelect && image && rememberedMultiZoomImages.size >= 2 &&
+                    rememberedMultiZoomImages.has(wrapper) && isClickInImageCenter(e, image);
+                if (preserveForMultiZoom) return;
                 selectAndActivateImageWrapper(wrapper, isMultiSelect);
             } else if (!e.target.closest('.text-format-toolbar, #menuPanel, .item-controls, #miniToolbar')) {
                 deselectAllImageWrappers();
@@ -11662,6 +12861,7 @@ function ensureImageWrapperStructure(wrapper) {
                 const rect = wrapper.getBoundingClientRect();
 
                 ghostElement = wrapper.cloneNode(true);
+                stripRuntimeUiFromClone(ghostElement);
                 ghostElement.removeAttribute('id');
                 ghostElement.classList.add('ghost-image');
                 Object.assign(ghostElement.style, {
@@ -11890,6 +13090,13 @@ function ensureImageWrapperStructure(wrapper) {
         function showFocusedEditorButton(target) {
             const button = document.getElementById('openFocusedEditorBtn');
             if (!button || !target) return;
+            if (document.body.classList.contains('image-zoom-active') ||
+                document.body.classList.contains('selection-zoom-active') ||
+                document.getElementById('imageZoomOverlay')?.style.display === 'flex' ||
+                document.getElementById('selectionZoomOverlay')?.style.display === 'flex') {
+                hideFocusedEditorButton();
+                return;
+            }
             focusedEditorTarget = target;
             button.classList.add('visible');
             positionFocusedEditorButton(button);
@@ -12018,7 +13225,7 @@ function ensureImageWrapperStructure(wrapper) {
 
         function cleanEditableCloneForFocusedEditor(container) {
             if (!container) return;
-            container.querySelectorAll('.item-controls, .insert-area-toggle-btn, .resize-handle-img, .text-format-toolbar, #textFormatToolbar, .mini-toolbar, #miniToolbar, .item-controls-owner').forEach(el => el.remove());
+            container.querySelectorAll('.item-controls, .insert-area-toggle-btn, .resize-handle-img, .text-format-toolbar, #textFormatToolbar, .mini-toolbar, #miniToolbar, .item-controls-owner, .zoom-editor-toolbar, #zoomEditorToolbar, #imageZoomOverlay, #selectionZoomOverlay').forEach(el => el.remove());
             container.querySelectorAll('[data-draggable-initialized]').forEach(el => el.removeAttribute('data-draggable-initialized'));
             container.querySelectorAll('script').forEach(el => el.remove());
         }
@@ -12179,6 +13386,12 @@ function ensureImageWrapperStructure(wrapper) {
                 openBtn.addEventListener('click', e => {
                     if (focusedEditorButtonWasDragged) {
                         e.preventDefault();
+                        return;
+                    }
+                    if (openMultiSelectedImagesIfAvailable()) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        hideFocusedEditorButton();
                         return;
                     }
                     openFocusedEditor();
@@ -12905,19 +14118,11 @@ function ensureImageWrapperStructure(wrapper) {
                 if (img?.src) {
                     e.preventDefault();
                     e.stopPropagation();
-                    openImageZoom(img);
+                    openImageZoomFromUserGesture(img);
                 }
             });
             surface?.addEventListener('click', e => {
                 handleAppContainerClick(e); // 이미지 선택 및 툴바 조작 등 전역 제어 로직 공유
-                
-                const img = e.target.closest('img');
-                if (img?.src && e.shiftKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openImageZoom(img);
-                    return;
-                }
 
                 const link = e.target.closest('a[href]');
                 if (link) {
@@ -12936,6 +14141,12 @@ function ensureImageWrapperStructure(wrapper) {
                     showFocusedEditorButton(target);
                 }
             });
+
+            document.addEventListener('pointerdown', e => {
+                if (e.target.closest?.('#openFocusedEditorBtn, #focusedEditorOverlay, .annotation-settings-modal, .zoom-editor-toolbar')) return;
+                const target = getFocusedEditableTarget(e.target);
+                if (target && !overlay?.classList.contains('active')) showFocusedEditorButton(target);
+            }, true);
 
             document.addEventListener('mousedown', e => {
                 if (e.target.closest('#openFocusedEditorBtn, #focusedEditorOverlay')) return;
@@ -12972,6 +14183,49 @@ function ensureImageWrapperStructure(wrapper) {
 
 
         let currentZoomingImageElement = null;
+        let multiImageItemEditorReturnState = null;
+        const multiImageToolbarBridgeBindings = new WeakSet();
+
+        function hideMultiImageEditorNumberBadge() {
+            const badge = document.getElementById('zoomMultiImageNumberBadge');
+            if (!badge) return;
+            badge.remove();
+        }
+
+        function syncMultiImageEditorNumberBadge(targetImg = null) {
+            const state = multiImageItemEditorReturnState;
+            const isMultiItemEditing = !!state && document.body.classList.contains('multi-image-item-editing');
+            if (!isMultiItemEditing) {
+                hideMultiImageEditorNumberBadge();
+                return;
+            }
+
+            const overlay = document.getElementById('imageZoomOverlay');
+            if (!overlay) return;
+            let badge = document.getElementById('zoomMultiImageNumberBadge');
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.id = 'zoomMultiImageNumberBadge';
+                badge.className = 'zoom-multi-image-number-badge';
+                badge.setAttribute('role', 'status');
+                badge.setAttribute('aria-live', 'polite');
+                overlay.appendChild(badge);
+            }
+
+            const items = Array.from(document.querySelectorAll('#selectionZoomContent .multi-image-zoom-item'));
+            const matchingItem = items.find(item => item.__sourceImageElement === targetImg) ||
+                (items.includes(state.item) ? state.item : null);
+            const indexedNumber = matchingItem ? Number(matchingItem.dataset.multiImageIndex) + 1 : NaN;
+            const number = Number.isFinite(indexedNumber) ? indexedNumber : state.number;
+            const total = items.length || state.total || 1;
+            state.item = matchingItem || state.item;
+            state.number = number;
+            state.total = total;
+            badge.textContent = `이미지 ${number} / ${total}`;
+            badge.setAttribute('aria-label', `${total}개 중 ${number}번 이미지`);
+            badge.hidden = false;
+        }
+
         let currentZoomScale = 1.0;
         let currentPanX = 0;
         let currentPanY = 0;
@@ -13125,6 +14379,14 @@ function ensureImageWrapperStructure(wrapper) {
             requestAnimationFrame(() => clampFloatingPanelIntoViewport(toolbar));
         }
 
+        function ensureSingleZoomEditorToolbar() {
+            const canonicalToolbar = getCanonicalZoomEditorToolbar();
+            document.querySelectorAll('[id="zoomEditorToolbar"], .zoom-editor-toolbar').forEach(toolbar => {
+                if (toolbar !== canonicalToolbar) toolbar.remove();
+            });
+            return canonicalToolbar;
+        }
+
         function setZoomToolbarCollapsed(collapsed) {
             const toolbar = document.getElementById('zoomEditorToolbar');
             const toggleBtn = document.getElementById('zoomToolbarCollapseToggle');
@@ -13134,11 +14396,19 @@ function ensureImageWrapperStructure(wrapper) {
 
         function openImageZoom(targetImg) {
             if (!targetImg || !targetImg.src) return;
+            if (multiImageItemEditorReturnState && document.body.classList.contains('multi-image-item-editing')) {
+                multiImageItemEditorReturnState.sourceImage = targetImg;
+                multiImageItemEditorReturnState.sourceWrapper = targetImg.closest('.resizable-image-wrapper');
+            }
+            hideFocusedEditorButton();
+            window.hideSelectedImageDownloadButton?.();
+            restoreZoomEditorToolbarHome();
             hideFloatingTextTools();
             const src = targetImg.src;
             currentZoomingImageElement = targetImg;
             const overlay = document.getElementById('imageZoomOverlay');
             const img = document.getElementById('imageZoomImg');
+            if (img) img.dataset.downloadName = targetImg.dataset.fileName || targetImg.alt || '';
             const zoomContainer = document.getElementById('zoomAnnotationsContainer');
             if (zoomContainer) {
                 zoomContainer.innerHTML = '';
@@ -13150,6 +14420,7 @@ function ensureImageWrapperStructure(wrapper) {
                 overlay.scrollTop = 0;
                 overlay.scrollLeft = 0;
                 document.body.classList.add('image-zoom-active');
+                syncMultiImageEditorNumberBadge(targetImg);
 
                 updateImageZoomTransform(1.0, true);
                 isPanToolActive = false;
@@ -13158,7 +14429,7 @@ function ensureImageWrapperStructure(wrapper) {
                 if (panBtn) panBtn.classList.remove('active');
                 overlay.style.cursor = 'default';
                 
-                const zoomEditorToolbar = document.getElementById('zoomEditorToolbar');
+                const zoomEditorToolbar = ensureSingleZoomEditorToolbar();
                 if (zoomEditorToolbar) {
                     resetZoomEditorToolbarPosition(zoomEditorToolbar);
                 }
@@ -13225,7 +14496,10 @@ function ensureImageWrapperStructure(wrapper) {
                 setTimeout(resizeZoomCanvas, 50);
             }
         }
-        function closeImageZoom() {
+        function closeImageZoom(options = {}) {
+            const shouldResumeMultiWorkspace = options?.resumeMultiWorkspace !== false;
+            const multiWorkspaceSource = currentZoomingImageElement || multiImageItemEditorReturnState?.sourceImage || null;
+            hideMultiImageEditorNumberBadge();
             hideFloatingTextTools();
             const overlay = document.getElementById('imageZoomOverlay');
             const img = document.getElementById('imageZoomImg');
@@ -13317,6 +14591,9 @@ function ensureImageWrapperStructure(wrapper) {
             setZoomWindowMode(false);
             if (img) img.removeAttribute('src');
             currentZoomingImageElement = null;
+            if (multiImageItemEditorReturnState && shouldResumeMultiWorkspace) {
+                resumeMultiImageWorkspaceFromEditor(multiWorkspaceSource);
+            }
         }
         window.addEventListener('DOMContentLoaded', () => {
             cleanCurrentDocumentOfDuplicateToolbars();
@@ -13353,29 +14630,6 @@ function ensureImageWrapperStructure(wrapper) {
                 const header = document.getElementById('annoPanelHeader');
                 const collapseBtn = document.getElementById('annotationPanelCollapseToggle');
                 const resizeHandles = Array.from(panel.querySelectorAll('.anno-panel-resize-handle'));
-                let collapseHandledOnPointerUp = false;
-
-                if (collapseBtn) {
-                    const handleCollapseRelease = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (collapseHandledOnPointerUp) return;
-                        if (panel.dataset.dragMoved === 'true') return;
-                        collapseHandledOnPointerUp = true;
-                        setAnnotationPanelCollapsed(!panel.classList.contains('collapsed'));
-                        setTimeout(() => { collapseHandledOnPointerUp = false; }, 250);
-                    };
-                    collapseBtn.addEventListener('pointerup', handleCollapseRelease, { passive: false });
-                    collapseBtn.addEventListener('mouseup', handleCollapseRelease, { passive: false });
-                    collapseBtn.addEventListener('touchend', handleCollapseRelease, { passive: false });
-                    collapseBtn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (collapseHandledOnPointerUp) return;
-                        if (panel.dataset.dragMoved === 'true') return;
-                        setAnnotationPanelCollapsed(!panel.classList.contains('collapsed'));
-                    });
-                }
 
                 let isDragging = false;
                 let startX = 0, startY = 0;
@@ -13388,7 +14642,8 @@ function ensureImageWrapperStructure(wrapper) {
                     const isHeaderDrag = e.target.closest('#annoPanelDragHandle') || e.target.closest('#annoPanelHeader');
                     if (!isBubble && !isHeaderDrag) return;
                     if (!isBubble && (e.target.closest('button') || e.target.closest('input') || e.target.closest('label') || e.target.closest('#closeAnnotationSettingsBtn') || e.target.closest('.anno-panel-resize-handle'))) return;
-                    if (!isBubble && e.cancelable) e.preventDefault();
+                    if (e.button !== undefined && e.button !== 0) return;
+                    if (e.cancelable) e.preventDefault();
                     e.stopPropagation();
                     AppLayers.ui.clearTextSelection();
 
@@ -13398,10 +14653,10 @@ function ensureImageWrapperStructure(wrapper) {
                     const rect = panel.getBoundingClientRect();
                     const pt = AppLayers.ui.getClientPoint(e);
 
-                    panel.style.right = 'auto';
-                    panel.style.bottom = 'auto';
-                    panel.style.left = `${rect.left}px`;
-                    panel.style.top = `${rect.top}px`;
+                    panel.style.setProperty('right', 'auto', 'important');
+                    panel.style.setProperty('bottom', 'auto', 'important');
+                    panel.style.setProperty('left', `${rect.left}px`, 'important');
+                    panel.style.setProperty('top', `${rect.top}px`, 'important');
 
                     startX = pt.x;
                     startY = pt.y;
@@ -13416,9 +14671,6 @@ function ensureImageWrapperStructure(wrapper) {
                     document.addEventListener('pointermove', onDragMove, { passive: false });
                     document.addEventListener('pointerup', onDragEnd, true);
                     document.addEventListener('pointercancel', onDragEnd, true);
-                    document.addEventListener('touchmove', onDragMove, { passive: false });
-                    document.addEventListener('touchend', onDragEnd, true);
-                    window.addEventListener('mouseup', onDragEnd, true);
                     window.addEventListener('blur', onDragEnd);
                 };
 
@@ -13433,12 +14685,12 @@ function ensureImageWrapperStructure(wrapper) {
                     const pt = AppLayers.ui.getClientPoint(e);
                     const deltaX = pt.x - startX;
                     const deltaY = pt.y - startY;
-                    if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) panel.dataset.dragMoved = 'true';
+                    if (Math.hypot(deltaX, deltaY) > 6) panel.dataset.dragMoved = 'true';
 
                     const rect = panel.getBoundingClientRect();
                     const pos = AppLayers.ui.clampPosition(initialLeft + deltaX, initialTop + deltaY, rect.width, rect.height);
-                    panel.style.left = `${pos.left}px`;
-                    panel.style.top = `${pos.top}px`;
+                    panel.style.setProperty('left', `${pos.left}px`, 'important');
+                    panel.style.setProperty('top', `${pos.top}px`, 'important');
                 };
 
                 const onDragEnd = (e) => {
@@ -13452,14 +14704,9 @@ function ensureImageWrapperStructure(wrapper) {
                     document.removeEventListener('pointermove', onDragMove);
                     document.removeEventListener('pointerup', onDragEnd, true);
                     document.removeEventListener('pointercancel', onDragEnd, true);
-                    document.removeEventListener('touchmove', onDragMove);
-                    document.removeEventListener('touchend', onDragEnd, true);
-                    window.removeEventListener('mouseup', onDragEnd, true);
                     window.removeEventListener('blur', onDragEnd);
                     if (dragStartedFromCollapse && panel.dataset.dragMoved !== 'true') {
-                        collapseHandledOnPointerUp = true;
                         setAnnotationPanelCollapsed(!panel.classList.contains('collapsed'));
-                        setTimeout(() => { collapseHandledOnPointerUp = false; }, 250);
                     }
                     dragStartedFromCollapse = false;
                     setTimeout(() => { panel.dataset.dragMoved = 'false'; }, 0);
@@ -13468,8 +14715,19 @@ function ensureImageWrapperStructure(wrapper) {
                 [dragHandle, header, collapseBtn].forEach(handle => {
                     if (!handle) return;
                     handle.addEventListener('pointerdown', onDragStart, { passive: false });
-                    handle.addEventListener('touchstart', onDragStart, { passive: false });
                 });
+                if (collapseBtn) {
+                    collapseBtn.addEventListener('click', event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    });
+                    collapseBtn.addEventListener('keydown', event => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setAnnotationPanelCollapsed(!panel.classList.contains('collapsed'));
+                    });
+                }
 
                 let isResizing = false;
                 let resizeStartX = 0, resizeWidth = 0;
@@ -13778,7 +15036,6 @@ function ensureImageWrapperStructure(wrapper) {
             bindZoomOverlayPanEvents(document.getElementById('imageZoomOverlay'));
             bindMobilePinchZoomEvents(document.getElementById('imageZoomOverlay'));
             makeAnnoPanelDraggableAndResizable();
-            bindAnnotationCollapseToggleCapture();
 
             const zoomEditorToolbar = document.getElementById('zoomEditorToolbar');
             const zoomToolbarDragHandle = document.getElementById('zoomToolbarDragHandle');
@@ -13791,6 +15048,8 @@ function ensureImageWrapperStructure(wrapper) {
             let zoomToolbarStartX = 0;
             let zoomToolbarStartY = 0;
             let zoomToolbarDidMove = false;
+            let zoomToolbarStartedFromBubble = false;
+            let zoomToolbarPointerId = null;
 
             function getZoomToolbarPointer(event) {
                 const source = event.touches?.[0] || event.changedTouches?.[0] || event;
@@ -13800,7 +15059,8 @@ function ensureImageWrapperStructure(wrapper) {
             function onZoomToolbarDragStart(e) {
                 if (!zoomEditorToolbar) return;
                 if (!e.target.closest('#zoomToolbarDragHandle') && !e.target.closest('#zoomToolbarCollapseToggle')) return;
-                if (!e.target.closest('#zoomToolbarCollapseToggle')) e.preventDefault();
+                if (e.button !== undefined && e.button !== 0) return;
+                if (e.cancelable) e.preventDefault();
                 e.stopPropagation();
                 AppLayers.ui.clearTextSelection();
                 zoomToolbarSuppressOverlayClickUntil = Date.now() + 500;
@@ -13809,11 +15069,11 @@ function ensureImageWrapperStructure(wrapper) {
                 const rect = zoomEditorToolbar.getBoundingClientRect();
                 
                 // top/left를 이용한 위치 이동을 위해 bottom과 transform 속성 초기화
-                zoomEditorToolbar.style.bottom = 'auto';
-                zoomEditorToolbar.style.right = 'auto';
-                zoomEditorToolbar.style.transform = 'none';
-                zoomEditorToolbar.style.left = rect.left + 'px';
-                zoomEditorToolbar.style.top = rect.top + 'px';
+                zoomEditorToolbar.style.setProperty('bottom', 'auto', 'important');
+                zoomEditorToolbar.style.setProperty('right', 'auto', 'important');
+                zoomEditorToolbar.style.setProperty('transform', 'none', 'important');
+                zoomEditorToolbar.style.setProperty('left', rect.left + 'px', 'important');
+                zoomEditorToolbar.style.setProperty('top', rect.top + 'px', 'important');
                 
                 const point = AppLayers.ui.getClientPoint(e);
                 const clientX = point.x;
@@ -13821,31 +15081,30 @@ function ensureImageWrapperStructure(wrapper) {
                 zoomToolbarStartX = clientX;
                 zoomToolbarStartY = clientY;
                 zoomToolbarDidMove = false;
+                zoomToolbarStartedFromBubble = !!e.target.closest('#zoomToolbarCollapseToggle');
+                zoomToolbarPointerId = e.pointerId ?? null;
                 
                 zoomToolbarOffsetX = clientX - rect.left;
                 zoomToolbarOffsetY = clientY - rect.top;
                 
-                document.addEventListener('mousemove', onZoomToolbarDragMove, {passive: false});
-                document.addEventListener('mouseup', onZoomToolbarDragEnd, true);
-                document.addEventListener('touchmove', onZoomToolbarDragMove, {passive: false});
-                document.addEventListener('touchend', onZoomToolbarDragEnd, true);
-                document.addEventListener('touchcancel', onZoomToolbarDragEnd, true);
-                window.addEventListener('mouseup', onZoomToolbarDragEnd, true);
+                if (zoomToolbarPointerId !== null && e.target.setPointerCapture) {
+                    try { e.target.setPointerCapture(zoomToolbarPointerId); } catch (error) {}
+                }
+                document.addEventListener('pointermove', onZoomToolbarDragMove, {passive: false});
+                document.addEventListener('pointerup', onZoomToolbarDragEnd, true);
+                document.addEventListener('pointercancel', onZoomToolbarDragEnd, true);
                 window.addEventListener('blur', onZoomToolbarDragEnd);
             }
             
             function onZoomToolbarDragMove(e) {
                 if (!isZoomToolbarDragging || !zoomEditorToolbar) return;
-                if (!e.touches && typeof e.buttons === 'number' && e.buttons === 0) {
-                    onZoomToolbarDragEnd();
-                    return;
-                }
+                if (zoomToolbarPointerId !== null && e.pointerId !== zoomToolbarPointerId) return;
                 e.preventDefault();
                 
                 const point = AppLayers.ui.getClientPoint(e);
                 const clientX = point.x;
                 const clientY = point.y;
-                if (Math.abs(clientX - zoomToolbarStartX) > 2 || Math.abs(clientY - zoomToolbarStartY) > 2) {
+                if (Math.hypot(clientX - zoomToolbarStartX, clientY - zoomToolbarStartY) > 6) {
                     zoomToolbarDidMove = true;
                     zoomToolbarSuppressOverlayClickUntil = Date.now() + 600;
                 }
@@ -13861,46 +15120,49 @@ function ensureImageWrapperStructure(wrapper) {
                     8
                 );
                 
-                zoomEditorToolbar.style.left = pos.left + 'px';
-                zoomEditorToolbar.style.top = pos.top + 'px';
+                zoomEditorToolbar.style.setProperty('left', pos.left + 'px', 'important');
+                zoomEditorToolbar.style.setProperty('top', pos.top + 'px', 'important');
             }
             
-            function onZoomToolbarDragEnd() {
+            function onZoomToolbarDragEnd(e) {
+                if (!isZoomToolbarDragging) return;
+                if (zoomToolbarPointerId !== null && e?.pointerId !== undefined && e.pointerId !== zoomToolbarPointerId) return;
                 if (zoomToolbarDidMove) {
                     zoomToolbarSuppressOverlayClickUntil = Date.now() + 700;
                 }
+                if (zoomToolbarStartedFromBubble && !zoomToolbarDidMove) {
+                    setZoomToolbarCollapsed(!zoomEditorToolbar.classList.contains('collapsed'));
+                }
                 isZoomToolbarDragging = false;
-                document.removeEventListener('mousemove', onZoomToolbarDragMove);
-                document.removeEventListener('mouseup', onZoomToolbarDragEnd, true);
-                document.removeEventListener('touchmove', onZoomToolbarDragMove);
-                document.removeEventListener('touchend', onZoomToolbarDragEnd, true);
-                document.removeEventListener('touchcancel', onZoomToolbarDragEnd, true);
-                window.removeEventListener('mouseup', onZoomToolbarDragEnd, true);
+                zoomToolbarStartedFromBubble = false;
+                zoomToolbarPointerId = null;
+                document.removeEventListener('pointermove', onZoomToolbarDragMove);
+                document.removeEventListener('pointerup', onZoomToolbarDragEnd, true);
+                document.removeEventListener('pointercancel', onZoomToolbarDragEnd, true);
                 window.removeEventListener('blur', onZoomToolbarDragEnd);
                 AppLayers.ui.clearTextSelection();
             }
             
             if (zoomToolbarDragHandle) {
-                zoomToolbarDragHandle.addEventListener('mousedown', onZoomToolbarDragStart);
-                zoomToolbarDragHandle.addEventListener('touchstart', onZoomToolbarDragStart, {passive: false});
+                zoomToolbarDragHandle.addEventListener('pointerdown', onZoomToolbarDragStart, {passive: false});
             }
             if (zoomToolbarCollapseToggle) {
-                zoomToolbarCollapseToggle.addEventListener('mousedown', onZoomToolbarDragStart);
-                zoomToolbarCollapseToggle.addEventListener('touchstart', onZoomToolbarDragStart, {passive: false});
+                zoomToolbarCollapseToggle.addEventListener('pointerdown', onZoomToolbarDragStart, {passive: false});
                 zoomToolbarCollapseToggle.addEventListener('click', (event) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    if (zoomToolbarDidMove) return;
+                });
+                zoomToolbarCollapseToggle.addEventListener('keydown', event => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    event.stopPropagation();
                     setZoomToolbarCollapsed(!zoomEditorToolbar.classList.contains('collapsed'));
                 });
             }
             if (zoomEditorToolbar) {
-                ['mousedown', 'mouseup', 'click', 'dblclick', 'touchstart', 'touchend'].forEach(eventName => {
+                ['click', 'dblclick'].forEach(eventName => {
                     zoomEditorToolbar.addEventListener(eventName, (event) => {
                         event.stopPropagation();
-                        if (isZoomToolbarDragging || Date.now() < zoomToolbarSuppressOverlayClickUntil) {
-                            event.preventDefault();
-                        }
                     }, { passive: false });
                 });
             }
@@ -13922,32 +15184,43 @@ function ensureImageWrapperStructure(wrapper) {
                 deactivateZoomDrawingMode(true);
                 if (!currentZoomingImageElement) return;
                 const wrapper = currentZoomingImageElement.closest('.resizable-image-wrapper');
-                closeImageZoom();
-                if (wrapper) openCropUI(wrapper);
+                const returnsToMultiWorkspace = !!multiImageItemEditorReturnState;
+                closeImageZoom({ resumeMultiWorkspace: !returnsToMultiWorkspace });
+                if (wrapper) openCropUI(wrapper, { returnToZoom: true });
+                else if (returnsToMultiWorkspace) resumeMultiImageWorkspaceFromEditor();
             });
             
             const zoomCloneBtn = document.getElementById('zoomCloneBtn');
             if (zoomCloneBtn) zoomCloneBtn.addEventListener('click', () => {
                 deactivateZoomDrawingMode(true);
                 if (!currentZoomingImageElement) return;
+                const targetImg = currentZoomingImageElement;
                 const wrapper = currentZoomingImageElement.closest('.resizable-image-wrapper');
                 if (wrapper) {
                     cloneAndInsertElement(wrapper);
                     showMessage("이미지가 복제되었습니다.", "success");
                 }
-                closeImageZoom();
+                const returnsToMultiWorkspace = !!multiImageItemEditorReturnState;
+                closeImageZoom({ resumeMultiWorkspace: !returnsToMultiWorkspace });
+                const scheduled = wrapper?.isConnected ? scheduleImageZoomRestore(targetImg) : false;
+                if (returnsToMultiWorkspace && !scheduled) resumeMultiImageWorkspaceFromEditor(targetImg);
             });
             
             const zoomDeleteBtn = document.getElementById('zoomDeleteBtn');
             if (zoomDeleteBtn) zoomDeleteBtn.addEventListener('click', () => {
                 deactivateZoomDrawingMode(true);
                 if (!currentZoomingImageElement) return;
+                const targetImg = currentZoomingImageElement;
                 const wrapper = currentZoomingImageElement.closest('.resizable-image-wrapper');
+                const adjacentImg = findAdjacentImageForZoom(wrapper, targetImg);
                 if (wrapper) {
                     wrapper.remove();
                     showMessage("이미지가 삭제되었습니다.", "success");
                 }
-                closeImageZoom();
+                const returnsToMultiWorkspace = !!multiImageItemEditorReturnState;
+                closeImageZoom({ resumeMultiWorkspace: !returnsToMultiWorkspace });
+                const scheduled = scheduleImageZoomRestore(adjacentImg);
+                if (returnsToMultiWorkspace && !scheduled) resumeMultiImageWorkspaceFromEditor(adjacentImg);
             });
 
             const zoomInsertTextBtn = document.getElementById('zoomInsertTextBtn');
@@ -14304,6 +15577,374 @@ function ensureImageWrapperStructure(wrapper) {
             }
         });
         // --- [개선된 로직] 끝 ---
+    </script>
+
+
+    <style id="authoring-experience-hardening">
+        [contenteditable="true"] {
+            caret-color: #0f766e;
+            scroll-margin-block: 96px;
+        }
+
+        [contenteditable="true"]:focus-visible {
+            outline: 3px solid rgba(14, 165, 233, 0.72) !important;
+            outline-offset: 3px !important;
+            border-radius: 4px;
+            box-shadow: 0 0 0 5px rgba(14, 165, 233, 0.12);
+        }
+
+        .item-controls[contenteditable="false"] {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body.focused-editor-active:not(.focused-editor-flow-mode):not(.focused-editor-multi-flow-mode) #focusedEditorSurface {
+            width: 100% !important;
+            min-width: 100% !important;
+            min-height: 100% !important;
+        }
+
+        @media (max-width: 768px) and (orientation: portrait) {
+            [data-editable-type="item-span"],
+            [data-editable-type="flow-span"],
+            [data-editable-type="button-text-label"],
+            .insert-area[contenteditable="true"],
+            .action-item-text[contenteditable="true"],
+            .action-item-assignee[contenteditable="true"],
+            .action-item-duedate[contenteditable="true"] {
+                font-size: 16px !important;
+            }
+
+            html body #appContainer .flow > [data-editable-type="flow-span"] {
+                font-size: 16px !important;
+            }
+
+            button {
+                touch-action: manipulation;
+            }
+
+            #weeklyNavigatorContainer button,
+            #monthlyNavigatorContainer button,
+            #prevYearBtn,
+            #nextYearBtn,
+            #prevMonthBtn,
+            #nextMonthBtn,
+            #navToggleBtn,
+            #floatingMenuToggleBtn,
+            #compareModeToggleBtn,
+            #trueFullscreenBtn,
+            #focusedEditorMasterToggle,
+            .box-toggle-btn,
+            .insert-area-toggle-btn,
+            .add-action-item-btn,
+            .add-sub-insert-area-btn,
+            .delete-items-btn,
+            .item-creation-controls > button,
+            .item-controls .item-control-btn,
+            #focusedEditorHeader button,
+            #focusedEditorFooter button,
+            #imageZoomOverlay .zoom-tool-btn,
+            #imageCropOverlay button {
+                min-width: 44px !important;
+                min-height: 44px !important;
+            }
+
+            .add-action-item-btn,
+            .add-sub-insert-area-btn,
+            .delete-items-btn {
+                padding-block: 10px !important;
+            }
+
+            #focusedEditorFooter {
+                padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+            }
+        }
+    </style>
+
+    <script id="authoring-experience-enhancer">
+        (() => {
+            if (window.__authoringExperienceEnhancerInitialized) return;
+            window.__authoringExperienceEnhancerInitialized = true;
+
+            const editableLabel = editable => {
+                const type = editable.dataset.editableType || '';
+                const parentText = editable.parentElement?.textContent || '';
+
+                if (editable.id === 'page-title' || type === 'page-title') return '회의 제목 편집';
+                if (editable.id === 'focusedEditorSurface') return '확대 편집 내용 입력';
+                if (editable.classList.contains('insert-area') || type === 'insert-area') return '회의 내용 입력';
+                if (editable.classList.contains('action-item-task') || editable.classList.contains('action-item-text')) return '실행 항목 내용 입력';
+                if (editable.classList.contains('action-item-assignee')) return '담당자 입력';
+                if (editable.classList.contains('action-item-duedate')) return '기한 입력';
+                if (editable.classList.contains('section-header') || type === 'section-header') return '항목 제목 편집';
+                if (editable.classList.contains('section-title') || type === 'section-title') return '구역 제목 편집';
+                if (editable.classList.contains('section-subtitle') || type === 'section-subtitle') return '하위 제목 편집';
+                if (type === 'flow-span') return '업무 흐름 단계 편집';
+                if (type === 'button-text-label') return '추가 버튼 문구 편집';
+                if (type === 'item-span' && parentText.includes('담당자')) return '담당자 입력';
+                if (type === 'item-span' && parentText.includes('기한')) return '기한 입력';
+                if (type === 'item' || editable.classList.contains('item')) return '회의 항목 편집';
+                return '회의 내용 편집';
+            };
+
+            const enhanceNode = root => {
+                if (!root || (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE)) return;
+
+                const editables = [];
+                const buttons = [];
+                const controlGroups = [];
+
+                if (root.nodeType === Node.ELEMENT_NODE) {
+                    if (root.matches('[contenteditable="true"]')) editables.push(root);
+                    if (root.matches('button')) buttons.push(root);
+                    if (root.matches('.item-controls')) controlGroups.push(root);
+                }
+                root.querySelectorAll?.('[contenteditable="true"]').forEach(el => editables.push(el));
+                root.querySelectorAll?.('button').forEach(el => buttons.push(el));
+                root.querySelectorAll?.('.item-controls').forEach(el => controlGroups.push(el));
+
+                editables.forEach(editable => {
+                    const type = editable.dataset.editableType || '';
+                    if (type === 'button-text-label') {
+                        editable.querySelectorAll(':scope > .item-controls').forEach(ctrl => ctrl.remove());
+                    } else {
+                        editable.setAttribute('role', 'textbox');
+                        const isSingleLine = editable.id === 'page-title' ||
+                            type === 'page-title' ||
+                            type === 'flow-span' ||
+                            type === 'item-span' ||
+                            editable.classList.contains('action-item-assignee') ||
+                            editable.classList.contains('action-item-duedate');
+                        editable.setAttribute('aria-multiline', String(!isSingleLine));
+                        editable.setAttribute('enterkeyhint', isSingleLine ? 'done' : 'enter');
+                    }
+                    if (!editable.hasAttribute('aria-label')) editable.setAttribute('aria-label', editableLabel(editable));
+                    editable.setAttribute('spellcheck', 'true');
+                    editable.setAttribute('autocapitalize', 'sentences');
+                });
+
+                controlGroups.forEach(group => {
+                    if (group.getAttribute('contenteditable') !== 'false') group.setAttribute('contenteditable', 'false');
+                });
+                buttons.forEach(button => {
+                    if (!button.hasAttribute('type')) button.type = 'button';
+                    if (!button.hasAttribute('aria-label') && button.title) button.setAttribute('aria-label', button.title);
+                });
+            };
+
+            const mount = () => {
+                enhanceNode(document);
+                document.getElementById('successMessage')?.setAttribute('role', 'status');
+                document.getElementById('successMessage')?.setAttribute('aria-live', 'polite');
+
+                const observer = new MutationObserver(mutations => {
+                    mutations.forEach(mutation => {
+                        if (mutation.type === 'attributes') enhanceNode(mutation.target);
+                        mutation.addedNodes.forEach(node => enhanceNode(node));
+                    });
+                });
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['contenteditable']
+                });
+                window.__authoringExperienceEnhancer = Object.freeze({ enhance: enhanceNode });
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', mount, { once: true });
+            } else {
+                mount();
+            }
+        })();
+    </script>
+
+    <style id="imageDownloadFeatureStyles">
+        body.image-zoom-active #openFocusedEditorBtn,
+        body.selection-zoom-active #openFocusedEditorBtn,
+        #imageZoomOverlay #openFocusedEditorBtn,
+        #selectionZoomOverlay #openFocusedEditorBtn {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        #selectedImageDownloadBtn {
+            display: none;
+            position: fixed;
+            z-index: 32050;
+            min-height: 42px;
+            padding: 9px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            border-radius: 999px;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #fff;
+            box-shadow: 0 5px 16px rgba(2, 83, 139, 0.34);
+            font: 700 14px/1.1 system-ui, sans-serif;
+            white-space: nowrap;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        #selectedImageDownloadBtn.visible { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        body.image-zoom-active #selectedImageDownloadBtn,
+        body.selection-zoom-active #selectedImageDownloadBtn { display: none !important; }
+
+        @media (min-width: 601px) and (max-width: 720px) {
+            .zoom-editor-toolbar:not(.collapsed) #zoomDownloadBtn .zoom-download-label { display: none; }
+        }
+
+        @media (max-width: 600px) and (orientation: portrait) {
+            #selectedImageDownloadBtn { min-width: 118px; min-height: 46px; padding: 10px 14px; font-size: 14px; }
+        }
+    </style>
+    <script id="imageDownloadFeatureScript">
+        (() => {
+            'use strict';
+            let selectedImage = null;
+            let selectionButton = null;
+
+            const notify = (message, type = 'success') => {
+                if (typeof window.showMessage === 'function') window.showMessage(message, type, 1800);
+            };
+
+            const cleanName = value => String(value || '')
+                .replace(/[\\/:*?"<>|]+/g, '-')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 80);
+
+            const getExtension = (src, mimeType = '') => {
+                const mime = mimeType || src.match(/^data:([^;,]+)/i)?.[1] || '';
+                const fromMime = {
+                    'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png',
+                    'image/gif': 'gif', 'image/webp': 'webp', 'image/svg+xml': 'svg',
+                    'image/bmp': 'bmp', 'image/avif': 'avif'
+                }[mime.toLowerCase()];
+                if (fromMime) return fromMime;
+                return src.split(/[?#]/)[0].match(/\.([a-z0-9]{2,5})$/i)?.[1]?.toLowerCase() || 'png';
+            };
+
+            const buildFileName = (image, src, mimeType = '') => {
+                const meetingType = document.title.includes('월간') ? '월간회의' : '주간회의';
+                const supplied = cleanName(image?.dataset?.fileName || image?.dataset?.downloadName || image?.getAttribute?.('alt'));
+                const extension = getExtension(src, mimeType);
+                const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+                if (supplied && /\.[a-z0-9]{2,5}$/i.test(supplied)) return supplied;
+                return `${supplied || `${meetingType}-이미지-${timestamp}`}.${extension}`;
+            };
+
+            const clickDownloadLink = (href, fileName) => {
+                const link = document.createElement('a');
+                link.href = href;
+                link.download = fileName;
+                link.rel = 'noopener';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            };
+
+            window.downloadMeetingImage = async image => {
+                const src = image?.currentSrc || image?.src || image?.getAttribute?.('src');
+                if (!src) {
+                    notify('다운로드할 이미지를 선택해 주세요.', 'warning');
+                    return false;
+                }
+                try {
+                    const response = await fetch(src);
+                    if (!response.ok && !src.startsWith('data:') && !src.startsWith('blob:')) throw new Error(`HTTP ${response.status}`);
+                    const blob = await response.blob();
+                    const objectUrl = URL.createObjectURL(blob);
+                    clickDownloadLink(objectUrl, buildFileName(image, src, blob.type));
+                    setTimeout(() => URL.revokeObjectURL(objectUrl), 1200);
+                    notify('선택한 이미지를 다운로드했습니다.');
+                    return true;
+                } catch (error) {
+                    try {
+                        clickDownloadLink(src, buildFileName(image, src));
+                        notify('선택한 이미지를 다운로드했습니다.');
+                        return true;
+                    } catch (fallbackError) {
+                        console.error('이미지 다운로드 실패:', error, fallbackError);
+                        notify('이미지를 다운로드하지 못했습니다.', 'error');
+                        return false;
+                    }
+                }
+            };
+
+            const positionSelectionButton = () => {
+                if (!selectionButton?.classList.contains('visible') || !selectedImage?.isConnected) return;
+                const imageRect = selectedImage.getBoundingClientRect();
+                const buttonRect = selectionButton.getBoundingClientRect();
+                const margin = 8;
+                let left = imageRect.right - buttonRect.width;
+                let top = imageRect.top - buttonRect.height - margin;
+                if (top < margin) top = imageRect.bottom + margin;
+                left = Math.min(Math.max(margin, left), Math.max(margin, window.innerWidth - buttonRect.width - margin));
+                top = Math.min(Math.max(margin, top), Math.max(margin, window.innerHeight - buttonRect.height - margin));
+                selectionButton.style.left = `${left}px`;
+                selectionButton.style.top = `${top}px`;
+            };
+
+            window.hideSelectedImageDownloadButton = () => {
+                selectedImage = null;
+                selectionButton?.classList.remove('visible');
+            };
+
+            const showSelectionButton = image => {
+                if (!image?.src || document.body.classList.contains('image-zoom-active') || document.body.classList.contains('selection-zoom-active')) return;
+                selectedImage = image;
+                selectionButton.classList.add('visible');
+                selectionButton.setAttribute('aria-label', `${image.alt || '선택 이미지'} 다운로드`);
+                positionSelectionButton();
+                requestAnimationFrame(positionSelectionButton);
+            };
+
+            const mount = () => {
+                selectionButton = document.getElementById('selectedImageDownloadBtn');
+                if (!selectionButton) {
+                    selectionButton = document.createElement('button');
+                    selectionButton.type = 'button';
+                    selectionButton.id = 'selectedImageDownloadBtn';
+                    selectionButton.dataset.runtimeUi = 'true';
+                    selectionButton.innerHTML = '⬇ <span>이미지 저장</span>';
+                    document.body.appendChild(selectionButton);
+                }
+
+                selectionButton.addEventListener('pointerdown', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                });
+                selectionButton.addEventListener('click', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (selectedImage) window.downloadMeetingImage(selectedImage);
+                });
+
+                document.addEventListener('click', event => {
+                    if (event.target.closest?.('#selectedImageDownloadBtn')) return;
+                    const image = event.target.closest?.('.resizable-image-wrapper img[src], #focusedEditorSurface img[src]');
+                    if (image) showSelectionButton(image);
+                    else window.hideSelectedImageDownloadButton();
+                }, true);
+
+                document.getElementById('zoomDownloadBtn')?.addEventListener('click', event => {
+                    if (event.defaultPrevented) return;
+                    event.preventDefault();
+                    const zoomImage = document.getElementById('imageZoomImg');
+                    if (zoomImage?.src) window.downloadMeetingImage(zoomImage);
+                });
+
+                window.addEventListener('resize', positionSelectionButton, { passive: true });
+                window.addEventListener('scroll', positionSelectionButton, { passive: true, capture: true });
+            };
+
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });
+            else mount();
+        })();
     </script>
 
 </body>

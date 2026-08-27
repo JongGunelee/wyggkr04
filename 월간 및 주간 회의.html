@@ -9388,40 +9388,410 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             background-color: rgba(255, 255, 255, 0.15);
         }
 
+        /* 캡슐 헤더 래퍼: 복원 버튼 + 우측 맞춤 트리거 버튼의 유기적 결합 */
+        .bubble-group-header-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            background: rgba(200, 215, 230, 0.45);
+            padding: 2px 3px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            user-select: none;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        body.dark-mode .bubble-group-header-wrap {
+            background: rgba(30, 41, 59, 0.75);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+        }
+
         .btn-group-label {
             appearance: none;
             border: 0;
             font-size: 10px;
             font-family: '맑은 고딕', 'Segoe UI', sans-serif;
-            color: rgba(80, 100, 120, 0.75);
-            background-color: rgba(200, 215, 230, 0.45);
-            padding: 3px 8px;
-            border-radius: 10px;
+            color: rgba(80, 100, 120, 0.85);
+            background-color: transparent;
+            padding: 3px 6px;
+            border-radius: 8px;
             text-align: center;
             white-space: nowrap;
             user-select: none;
-            letter-spacing: 0.5px;
-        }
-
-        button.btn-group-label {
+            letter-spacing: 0.3px;
             cursor: pointer;
-            transition: color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            transition: color 0.18s ease, background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
         }
 
-        button.btn-group-label:hover,
-        button.btn-group-label:focus-visible {
+        .btn-group-label:hover,
+        .btn-group-label:focus-visible {
             color: var(--accent-color);
-            background-color: rgba(96, 165, 250, 0.18);
-            outline: 2px solid rgba(96, 165, 250, 0.42);
-            outline-offset: 2px;
+            background-color: rgba(96, 165, 250, 0.22);
+            outline: none;
             transform: translateY(-1px);
         }
 
-
-
         body.dark-mode .btn-group-label {
-            color: rgba(180, 200, 220, 0.7);
-            background-color: rgba(255, 255, 255, 0.08);
+            color: rgba(203, 213, 225, 0.85);
+        }
+
+        body.dark-mode .btn-group-label:hover,
+        body.dark-mode .btn-group-label:focus-visible {
+            color: #93c5fd;
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* 맞춤 트리거 버튼 (기본 위치 복원 기호 우측에 조화롭게 배치) */
+        .btn-group-align-trigger {
+            padding: 3px 5px;
+            font-size: 10px;
+            border-left: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .btn-group-align-trigger.active {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(96, 165, 250, 0.4);
+        }
+
+        body.dark-mode .btn-group-align-trigger.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+
+        /* 객체 맞춤 플라이아웃 메뉴 */
+        .bubble-align-flyout {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 8px;
+            z-index: 10020;
+            min-width: 175px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 12px;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.22);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            opacity: 0;
+            transform: scale(0.92) translateY(-6px);
+            pointer-events: none;
+            transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .control-btn-group-right .bubble-align-flyout {
+            left: auto;
+            right: 0;
+        }
+
+        .bubble-align-flyout.open {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
+        }
+
+        body.dark-mode .bubble-align-flyout {
+            background: rgba(30, 41, 59, 0.96);
+            border-color: rgba(71, 85, 105, 0.6);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+        }
+
+        .align-flyout-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: #475569;
+            padding: 2px 4px 4px;
+            border-bottom: 1px solid rgba(203, 213, 225, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        body.dark-mode .align-flyout-title {
+            color: #94a3b8;
+            border-bottom-color: rgba(71, 85, 105, 0.6);
+        }
+
+        .align-flyout-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+        }
+
+        .align-item-btn {
+            appearance: none;
+            border: 1px solid rgba(203, 213, 225, 0.5);
+            background: rgba(248, 250, 252, 0.8);
+            color: #1e293b;
+            font-size: 11px;
+            font-family: '맑은 고딕', 'Segoe UI', sans-serif;
+            font-weight: 600;
+            padding: 6px 4px;
+            border-radius: 7px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            text-align: center;
+            transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, color 0.15s ease;
+        }
+
+        .align-item-btn .align-icon {
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .align-item-btn .align-text {
+            font-size: 9.5px;
+            white-space: nowrap;
+        }
+
+        .align-item-btn:hover,
+        .align-item-btn:focus-visible {
+            background: rgba(96, 165, 250, 0.18);
+            border-color: rgba(96, 165, 250, 0.6);
+            color: var(--accent-color);
+            transform: translateY(-1px);
+        }
+
+        body.dark-mode .align-item-btn {
+            background: rgba(51, 65, 85, 0.7);
+            border-color: rgba(71, 85, 105, 0.5);
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .align-item-btn:hover,
+        body.dark-mode .align-item-btn:focus-visible {
+            background: rgba(59, 130, 246, 0.28);
+            border-color: #60a5fa;
+            color: #93c5fd;
+        }
+
+        .align-item-btn.full-width {
+            grid-column: 1 / -1;
+            flex-direction: row;
+            justify-content: center;
+            padding: 5px 8px;
+            gap: 6px;
+        }
+
+        /* 스마트 정돈 모형 프리셋 섹션 */
+        .align-flyout-divider {
+            height: 1px;
+            background: rgba(148, 163, 184, 0.28);
+            margin: 6px 0 5px 0;
+            grid-column: 1 / -1;
+        }
+
+        body.dark-mode .align-flyout-divider {
+            background: rgba(71, 85, 105, 0.45);
+        }
+
+        .align-preset-section-title {
+            grid-column: 1 / -1;
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 0.2px;
+        }
+
+        body.dark-mode .align-preset-section-title {
+            color: #94a3b8;
+        }
+
+        .align-preset-grid {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+        }
+
+        .align-preset-btn {
+            background: rgba(241, 245, 249, 0.85);
+            border: 1px solid rgba(203, 213, 225, 0.7);
+            color: #334155;
+            font-family: '맑은 고딕', 'Segoe UI', sans-serif;
+            font-weight: 600;
+            padding: 5px 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            text-align: center;
+            transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, color 0.15s ease;
+        }
+
+        .align-preset-btn .preset-icon {
+            font-size: 13px;
+            line-height: 1;
+        }
+
+        .align-preset-btn .preset-text {
+            font-size: 8.5px;
+            white-space: nowrap;
+        }
+
+        .align-preset-btn:hover,
+        .align-preset-btn:focus-visible {
+            background: rgba(96, 165, 250, 0.2);
+            border-color: rgba(96, 165, 250, 0.7);
+            color: var(--accent-color);
+            transform: translateY(-1px);
+        }
+
+        body.dark-mode .align-preset-btn {
+            background: rgba(51, 65, 85, 0.7);
+            border-color: rgba(71, 85, 105, 0.5);
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .align-preset-btn:hover,
+        body.dark-mode .align-preset-btn:focus-visible {
+            background: rgba(59, 130, 246, 0.28);
+            border-color: #60a5fa;
+            color: #93c5fd;
+        }
+
+        /* 맞춤 실행 시 부드러운 트랜지션 */
+        .control-btn.bubble-aligning {
+            transition: left 0.28s cubic-bezier(0.2, 0.9, 0.3, 1), top 0.28s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.28s ease !important;
+        }
+
+        /* 드래그 영역 선택 중 본문 텍스트 선택 방지 */
+        body.bubble-selecting,
+        body.bubble-selecting * {
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+        }
+
+        /* 바탕화면 드래그 영역 선택 마키 박스 */
+        .bubble-selection-marquee {
+            position: fixed;
+            border: 1.5px dashed #3b82f6;
+            background: rgba(59, 130, 246, 0.16);
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 10025;
+            box-sizing: border-box;
+            backdrop-filter: blur(1px);
+            -webkit-backdrop-filter: blur(1px);
+        }
+
+        body.dark-mode .bubble-selection-marquee {
+            border-color: #f43f5e;
+            background: rgba(244, 63, 94, 0.18);
+        }
+
+        /* 선택된 원형 버튼 하이라이트 링 (중복/겹침 방지 및 대상 맞춤) */
+        .control-btn.bubble-selected {
+            box-shadow: 0 0 0 3.5px #3b82f6, 0 0 18px rgba(59, 130, 246, 0.65), 0 4px 15px rgba(0, 0, 0, 0.25) !important;
+            transform: scale(1.08) !important;
+            z-index: 10014 !important;
+        }
+
+        body.dark-mode .control-btn.bubble-selected {
+            box-shadow: 0 0 0 3.5px #f43f5e, 0 0 18px rgba(244, 63, 94, 0.75), 0 4px 15px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        .align-selected-badge {
+            font-size: 8.5px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 5px;
+            background: rgba(59, 130, 246, 0.18);
+            color: #2563eb;
+            display: inline-block;
+        }
+
+        body.dark-mode .align-selected-badge {
+            background: rgba(244, 63, 94, 0.25);
+            color: #fb7185;
+        }
+
+        /* 실시간 스마트 자석 스냅 가이드 HUD */
+        .snap-guide-hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 10009;
+            overflow: hidden;
+        }
+
+        .snap-guide-line-x {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1.5px;
+            background: #3b82f6;
+            box-shadow: 0 0 6px rgba(59, 130, 246, 0.7);
+            pointer-events: none;
+            opacity: 0.85;
+            transition: opacity 0.1s ease;
+        }
+
+        .snap-guide-line-y {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1.5px;
+            background: #3b82f6;
+            box-shadow: 0 0 6px rgba(59, 130, 246, 0.7);
+            pointer-events: none;
+            opacity: 0.85;
+            transition: opacity 0.1s ease;
+        }
+
+        body.dark-mode .snap-guide-line-x,
+        body.dark-mode .snap-guide-line-y {
+            background: #f43f5e;
+            box-shadow: 0 0 7px rgba(244, 63, 94, 0.8);
+        }
+
+        .snap-guide-badge {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.88);
+            color: #ffffff;
+            font-family: '맑은 고딕', 'Segoe UI', sans-serif;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 2;
+            letter-spacing: 0.3px;
+        }
+
+        body.dark-mode .snap-guide-badge {
+            background: rgba(244, 63, 94, 0.95);
+            color: #ffffff;
         }
 
         /* 2. 분할 슬라이드 블록 (확장형 버튼 그룹) */
@@ -11042,7 +11412,56 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
             .control-btn-group-left,
             .control-btn-group-right {
-                bottom: 0;
+                bottom: 6px;
+                gap: 8px;
+            }
+
+            .control-btn-group-left {
+                left: 8px;
+            }
+
+            .control-btn-group-right {
+                right: 8px;
+            }
+
+            .bubble-group-header-wrap {
+                padding: 2px;
+                gap: 2px;
+            }
+
+            .btn-group-label {
+                font-size: 9px;
+                padding: 4px 5px;
+                min-height: 28px;
+            }
+
+            .btn-group-align-trigger {
+                padding: 4px 5px;
+                font-size: 9px;
+                min-height: 28px;
+            }
+
+            .bubble-align-flyout {
+                min-width: 172px;
+                padding: 6px;
+                bottom: calc(100% + 6px);
+                top: auto;
+                margin-top: 0;
+            }
+
+            .align-preset-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 3px;
+            }
+
+            .align-preset-btn {
+                padding: 4px 1px;
+                font-size: 8px;
+            }
+
+            .align-item-btn {
+                padding: 6px 3px;
+                font-size: 10px;
             }
 
             .memo-wrapper:not(.hidden) {
@@ -11390,9 +11809,75 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
     <!-- ◀ 좌측 그룹: 관리 (회의 관리 + 시설·공정 관리) -->
     <div class="control-btn-group-left">
-        <button id="resetLeftControlBubblesBtn" class="btn-group-label" type="button"
-            data-bubble-reset-group="left" title="관리 메뉴를 현재 화면 모드의 기본 위치로 복원"
-            aria-label="관리 메뉴 전체를 기본 위치로 복원">📌 관리 · ↺</button>
+        <div class="bubble-group-header-wrap" data-group="left">
+            <button id="resetLeftControlBubblesBtn" class="btn-group-label" type="button"
+                data-bubble-reset-group="left" title="관리 메뉴를 현재 화면 모드의 기본 위치로 복원"
+                aria-label="관리 메뉴 전체를 기본 위치로 복원">📌 관리 · ↺</button>
+            <button id="alignLeftControlBubblesBtn" class="btn-group-label btn-group-align-trigger" type="button"
+                data-bubble-align-group="left" title="관리 메뉴 객체 맞춤 (가운데·중간·등간격·자동 정돈)"
+                aria-label="관리 메뉴 객체 맞춤 메뉴 열기" aria-haspopup="true" aria-expanded="false">📐 맞춤</button>
+            <div id="flyoutAlignLeft" class="bubble-align-flyout" role="menu" aria-label="관리 메뉴 객체 맞춤 옵션">
+                <div class="align-flyout-title">
+                    <span id="flyoutAlignLeftTitle">📐 관리 객체 맞춤</span>
+                    <span id="flyoutAlignLeftBadge" class="align-selected-badge" style="display:none;">선택 0개 맞춤</span>
+                </div>
+                <div class="align-flyout-grid">
+                    <button type="button" class="align-item-btn" data-align-action="verticalCenter" data-align-group="left" title="수직 일렬 가운데 맞춤 (X축 일치)">
+                        <span class="align-icon">⫿</span>
+                        <span class="align-text">가운데</span>
+                    </button>
+                    <button type="button" class="align-item-btn" data-align-action="horizontalMiddle" data-align-group="left" title="수평 일렬 중간 맞춤 (Y축 일치)">
+                        <span class="align-icon">⫾</span>
+                        <span class="align-text">중간</span>
+                    </button>
+                    <button type="button" class="align-item-btn" data-align-action="distributeVertical" data-align-group="left" title="세로 간격 균등 배분">
+                        <span class="align-icon">⫽</span>
+                        <span class="align-text">세로 간격</span>
+                    </button>
+                    <button type="button" class="align-item-btn" data-align-action="distributeHorizontal" data-align-group="left" title="가로 간격 균등 배분">
+                        <span class="align-icon">⫼</span>
+                        <span class="align-text">가로 간격</span>
+                    </button>
+
+                    <div class="align-flyout-divider"></div>
+                    <div class="align-preset-section-title">
+                        <span>✨ 스마트 정돈 모형</span>
+                        <span style="font-size: 7.5px; opacity: 0.75;">다중선택 대응</span>
+                    </div>
+                    <div class="align-preset-grid">
+                        <button type="button" class="align-preset-btn" data-arrange-preset="default" data-align-group="left" title="기본값: 디바이스 화면 최적화 도크">
+                            <span class="preset-icon">📱</span>
+                            <span class="preset-text">기본 도크</span>
+                        </button>
+                        <button type="button" class="align-preset-btn" data-arrange-preset="column" data-align-group="left" title="선택 중심 수직 1열 슬림 라인 정돈">
+                            <span class="preset-icon">⫿</span>
+                            <span class="preset-text">수직 1열</span>
+                        </button>
+                        <button type="button" class="align-preset-btn" data-arrange-preset="row" data-align-group="left" title="선택 중심 수평 1행 가로 툴바 정돈">
+                            <span class="preset-icon">⫾</span>
+                            <span class="preset-text">수평 1행</span>
+                        </button>
+                        <button type="button" class="align-preset-btn" data-arrange-preset="grid" data-align-group="left" title="선택 영역 2·3열 컴팩트 매트릭스 그리드">
+                            <span class="preset-icon">🪟</span>
+                            <span class="preset-text">2열 그리드</span>
+                        </button>
+                        <button type="button" class="align-preset-btn" data-arrange-preset="arc" data-align-group="left" title="선택 중심 방사형 부채꼴 원형 아크">
+                            <span class="preset-icon">🌈</span>
+                            <span class="preset-text">원형 아크</span>
+                        </button>
+                        <button type="button" class="align-preset-btn" data-arrange-preset="stair" data-align-group="left" title="선택 중심 대각선 계단식 정돈">
+                            <span class="preset-icon">⚡</span>
+                            <span class="preset-text">대각 계단</span>
+                        </button>
+                    </div>
+
+                    <button type="button" class="align-item-btn full-width" data-align-action="resetGroup" data-align-group="left" title="기본 위치로 복원" style="margin-top: 3px;">
+                        <span class="align-icon">↺</span>
+                        <span class="align-text">기본 위치 복원</span>
+                    </button>
+                </div>
+            </div>
+        </div>
         <div class="btn-divider"></div>
         <!-- 🗓 회의 관리 -->
         <button class="control-btn" id="creationPanelToggleBtn" title="새 회의 안건 작성" aria-label="작성 · 새 회의록 만들기"
@@ -11428,9 +11913,75 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
     <!-- ▶ 우측 그룹: 분석·도구 (예산·비용 분석 + 데이터·시스템) -->
     <div class="control-btn-group-right">
-        <button id="resetRightControlBubblesBtn" class="btn-group-label" type="button"
-            data-bubble-reset-group="right" title="분석·도구 메뉴를 현재 화면 모드의 기본 위치로 복원"
-            aria-label="분석 및 도구 메뉴 전체를 기본 위치로 복원">📊 도구 · ↺</button>
+        <div class="bubble-group-header-wrap" data-group="right">
+            <button id="resetRightControlBubblesBtn" class="btn-group-label" type="button"
+                data-bubble-reset-group="right" title="분석·도구 메뉴를 현재 화면 모드의 기본 위치로 복원"
+                aria-label="분석 및 도구 메뉴 전체를 기본 위치로 복원">📊 도구 · ↺</button>
+            <button id="alignRightControlBubblesBtn" class="btn-group-label btn-group-align-trigger" type="button"
+                data-bubble-align-group="right" title="분석·도구 메뉴 객체 맞춤 (가운데·중간·등간격·자동 정돈)"
+                aria-label="분석 및 도구 메뉴 객체 맞춤 메뉴 열기" aria-haspopup="true" aria-expanded="false">📐 맞춤</button>
+            <div id="flyoutAlignRight" class="bubble-align-flyout" role="menu" aria-label="분석 및 도구 메뉴 객체 맞춤 옵션">
+                <div class="align-flyout-title">
+                    <span id="flyoutAlignRightTitle">📐 도구 객체 맞춤</span>
+                    <span id="flyoutAlignRightBadge" class="align-selected-badge" style="display:none;">선택 0개 맞춤</span>
+                </div>
+                <div class="align-flyout-grid">
+                    <button type="button" class="align-item-btn" data-align-action="verticalCenter" data-align-group="right" title="수직 일렬 가운데 맞춤 (X축 일치)">
+                        <span class="align-icon">⫿</span>
+                        <span class="align-text">가운데</span>
+                    </button>
+                    <button type="button" class="align-item-btn" data-align-action="horizontalMiddle" data-align-group="right" title="수평 일렬 중간 맞춤 (Y축 일치)">
+                        <span class="align-icon">⫾</span>
+                        <span class="align-text">중간</span>
+                    </button>
+                    <button type="button" class="align-item-btn" data-align-action="distributeVertical" data-align-group="right" title="세로 간격 균등 배분">
+                        <span class="align-icon">⫽</span>
+                        <span class="align-text">세로 간격</span>
+                    </button>
+                    <button type="button" class="align-item-btn" data-align-action="distributeHorizontal" data-align-group="right" title="가로 간격 균등 배분">
+                        <span class="align-icon">⫼</span>
+                        <span class="align-text">가로 간격</span>
+                    </button>
+
+                    <div class="align-flyout-divider"></div>
+                    <div class="align-preset-section-title">
+                        <span>✨ 스마트 정돈 모형</span>
+                        <span style="font-size: 7.5px; opacity: 0.75;">다중선택 대응</span>
+                    </div>
+                    <div class="align-preset-grid">
+                        <button type="button" class="align-preset-btn" data-arrange-preset="default" data-align-group="right" title="기본값: 디바이스 화면 최적화 도크">
+                            <span class="preset-icon">📱</span>
+                            <span class="preset-text">기본 도크</span>
+                        </button>
+                        <button type="button" class="align-preset-btn" data-arrange-preset="column" data-align-group="right" title="선택 중심 수직 1열 슬림 라인 정돈">
+                            <span class="preset-icon">⫿</span>
+                            <span class="preset-text">수직 1열</span>
+                        </button>
+                        <button type="button" class="align-preset-btn" data-arrange-preset="row" data-align-group="right" title="선택 중심 수평 1행 가로 툴바 정돈">
+                            <span class="preset-icon">⫾</span>
+                            <span class="preset-text">수평 1행</span>
+                        </button>
+                        <button type="button" class="align-preset-btn" data-arrange-preset="grid" data-align-group="right" title="선택 영역 2·3열 컴팩트 매트릭스 그리드">
+                            <span class="preset-icon">🪟</span>
+                            <span class="preset-text">2열 그리드</span>
+                        </button>
+                        <button type="button" class="align-preset-btn" data-arrange-preset="arc" data-align-group="right" title="선택 중심 방사형 부채꼴 원형 아크">
+                            <span class="preset-icon">🌈</span>
+                            <span class="preset-text">원형 아크</span>
+                        </button>
+                        <button type="button" class="align-preset-btn" data-arrange-preset="stair" data-align-group="right" title="선택 중심 대각선 계단식 정돈">
+                            <span class="preset-icon">⚡</span>
+                            <span class="preset-text">대각 계단</span>
+                        </button>
+                    </div>
+
+                    <button type="button" class="align-item-btn full-width" data-align-action="resetGroup" data-align-group="right" title="기본 위치로 복원" style="margin-top: 3px;">
+                        <span class="align-icon">↺</span>
+                        <span class="align-text">기본 위치 복원</span>
+                    </button>
+                </div>
+            </div>
+        </div>
         <div class="btn-divider"></div>
         <!-- 💵 예산·비용·계획 -->
         <button class="control-btn" id="budgetPlanningBtn" title="예산 분석" aria-label="예산 · 예산 분석 열기"
@@ -11492,6 +12043,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             </span>
         </button>
     </div>
+
+    <!-- 🧲 실시간 스마트 자석 스냅 가이드 HUD -->
+    <div id="controlBubbleSnapGuideHud" class="snap-guide-hud" aria-hidden="true"></div>
 
     <div id="settingsModal" class="modal-overlay">
         <div id="settingsPanel" class="modal-content">
@@ -15355,6 +15909,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         const CONTROL_BUBBLE_DRAG_THRESHOLD = 6;
         const CONTROL_BUBBLE_DIAMETER = 43;
         const CONTROL_BUBBLE_GAP = 8;
+        const CONTROL_BUBBLE_SNAP_DIST_DESKTOP = 10;
+        const CONTROL_BUBBLE_SNAP_DIST_MOBILE = 14;
 
         function getControlBubbleViewportMode() {
             return window.matchMedia('(max-width: 600px) and (orientation: portrait)').matches
@@ -15408,7 +15964,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         }
 
         function resetControlBubbleElement(button) {
-            button.classList.remove('bubble-armed', 'bubble-positioned', 'bubble-dragging', 'bubble-drop', 'bubble-ejected');
+            button.classList.remove('bubble-armed', 'bubble-positioned', 'bubble-dragging', 'bubble-drop', 'bubble-ejected', 'bubble-aligning');
             button.style.removeProperty('left');
             button.style.removeProperty('top');
         }
@@ -15600,10 +16156,666 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             resetButton?.blur();
         }
 
+        /* 🧲 실시간 스마트 자석 스냅 가이드 HUD 함수군 */
+        function getSnapGuideHud() {
+            let hud = document.getElementById('controlBubbleSnapGuideHud');
+            if (!hud) {
+                hud = document.createElement('div');
+                hud.id = 'controlBubbleSnapGuideHud';
+                hud.className = 'snap-guide-hud';
+                hud.setAttribute('aria-hidden', 'true');
+                document.body.appendChild(hud);
+            }
+            return hud;
+        }
+
+        function clearControlBubbleSnapGuides() {
+            const hud = getSnapGuideHud();
+            hud.innerHTML = '';
+        }
+
+        function renderControlBubbleSnapGuides(snaps, currentX, currentY) {
+            const hud = getSnapGuideHud();
+            hud.innerHTML = '';
+            if (!snaps || (!snaps.xSnap && !snaps.ySnap)) return;
+
+            if (snaps.xSnap) {
+                const line = document.createElement('div');
+                line.className = 'snap-guide-line-x';
+                line.style.left = `${snaps.xSnap.x}px`;
+                hud.appendChild(line);
+
+                if (snaps.xSnap.label) {
+                    const badge = document.createElement('div');
+                    badge.className = 'snap-guide-badge';
+                    badge.textContent = snaps.xSnap.label;
+                    badge.style.left = `${snaps.xSnap.x}px`;
+                    badge.style.top = `${Math.max(25, Math.min(window.innerHeight - 25, currentY ?? (window.innerHeight / 2)))}px`;
+                    hud.appendChild(badge);
+                }
+            }
+
+            if (snaps.ySnap) {
+                const line = document.createElement('div');
+                line.className = 'snap-guide-line-y';
+                line.style.top = `${snaps.ySnap.y}px`;
+                hud.appendChild(line);
+
+                if (snaps.ySnap.label) {
+                    const badge = document.createElement('div');
+                    badge.className = 'snap-guide-badge';
+                    badge.textContent = snaps.ySnap.label;
+                    badge.style.top = `${snaps.ySnap.y}px`;
+                    badge.style.left = `${Math.max(45, Math.min(window.innerWidth - 45, currentX ?? (window.innerWidth / 2)))}px`;
+                    hud.appendChild(badge);
+                }
+            }
+        }
+
+        function calculateControlBubbleSnap(button, rawLeft, rawTop, otherButtons) {
+            const isMobile = getControlBubbleViewportMode() === 'mobilePortrait';
+            const snapThreshold = isMobile ? CONTROL_BUBBLE_SNAP_DIST_MOBILE : CONTROL_BUBBLE_SNAP_DIST_DESKTOP;
+            const currentCenterX = rawLeft + (CONTROL_BUBBLE_DIAMETER / 2);
+            const currentCenterY = rawTop + (CONTROL_BUBBLE_DIAMETER / 2);
+
+            let bestSnapX = null;
+            let minDiffX = snapThreshold;
+
+            let bestSnapY = null;
+            let minDiffY = snapThreshold;
+
+            // 1. 화면 중앙 스냅
+            const screenCenterX = window.innerWidth / 2;
+            const screenCenterY = window.innerHeight / 2;
+
+            if (Math.abs(currentCenterX - screenCenterX) < minDiffX) {
+                minDiffX = Math.abs(currentCenterX - screenCenterX);
+                bestSnapX = {
+                    left: screenCenterX - (CONTROL_BUBBLE_DIAMETER / 2),
+                    x: screenCenterX,
+                    label: '화면 중앙선'
+                };
+            }
+
+            if (Math.abs(currentCenterY - screenCenterY) < minDiffY) {
+                minDiffY = Math.abs(currentCenterY - screenCenterY);
+                bestSnapY = {
+                    top: screenCenterY - (CONTROL_BUBBLE_DIAMETER / 2),
+                    y: screenCenterY,
+                    label: '화면 중간선'
+                };
+            }
+
+            // 2. 다른 버튼들과의 X/Y 중심축 일치 스냅
+            const otherRects = otherButtons.map(b => getControlBubbleVisualRect(b));
+
+            for (const rect of otherRects) {
+                const targetCenterX = rect.left + (CONTROL_BUBBLE_DIAMETER / 2);
+                const targetCenterY = rect.top + (CONTROL_BUBBLE_DIAMETER / 2);
+
+                const diffX = Math.abs(currentCenterX - targetCenterX);
+                if (diffX < minDiffX) {
+                    minDiffX = diffX;
+                    bestSnapX = {
+                        left: rect.left,
+                        x: targetCenterX,
+                        label: '가운데 맞춤'
+                    };
+                }
+
+                const diffY = Math.abs(currentCenterY - targetCenterY);
+                if (diffY < minDiffY) {
+                    minDiffY = diffY;
+                    bestSnapY = {
+                        top: rect.top,
+                        y: targetCenterY,
+                        label: '중간 맞춤'
+                    };
+                }
+            }
+
+            // 3. 인접 버튼 간의 등간격(Equal Spacing) 스냅
+            if (otherRects.length >= 2) {
+                for (let i = 0; i < otherRects.length; i += 1) {
+                    for (let j = i + 1; j < otherRects.length; j += 1) {
+                        const r1 = otherRects[i];
+                        const r2 = otherRects[j];
+                        
+                        // 세로 등간격 검사
+                        const sameCol = Math.abs((r1.left + CONTROL_BUBBLE_DIAMETER / 2) - (r2.left + CONTROL_BUBBLE_DIAMETER / 2)) < 16;
+                        if (sameCol) {
+                            const minY = Math.min(r1.top, r2.top);
+                            const maxY = Math.max(r1.top, r2.top);
+                            const stepY = maxY - minY;
+                            if (stepY >= CONTROL_BUBBLE_DIAMETER) {
+                                const nextDown = maxY + stepY;
+                                if (Math.abs(rawTop - nextDown) < minDiffY) {
+                                    minDiffY = Math.abs(rawTop - nextDown);
+                                    bestSnapY = {
+                                        top: nextDown,
+                                        y: nextDown + (CONTROL_BUBBLE_DIAMETER / 2),
+                                        label: `세로 등간격 (${Math.round(stepY)}px)`
+                                    };
+                                }
+                                const nextUp = minY - stepY;
+                                if (Math.abs(rawTop - nextUp) < minDiffY) {
+                                    minDiffY = Math.abs(rawTop - nextUp);
+                                    bestSnapY = {
+                                        top: nextUp,
+                                        y: nextUp + (CONTROL_BUBBLE_DIAMETER / 2),
+                                        label: `세로 등간격 (${Math.round(stepY)}px)`
+                                    };
+                                }
+                            }
+                        }
+
+                        // 가로 등간격 검사
+                        const sameRow = Math.abs((r1.top + CONTROL_BUBBLE_DIAMETER / 2) - (r2.top + CONTROL_BUBBLE_DIAMETER / 2)) < 16;
+                        if (sameRow) {
+                            const minX = Math.min(r1.left, r2.left);
+                            const maxX = Math.max(r1.left, r2.left);
+                            const stepX = maxX - minX;
+                            if (stepX >= CONTROL_BUBBLE_DIAMETER) {
+                                const nextRight = maxX + stepX;
+                                if (Math.abs(rawLeft - nextRight) < minDiffX) {
+                                    minDiffX = Math.abs(rawLeft - nextRight);
+                                    bestSnapX = {
+                                        left: nextRight,
+                                        x: nextRight + (CONTROL_BUBBLE_DIAMETER / 2),
+                                        label: `가로 등간격 (${Math.round(stepX)}px)`
+                                    };
+                                }
+                                const nextLeft = minX - stepX;
+                                if (Math.abs(rawLeft - nextLeft) < minDiffX) {
+                                    minDiffX = Math.abs(rawLeft - nextLeft);
+                                    bestSnapX = {
+                                        left: nextLeft,
+                                        x: nextLeft + (CONTROL_BUBBLE_DIAMETER / 2),
+                                        label: `가로 등간격 (${Math.round(stepX)}px)`
+                                    };
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            const finalLeft = bestSnapX ? bestSnapX.left : rawLeft;
+            const finalTop = bestSnapY ? bestSnapY.top : rawTop;
+
+            return {
+                left: finalLeft,
+                top: finalTop,
+                snapped: !!(bestSnapX || bestSnapY),
+                xSnap: bestSnapX,
+                ySnap: bestSnapY
+            };
+        }
+
+        /* 📐 객체 맞춤(Alignment & Distribution) 및 겹침 방지(Anti-Overlap) 엔진 */
+        function getAlignmentTargetButtons(groupName, allButtons) {
+            const selected = allButtons.filter(b => b.classList.contains('bubble-selected'));
+            if (selected.length >= 2) {
+                return selected;
+            }
+            const groupSelector = groupName === 'right' ? '.control-btn-group-right' : '.control-btn-group-left';
+            const group = document.querySelector(groupSelector);
+            return allButtons.filter(b => group?.contains(b));
+        }
+
+        function updateAlignFlyoutSelectionBadges(allButtons) {
+            const selected = allButtons.filter(b => b.classList.contains('bubble-selected'));
+            const count = selected.length;
+            const leftBadge = document.getElementById('flyoutAlignLeftBadge');
+            const rightBadge = document.getElementById('flyoutAlignRightBadge');
+            
+            if (leftBadge) {
+                if (count >= 2) {
+                    leftBadge.style.display = 'inline-block';
+                    leftBadge.textContent = `선택 ${count}개 맞춤`;
+                } else {
+                    leftBadge.style.display = 'none';
+                }
+            }
+            if (rightBadge) {
+                if (count >= 2) {
+                    rightBadge.style.display = 'inline-block';
+                    rightBadge.textContent = `선택 ${count}개 맞춤`;
+                } else {
+                    rightBadge.style.display = 'none';
+                }
+            }
+        }
+
+        function clearControlBubbleSelection(allButtons) {
+            allButtons.forEach(b => b.classList.remove('bubble-selected'));
+            updateAlignFlyoutSelectionBadges(allButtons);
+        }
+
+        function applyBatchControlBubblePositions(targetButtons, getPosFn, allButtons) {
+            const layout = readControlBubbleLayout();
+            const mode = getControlBubbleViewportMode();
+
+            targetButtons.forEach((btn, index) => {
+                const pos = getPosFn(btn, index);
+                const clamped = clampControlBubble(btn, pos.left, pos.top);
+                btn.classList.add('bubble-positioned', 'bubble-aligning');
+                btn.style.left = `${clamped.left}px`;
+                btn.style.top = `${clamped.top}px`;
+
+                layout[mode][btn.id] = {
+                    xRatio: clamped.bounds.rangeX ? (clamped.left - CONTROL_BUBBLE_MARGIN) / clamped.bounds.rangeX : 0,
+                    yRatio: clamped.bounds.rangeY ? (clamped.top - CONTROL_BUBBLE_MARGIN) / clamped.bounds.rangeY : 0
+                };
+            });
+
+            writeControlBubbleLayout(layout);
+            settleControlBubbleCollisions(allButtons);
+            updateControlMenuLabelSides(allButtons);
+
+            setTimeout(() => {
+                targetButtons.forEach(btn => btn.classList.remove('bubble-aligning'));
+            }, 320);
+        }
+
+        /* 1. 수직 가운데 맞춤 (X축 일치 + Y축 겹침 원천 방지) */
+        function alignControlBubblesVerticalCenter(groupName, allButtons) {
+            const targetButtons = getAlignmentTargetButtons(groupName, allButtons);
+            if (!targetButtons.length) return;
+
+            // Y좌표 기준으로 정렬
+            const sorted = targetButtons
+                .map(b => ({ btn: b, rect: getControlBubbleVisualRect(b) }))
+                .sort((a, b) => a.rect.top - b.rect.top);
+
+            const avgLeft = sorted.reduce((acc, cur) => acc + cur.rect.left, 0) / sorted.length;
+            const minStep = CONTROL_BUBBLE_DIAMETER + CONTROL_BUBBLE_GAP;
+            const posMap = new Map();
+
+            let currentTop = sorted[0].rect.top;
+            sorted.forEach((item, idx) => {
+                if (idx > 0) {
+                    currentTop = Math.max(item.rect.top, currentTop + minStep);
+                }
+                posMap.set(item.btn, {
+                    left: avgLeft,
+                    top: currentTop
+                });
+            });
+
+            // 화면 하단 초과 시 역보정
+            const maxAllowedTop = window.innerHeight - CONTROL_BUBBLE_DIAMETER - CONTROL_BUBBLE_MARGIN;
+            if (currentTop > maxAllowedTop) {
+                const overflow = currentTop - maxAllowedTop;
+                sorted.forEach(item => {
+                    const p = posMap.get(item.btn);
+                    p.top = Math.max(CONTROL_BUBBLE_MARGIN, p.top - overflow);
+                });
+            }
+
+            applyBatchControlBubblePositions(targetButtons, (btn) => posMap.get(btn), allButtons);
+        }
+
+        /* 2. 수평 중간 맞춤 (Y축 일치 + X축 겹침 원천 방지) */
+        function alignControlBubblesHorizontalMiddle(groupName, allButtons) {
+            const targetButtons = getAlignmentTargetButtons(groupName, allButtons);
+            if (!targetButtons.length) return;
+
+            // X좌표 기준으로 정렬
+            const sorted = targetButtons
+                .map(b => ({ btn: b, rect: getControlBubbleVisualRect(b) }))
+                .sort((a, b) => a.rect.left - b.rect.left);
+
+            const avgTop = sorted.reduce((acc, cur) => acc + cur.rect.top, 0) / sorted.length;
+            const minStep = CONTROL_BUBBLE_DIAMETER + CONTROL_BUBBLE_GAP;
+            const posMap = new Map();
+
+            let currentLeft = sorted[0].rect.left;
+            sorted.forEach((item, idx) => {
+                if (idx > 0) {
+                    currentLeft = Math.max(item.rect.left, currentLeft + minStep);
+                }
+                posMap.set(item.btn, {
+                    left: currentLeft,
+                    top: avgTop
+                });
+            });
+
+            // 화면 우측 초과 시 역보정
+            const maxAllowedLeft = window.innerWidth - CONTROL_BUBBLE_DIAMETER - CONTROL_BUBBLE_MARGIN;
+            if (currentLeft > maxAllowedLeft) {
+                const overflow = currentLeft - maxAllowedLeft;
+                sorted.forEach(item => {
+                    const p = posMap.get(item.btn);
+                    p.left = Math.max(CONTROL_BUBBLE_MARGIN, p.left - overflow);
+                });
+            }
+
+            applyBatchControlBubblePositions(targetButtons, (btn) => posMap.get(btn), allButtons);
+        }
+
+        /* 3. 세로 간격 동일 배분 (최소 간격 보장으로 중복·겹침 방지) */
+        function distributeControlBubblesVertical(groupName, allButtons) {
+            const targetButtons = getAlignmentTargetButtons(groupName, allButtons);
+            if (targetButtons.length < 2) return;
+
+            const sorted = targetButtons
+                .map(b => ({ btn: b, rect: getControlBubbleVisualRect(b) }))
+                .sort((a, b) => a.rect.top - b.rect.top);
+
+            const minTop = sorted[0].rect.top;
+            const maxTop = sorted[sorted.length - 1].rect.top;
+            const totalDistance = maxTop - minTop;
+            const minRequiredStep = CONTROL_BUBBLE_DIAMETER + CONTROL_BUBBLE_GAP;
+
+            // 겹침 방지: 거리가 부족할 경우 최소 안전 간격 강제 보장
+            const step = Math.max(minRequiredStep, totalDistance / (sorted.length - 1));
+
+            const posMap = new Map();
+            sorted.forEach((item, idx) => {
+                posMap.set(item.btn, {
+                    left: item.rect.left,
+                    top: minTop + (idx * step)
+                });
+            });
+
+            // 뷰포트 하단 초과 시 역보정
+            const calculatedMaxTop = minTop + ((sorted.length - 1) * step);
+            const maxAllowedTop = window.innerHeight - CONTROL_BUBBLE_DIAMETER - CONTROL_BUBBLE_MARGIN;
+            if (calculatedMaxTop > maxAllowedTop) {
+                const overflow = calculatedMaxTop - maxAllowedTop;
+                sorted.forEach(item => {
+                    const p = posMap.get(item.btn);
+                    p.top = Math.max(CONTROL_BUBBLE_MARGIN, p.top - overflow);
+                });
+            }
+
+            applyBatchControlBubblePositions(targetButtons, (btn) => posMap.get(btn), allButtons);
+        }
+
+        /* 4. 가로 간격 동일 배분 (최소 간격 보장으로 중복·겹침 방지) */
+        function distributeControlBubblesHorizontal(groupName, allButtons) {
+            const targetButtons = getAlignmentTargetButtons(groupName, allButtons);
+            if (targetButtons.length < 2) return;
+
+            const sorted = targetButtons
+                .map(b => ({ btn: b, rect: getControlBubbleVisualRect(b) }))
+                .sort((a, b) => a.rect.left - b.rect.left);
+
+            const minLeft = sorted[0].rect.left;
+            const maxLeft = sorted[sorted.length - 1].rect.left;
+            const totalDistance = maxLeft - minLeft;
+            const minRequiredStep = CONTROL_BUBBLE_DIAMETER + CONTROL_BUBBLE_GAP;
+
+            // 겹침 방지: 거리가 부족할 경우 최소 안전 간격 강제 보장
+            const step = Math.max(minRequiredStep, totalDistance / (sorted.length - 1));
+
+            const posMap = new Map();
+            sorted.forEach((item, idx) => {
+                posMap.set(item.btn, {
+                    left: minLeft + (idx * step),
+                    top: item.rect.top
+                });
+            });
+
+            // 뷰포트 우측 초과 시 역보정
+            const calculatedMaxLeft = minLeft + ((sorted.length - 1) * step);
+            const maxAllowedLeft = window.innerWidth - CONTROL_BUBBLE_DIAMETER - CONTROL_BUBBLE_MARGIN;
+            if (calculatedMaxLeft > maxAllowedLeft) {
+                const overflow = calculatedMaxLeft - maxAllowedLeft;
+                sorted.forEach(item => {
+                    const p = posMap.get(item.btn);
+                    p.left = Math.max(CONTROL_BUBBLE_MARGIN, p.left - overflow);
+                });
+            }
+
+            applyBatchControlBubblePositions(targetButtons, (btn) => posMap.get(btn), allButtons);
+        }
+
+        /* 5. 스마트 자동 정돈 (기본값 및 다중 선택 대상 5가지 창의적 모형) */
+        function smartArrangeControlBubbles(groupName, allButtons, preset = 'default') {
+            const targetButtons = getAlignmentTargetButtons(groupName, allButtons);
+            if (!targetButtons.length) return;
+
+            const isMobile = getControlBubbleViewportMode() === 'mobilePortrait';
+            const isRight = groupName === 'right';
+            const count = targetButtons.length;
+            const step = CONTROL_BUBBLE_DIAMETER + CONTROL_BUBBLE_GAP; // 51px
+
+            // 대상 버튼들의 현재 바운딩 박스 중심 계산
+            const rects = targetButtons.map(b => getControlBubbleVisualRect(b));
+            const minLeft = Math.min(...rects.map(r => r.left));
+            const maxLeft = Math.max(...rects.map(r => r.left));
+            const minTop = Math.min(...rects.map(r => r.top));
+            const maxTop = Math.max(...rects.map(r => r.top));
+            const centerX = (minLeft + maxLeft) / 2;
+            const centerY = (minTop + maxTop) / 2;
+
+            const posMap = new Map();
+
+            // 1) 기본값 (Default): 디바이스 화면 최적화 도크
+            if (preset === 'default') {
+                if (isMobile) {
+                    const baseLeft = isRight ? Math.max(12, window.innerWidth - (CONTROL_BUBBLE_DIAMETER * 2) - 20) : 12;
+                    const baseBottom = window.innerHeight - 68;
+                    const gap = 6;
+                    const mobStep = CONTROL_BUBBLE_DIAMETER + gap;
+
+                    targetButtons.forEach((btn, idx) => {
+                        const col = idx % 2;
+                        const row = Math.floor(idx / 2);
+                        const left = baseLeft + (col * mobStep);
+                        const top = baseBottom - (row * mobStep);
+                        posMap.set(btn, { left, top });
+                    });
+                } else {
+                    const baseLeft = isRight ? (window.innerWidth - CONTROL_BUBBLE_DIAMETER - 24) : 24;
+                    const totalHeight = window.innerHeight - 140;
+                    const availableGap = Math.min(18, Math.max(8, (totalHeight - (count * CONTROL_BUBBLE_DIAMETER)) / Math.max(1, count - 1)));
+                    const dStep = CONTROL_BUBBLE_DIAMETER + availableGap;
+                    const startTop = Math.max(60, (window.innerHeight - ((count * CONTROL_BUBBLE_DIAMETER) + ((count - 1) * availableGap))) / 2);
+
+                    targetButtons.forEach((btn, idx) => {
+                        const left = baseLeft;
+                        const top = startTop + (idx * dStep);
+                        posMap.set(btn, { left, top });
+                    });
+                }
+            }
+            // 2) 모형 1: 수직 1열 (Column)
+            else if (preset === 'column') {
+                const totalH = (count * step) - CONTROL_BUBBLE_GAP;
+                const startTop = Math.max(CONTROL_BUBBLE_MARGIN, centerY - (totalH / 2));
+                const targetLeft = isNaN(centerX) ? (isRight ? window.innerWidth - CONTROL_BUBBLE_DIAMETER - 24 : 24) : centerX;
+
+                targetButtons.forEach((btn, idx) => {
+                    posMap.set(btn, {
+                        left: targetLeft,
+                        top: startTop + (idx * step)
+                    });
+                });
+            }
+            // 3) 모형 2: 수평 1행 (Row)
+            else if (preset === 'row') {
+                const totalW = (count * step) - CONTROL_BUBBLE_GAP;
+                const startLeft = Math.max(CONTROL_BUBBLE_MARGIN, centerX - (totalW / 2));
+                const targetTop = isNaN(centerY) ? (window.innerHeight - CONTROL_BUBBLE_DIAMETER - 40) : centerY;
+
+                targetButtons.forEach((btn, idx) => {
+                    posMap.set(btn, {
+                        left: startLeft + (idx * step),
+                        top: targetTop
+                    });
+                });
+            }
+            // 4) 모형 3: 2열/3열 컴팩트 매트릭스 그리드 (Grid)
+            else if (preset === 'grid') {
+                const cols = count <= 4 ? 2 : (count <= 6 ? 3 : 2);
+                const rows = Math.ceil(count / cols);
+                const gridW = (cols * step) - CONTROL_BUBBLE_GAP;
+                const gridH = (rows * step) - CONTROL_BUBBLE_GAP;
+                const startLeft = Math.max(CONTROL_BUBBLE_MARGIN, centerX - (gridW / 2));
+                const startTop = Math.max(CONTROL_BUBBLE_MARGIN, centerY - (gridH / 2));
+
+                targetButtons.forEach((btn, idx) => {
+                    const col = idx % cols;
+                    const row = Math.floor(idx / cols);
+                    posMap.set(btn, {
+                        left: startLeft + (col * step),
+                        top: startTop + (row * step)
+                    });
+                });
+            }
+            // 5) 모형 4: 방사형 부채꼴 원형 아크 (Radial Arc)
+            else if (preset === 'arc') {
+                const radius = Math.max(65, Math.min(110, count * 22));
+                const isFacingLeft = isRight || (centerX > window.innerWidth / 2);
+                const startAngle = isFacingLeft ? (Math.PI * 0.7) : (-Math.PI * 0.3);
+                const endAngle = isFacingLeft ? (Math.PI * 1.3) : (Math.PI * 0.3);
+
+                targetButtons.forEach((btn, idx) => {
+                    const angle = count > 1
+                        ? startAngle + ((idx / (count - 1)) * (endAngle - startAngle))
+                        : (startAngle + endAngle) / 2;
+                    const left = centerX + (Math.cos(angle) * radius);
+                    const top = centerY + (Math.sin(angle) * radius);
+                    posMap.set(btn, { left, top });
+                });
+            }
+            // 6) 모형 5: 대각선 계단식 (Stair)
+            else if (preset === 'stair') {
+                const stairStep = 38;
+                const totalStair = (count - 1) * stairStep;
+                const isFacingLeft = isRight || (centerX > window.innerWidth / 2);
+                const startLeft = isFacingLeft ? (centerX + (totalStair / 2)) : (centerX - (totalStair / 2));
+                const startTop = centerY - (totalStair / 2);
+
+                targetButtons.forEach((btn, idx) => {
+                    const left = isFacingLeft ? (startLeft - (idx * stairStep)) : (startLeft + (idx * stairStep));
+                    const top = startTop + (idx * stairStep);
+                    posMap.set(btn, { left, top });
+                });
+            }
+
+            applyBatchControlBubblePositions(targetButtons, (btn) => posMap.get(btn), allButtons);
+        }
+
+        function closeAllBubbleAlignFlyouts() {
+            document.querySelectorAll('.bubble-align-flyout.open').forEach(flyout => {
+                flyout.classList.remove('open');
+            });
+            document.querySelectorAll('.btn-group-align-trigger.active').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-expanded', 'false');
+            });
+        }
+
+        /* 🖱️ 바탕화면 마우스/터치 드래그 영역 선택 (Marquee Selection) 시스템 */
+        function setupMarqueeSelection(buttons) {
+            let marqueeEl = null;
+            let startX = 0;
+            let startY = 0;
+            let isSelecting = false;
+            let moved = false;
+
+            const isInteractiveTarget = (target) => {
+                return !!target.closest('.control-btn, .btn-group-label, .bubble-align-flyout, button, a, input, textarea, select, .modal-content, #memoFocusOverlay, [role="button"], #monthly-report-card, .report-card');
+            };
+
+            document.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0 || isInteractiveTarget(e.target)) return;
+
+                startX = e.clientX;
+                startY = e.clientY;
+                isSelecting = true;
+                moved = false;
+
+                // 드래그 시 문자 선택 방지 클래스 즉시 추가
+                document.body.classList.add('bubble-selecting');
+                window.getSelection()?.removeAllRanges();
+            });
+
+            document.addEventListener('pointermove', (e) => {
+                if (!isSelecting) return;
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+
+                if (!moved && Math.hypot(deltaX, deltaY) > 5) {
+                    moved = true;
+                    if (!marqueeEl) {
+                        marqueeEl = document.createElement('div');
+                        marqueeEl.className = 'bubble-selection-marquee';
+                        document.body.appendChild(marqueeEl);
+                    }
+                }
+
+                if (moved && marqueeEl) {
+                    e.preventDefault();
+                    window.getSelection()?.removeAllRanges();
+
+                    const boxLeft = Math.min(startX, e.clientX);
+                    const boxTop = Math.min(startY, e.clientY);
+                    const boxWidth = Math.abs(deltaX);
+                    const boxHeight = Math.abs(deltaY);
+
+                    marqueeEl.style.left = `${boxLeft}px`;
+                    marqueeEl.style.top = `${boxTop}px`;
+                    marqueeEl.style.width = `${boxWidth}px`;
+                    marqueeEl.style.height = `${boxHeight}px`;
+
+                    const marqueeRect = {
+                        left: boxLeft,
+                        top: boxTop,
+                        right: boxLeft + boxWidth,
+                        bottom: boxTop + boxHeight
+                    };
+
+                    buttons.forEach(btn => {
+                        const btnRect = getControlBubbleVisualRect(btn);
+                        const intersect = !(
+                            btnRect.right < marqueeRect.left ||
+                            btnRect.left > marqueeRect.right ||
+                            btnRect.bottom < marqueeRect.top ||
+                            btnRect.top > marqueeRect.bottom
+                        );
+                        if (intersect) {
+                            btn.classList.add('bubble-selected');
+                        } else if (!e.shiftKey && !e.ctrlKey) {
+                            btn.classList.remove('bubble-selected');
+                        }
+                    });
+
+                    updateAlignFlyoutSelectionBadges(buttons);
+                }
+            });
+
+            const finishSelection = () => {
+                if (!isSelecting) return;
+                isSelecting = false;
+                document.body.classList.remove('bubble-selecting');
+
+                if (marqueeEl) {
+                    marqueeEl.remove();
+                    marqueeEl = null;
+                }
+
+                if (!moved) {
+                    clearControlBubbleSelection(buttons);
+                }
+            };
+
+            document.addEventListener('pointerup', finishSelection);
+            document.addEventListener('pointercancel', finishSelection);
+            document.addEventListener('selectstart', (e) => {
+                if (isSelecting) e.preventDefault();
+            });
+        }
+
         function initializeDraggableControlButtons() {
             const buttons = [...document.querySelectorAll('.control-btn')];
             let activeDrag = null;
             let resizeFrame = 0;
+            let lastSnapState = false;
 
             for (const button of buttons) {
                 if (!button.parentElement?.classList.contains('control-btn-slot')) {
@@ -15614,58 +16826,141 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 }
                 const originalTitle = button.title || button.dataset.menuLabel || '메뉴';
                 button.dataset.bubbleOriginalTitle = originalTitle;
-                button.title = `${originalTitle} · 드래그로 이동 · 이동 후 우클릭 시 기본 위치`;
-                button.setAttribute('aria-description', '마우스나 손가락으로 끌어 위치를 옮길 수 있습니다. 이동한 버튼은 우클릭하면 기본 위치로 돌아갑니다.');
+                button.title = `${originalTitle} · 드래그로 이동 (자석 스냅·다중 이동 지원) · Ctrl+클릭 선택 · 우클릭 시 기본 위치`;
+                button.setAttribute('aria-description', '마우스나 터치로 끌어 원하는 곳에 배치할 수 있으며, 다중 선택된 객체들은 함께 동시 이동합니다. 우클릭하면 기본 위치로 복원됩니다.');
 
                 button.addEventListener('pointerdown', event => {
                     if (button.disabled || event.button !== 0 || activeDrag) return;
-                    button.classList.add('bubble-armed');
-                    const rect = button.getBoundingClientRect();
+                    closeAllBubbleAlignFlyouts();
+
+                    const isPartOfSelection = button.classList.contains('bubble-selected');
+                    if (!isPartOfSelection && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+                        clearControlBubbleSelection(buttons);
+                    }
+
+                    // 다중 선택된 버튼 그룹 결정
+                    const dragButtons = button.classList.contains('bubble-selected')
+                        ? buttons.filter(b => b.classList.contains('bubble-selected'))
+                        : [button];
+
+                    dragButtons.forEach(b => b.classList.add('bubble-armed'));
+
+                    const dragItems = dragButtons.map(b => {
+                        const rect = getControlBubbleVisualRect(b);
+                        return {
+                            button: b,
+                            startLeft: rect.left,
+                            startTop: rect.top
+                        };
+                    });
+
+                    const leaderItem = dragItems.find(item => item.button === button) || dragItems[0];
+                    const otherButtons = buttons.filter(b => !dragButtons.includes(b));
+
                     activeDrag = {
-                        button,
+                        leaderButton: button,
+                        leaderItem,
+                        dragItems,
+                        otherButtons,
                         pointerId: event.pointerId,
                         startX: event.clientX,
                         startY: event.clientY,
-                        startLeft: rect.left,
-                        startTop: rect.top,
                         dragged: false
                     };
                     button.setPointerCapture?.(event.pointerId);
                 });
 
                 button.addEventListener('pointermove', event => {
-                    if (!activeDrag || activeDrag.button !== button || activeDrag.pointerId !== event.pointerId) return;
+                    if (!activeDrag || activeDrag.leaderButton !== button || activeDrag.pointerId !== event.pointerId) return;
                     const deltaX = event.clientX - activeDrag.startX;
                     const deltaY = event.clientY - activeDrag.startY;
                     if (!activeDrag.dragged && Math.hypot(deltaX, deltaY) < CONTROL_BUBBLE_DRAG_THRESHOLD) return;
                     event.preventDefault();
+
                     if (!activeDrag.dragged) {
                         activeDrag.dragged = true;
-                        button.classList.add('bubble-positioned', 'bubble-dragging');
-                        button.style.left = `${activeDrag.startLeft}px`;
-                        button.style.top = `${activeDrag.startTop}px`;
+                        activeDrag.dragItems.forEach(item => {
+                            item.button.classList.add('bubble-positioned', 'bubble-dragging');
+                            item.button.style.left = `${item.startLeft}px`;
+                            item.button.style.top = `${item.startTop}px`;
+                        });
                     }
-                    const position = clampControlBubble(button, activeDrag.startLeft + deltaX, activeDrag.startTop + deltaY);
-                    button.style.left = `${position.left}px`;
-                    button.style.top = `${position.top}px`;
+
+                    const rawLeaderTargetLeft = activeDrag.leaderItem.startLeft + deltaX;
+                    const rawLeaderTargetTop = activeDrag.leaderItem.startTop + deltaY;
+
+                    // 스마트 자석 스냅 계산 (리더 버튼 기준)
+                    const snapResult = calculateControlBubbleSnap(button, rawLeaderTargetLeft, rawLeaderTargetTop, activeDrag.otherButtons);
+                    const leaderPos = clampControlBubble(button, snapResult.left, snapResult.top);
+
+                    // 리더 버튼의 실제 이동량 계산
+                    const appliedDeltaX = leaderPos.left - activeDrag.leaderItem.startLeft;
+                    const appliedDeltaY = leaderPos.top - activeDrag.leaderItem.startTop;
+
+                    // 드래그 그룹 내 모든 버튼에 동일한 상대 델타를 적용하여 대형 유지 이동
+                    activeDrag.dragItems.forEach(item => {
+                        const itemRawLeft = item.startLeft + appliedDeltaX;
+                        const itemRawTop = item.startTop + appliedDeltaY;
+                        const itemPos = clampControlBubble(item.button, itemRawLeft, itemRawTop);
+                        item.button.style.left = `${itemPos.left}px`;
+                        item.button.style.top = `${itemPos.top}px`;
+                    });
+
+                    // 스냅 발생 시 시각적 HUD 가이드라인 표시 & 모바일 햅틱
+                    if (snapResult.snapped) {
+                        renderControlBubbleSnapGuides(snapResult, event.clientX, event.clientY);
+                        if (!lastSnapState) {
+                            lastSnapState = true;
+                            if (navigator.vibrate) navigator.vibrate(8);
+                        }
+                    } else {
+                        clearControlBubbleSnapGuides();
+                        lastSnapState = false;
+                    }
                 });
 
                 const finishDrag = (event, cancelled = false) => {
-                    if (!activeDrag || activeDrag.button !== button || (event && activeDrag.pointerId !== event.pointerId)) return;
+                    if (!activeDrag || activeDrag.leaderButton !== button || (event && activeDrag.pointerId !== event.pointerId)) return;
                     const dragged = activeDrag.dragged;
+                    const dragItems = activeDrag.dragItems;
+
                     if (button.hasPointerCapture?.(activeDrag.pointerId)) button.releasePointerCapture(activeDrag.pointerId);
-                    button.classList.remove('bubble-armed', 'bubble-dragging');
+
+                    dragItems.forEach(item => {
+                        item.button.classList.remove('bubble-armed', 'bubble-dragging');
+                    });
+
+                    clearControlBubbleSnapGuides();
+                    lastSnapState = false;
                     activeDrag = null;
+
                     if (!dragged) return;
-                    button.dataset.suppressClickUntil = String(performance.now() + 500);
+
+                    dragItems.forEach(item => {
+                        item.button.dataset.suppressClickUntil = String(performance.now() + 500);
+                    });
+
                     if (cancelled) {
                         applySavedControlBubblePositions(buttons);
                         return;
                     }
-                    persistControlBubblePosition(button);
-                    resolveControlBubbleCollisions(button, buttons, buttons.filter(other => other !== button));
+
+                    // 드래그 그룹 내 모든 버튼의 새 위치 일괄 영속화
+                    dragItems.forEach(item => {
+                        persistControlBubblePosition(item.button);
+                    });
+
+                    // 외부 비선택 버튼들과의 충돌 해결 & 라벨 방향 갱신
+                    const nonDragButtons = buttons.filter(b => !dragItems.some(di => di.button === b));
+                    dragItems.forEach(item => {
+                        resolveControlBubbleCollisions(item.button, buttons, nonDragButtons);
+                    });
+
                     updateControlMenuLabelSides(buttons);
-                    animateControlBubble(button, 'bubble-drop', 320);
+
+                    dragItems.forEach(item => {
+                        animateControlBubble(item.button, 'bubble-drop', 320);
+                    });
                 };
 
                 button.addEventListener('pointerup', event => finishDrag(event, false));
@@ -15675,42 +16970,137 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     if (performance.now() < suppressUntil) {
                         event.preventDefault();
                         event.stopImmediatePropagation();
+                        return;
+                    }
+                    if (event.ctrlKey || event.metaKey || event.shiftKey) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        button.classList.toggle('bubble-selected');
+                        updateAlignFlyoutSelectionBadges(buttons);
                     }
                 }, true);
                 button.addEventListener('contextmenu', event => {
                     if (!button.classList.contains('bubble-positioned')) return;
                     event.preventDefault();
+                    button.classList.remove('bubble-selected');
                     restoreControlBubbleDefault(button, buttons);
+                    updateAlignFlyoutSelectionBadges(buttons);
                 });
                 button.addEventListener('keydown', event => {
                     if (event.key !== 'Home' || (!event.ctrlKey && !event.metaKey)) return;
                     event.preventDefault();
+                    button.classList.remove('bubble-selected');
                     restoreControlBubbleDefault(button, buttons);
+                    updateAlignFlyoutSelectionBadges(buttons);
                 });
             }
 
+            // 바탕화면 드래그 영역 선택 초기화
+            setupMarqueeSelection(buttons);
+
+            // 기본 위치 복원 버튼 이벤트
             document.querySelectorAll('[data-bubble-reset-group]').forEach(resetButton => {
                 resetButton.addEventListener('click', () => {
+                    closeAllBubbleAlignFlyouts();
+                    clearControlBubbleSelection(buttons);
                     restoreControlBubbleGroupDefault(resetButton.dataset.bubbleResetGroup, buttons, resetButton);
                 });
             });
 
-            document.addEventListener('keydown', event => {
-                if (event.key !== 'Escape' || !activeDrag) return;
-                event.preventDefault();
-                const button = activeDrag.button;
-                const pointerId = activeDrag.pointerId;
-                if (button.hasPointerCapture?.(pointerId)) button.releasePointerCapture(pointerId);
-                button.dataset.suppressClickUntil = String(performance.now() + 500);
-                activeDrag = null;
-                applySavedControlBubblePositions(buttons);
+            // 객체 맞춤 트리거 버튼 이벤트
+            document.querySelectorAll('[data-bubble-align-group]').forEach(alignTrigger => {
+                alignTrigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const groupName = alignTrigger.dataset.bubbleAlignGroup;
+                    const targetFlyoutId = groupName === 'right' ? 'flyoutAlignRight' : 'flyoutAlignLeft';
+                    const targetFlyout = document.getElementById(targetFlyoutId);
+                    const isOpen = targetFlyout?.classList.contains('open');
+
+                    closeAllBubbleAlignFlyouts();
+
+                    if (!isOpen && targetFlyout) {
+                        updateAlignFlyoutSelectionBadges(buttons);
+                        targetFlyout.classList.add('open');
+                        alignTrigger.classList.add('active');
+                        alignTrigger.setAttribute('aria-expanded', 'true');
+                    }
+                });
             });
+
+            // 객체 맞춤 세부 액션 버튼들 이벤트
+            document.querySelectorAll('[data-align-action]').forEach(actionBtn => {
+                actionBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const action = actionBtn.dataset.alignAction;
+                    const group = actionBtn.dataset.alignGroup;
+
+                    switch (action) {
+                        case 'verticalCenter':
+                            alignControlBubblesVerticalCenter(group, buttons);
+                            break;
+                        case 'horizontalMiddle':
+                            alignControlBubblesHorizontalMiddle(group, buttons);
+                            break;
+                        case 'distributeVertical':
+                            distributeControlBubblesVertical(group, buttons);
+                            break;
+                        case 'distributeHorizontal':
+                            distributeControlBubblesHorizontal(group, buttons);
+                            break;
+                        case 'smartArrange':
+                            smartArrangeControlBubbles(group, buttons, 'default');
+                            break;
+                        case 'resetGroup':
+                            restoreControlBubbleGroupDefault(group, buttons);
+                            break;
+                    }
+
+                    closeAllBubbleAlignFlyouts();
+                });
+            });
+
+            // 스마트 정돈 프리셋 모형 버튼들 이벤트 바인딩
+            document.querySelectorAll('[data-arrange-preset]').forEach(presetBtn => {
+                presetBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const preset = presetBtn.dataset.arrangePreset;
+                    const group = presetBtn.dataset.alignGroup;
+                    smartArrangeControlBubbles(group, buttons, preset);
+                    closeAllBubbleAlignFlyouts();
+                });
+            });
+
+            // 외부 클릭 시 플라이아웃 닫기
+            document.addEventListener('pointerdown', (e) => {
+                if (!e.target.closest('.bubble-group-header-wrap')) {
+                    closeAllBubbleAlignFlyouts();
+                }
+            });
+
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape') {
+                    closeAllBubbleAlignFlyouts();
+                    clearControlBubbleSnapGuides();
+                    clearControlBubbleSelection(buttons);
+                    if (activeDrag) {
+                        event.preventDefault();
+                        const button = activeDrag.button;
+                        const pointerId = activeDrag.pointerId;
+                        if (button.hasPointerCapture?.(pointerId)) button.releasePointerCapture(pointerId);
+                        button.dataset.suppressClickUntil = String(performance.now() + 500);
+                        activeDrag = null;
+                        applySavedControlBubblePositions(buttons);
+                    }
+                }
+            });
+
             window.addEventListener('resize', () => {
                 cancelAnimationFrame(resizeFrame);
                 resizeFrame = requestAnimationFrame(() => {
                     if (!activeDrag) applySavedControlBubblePositions(buttons);
                 });
             });
+
             applySavedControlBubblePositions(buttons);
         }
 
