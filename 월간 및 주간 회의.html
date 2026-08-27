@@ -11385,6 +11385,40 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 cursor: auto !important;
             }
 
+            /* 모바일 세로 모드: 원형 메뉴 버튼을 제외한 화면 내 모든 글자/카드/컨테이너 선택 원천 차단 */
+            html,
+            body,
+            #container,
+            #month-view,
+            #monthly-report-card,
+            .report-card,
+            .week-card,
+            .week-card-container,
+            #meetingProgressInsights,
+            .progress-insight-card,
+            header,
+            nav,
+            h1, h2, h3, h4, span, p, label,
+            div:not(.memo-wrapper):not(#memoFocusEditTextarea):not(.memo-focus-editor-body) {
+                -webkit-user-select: none !important;
+                -moz-user-select: none !important;
+                -ms-user-select: none !important;
+                user-select: none !important;
+                -webkit-touch-callout: none !important;
+            }
+
+            /* 메모 작성 및 텍스트 입력창은 정상 타이핑 및 선택 보존 */
+            input,
+            textarea,
+            .memo-wrapper textarea,
+            #memoFocusEditTextarea {
+                -webkit-user-select: text !important;
+                -moz-user-select: text !important;
+                -ms-user-select: text !important;
+                user-select: text !important;
+                -webkit-touch-callout: default !important;
+            }
+
             h1 {
                 gap: 9px;
                 font-size: 1.72em;
@@ -12001,13 +12035,13 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     <span id="flyoutAlignLeftBadge" class="align-selected-badge" style="display:none;">선택 0개 맞춤</span>
                 </div>
                 <div class="align-flyout-quick-bar">
-                    <button type="button" class="align-quick-btn" data-align-action="selectAll" data-align-group="left" title="관리 메뉴 6개 버튼 전체 선택">
+                    <button type="button" class="align-quick-btn" data-align-action="selectAll" data-align-group="left" title="좌측 관리 메뉴 6개 버튼 전체 선택">
                         <span class="quick-icon">☑️</span>
-                        <span class="quick-text">전체 선택</span>
+                        <span class="quick-text">좌측 전체 선택</span>
                     </button>
-                    <button type="button" class="align-quick-btn" data-align-action="clearSelection" data-align-group="left" title="선택 일괄 해제">
+                    <button type="button" class="align-quick-btn" data-align-action="clearSelection" data-align-group="left" title="좌측 관리 메뉴 선택 해제">
                         <span class="quick-icon">◻️</span>
-                        <span class="quick-text">선택 해제</span>
+                        <span class="quick-text">좌측 선택 해제</span>
                     </button>
                 </div>
                 <div class="align-flyout-grid">
@@ -12118,13 +12152,13 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     <span id="flyoutAlignRightBadge" class="align-selected-badge" style="display:none;">선택 0개 맞춤</span>
                 </div>
                 <div class="align-flyout-quick-bar">
-                    <button type="button" class="align-quick-btn" data-align-action="selectAll" data-align-group="right" title="도구 메뉴 6개 버튼 전체 선택">
+                    <button type="button" class="align-quick-btn" data-align-action="selectAll" data-align-group="right" title="우측 도구 메뉴 6개 버튼 전체 선택">
                         <span class="quick-icon">☑️</span>
-                        <span class="quick-text">전체 선택</span>
+                        <span class="quick-text">우측 전체 선택</span>
                     </button>
-                    <button type="button" class="align-quick-btn" data-align-action="clearSelection" data-align-group="right" title="선택 일괄 해제">
+                    <button type="button" class="align-quick-btn" data-align-action="clearSelection" data-align-group="right" title="우측 도구 메뉴 선택 해제">
                         <span class="quick-icon">◻️</span>
-                        <span class="quick-text">선택 해제</span>
+                        <span class="quick-text">우측 선택 해제</span>
                     </button>
                 </div>
                 <div class="align-flyout-grid">
@@ -16707,8 +16741,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             }
         }
 
-        function clearControlBubbleSelection(allButtons) {
-            allButtons.forEach(b => b.classList.remove('bubble-selected'));
+        function clearControlBubbleSelection(allButtons, targetGroup = null) {
+            let targetButtons = allButtons;
+            if (targetGroup) {
+                const groupSelector = targetGroup === 'right' ? '.control-btn-group-right' : '.control-btn-group-left';
+                const group = document.querySelector(groupSelector);
+                targetButtons = allButtons.filter(b => group?.contains(b));
+            }
+            targetButtons.forEach(b => b.classList.remove('bubble-selected'));
             updateAlignFlyoutSelectionBadges(allButtons);
         }
 
@@ -17431,9 +17471,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                             return; // 플라이아웃 유지
                         }
                         case 'clearSelection': {
-                            clearControlBubbleSelection(buttons);
+                            clearControlBubbleSelection(buttons, group);
                             if (typeof showToast === 'function') {
-                                showToast('◻️ 선택이 해제되었습니다', 'info');
+                                showToast(`◻️ ${group === 'right' ? '우측(도구)' : '좌측(관리)'} 메뉴 선택이 해제되었습니다`, 'info');
                             }
                             return; // 플라이아웃 유지
                         }
