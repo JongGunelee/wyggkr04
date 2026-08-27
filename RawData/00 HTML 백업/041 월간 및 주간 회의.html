@@ -11483,49 +11483,84 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
             .control-btn-group-left {
                 left: max(6px, env(safe-area-inset-left));
-                bottom: max(8px, env(safe-area-inset-bottom));
-                gap: 6px;
+                bottom: max(10px, env(safe-area-inset-bottom));
+                gap: 5px;
                 z-index: 10010;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                flex-wrap: nowrap;
+                max-height: calc(100vh - 20px);
             }
 
             .control-btn-group-right {
                 right: max(6px, env(safe-area-inset-right));
-                bottom: max(8px, env(safe-area-inset-bottom));
-                gap: 6px;
+                bottom: max(10px, env(safe-area-inset-bottom));
+                gap: 5px;
                 z-index: 10010;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                flex-wrap: nowrap;
+                max-height: calc(100vh - 20px);
+            }
+
+            .control-btn-group-left .control-btn,
+            .control-btn-group-right .control-btn,
+            .control-btn-group-left .control-btn-slot,
+            .control-btn-group-right .control-btn-slot {
+                width: 39px;
+                height: 39px;
+                min-width: 39px;
+                min-height: 39px;
+                flex-shrink: 0;
+            }
+
+            .control-btn-group-left .control-btn .btn-icon,
+            .control-btn-group-right .control-btn .btn-icon {
+                font-size: 16px;
+            }
+
+            .control-btn-group-left .btn-divider,
+            .control-btn-group-right .btn-divider {
+                width: 20px;
+                margin: 1px 0;
+                flex-shrink: 0;
             }
 
             .bubble-group-header-wrap {
                 padding: 2px 1.5px;
                 border-radius: 8px;
-                max-width: 58px;
-                min-width: 48px;
+                max-width: 48px;
+                min-width: 42px;
                 box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+                margin-bottom: 2px;
+                flex-shrink: 0;
             }
 
             .btn-group-label {
-                font-size: 8px;
-                padding: 3px 2px;
-                min-height: 22px;
-                gap: 1.5px;
-                letter-spacing: -0.3px;
-                line-height: 1.15;
+                font-size: 7.5px;
+                padding: 2.5px 1px;
+                min-height: 20px;
+                gap: 1px;
+                letter-spacing: -0.4px;
+                line-height: 1.1;
             }
 
             .btn-group-align-trigger {
-                padding: 3px 2px;
-                font-size: 8px;
-                min-height: 22px;
+                padding: 2.5px 1px;
+                font-size: 7.5px;
+                min-height: 20px;
             }
 
             .btn-group-lock-trigger {
-                padding: 3px 2px;
-                font-size: 8px;
-                min-height: 22px;
+                padding: 2.5px 1px;
+                font-size: 7.5px;
+                min-height: 20px;
             }
 
             .bubble-align-flyout {
-                min-width: 170px;
+                min-width: 165px;
                 max-width: calc(100vw - 16px);
                 padding: 6px;
                 bottom: calc(100% + 8px);
@@ -16008,7 +16043,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             checkForUnsavedChanges();
         }
 
-        const CONTROL_BUBBLE_LAYOUT_KEY = 'meetingControlBubbleLayoutV1';
+        const CONTROL_BUBBLE_LAYOUT_KEY = 'meetingControlBubbleLayoutV2';
         const CONTROL_BUBBLE_MARGIN = 4;
         const CONTROL_BUBBLE_DRAG_THRESHOLD = 6;
         const CONTROL_BUBBLE_DIAMETER = 43;
@@ -16120,9 +16155,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         }
 
         function controlBubblesOverlap(firstButton, secondButton) {
+            // 기본 슬롯(드래그 위치 미지정)에 있는 버튼들은 CSS flexbox가 배치하므로 충돌로 판정하지 않음
+            if (!firstButton.classList.contains('bubble-positioned') && !secondButton.classList.contains('bubble-positioned')) {
+                return false;
+            }
+            const mode = getControlBubbleViewportMode();
+            const minGap = mode === 'mobilePortrait' ? 3 : CONTROL_BUBBLE_GAP;
             return controlBubbleRectsOverlap(
                 getControlBubbleVisualRect(firstButton),
-                getControlBubbleVisualRect(secondButton)
+                getControlBubbleVisualRect(secondButton),
+                minGap
             );
         }
 
@@ -16208,6 +16250,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         }
 
         function ejectControlBubble(button, buttons) {
+            // 기본 슬롯에 있는 버튼은 자동으로 튕겨내지 않음 (의도치 않은 지그재그 난잡 배치 방지)
+            if (!button.classList.contains('bubble-positioned')) return false;
             const position = findCollisionFreeControlBubblePosition(button, buttons);
             if (!position) return false;
             button.classList.add('bubble-positioned');
@@ -16227,9 +16271,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         }
 
         function settleControlBubbleCollisions(buttons) {
-            for (let anchorIndex = 0; anchorIndex < buttons.length; anchorIndex += 1) {
-                const movableButtons = buttons.slice(anchorIndex + 1);
-                resolveControlBubbleCollisions(buttons[anchorIndex], buttons, movableButtons);
+            // 사용자가 직접 위치를 이동시켜 .bubble-positioned 가 붙은 버튼들만 충돌 해결 대상
+            const positionedButtons = buttons.filter(b => b.classList.contains('bubble-positioned'));
+            if (positionedButtons.length <= 1) return;
+            for (let anchorIndex = 0; anchorIndex < positionedButtons.length; anchorIndex += 1) {
+                const movableButtons = positionedButtons.slice(anchorIndex + 1);
+                resolveControlBubbleCollisions(positionedButtons[anchorIndex], buttons, movableButtons);
             }
         }
 
