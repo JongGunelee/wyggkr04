@@ -9580,6 +9580,49 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
         }
 
+        .align-flyout-quick-bar {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+
+        .align-quick-btn {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 4px 6px;
+            font-size: 9px;
+            font-weight: 600;
+            border-radius: 6px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(241, 245, 249, 0.9);
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .align-quick-btn:hover {
+            background: rgba(96, 165, 250, 0.2);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        body.dark-mode .align-quick-btn {
+            background: rgba(51, 65, 85, 0.85);
+            border-color: rgba(71, 85, 105, 0.5);
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .align-quick-btn:hover {
+            background: rgba(96, 165, 250, 0.3);
+            border-color: #60a5fa;
+            color: #93c5fd;
+        }
+
         .align-flyout-title {
             font-size: 10px;
             font-weight: 700;
@@ -11342,6 +11385,40 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 cursor: auto !important;
             }
 
+            /* 모바일 세로 모드: 원형 메뉴 버튼을 제외한 화면 내 모든 글자/카드/컨테이너 선택 원천 차단 */
+            html,
+            body,
+            #container,
+            #month-view,
+            #monthly-report-card,
+            .report-card,
+            .week-card,
+            .week-card-container,
+            #meetingProgressInsights,
+            .progress-insight-card,
+            header,
+            nav,
+            h1, h2, h3, h4, span, p, label,
+            div:not(.memo-wrapper):not(#memoFocusEditTextarea):not(.memo-focus-editor-body) {
+                -webkit-user-select: none !important;
+                -moz-user-select: none !important;
+                -ms-user-select: none !important;
+                user-select: none !important;
+                -webkit-touch-callout: none !important;
+            }
+
+            /* 메모 작성 및 텍스트 입력창은 정상 타이핑 및 선택 보존 */
+            input,
+            textarea,
+            .memo-wrapper textarea,
+            #memoFocusEditTextarea {
+                -webkit-user-select: text !important;
+                -moz-user-select: text !important;
+                -ms-user-select: text !important;
+                user-select: text !important;
+                -webkit-touch-callout: default !important;
+            }
+
             h1 {
                 gap: 9px;
                 font-size: 1.72em;
@@ -11957,6 +12034,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     <span id="flyoutAlignLeftTitle">📐 관리 객체 맞춤</span>
                     <span id="flyoutAlignLeftBadge" class="align-selected-badge" style="display:none;">선택 0개 맞춤</span>
                 </div>
+                <div class="align-flyout-quick-bar">
+                    <button type="button" class="align-quick-btn" data-align-action="selectAll" data-align-group="left" title="좌측 관리 메뉴 6개 버튼 전체 선택">
+                        <span class="quick-icon">☑️</span>
+                        <span class="quick-text">좌측 전체 선택</span>
+                    </button>
+                    <button type="button" class="align-quick-btn" data-align-action="clearSelection" data-align-group="left" title="좌측 관리 메뉴 선택 해제">
+                        <span class="quick-icon">◻️</span>
+                        <span class="quick-text">좌측 선택 해제</span>
+                    </button>
+                </div>
                 <div class="align-flyout-grid">
                     <button type="button" class="align-item-btn" data-align-action="verticalCenter" data-align-group="left" title="수직 일렬 가운데 맞춤 (X축 일치)">
                         <span class="align-icon">⫿</span>
@@ -12063,6 +12150,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 <div class="align-flyout-title">
                     <span id="flyoutAlignRightTitle">📐 도구 객체 맞춤</span>
                     <span id="flyoutAlignRightBadge" class="align-selected-badge" style="display:none;">선택 0개 맞춤</span>
+                </div>
+                <div class="align-flyout-quick-bar">
+                    <button type="button" class="align-quick-btn" data-align-action="selectAll" data-align-group="right" title="우측 도구 메뉴 6개 버튼 전체 선택">
+                        <span class="quick-icon">☑️</span>
+                        <span class="quick-text">우측 전체 선택</span>
+                    </button>
+                    <button type="button" class="align-quick-btn" data-align-action="clearSelection" data-align-group="right" title="우측 도구 메뉴 선택 해제">
+                        <span class="quick-icon">◻️</span>
+                        <span class="quick-text">우측 선택 해제</span>
+                    </button>
                 </div>
                 <div class="align-flyout-grid">
                     <button type="button" class="align-item-btn" data-align-action="verticalCenter" data-align-group="right" title="수직 일렬 가운데 맞춤 (X축 일치)">
@@ -16644,8 +16741,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             }
         }
 
-        function clearControlBubbleSelection(allButtons) {
-            allButtons.forEach(b => b.classList.remove('bubble-selected'));
+        function clearControlBubbleSelection(allButtons, targetGroup = null) {
+            let targetButtons = allButtons;
+            if (targetGroup) {
+                const groupSelector = targetGroup === 'right' ? '.control-btn-group-right' : '.control-btn-group-left';
+                const group = document.querySelector(groupSelector);
+                targetButtons = allButtons.filter(b => group?.contains(b));
+            }
+            targetButtons.forEach(b => b.classList.remove('bubble-selected'));
             updateAlignFlyoutSelectionBadges(allButtons);
         }
 
@@ -17087,8 +17190,32 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 button.title = `${originalTitle} · 드래그로 이동 (자석 스냅·다중 이동 지원) · Ctrl+클릭 선택 · 우클릭 시 기본 위치`;
                 button.setAttribute('aria-description', '마우스나 터치로 끌어 원하는 곳에 배치할 수 있으며, 다중 선택된 객체들은 함께 동시 이동합니다. 우클릭하면 기본 위치로 복원됩니다.');
 
+                let longPressTimer = null;
+                let longPressFired = false;
+                let startPointerX = 0;
+                let startPointerY = 0;
+
                 button.addEventListener('pointerdown', event => {
                     if (button.disabled || event.button !== 0 || activeDrag) return;
+
+                    longPressFired = false;
+                    startPointerX = event.clientX;
+                    startPointerY = event.clientY;
+
+                    // 👆 모바일 및 터치/마우스 0.4초 롱 프레스(Long Press) 다중 선택 토글 타이머
+                    if (!isControlButtonLocked(button)) {
+                        longPressTimer = setTimeout(() => {
+                            longPressFired = true;
+                            button.classList.toggle('bubble-selected');
+                            updateAlignFlyoutSelectionBadges(buttons);
+                            if (navigator.vibrate) navigator.vibrate(35);
+                            if (typeof showToast === 'function') {
+                                const isSel = button.classList.contains('bubble-selected');
+                                showToast(isSel ? '☑️ 버튼이 다중 선택되었습니다 (함께 이동 가능)' : '◻️ 선택 해제되었습니다', 'info');
+                            }
+                            button.dataset.suppressClickUntil = String(performance.now() + 500);
+                        }, 400);
+                    }
 
                     // 🔒 해당 버튼이 속한 그룹의 위치 잠금 상태 검사
                     if (isControlButtonLocked(button)) {
@@ -17138,6 +17265,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 });
 
                 button.addEventListener('pointermove', event => {
+                    if (longPressTimer && Math.hypot(event.clientX - startPointerX, event.clientY - startPointerY) > 8) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
                     if (!activeDrag || activeDrag.leaderButton !== button || activeDrag.pointerId !== event.pointerId) return;
                     const deltaX = event.clientX - activeDrag.startX;
                     const deltaY = event.clientY - activeDrag.startY;
@@ -17187,6 +17318,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 });
 
                 const finishDrag = (event, cancelled = false) => {
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
                     if (!activeDrag || activeDrag.leaderButton !== button || (event && activeDrag.pointerId !== event.pointerId)) return;
                     const dragged = activeDrag.dragged;
                     const dragItems = activeDrag.dragItems;
@@ -17325,6 +17460,23 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     }
 
                     switch (action) {
+                        case 'selectAll': {
+                            const groupSelector = group === 'right' ? '.control-btn-group-right' : '.control-btn-group-left';
+                            const groupButtons = buttons.filter(b => document.querySelector(groupSelector)?.contains(b));
+                            groupButtons.forEach(b => b.classList.add('bubble-selected'));
+                            updateAlignFlyoutSelectionBadges(buttons);
+                            if (typeof showToast === 'function') {
+                                showToast(`☑️ ${group === 'right' ? '우측(도구)' : '좌측(관리)'} 메뉴 전체(${groupButtons.length}개)가 선택되었습니다 (함께 이동 가능)`, 'info');
+                            }
+                            return; // 플라이아웃 유지
+                        }
+                        case 'clearSelection': {
+                            clearControlBubbleSelection(buttons, group);
+                            if (typeof showToast === 'function') {
+                                showToast(`◻️ ${group === 'right' ? '우측(도구)' : '좌측(관리)'} 메뉴 선택이 해제되었습니다`, 'info');
+                            }
+                            return; // 플라이아웃 유지
+                        }
                         case 'verticalCenter':
                             alignControlBubblesVerticalCenter(group, buttons);
                             break;
