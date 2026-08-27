@@ -142395,9 +142395,9 @@ window.openAddNewProjectModal = function(editProject) {
         .cost-analysis-rate-change-up { color:#b91c1c; font-weight:900; }
         .cost-analysis-rate-change-down { color:#047857; font-weight:900; }
         .cost-analysis-rate-change-flat { color:#475569; font-weight:800; }
-        .cost-analysis-rate-summary-row > th,.cost-analysis-rate-summary-row > td { position:sticky; z-index:5; box-sizing:border-box; height:32px; border-top:2px solid #64748b; background:#f8fafc; font-weight:900; }
-        .cost-analysis-rate-summary-row[data-cost-rate-summary="average"] > * { top:86px; }
-        .cost-analysis-rate-summary-row[data-cost-rate-summary="median"] > * { top:124px; border-top:1px solid #cbd5e1; }
+.cost-analysis-rate-summary-row > th,.cost-analysis-rate-summary-row > td { position:sticky; z-index:5; box-sizing:border-box; height:52px; border-top:2px solid #64748b; background:#f8fafc; font-weight:900; }
+.cost-analysis-rate-summary-row[data-cost-rate-summary="average"] > * { top:86px; }
+.cost-analysis-rate-summary-row[data-cost-rate-summary="median"] > * { top:139px; border-top:1px solid #cbd5e1; }
         .cost-analysis-rate-summary-row > th { left:0; z-index:9; color:#0f172a; text-align:center; }
         .cost-analysis-rate-summary-row [data-cost-rate-summary-evidence] { cursor:pointer; }
         .cost-analysis-rate-summary-row [data-cost-rate-summary-evidence]:hover,.cost-analysis-rate-summary-row [data-cost-rate-summary-evidence]:focus-visible { background:#e0f2fe; box-shadow:inset 0 0 0 2px #38bdf8; outline:0; }
@@ -143812,6 +143812,32 @@ window.openAddNewProjectModal = function(editProject) {
             var middle = Math.floor(finite.length / 2);
             return finite.length % 2 ? finite[middle] : (finite[middle - 1] + finite[middle]) / 2;
         }
+        function rateTrendSummaryKey(metric) {
+            return '__cost_rate_summary__:' + (metric === 'median' ? 'median' : 'average');
+        }
+        function rateTrendSummaryMetric(subject) {
+            var match = /^__cost_rate_summary__:(average|median)$/.exec(String(subject || ''));
+            return match ? match[1] : '';
+        }
+        function rateTrendSubjectLabel(subject) {
+            var metric = rateTrendSummaryMetric(subject);
+            if (metric) return metric === 'median' ? '\uc804\uccb4 \uac74\ubb3c\ub3d9 \uc911\uac04\uac12' : '\uc804\uccb4 \uac74\ubb3c\ub3d9 \ud3c9\uade0';
+            return buildingLabel(subject);
+        }
+        function buildRateTrendSummaryBooks(years, books, buildingKeys) {
+            var summaryBooks = Object.create(null);
+            (years || []).forEach(function(year) {
+                var values = (buildingKeys || []).map(function(building) {
+                    var row = books[year] && books[year][building];
+                    return row ? Number(row.cost || 0) : NaN;
+                }).filter(Number.isFinite);
+                summaryBooks[year] = Object.create(null);
+                if (!values.length) return;
+                summaryBooks[year][rateTrendSummaryKey('average')] = { cost:averageRateValues(values), sampleCount:values.length };
+                summaryBooks[year][rateTrendSummaryKey('median')] = { cost:medianRateValues(values), sampleCount:values.length };
+            });
+            return summaryBooks;
+        }
         function buildRateTrendStatistics(years, books, buildingKeys) {
             var statistics = Object.create(null);
             years.forEach(function(year, index) {
@@ -143944,12 +143970,15 @@ window.openAddNewProjectModal = function(editProject) {
             var polyline = plotted.map(function(point) { return point.x.toFixed(1) + ',' + point.y.toFixed(1); }).join(' ');
             var circles = plotted.map(function(point) { return '<circle cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="2.2"></circle>'; }).join('');
             var arrow = plotted.length > 1 ? '<polygon points="' + arrowTip.x.toFixed(1) + ',' + arrowTip.y.toFixed(1) + ' ' + (arrowTip.x - 9).toFixed(1) + ',' + (arrowTip.y - 4).toFixed(1) + ' ' + (arrowTip.x - 9).toFixed(1) + ',' + (arrowTip.y + 4).toFixed(1) + '" transform="rotate(' + angle.toFixed(1) + ' ' + arrowTip.x.toFixed(1) + ' ' + arrowTip.y.toFixed(1) + ')"></polygon>' : '';
-            var aria = buildingLabel(building) + ' \ub2e8\uac00 \ucd94\uc138: ' + plotted.map(function(point) { return point.year + '\ub144 ' + Math.round(point.value).toLocaleString('ko-KR') + '\uc6d0'; }).join(', ') + ' \u00b7 ' + trend.label;
+            var aria = rateTrendSubjectLabel(building) + ' \ub2e8\uac00 \ucd94\uc138: ' + plotted.map(function(point) { return point.year + '\ub144 ' + Math.round(point.value).toLocaleString('ko-KR') + '\uc6d0'; }).join(', ') + ' \u00b7 ' + trend.label;
             return '<button type="button" class="cost-analysis-rate-sparkline cost-analysis-rate-trend-' + trend.key + '" data-cost-rate-sparkline data-cost-rate-trend-evidence="' + escapeHtml(building) + '" aria-label="' + escapeHtml(aria + ' \uc0c1\uc138 \ubd84\uc11d \uc5f4\uae30') + '"><strong>' + escapeHtml(trend.label) + '</strong><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-hidden="true" style="color:' + tone + '"><polyline points="' + polyline + '"></polyline>' + circles + arrow + '</svg></button>';
         }
         function buildRateTrendLineEvidence(building) {
             var dataset = buildRateTrendDataset();
-            var trend = rateTrendDirection(building, dataset.years, dataset.books);
+            var metric = rateTrendSummaryMetric(building);
+            var subjectBooks = metric ? buildRateTrendSummaryBooks(dataset.years, dataset.books, dataset.buildingKeys) : dataset.books;
+            var subjectLabel = rateTrendSubjectLabel(building);
+            var trend = rateTrendDirection(building, dataset.years, subjectBooks);
             if (!trend.points.length) return null;
             var maxCost = Math.max.apply(null, trend.points.map(function(point) { return Math.abs(point.value); })) || 1;
             var series = trend.points.map(function(point, index) {
@@ -143970,18 +143999,18 @@ window.openAddNewProjectModal = function(editProject) {
                 __stlEvidence:true,
                 totalCount:series.length,
                 stats:[
-                    { label:'\uac74\ubb3c\ub3d9', value:buildingLabel(building) },
+                    { label:metric ? '\uad6c\ubd84' : '\uac74\ubb3c\ub3d9', value:subjectLabel },
                     { label:'\ube44\uad50 \uae30\uac04', value:last.year + ' \u2192 ' + first.year },
                     { label:'\ucd5c\uc2e0-\ucd5c\ucd08 \uc99d\uac10', value:formatRateChangeWon(totalDelta) + ' \u00b7 ' + formatRateChangePercent(totalPercent) },
                     { label:'\ucd5c\uc2e0 \uc9c1\uc804 \ud310\uc815', value:trend.label }
                 ],
                 formulas:[
-                    '\uc5f0\ub3c4\ubcc4 \ub2e8\uac00 = GitHub ##\ub144_\uae30\ubcf8\uacac\uc801 \ub2e8\uac00.xlsb\uc758 \uac74\ubb3c\ub3d9 \ucf54\uc2a4\ud2b8(\uc6d0)',
+                    metric === 'median' ? '\uc5f0\ub3c4\ubcc4 \uc804\uccb4 \uac74\ubb3c\ub3d9 \uc911\uac04\uac12 = \uc624\ub984\ucc28\uc21c \uc911\uc559\uac12 (\uc9dd\uc218 \ud45c\ubcf8\uc740 \uc911\uc559 2\uac1c\uc758 \ud3c9\uade0)' : (metric === 'average' ? '\uc5f0\ub3c4\ubcc4 \uc804\uccb4 \uac74\ubb3c\ub3d9 \ud3c9\uade0 = \uc720\ud6a8\ud55c \uac74\ubb3c\ub3d9 \ub2e8\uac00 \ud569\uacc4 \u00f7 \uc720\ud6a8 \uac74\ubb3c\ub3d9 \uc218' : '\uc5f0\ub3c4\ubcc4 \ub2e8\uac00 = GitHub ##\ub144_\uae30\ubcf8\uacac\uc801 \ub2e8\uac00.xlsb\uc758 \uac74\ubb3c\ub3d9 \ucf54\uc2a4\ud2b8(\uc6d0)'),
                     '\uc9c1\uc804 \ub300\ube44 \uc99d\uac10\uc561 = \ub2f9\ud574 \ub2e8\uac00 - \uc9c1\uc804 \ub2e8\uac00',
                     '\uc9c1\uc804 \ub300\ube44 \uc99d\uac10\ub960 = \uc99d\uac10\uc561 \u00f7 \uc9c1\uc804 \ub2e8\uac00 \u00d7 100',
                     '\ucd5c\uc2e0 \uc9c1\uc804 \ud310\uc815 = \ucd5c\uc2e0 \uc5f0\ub3c4 \ub2e8\uac00 - \uc9c1\uc804 \uc5f0\ub3c4 \ub2e8\uac00\uc758 \ubd80\ud638'
                 ],
-                trendAriaLabel:buildingLabel(building) + ' \uc5f0\ub3c4\ubcc4 \ub2e8\uac00 \ucd94\uc138',
+                trendAriaLabel:subjectLabel + ' \uc5f0\ub3c4\ubcc4 \ub2e8\uac00 \ucd94\uc138',
                 trendSeries:visualSeries,
                 items:visualSeries.map(function(point) {
                     var tone = !Number.isFinite(point.delta) ? '#64748b' : (point.delta > 0 ? '#dc2626' : (point.delta < 0 ? '#047857' : '#64748b'));
@@ -143998,9 +144027,9 @@ window.openAddNewProjectModal = function(editProject) {
         function openRateTrendLineEvidence(building, event) {
             var evidence = buildRateTrendLineEvidence(building);
             if (!evidence || typeof window.showStlGroupTooltip !== 'function') return;
-            window.showStlGroupTooltip(event, buildingLabel(building) + ' \uc5f0\ub3c4\ubcc4 \ub2e8\uac00 \ucd94\uc138 \uc0c1\uc138', evidence);
+            window.showStlGroupTooltip(event, rateTrendSubjectLabel(building) + ' \uc5f0\ub3c4\ubcc4 \ub2e8\uac00 \ucd94\uc138 \uc0c1\uc138', evidence);
         }
-        function renderRateTrendSummaryRow(label, metric, displayYears, chronologicalYears, statistics) {
+        function renderRateTrendSummaryRow(label, metric, displayYears, chronologicalYears, statistics, summaryBooks) {
             var cells = displayYears.map(function(year) {
                 if (chronologicalYears.indexOf(year) < 1) return '<td class="cost-analysis-rate-year-start">-</td>';
                 var item = statistics[year] || {};
@@ -144009,7 +144038,8 @@ window.openAddNewProjectModal = function(editProject) {
                 var attrs = ' data-cost-rate-summary-evidence="' + escapeHtml(metric) + '" data-cost-rate-summary-year="' + escapeHtml(year) + '" tabindex="0" role="button" aria-label="' + escapeHtml(rateYearPrefix(year) + ' ' + label + ' \uc0b0\uc2dd \ubc0f \uc0b0\ucd9c\uadfc\uac70') + '"';
                 return '<td class="cost-analysis-rate-year-start"' + attrs + '>' + Number(item.count || 0).toLocaleString('ko-KR') + '\uac1c \ube44\uad50</td><td class="' + rateChangeTone(delta) + '"' + attrs + '>' + formatRateChangeWon(delta) + '</td><td class="' + rateChangeTone(percent) + '"' + attrs + '>' + formatRateChangePercent(percent) + '</td>';
             }).join('');
-            return '<tr class="cost-analysis-rate-summary-row" data-cost-rate-summary="' + escapeHtml(metric) + '"><th scope="row">' + escapeHtml(label) + '</th><td class="cost-analysis-rate-trend-cell">-</td>' + cells + '</tr>';
+            var summaryKey = rateTrendSummaryKey(metric);
+            return '<tr class="cost-analysis-rate-summary-row" data-cost-rate-summary="' + escapeHtml(metric) + '"><th scope="row">' + escapeHtml(label) + '</th><td class="cost-analysis-rate-trend-cell">' + renderRateTrendSparkline(summaryKey, chronologicalYears, summaryBooks, displayYears) + '</td>' + cells + '</tr>';
         }
         function renderRateTrendHeading(meta) {
             return '<summary><span>\uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00 \uc99d\uac10 \ubd84\uc11d</span><span class="cost-analysis-summary-actions"><small>' + meta + '</small><button type="button" class="cost-analysis-inline-fullscreen" data-cost-rate-trend-fullscreen-open aria-label="\uc5f0\ub3c4\ubcc4 \ub3d9 \ub2e8\uac00 \uc99d\uac10 \ubd84\uc11d \uc804\uccb4 \ud654\uba74 \ubcf4\uae30" title="\uc804\uccb4 \ud654\uba74 \ubcf4\uae30">\u26f6</button></span></summary>';
@@ -144057,7 +144087,8 @@ window.openAddNewProjectModal = function(editProject) {
                 return '<tr tabindex="0" data-cost-rate-trend-row><td>' + escapeHtml(buildingLabel(building)) + '</td><td class="cost-analysis-rate-trend-cell">' + renderRateTrendSparkline(building, years, books, displayYears) + '</td>' + cells + '</tr>';
             }).join('');
             var statistics = buildRateTrendStatistics(years, books, buildingKeys);
-            var footer = renderRateTrendSummaryRow('\ud3c9\uade0', 'average', displayYears, years, statistics) + renderRateTrendSummaryRow('\uc911\uac04\uac12', 'median', displayYears, years, statistics);
+            var summaryBooks = buildRateTrendSummaryBooks(years, books, buildingKeys);
+            var footer = renderRateTrendSummaryRow('\ud3c9\uade0', 'average', displayYears, years, statistics, summaryBooks) + renderRateTrendSummaryRow('\uc911\uac04\uac12', 'median', displayYears, years, statistics, summaryBooks);
             var tableWidth = Math.max(720, 190 + 72 * (1 + (years.length - 1) * 3));
             var scopeSuffix = state.parentFilterContext && state.parentFilterContext.active ? ' \u00b7 \uc0c1\uc704 \ud544\ud130' : '';
             var meta = escapeHtml(rateYearPrefix(displayYears[0])) + ' \u2192 ' + escapeHtml(rateYearPrefix(displayYears[displayYears.length - 1])) + ' \u00b7 ' + buildingKeys.length.toLocaleString('ko-KR') + '\uac1c \ub3d9' + escapeHtml(scopeSuffix);

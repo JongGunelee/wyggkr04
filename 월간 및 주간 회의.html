@@ -9371,11 +9371,11 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         }
 
         .control-btn-group-left {
-            left: 20px;
+            left: 10px;
         }
 
         .control-btn-group-right {
-            right: 20px;
+            right: 22px; /* 세로 스크롤바(16~18px) 간섭 완벽 회피 */
         }
 
         .btn-divider {
@@ -9388,59 +9388,65 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             background-color: rgba(255, 255, 255, 0.15);
         }
 
-        /* 캡슐 헤더 래퍼: 복원 버튼 + 우측 맞춤 트리거 버튼의 유기적 결합 */
+        /* 3단 수직 적층 알약 캡슐 바 (Vertical Stacked 3-Tier Capsule Bar) */
         .bubble-group-header-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+            min-width: 60px;
+            max-width: 68px;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            border-radius: 9px;
+            padding: 2px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
             position: relative;
-            display: inline-flex;
-            align-items: center;
-            gap: 2px;
-            background: rgba(200, 215, 230, 0.45);
-            padding: 2px 3px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+            z-index: 10015;
             user-select: none;
-            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            box-sizing: border-box;
         }
 
         body.dark-mode .bubble-group-header-wrap {
-            background: rgba(30, 41, 59, 0.75);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+            background: rgba(30, 41, 59, 0.9);
+            border-color: rgba(71, 85, 105, 0.55);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
         }
 
         .btn-group-label {
-            appearance: none;
-            border: 0;
-            font-size: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 9.5px;
             font-family: '맑은 고딕', 'Segoe UI', sans-serif;
-            color: rgba(80, 100, 120, 0.85);
+            color: rgba(71, 85, 105, 0.92);
             background-color: transparent;
-            padding: 3px 6px;
-            border-radius: 8px;
-            text-align: center;
-            white-space: nowrap;
-            user-select: none;
-            letter-spacing: 0.3px;
+            border: none;
+            border-radius: 0;
+            padding: 4px 3px;
             cursor: pointer;
+            letter-spacing: 0.1px;
             font-weight: 600;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
             gap: 2px;
             transition: color 0.18s ease, background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+            white-space: nowrap;
+            line-height: 1.2;
+            text-align: center;
         }
 
         .btn-group-label:hover,
         .btn-group-label:focus-visible {
             color: var(--accent-color);
-            background-color: rgba(96, 165, 250, 0.22);
+            background-color: rgba(96, 165, 250, 0.2);
             outline: none;
-            transform: translateY(-1px);
         }
 
         body.dark-mode .btn-group-label {
-            color: rgba(203, 213, 225, 0.85);
+            color: rgba(226, 232, 240, 0.9);
         }
 
         body.dark-mode .btn-group-label:hover,
@@ -9449,12 +9455,26 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             background-color: rgba(255, 255, 255, 0.15);
         }
 
-        /* 맞춤 트리거 버튼 (기본 위치 복원 기호 우측에 조화롭게 배치) */
+        /* 1단 (상단): 관리/도구 복원 버튼 */
+        .bubble-group-header-wrap .btn-group-label:first-child {
+            border-radius: 7px 7px 0 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+        }
+
+        body.dark-mode .bubble-group-header-wrap .btn-group-label:first-child {
+            border-bottom-color: rgba(71, 85, 105, 0.4);
+        }
+
+        /* 2단 (중단): 객체 맞춤 트리거 버튼 */
         .btn-group-align-trigger {
-            padding: 3px 5px;
-            font-size: 10px;
-            border-left: 1px solid rgba(148, 163, 184, 0.35);
-            border-radius: 0 8px 8px 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+            border-left: none;
+            border-right: none;
+            border-radius: 0;
+        }
+
+        body.dark-mode .btn-group-align-trigger {
+            border-bottom-color: rgba(71, 85, 105, 0.4);
         }
 
         .btn-group-align-trigger.active {
@@ -9468,7 +9488,58 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             color: #ffffff;
         }
 
+        /* 3단 (하단): 고정 잠금 트리거 버튼 */
+        .btn-group-lock-trigger {
+            border-radius: 0 0 7px 7px;
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .btn-group-lock-trigger.is-locked {
+            background-color: rgba(234, 88, 12, 0.18);
+            color: #ea580c;
+        }
+
+        body.dark-mode .btn-group-lock-trigger.is-locked {
+            background-color: rgba(249, 115, 22, 0.25);
+            color: #fb923c;
+        }
+
+        /* 잠김 상태 시각 피드백 흔들림 애니메이션 */
+        @keyframes bubbleLockShake {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-3px, 0); }
+            40% { transform: translate(3px, 0); }
+            60% { transform: translate(-2px, 0); }
+            80% { transform: translate(2px, 0); }
+        }
+
+        .control-btn.bubble-locked-shake {
+            animation: bubbleLockShake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+            box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.7), 0 0 14px rgba(234, 88, 12, 0.5) !important;
+        }
+
+        body.bubble-layout-locked .control-btn {
+            cursor: pointer !important;
+        }
+
+        /* 모달 및 포커스 뷰 활성화 시 원형 버튼 간섭 방지 */
+        body.modal-open .control-btn-group-left,
+        body.modal-open .control-btn-group-right,
+        body.memo-focus-active .control-btn-group-left,
+        body.memo-focus-active .control-btn-group-right {
+            pointer-events: none !important;
+            opacity: 0.2;
+            transition: opacity 0.2s ease;
+        }
+
         /* 객체 맞춤 플라이아웃 메뉴 */
+        .control-btn-group-right .bubble-align-flyout {
+            left: auto;
+            right: 0;
+        }
+
         .bubble-align-flyout {
             position: absolute;
             top: 100%;
@@ -11410,43 +11481,68 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 -webkit-line-clamp: 3;
             }
 
-            .control-btn-group-left,
-            .control-btn-group-right {
-                bottom: 6px;
-                gap: 8px;
-            }
-
             .control-btn-group-left {
-                left: 8px;
+                left: max(6px, env(safe-area-inset-left));
+                bottom: max(8px, env(safe-area-inset-bottom));
+                gap: 6px;
+                z-index: 10010;
             }
 
             .control-btn-group-right {
-                right: 8px;
+                right: max(6px, env(safe-area-inset-right));
+                bottom: max(8px, env(safe-area-inset-bottom));
+                gap: 6px;
+                z-index: 10010;
             }
 
             .bubble-group-header-wrap {
-                padding: 2px;
-                gap: 2px;
+                padding: 2px 1.5px;
+                border-radius: 8px;
+                max-width: 58px;
+                min-width: 48px;
+                box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
             }
 
             .btn-group-label {
-                font-size: 9px;
-                padding: 4px 5px;
-                min-height: 28px;
+                font-size: 8px;
+                padding: 3px 2px;
+                min-height: 22px;
+                gap: 1.5px;
+                letter-spacing: -0.3px;
+                line-height: 1.15;
             }
 
             .btn-group-align-trigger {
-                padding: 4px 5px;
-                font-size: 9px;
-                min-height: 28px;
+                padding: 3px 2px;
+                font-size: 8px;
+                min-height: 22px;
+            }
+
+            .btn-group-lock-trigger {
+                padding: 3px 2px;
+                font-size: 8px;
+                min-height: 22px;
             }
 
             .bubble-align-flyout {
-                min-width: 172px;
+                min-width: 170px;
+                max-width: calc(100vw - 16px);
                 padding: 6px;
-                bottom: calc(100% + 6px);
+                bottom: calc(100% + 8px);
                 top: auto;
                 margin-top: 0;
+                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
+                box-sizing: border-box;
+            }
+
+            .control-btn-group-left .bubble-align-flyout {
+                left: 0;
+                right: auto;
+            }
+
+            .control-btn-group-right .bubble-align-flyout {
+                right: 0;
+                left: auto;
             }
 
             .align-preset-grid {
@@ -11455,16 +11551,18 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             }
 
             .align-preset-btn {
-                padding: 4px 1px;
+                padding: 5px 2px;
                 font-size: 8px;
+                min-height: 32px;
             }
 
             .align-item-btn {
-                padding: 6px 3px;
-                font-size: 10px;
+                padding: 6px 4px;
+                font-size: 9.5px;
+                min-height: 28px;
             }
 
-            .memo-wrapper:not(.hidden) {
+                        .memo-wrapper:not(.hidden) {
                 max-height: 440px;
                 padding: 8px;
                 overflow: auto;
@@ -11815,7 +11913,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 aria-label="관리 메뉴 전체를 기본 위치로 복원">📌 관리 · ↺</button>
             <button id="alignLeftControlBubblesBtn" class="btn-group-label btn-group-align-trigger" type="button"
                 data-bubble-align-group="left" title="관리 메뉴 객체 맞춤 (가운데·중간·등간격·자동 정돈)"
-                aria-label="관리 메뉴 객체 맞춤 메뉴 열기" aria-haspopup="true" aria-expanded="false">📐 맞춤</button>
+                aria-label="관리 메뉴 객체 맞춤 메뉴 열기" aria-haspopup="true" aria-expanded="false">📐 객체 맞춤</button>
+            <button id="lockLeftControlBubblesBtn" class="btn-group-label btn-group-lock-trigger is-locked" type="button"
+                data-bubble-lock-group="left" title="원형 메뉴 버튼 위치 잠김 (클릭하여 잠금 해제)"
+                aria-label="원형 메뉴 버튼 위치 잠금 토글" aria-pressed="true"><span class="lock-icon">🔒</span> <span class="lock-text">고정 잠금</span></button>
             <div id="flyoutAlignLeft" class="bubble-align-flyout" role="menu" aria-label="관리 메뉴 객체 맞춤 옵션">
                 <div class="align-flyout-title">
                     <span id="flyoutAlignLeftTitle">📐 관리 객체 맞춤</span>
@@ -11919,7 +12020,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 aria-label="분석 및 도구 메뉴 전체를 기본 위치로 복원">📊 도구 · ↺</button>
             <button id="alignRightControlBubblesBtn" class="btn-group-label btn-group-align-trigger" type="button"
                 data-bubble-align-group="right" title="분석·도구 메뉴 객체 맞춤 (가운데·중간·등간격·자동 정돈)"
-                aria-label="분석 및 도구 메뉴 객체 맞춤 메뉴 열기" aria-haspopup="true" aria-expanded="false">📐 맞춤</button>
+                aria-label="분석 및 도구 메뉴 객체 맞춤 메뉴 열기" aria-haspopup="true" aria-expanded="false">📐 객체 맞춤</button>
+            <button id="lockRightControlBubblesBtn" class="btn-group-label btn-group-lock-trigger is-locked" type="button"
+                data-bubble-lock-group="right" title="원형 메뉴 버튼 위치 잠김 (클릭하여 잠금 해제)"
+                aria-label="원형 메뉴 버튼 위치 잠금 토글" aria-pressed="true"><span class="lock-icon">🔒</span> <span class="lock-text">고정 잠금</span></button>
             <div id="flyoutAlignRight" class="bubble-align-flyout" role="menu" aria-label="분석 및 도구 메뉴 객체 맞춤 옵션">
                 <div class="align-flyout-title">
                     <span id="flyoutAlignRightTitle">📐 도구 객체 맞춤</span>
@@ -15943,13 +16047,17 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             }
         }
 
+        const CONTROL_BUBBLE_SCROLLBAR_MARGIN = 22; // 우측 브라우저 세로 스크롤바 회피 안전 마진
+
         function controlBubbleBounds(button) {
             const width = CONTROL_BUBBLE_DIAMETER;
             const height = CONTROL_BUBBLE_DIAMETER;
+            const isMobilePortrait = getControlBubbleViewportMode() === 'mobilePortrait';
+            const rightMargin = isMobilePortrait ? CONTROL_BUBBLE_MARGIN : (CONTROL_BUBBLE_MARGIN + CONTROL_BUBBLE_SCROLLBAR_MARGIN);
             return {
                 width,
                 height,
-                rangeX: Math.max(0, window.innerWidth - width - (CONTROL_BUBBLE_MARGIN * 2)),
+                rangeX: Math.max(0, window.innerWidth - width - CONTROL_BUBBLE_MARGIN - rightMargin),
                 rangeY: Math.max(0, window.innerHeight - height - (CONTROL_BUBBLE_MARGIN * 2))
             };
         }
@@ -16352,6 +16460,108 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             };
         }
 
+        /* 🔒 원형 메뉴 위치 락킹(Locking) & 언락킹(Unlocking) 좌/우 독립 제어 */
+        const CONTROL_BUBBLE_LOCK_LEFT_KEY = 'meetingControlBubbleLockedLeftV1';
+        const CONTROL_BUBBLE_LOCK_RIGHT_KEY = 'meetingControlBubbleLockedRightV1';
+
+        function getControlBubbleGroupOfButton(button) {
+            if (!button) return 'left';
+            if (button.closest?.('.control-btn-group-right')) return 'right';
+            if (button.closest?.('.control-btn-group-left')) return 'left';
+            const rightIds = ['budgetStatusBtn', 'scheduleStatusBtn', 'cumulativeStatusBtn', 'auditStatusBtn', 'execStatusBtn', 'processStatusBtn'];
+            if (rightIds.includes(button.id)) return 'right';
+            return 'left';
+        }
+
+        function isControlBubbleGroupLocked(groupName) {
+            try {
+                const key = groupName === 'right' ? CONTROL_BUBBLE_LOCK_RIGHT_KEY : CONTROL_BUBBLE_LOCK_LEFT_KEY;
+                const saved = localStorage.getItem(key);
+                if (saved === null) return true; // 기본값: 락킹(위치 잠금 고정) 상태
+                return saved === 'true';
+            } catch (e) {
+                return true;
+            }
+        }
+
+        function isControlButtonLocked(button) {
+            const groupName = getControlBubbleGroupOfButton(button);
+            return isControlBubbleGroupLocked(groupName);
+        }
+
+        function isControlBubbleLocked(groupName = null) {
+            if (groupName) return isControlBubbleGroupLocked(groupName);
+            return isControlBubbleGroupLocked('left') && isControlBubbleGroupLocked('right');
+        }
+
+        function setControlBubbleGroupLock(groupName, locked, buttons = []) {
+            try {
+                const key = groupName === 'right' ? CONTROL_BUBBLE_LOCK_RIGHT_KEY : CONTROL_BUBBLE_LOCK_LEFT_KEY;
+                localStorage.setItem(key, locked ? 'true' : 'false');
+            } catch (e) {
+                console.warn(`Failed to save ${groupName} control bubble lock state:`, e);
+            }
+            updateControlBubbleGroupLockUI(groupName, locked, buttons);
+            if (typeof showToast === 'function') {
+                const label = groupName === 'right' ? '우측(도구)' : '좌측(관리)';
+                if (locked) {
+                    showToast(`🔒 ${label} 메뉴 위치가 고정되었습니다 (잠김)`, 'info');
+                } else {
+                    showToast(`🔓 ${label} 메뉴 위치 잠금이 해제되었습니다 (이동 가능)`, 'success');
+                }
+            }
+        }
+
+        function setControlBubbleLock(locked, buttons = []) {
+            setControlBubbleGroupLock('left', locked, buttons);
+            setControlBubbleGroupLock('right', locked, buttons);
+        }
+
+        function updateControlBubbleGroupLockUI(groupName, locked, buttons = []) {
+            const groupSelector = groupName === 'right' ? '.control-btn-group-right' : '.control-btn-group-left';
+            const groupEl = document.querySelector(groupSelector);
+            if (groupEl) {
+                groupEl.classList.toggle('is-group-locked', locked);
+            }
+
+            const bothLocked = isControlBubbleGroupLocked('left') && isControlBubbleGroupLocked('right');
+            document.body.classList.toggle('bubble-layout-locked', bothLocked);
+
+            const lockBtn = groupName === 'right' 
+                ? document.getElementById('lockRightControlBubblesBtn')
+                : document.getElementById('lockLeftControlBubblesBtn');
+
+            if (lockBtn) {
+                const icon = locked ? '🔒' : '🔓';
+                const text = locked ? '고정 잠금' : '이동 허용';
+                lockBtn.innerHTML = `<span class="lock-icon">${icon}</span> <span class="lock-text">${text}</span>`;
+                lockBtn.classList.toggle('is-locked', locked);
+                lockBtn.setAttribute('aria-pressed', locked ? 'true' : 'false');
+                const groupTitle = groupName === 'right' ? '우측(도구)' : '좌측(관리)';
+                lockBtn.title = locked 
+                    ? `${groupTitle} 원형 메뉴 위치가 고정되어 있습니다 (클릭하여 잠금 해제)` 
+                    : `${groupTitle} 원형 메뉴 위치를 자유롭게 이동할 수 있습니다 (클릭하여 위치 고정 잠금)`;
+            }
+
+            if (buttons && buttons.length) {
+                buttons.forEach(button => {
+                    if (getControlBubbleGroupOfButton(button) === groupName) {
+                        const originalTitle = button.dataset.bubbleOriginalTitle || '메뉴';
+                        if (locked) {
+                            button.title = `${originalTitle} · 🔒 위치 고정됨 (상단 🔒 클릭 시 잠금 해제)`;
+                        } else {
+                            button.title = `${originalTitle} · 드래그로 이동 (자석 스냅·다중 이동 지원) · Ctrl+클릭 선택 · 우클릭 시 기본 위치`;
+                        }
+                    }
+                });
+            }
+        }
+
+        function updateControlBubbleLockUI(locked, buttons = []) {
+            updateControlBubbleGroupLockUI('left', isControlBubbleGroupLocked('left'), buttons);
+            updateControlBubbleGroupLockUI('right', isControlBubbleGroupLocked('right'), buttons);
+        }
+
         /* 📐 객체 맞춤(Alignment & Distribution) 및 겹침 방지(Anti-Overlap) 엔진 */
         function getAlignmentTargetButtons(groupName, allButtons) {
             const selected = allButtons.filter(b => b.classList.contains('bubble-selected'));
@@ -16609,11 +16819,11 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                         posMap.set(btn, { left, top });
                     });
                 } else {
-                    const baseLeft = isRight ? (window.innerWidth - CONTROL_BUBBLE_DIAMETER - 24) : 24;
+                    const baseLeft = isRight ? (window.innerWidth - CONTROL_BUBBLE_DIAMETER - 22) : 10;
                     const totalHeight = window.innerHeight - 140;
                     const availableGap = Math.min(18, Math.max(8, (totalHeight - (count * CONTROL_BUBBLE_DIAMETER)) / Math.max(1, count - 1)));
                     const dStep = CONTROL_BUBBLE_DIAMETER + availableGap;
-                    const startTop = Math.max(60, (window.innerHeight - ((count * CONTROL_BUBBLE_DIAMETER) + ((count - 1) * availableGap))) / 2);
+                    const startTop = Math.max(75, (window.innerHeight - ((count * CONTROL_BUBBLE_DIAMETER) + ((count - 1) * availableGap))) / 2);
 
                     targetButtons.forEach((btn, idx) => {
                         const left = baseLeft;
@@ -16723,7 +16933,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             };
 
             document.addEventListener('pointerdown', (e) => {
-                if (e.button !== 0 || isInteractiveTarget(e.target)) return;
+                const bothLocked = isControlBubbleGroupLocked('left') && isControlBubbleGroupLocked('right');
+                if (e.button !== 0 || isInteractiveTarget(e.target) || bothLocked) return;
 
                 startX = e.clientX;
                 startY = e.clientY;
@@ -16831,6 +17042,15 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
                 button.addEventListener('pointerdown', event => {
                     if (button.disabled || event.button !== 0 || activeDrag) return;
+
+                    // 🔒 해당 버튼이 속한 그룹의 위치 잠금 상태 검사
+                    if (isControlButtonLocked(button)) {
+                        button.classList.add('bubble-locked-shake');
+                        setTimeout(() => button.classList.remove('bubble-locked-shake'), 380);
+                        if (navigator.vibrate) navigator.vibrate([12, 30, 12]);
+                        return;
+                    }
+
                     closeAllBubbleAlignFlyouts();
 
                     const isPartOfSelection = button.classList.contains('bubble-selected');
@@ -16998,6 +17218,20 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             // 바탕화면 드래그 영역 선택 초기화
             setupMarqueeSelection(buttons);
 
+            // 원형 메뉴 위치 잠금/해제 자물쇠 버튼 이벤트 바인딩 (좌/우 각각 독립 제어)
+            document.querySelectorAll('.btn-group-lock-trigger').forEach(lockBtn => {
+                lockBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const groupName = lockBtn.dataset.bubbleLockGroup || (lockBtn.id.includes('Right') ? 'right' : 'left');
+                    const nextLocked = !isControlBubbleGroupLocked(groupName);
+                    setControlBubbleGroupLock(groupName, nextLocked, buttons);
+                });
+            });
+
+            // 초기 락 상태 UI 적용
+            updateControlBubbleGroupLockUI('left', isControlBubbleGroupLocked('left'), buttons);
+            updateControlBubbleGroupLockUI('right', isControlBubbleGroupLocked('right'), buttons);
+
             // 기본 위치 복원 버튼 이벤트
             document.querySelectorAll('[data-bubble-reset-group]').forEach(resetButton => {
                 resetButton.addEventListener('click', () => {
@@ -17032,7 +17266,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 actionBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const action = actionBtn.dataset.alignAction;
-                    const group = actionBtn.dataset.alignGroup;
+                    const group = actionBtn.dataset.alignGroup || 'left';
+
+                    if (action !== 'resetGroup' && isControlBubbleGroupLocked(group)) {
+                        if (typeof showToast === 'function') {
+                            const label = group === 'right' ? '우측(도구)' : '좌측(관리)';
+                            showToast(`🔒 ${label} 메뉴 위치가 잠겨 있습니다. 상단의 🔒 자물쇠를 눌러 잠금을 해제하세요.`, 'warning');
+                        }
+                        closeAllBubbleAlignFlyouts();
+                        return;
+                    }
 
                     switch (action) {
                         case 'verticalCenter':
@@ -17063,8 +17306,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             document.querySelectorAll('[data-arrange-preset]').forEach(presetBtn => {
                 presetBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    const group = presetBtn.dataset.alignGroup || 'left';
+                    if (isControlBubbleGroupLocked(group)) {
+                        if (typeof showToast === 'function') {
+                            const label = group === 'right' ? '우측(도구)' : '좌측(관리)';
+                            showToast(`🔒 ${label} 메뉴 위치가 잠겨 있습니다. 상단의 🔒 자물쇠를 눌러 잠금을 해제하세요.`, 'warning');
+                        }
+                        closeAllBubbleAlignFlyouts();
+                        return;
+                    }
                     const preset = presetBtn.dataset.arrangePreset;
-                    const group = presetBtn.dataset.alignGroup;
                     smartArrangeControlBubbles(group, buttons, preset);
                     closeAllBubbleAlignFlyouts();
                 });
