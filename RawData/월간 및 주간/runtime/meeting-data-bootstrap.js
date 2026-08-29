@@ -15,7 +15,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -30,7 +30,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -45,7 +45,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -60,7 +60,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -75,7 +75,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -90,7 +90,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -105,7 +105,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -120,7 +120,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -135,7 +135,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -150,7 +150,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -165,7 +165,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -180,7 +180,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -195,7 +195,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -210,7 +210,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -225,7 +225,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -240,7 +240,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -255,7 +255,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -270,7 +270,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -285,7 +285,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -300,7 +300,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -315,7 +315,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -330,7 +330,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -345,7 +345,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -360,7 +360,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -375,7 +375,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -390,7 +390,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -405,7 +405,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -420,7 +420,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -435,7 +435,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -450,7 +450,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -465,7 +465,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -480,7 +480,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -495,7 +495,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -510,7 +510,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -525,7 +525,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -540,7 +540,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -555,7 +555,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -570,7 +570,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -585,7 +585,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -600,7 +600,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -615,7 +615,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -630,7 +630,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -645,7 +645,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -660,7 +660,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -675,7 +675,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -690,7 +690,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -705,7 +705,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -720,7 +720,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -735,7 +735,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -750,7 +750,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -765,7 +765,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -780,7 +780,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -795,7 +795,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -810,7 +810,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -825,7 +825,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -840,7 +840,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -855,7 +855,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -870,7 +870,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -885,7 +885,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -900,7 +900,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -915,7 +915,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -930,7 +930,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -945,7 +945,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -960,7 +960,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -975,7 +975,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -990,7 +990,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1005,7 +1005,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1020,7 +1020,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1035,7 +1035,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1050,7 +1050,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1065,7 +1065,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1080,7 +1080,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1095,7 +1095,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1110,7 +1110,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1125,7 +1125,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1140,7 +1140,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1155,7 +1155,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1170,7 +1170,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1185,7 +1185,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1200,7 +1200,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1215,7 +1215,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1230,7 +1230,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1245,7 +1245,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1260,7 +1260,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1275,7 +1275,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1290,7 +1290,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1305,7 +1305,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1320,7 +1320,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1335,7 +1335,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1350,7 +1350,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1365,7 +1365,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1380,7 +1380,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1395,7 +1395,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1410,7 +1410,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1425,7 +1425,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1440,7 +1440,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1455,7 +1455,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1470,7 +1470,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1485,7 +1485,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1500,7 +1500,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1515,7 +1515,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1530,7 +1530,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1545,7 +1545,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1560,7 +1560,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1575,7 +1575,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1590,7 +1590,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1605,7 +1605,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1620,7 +1620,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1635,7 +1635,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1650,7 +1650,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-29T13:56:21.000Z",
+        "updatedAt": "2026-08-29T22:56:21.000Z",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
         "exceptionCode": "LEGACY_NAVIGATOR_ONLY",
         "note": "월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용"
@@ -1665,7 +1665,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-03-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1680,7 +1680,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-03-02",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1695,7 +1695,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-03-09",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1710,7 +1710,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-03-16",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1725,7 +1725,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-03-23",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1740,7 +1740,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-03-30",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1755,7 +1755,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-04-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1770,7 +1770,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-04-06",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1785,7 +1785,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-04-13",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1800,7 +1800,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-04-20",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1815,7 +1815,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-04-27",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1830,7 +1830,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -1845,7 +1845,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-05-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1860,7 +1860,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-05-04",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1875,7 +1875,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-05-11",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1890,7 +1890,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-05-18",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1905,7 +1905,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-05-25",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1920,7 +1920,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-05-28",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "FORCED_WEEK5",
         "note": "기존 카드 규칙의 가상 5주차"
@@ -1935,7 +1935,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-06-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1950,7 +1950,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-06-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1965,7 +1965,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-06-08",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1980,7 +1980,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-06-15",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -1995,7 +1995,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-06-22",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2010,7 +2010,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-06-29",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2025,7 +2025,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-07-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2040,7 +2040,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-07-06",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2055,7 +2055,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-07-13",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2070,7 +2070,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-07-20",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2085,7 +2085,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-07-27",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2100,7 +2100,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -2115,7 +2115,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -2130,7 +2130,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-08-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2145,7 +2145,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-08-03",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2160,7 +2160,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-08-10",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2175,7 +2175,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-08-17",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2190,7 +2190,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-08-24",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2205,7 +2205,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-08-31",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2220,7 +2220,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-09-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2235,7 +2235,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-09-07",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2250,7 +2250,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-09-14",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2265,7 +2265,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-09-21",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2280,7 +2280,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-09-28",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2295,7 +2295,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -2310,7 +2310,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-10-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2325,7 +2325,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-10-05",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2340,7 +2340,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-10-12",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2355,7 +2355,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-10-19",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2370,7 +2370,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-10-26",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2385,7 +2385,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -2400,7 +2400,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -2415,7 +2415,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-11-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2430,7 +2430,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-11-02",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2445,7 +2445,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-11-09",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2460,7 +2460,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-11-16",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2475,7 +2475,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-11-23",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2490,7 +2490,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-11-30",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2505,7 +2505,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-12-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2520,7 +2520,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-12-07",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2535,7 +2535,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-12-14",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2550,7 +2550,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-12-21",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2565,7 +2565,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-12-28",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2580,7 +2580,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2023-12-28",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "FORCED_WEEK5",
         "note": "기존 카드 규칙의 가상 5주차"
@@ -2595,7 +2595,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-01-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2610,7 +2610,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-01-04",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2625,7 +2625,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-01-11",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2640,7 +2640,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-01-18",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2655,7 +2655,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-01-25",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2670,7 +2670,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -2685,7 +2685,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-02-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2700,7 +2700,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-02-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2715,7 +2715,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-02-08",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2730,7 +2730,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-02-15",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2745,7 +2745,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-02-22",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2760,7 +2760,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-02-29",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2775,7 +2775,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-03-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2790,7 +2790,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-03-07",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2805,7 +2805,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-03-14",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2820,7 +2820,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-03-21",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2835,7 +2835,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-03-28",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2850,7 +2850,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -2865,7 +2865,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-04-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2880,7 +2880,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-04-04",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2895,7 +2895,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-04-11",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2910,7 +2910,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-04-18",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2925,7 +2925,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-04-25",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2940,7 +2940,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -2955,7 +2955,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-05-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2970,7 +2970,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-05-02",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -2985,7 +2985,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-05-09",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3000,7 +3000,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-05-16",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3015,7 +3015,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-05-23",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3030,7 +3030,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-05-30",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3045,7 +3045,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-06-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3060,7 +3060,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-06-06",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3075,7 +3075,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-06-13",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3090,7 +3090,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-06-20",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3105,7 +3105,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-06-27",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3120,7 +3120,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -3135,7 +3135,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-07-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3150,7 +3150,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-07-04",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3165,7 +3165,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-07-11",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3180,7 +3180,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-07-18",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3195,7 +3195,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-07-25",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3210,7 +3210,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-07-28",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "FORCED_WEEK5",
         "note": "기존 카드 규칙의 가상 5주차"
@@ -3225,7 +3225,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-08-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3240,7 +3240,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-08-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3255,7 +3255,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-08-08",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3270,7 +3270,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-08-15",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3285,7 +3285,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-08-22",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3300,7 +3300,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-08-29",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3315,7 +3315,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-09-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3330,7 +3330,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-09-05",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3345,7 +3345,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-09-12",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3360,7 +3360,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-09-19",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3375,7 +3375,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-09-26",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3390,7 +3390,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -3405,7 +3405,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -3420,7 +3420,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-10-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3435,7 +3435,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-10-03",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3450,7 +3450,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-10-10",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3465,7 +3465,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-10-17",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3480,7 +3480,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-10-24",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3495,7 +3495,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-10-31",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3510,7 +3510,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-11-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3525,7 +3525,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-11-07",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3540,7 +3540,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-11-14",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3555,7 +3555,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-11-21",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3570,7 +3570,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-11-28",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3585,7 +3585,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -3600,7 +3600,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-12-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3615,7 +3615,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-12-05",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3630,7 +3630,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-12-12",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3645,7 +3645,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-12-19",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3660,7 +3660,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2024-12-26",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3675,7 +3675,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -3690,7 +3690,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -3705,7 +3705,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-01-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3720,7 +3720,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-01-02",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3735,7 +3735,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-01-09",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3750,7 +3750,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-01-16",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3765,7 +3765,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-01-23",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3780,7 +3780,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-01-30",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3795,7 +3795,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-02-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3810,7 +3810,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-02-06",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3825,7 +3825,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-02-13",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3840,7 +3840,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-02-20",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3855,7 +3855,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-02-27",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3870,7 +3870,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -3885,7 +3885,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-03-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3900,7 +3900,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-03-06",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3915,7 +3915,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-03-13",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3930,7 +3930,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-03-20",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3945,7 +3945,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-03-27",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -3960,7 +3960,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -3975,7 +3975,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -3990,7 +3990,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-04-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4005,7 +4005,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-04-03",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4020,7 +4020,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-04-10",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4035,7 +4035,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-04-17",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4050,7 +4050,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-04-24",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4065,7 +4065,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-04-28",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "FORCED_WEEK5",
         "note": "기존 카드 규칙의 가상 5주차"
@@ -4080,7 +4080,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-05-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4095,7 +4095,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-05-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4110,7 +4110,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-05-08",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4125,7 +4125,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-05-15",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4140,7 +4140,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-05-22",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4155,7 +4155,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-05-29",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4170,7 +4170,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-06-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4185,7 +4185,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-06-05",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4200,7 +4200,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-06-12",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4215,7 +4215,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-06-19",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4230,7 +4230,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-06-26",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4245,7 +4245,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -4260,7 +4260,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -4275,7 +4275,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-07-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4290,7 +4290,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-07-03",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4305,7 +4305,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-07-10",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4320,7 +4320,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-07-17",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4335,7 +4335,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-07-24",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4350,7 +4350,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-07-31",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4365,7 +4365,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-08-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4380,7 +4380,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-08-07",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4395,7 +4395,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-08-14",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4410,7 +4410,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-08-21",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4425,7 +4425,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-08-28",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4440,7 +4440,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-09-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4455,7 +4455,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-09-04",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4470,7 +4470,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-09-11",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4485,7 +4485,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-09-18",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4500,7 +4500,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-09-25",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4515,7 +4515,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "N",
         "cardVisible": "N",
         "referenceDate": null,
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 하드코딩 보존",
         "exceptionCode": "LEGACY_WEEK_OUT_OF_ROSTER",
         "note": "기존 데이터에는 있으나 카드 생성 범위 밖인 미매핑 이력"
@@ -4530,7 +4530,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-10-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4545,7 +4545,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-10-02",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4560,7 +4560,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-10-09",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4575,7 +4575,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-10-16",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4590,7 +4590,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-10-23",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4605,7 +4605,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-10-30",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4620,7 +4620,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-11-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4635,7 +4635,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-11-06",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4650,7 +4650,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-11-13",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4665,7 +4665,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-11-20",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4680,7 +4680,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-11-27",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4695,7 +4695,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-12-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4710,7 +4710,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-12-04",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4725,7 +4725,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-12-11",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4740,7 +4740,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-12-18",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4755,7 +4755,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-12-25",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4770,7 +4770,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2025-12-28",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "FORCED_WEEK5",
         "note": "기존 카드 규칙의 가상 5주차"
@@ -4785,7 +4785,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-01-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4800,7 +4800,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-01-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4815,7 +4815,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-01-08",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4830,7 +4830,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-01-15",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4845,7 +4845,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-01-22",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4860,7 +4860,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-01-29",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4875,7 +4875,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-02-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4890,7 +4890,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-02-05",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4905,7 +4905,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-02-12",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4920,7 +4920,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-02-19",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4935,7 +4935,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-02-26",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4950,7 +4950,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-03-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4965,7 +4965,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-03-05",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4980,7 +4980,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-03-12",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -4995,7 +4995,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-03-19",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5010,7 +5010,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-03-26",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5025,7 +5025,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-04-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5040,7 +5040,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-04-02",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5055,7 +5055,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-04-09",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5070,7 +5070,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-04-16",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5085,7 +5085,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-04-23",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5100,7 +5100,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-04-30",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5115,7 +5115,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-05-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5130,7 +5130,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-05-07",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5145,7 +5145,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-05-14",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5160,7 +5160,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-05-21",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5175,7 +5175,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-05-28",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5190,7 +5190,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-06-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5205,7 +5205,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-06-04",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5220,7 +5220,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-06-11",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5235,7 +5235,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-06-18",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5250,7 +5250,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-06-25",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5265,7 +5265,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-07-01",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5280,7 +5280,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-07-02",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5295,7 +5295,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-07-09",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5310,7 +5310,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-07-16",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5325,7 +5325,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-07-23",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5340,7 +5340,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-07-30",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5355,7 +5355,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-08-01",
-        "updatedAt": "2026-08-23T02:05:22.000Z",
+        "updatedAt": "2026-08-23T11:05:22.000Z",
         "source": "카드 원클릭 상태 전환 · client:f36e5365-509 · session:75aa770e · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": ""
@@ -5370,7 +5370,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-08-06",
-        "updatedAt": "2026-08-22T03:00:00.000Z",
+        "updatedAt": "2026-08-22T12:00:00.000Z",
         "source": "기존 현황 마이그레이션",
         "exceptionCode": "",
         "note": ""
@@ -5385,7 +5385,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-08-13",
-        "updatedAt": "2026-08-23T02:04:16.000Z",
+        "updatedAt": "2026-08-23T11:04:16.000Z",
         "source": "카드 원클릭 상태 전환 · client:f36e5365-509 · session:1fcece70 · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": ""
@@ -5400,7 +5400,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-08-20",
-        "updatedAt": "2026-08-23T02:05:02.000Z",
+        "updatedAt": "2026-08-23T11:05:02.000Z",
         "source": "카드 원클릭 상태 전환 · client:f36e5365-509 · session:75aa770e · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": ""
@@ -5415,7 +5415,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-08-27",
-        "updatedAt": "2026-08-29T14:34:44.000Z",
+        "updatedAt": "2026-08-29T23:34:44.000Z",
         "source": "GitHub 회의록 파일 자동 점검",
         "exceptionCode": "",
         "note": "실제 회의록 파일 확인: 2026/2026_08_04_회의록.html"
@@ -5424,7 +5424,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
     "history": [
       {
         "eventId": "MIGRATION-20260822",
-        "changedAt": "2026-08-22T03:00:00.000Z",
+        "changedAt": "2026-08-22T12:00:00.000Z",
         "key": "전체",
         "type": "마이그레이션",
         "beforeValue": "HTML 하드코딩",
@@ -5434,7 +5434,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "2d9d1917-fac1-48b5-856c-fad79ddaf691",
-        "changedAt": "2026-08-22T23:35:47.000Z",
+        "changedAt": "2026-08-23T08:35:47.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "작성",
@@ -5444,7 +5444,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "80c752a9-2a11-4a06-83e7-f204133f5212",
-        "changedAt": "2026-08-22T23:36:37.000Z",
+        "changedAt": "2026-08-23T08:36:37.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "작성",
@@ -5454,7 +5454,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "39ba188d-aa87-4543-8b53-4c3ec381e77d",
-        "changedAt": "2026-08-23T00:00:50.000Z",
+        "changedAt": "2026-08-23T09:00:50.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "작성",
@@ -5464,7 +5464,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "27572950-73d4-4ce7-8edf-b9f85007ddf4",
-        "changedAt": "2026-08-23T00:02:00.000Z",
+        "changedAt": "2026-08-23T09:02:00.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "작성",
@@ -5474,7 +5474,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "72be5f5f-2660-4f1f-bdf3-12f4d5c10680",
-        "changedAt": "2026-08-23T00:34:50.000Z",
+        "changedAt": "2026-08-23T09:34:50.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "작성",
@@ -5484,7 +5484,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "af725244-c2cc-4dc2-a860-b377782438ab",
-        "changedAt": "2026-08-23T00:35:44.000Z",
+        "changedAt": "2026-08-23T09:35:44.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "미작성",
@@ -5494,7 +5494,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "cc5c67dc-e5f4-44c0-b2cd-f0fb148087a4",
-        "changedAt": "2026-08-23T01:34:59.000Z",
+        "changedAt": "2026-08-23T10:34:59.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "작성",
@@ -5504,7 +5504,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "d0aea7c4-05af-4020-9d44-9b397e69cc34",
-        "changedAt": "2026-08-23T01:36:47.000Z",
+        "changedAt": "2026-08-23T10:36:47.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "미작성",
@@ -5514,7 +5514,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "4df489fa-b81a-4778-a329-68701aee5ef8",
-        "changedAt": "2026-08-23T02:03:46.000Z",
+        "changedAt": "2026-08-23T11:03:46.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "작성",
@@ -5524,7 +5524,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "5ed8d5b3-fb3a-4d20-ac1e-e1006b42340f",
-        "changedAt": "2026-08-23T02:04:04.000Z",
+        "changedAt": "2026-08-23T11:04:04.000Z",
         "key": "2026-8-3",
         "type": "주간",
         "beforeValue": "미작성",
@@ -5534,7 +5534,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "ff787ab3-5934-482b-a04f-f8c45731c85d",
-        "changedAt": "2026-08-23T02:04:11.000Z",
+        "changedAt": "2026-08-23T11:04:11.000Z",
         "key": "2026-8-3",
         "type": "주간",
         "beforeValue": "작성",
@@ -5544,7 +5544,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f4760b27-0212-483a-95ac-67454cc05369",
-        "changedAt": "2026-08-23T02:04:16.000Z",
+        "changedAt": "2026-08-23T11:04:16.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "미작성",
@@ -5554,7 +5554,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "0b95466e-e649-4925-8279-4c049b4feabb",
-        "changedAt": "2026-08-23T02:04:45.000Z",
+        "changedAt": "2026-08-23T11:04:45.000Z",
         "key": "2026-8-3",
         "type": "주간",
         "beforeValue": "미작성",
@@ -5564,7 +5564,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "5ad2a63e-ef37-4258-98c1-970ffc257834",
-        "changedAt": "2026-08-23T02:05:02.000Z",
+        "changedAt": "2026-08-23T11:05:02.000Z",
         "key": "2026-8-3",
         "type": "주간",
         "beforeValue": "작성",
@@ -5574,7 +5574,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "e6a6a760-74fa-4b85-bdc6-694bef7e9ded",
-        "changedAt": "2026-08-23T02:05:16.000Z",
+        "changedAt": "2026-08-23T11:05:16.000Z",
         "key": "2026-8",
         "type": "월간",
         "beforeValue": "작성",
@@ -5584,7 +5584,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "4ae26a34-c89a-48ac-ba00-3eb34a5bba35",
-        "changedAt": "2026-08-23T02:05:22.000Z",
+        "changedAt": "2026-08-23T11:05:22.000Z",
         "key": "2026-8",
         "type": "월간",
         "beforeValue": "미작성",
@@ -5594,7 +5594,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "01918054-8cb0-472b-b69b-3b99c8eddbf8",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-5",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5604,7 +5604,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "0358bc35-6943-40ee-9a15-a73ac620ee67",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-1",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5614,7 +5614,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "062831a4-524e-4646-9685-604176387b66",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-4",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5624,7 +5624,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "09c50517-f387-4edc-b91c-59013faf2b92",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-11",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5634,7 +5634,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "1674c1f6-f6bb-45a8-a60c-29cc086db8a1",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-1",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5644,7 +5644,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "1994f0bf-93b3-4253-90a3-b49737da700f",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-10",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5654,7 +5654,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "19d07176-9e48-4ad9-a8bc-f94a5fbf8473",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-7",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5664,7 +5664,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "1a616e22-00ff-4b12-ae47-ebd9b130617a",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-8",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5674,7 +5674,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "1afa4a96-66c2-4bae-84e6-bdc47f04ba91",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-8",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5684,7 +5684,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "1ec0e253-8f71-4986-b281-3531898b98d9",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-12",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5694,7 +5694,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "1ecfee36-e9af-453e-80ec-ce444c1611ea",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-7",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5704,7 +5704,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "201c173b-6c03-42f1-b00f-6191f0f1293b",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-2",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5714,7 +5714,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "20ec23ab-419a-4071-b504-8e09b75ab84f",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-4",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5724,7 +5724,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "21aa66d5-eaa8-4f95-bb51-85fe845af445",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-11",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5734,7 +5734,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "244d7adc-b8b8-4630-adbb-bef25330ec77",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-10",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5744,7 +5744,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "278ba757-8d10-4a3e-8919-78e5c82252f5",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-3",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5754,7 +5754,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "2cf1e904-a29d-4f66-a447-ca04ceac73f3",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-4",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5764,7 +5764,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "2d7c28c1-5257-4e11-bdb5-709f77f43816",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-12",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5774,7 +5774,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "2ddbdd6a-4442-48ef-a32f-6921fa3b0286",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-7",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5784,7 +5784,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "31189d46-529e-4333-9ce0-2a6999327630",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-3",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5794,7 +5794,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "3262b476-cde6-4ac4-8695-b64b8201804e",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-8",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5804,7 +5804,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "337b4af4-3a34-450b-82f7-906fa319eded",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2023-1",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5814,7 +5814,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "361a5ab0-7c39-446b-9505-ca6a11005d3d",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-7",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5824,7 +5824,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "36756adb-b12d-4d61-81d4-fd21169e026b",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-3",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5834,7 +5834,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "389496a4-c5f8-472f-81c4-a0d52d1a1227",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-11",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5844,7 +5844,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "3b359c57-d793-42b1-9b30-5e938d54fca7",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-6",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5854,7 +5854,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "4102de2b-4418-4161-8bb1-bc3af152412d",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-2",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5864,7 +5864,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "429076c1-887e-416c-85a8-05a60ce00c2b",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-7",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5874,7 +5874,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "49f66793-d2d1-4a9a-ab3b-965bb81d46d5",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-9",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5884,7 +5884,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "4a112354-578a-49f0-ade4-a8a9866a3139",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-12",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5894,7 +5894,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "4ae0c573-3753-4c5a-9675-78106e3ad040",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-5",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5904,7 +5904,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "4b93be4d-2ff3-412f-906b-cedff57423f7",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-4",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5914,7 +5914,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "4f8a7167-40e0-48dc-8ca5-22c9c1019703",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-4",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5924,7 +5924,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "532d1131-1d99-4f4b-a7d4-c07de6c02deb",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-4",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5934,7 +5934,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "54d51df2-d6c0-4a62-ba47-242b5cb8099a",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-9",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5944,7 +5944,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "55c01836-6ccd-481f-97e8-0c36552062ac",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-10",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5954,7 +5954,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "5c9c4e9b-9794-4f80-a2ca-e44a525f2d16",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-3",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5964,7 +5964,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "673441bd-c3c3-4b54-ba43-daffc72c1ae5",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-4",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5974,7 +5974,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "69af7d74-633b-4137-857c-01a1db358c02",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-9",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5984,7 +5984,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "6ce818b1-5a43-4561-9da7-e88105f8d6ee",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-6",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -5994,7 +5994,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "7095e6f6-02c6-4cac-821f-60064b3d46d4",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-10",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6004,7 +6004,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "70d616fe-a365-4e03-8fad-452e57da41df",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-6",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6014,7 +6014,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "70ffc881-46f5-4a6e-a949-345a1489351c",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-9",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6024,7 +6024,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "715a5bd1-4038-454a-9ee8-161f9b7ae336",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-1",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6034,7 +6034,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "7562b4da-faa3-4900-901e-136ace71e416",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-1",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6044,7 +6044,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "75e311fc-c8cb-4543-ad4e-9b36214f482b",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-2",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6054,7 +6054,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "77c4ef85-167d-4d75-9bbe-68a73d06b7aa",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-10",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6064,7 +6064,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "799f2c45-c4df-47c1-9813-becc4bbf6d97",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-10",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6074,7 +6074,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "7bc6d549-66ad-4f7b-ba26-9c55a97cd42d",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-1",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6084,7 +6084,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "7cc4d04b-97bb-46c3-b2c8-ca698e50c2be",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-12",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6094,7 +6094,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "815a3827-94b6-4f0d-865c-72eb34a94098",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-6",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6104,7 +6104,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "81cd0b3f-36e2-4f8b-a5f1-25b0f807867a",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-11",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6114,7 +6114,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "83c07207-ea05-41e1-8ed8-2dc9d7750934",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-8",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6124,7 +6124,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "891bce6b-c815-4967-a459-d8dba3a59cb8",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-8",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6134,7 +6134,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "89279ab7-5bfd-4fd0-8fa2-728fbe7c803d",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-3",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6144,7 +6144,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "8b3f4597-7f90-46a9-852e-92264e11326a",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-9",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6154,7 +6154,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "8da54d31-f62c-47eb-a896-4b944001f738",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-8",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6164,7 +6164,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "9011b070-aafb-4177-87fb-c460a8d6e162",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-5",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6174,7 +6174,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "95b96130-9997-4124-a73c-875b5a86f636",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-9",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6184,7 +6184,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "95e8c2d6-4a8b-467f-b616-a27dab509fbc",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-11",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6194,7 +6194,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "98377e66-9d45-4bc8-93b8-c95b6cdc8a5b",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-9",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6204,7 +6204,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "9cd16b31-0542-4989-b9e8-6f4e780423c0",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-11",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6214,7 +6214,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "9ebf0f5f-9485-4a49-96f9-210c390bd4ec",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-4",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6224,7 +6224,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "9f963520-2f26-424c-b4d4-694cb03d14ae",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-1",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6234,7 +6234,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "a3296695-bb8a-4240-a54b-4a7d5f819713",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-7",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6244,7 +6244,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "aa2e889c-01cc-4e49-9338-e4603c55ac29",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-3",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6254,7 +6254,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "ab7194ad-0957-4e52-924e-a56140c46aed",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-12",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6264,7 +6264,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "abc6bb0d-6809-4f6d-98f1-c8460589c2f1",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-6",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6274,7 +6274,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "ac24da94-1418-49e2-9bcc-2591bca2ccc7",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-2",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6284,7 +6284,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "ae967bd6-a849-4ad1-98ab-28a1c24d6641",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-9",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6294,7 +6294,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "aeb5185d-ae7d-464d-a841-0d7b67cd7705",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-6",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6304,7 +6304,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "afb366a7-0233-475a-9a8e-5b458ee732aa",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-8",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6314,7 +6314,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "b684f8d6-8688-4b13-84bf-62887eef39b9",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-1",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6324,7 +6324,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "b8577cc5-5324-4cb7-9a35-809c4e6fa009",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-12",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6334,7 +6334,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "bab6309d-7fa6-4e7e-942f-186d3b71243f",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-3",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6344,7 +6344,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "bb29e316-c9fc-45dc-a56c-1bf0336c3340",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-11",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6354,7 +6354,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "c02eb3b7-db53-4218-a6d7-e6c432344112",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-12",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6364,7 +6364,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "c598bfe7-6f5b-4258-964e-dcf0ca7a9066",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-7",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6374,7 +6374,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "c86d7116-54a9-4955-994e-e40e0526e144",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-2",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6384,7 +6384,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "c8d2d83d-85ab-441c-9174-0675e3b28ce6",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2023-2",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6394,7 +6394,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "cbe6f5ed-c396-4695-a032-56744fe0e061",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-1",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6404,7 +6404,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "ce68a7bb-25bf-40b2-b218-cda9a9438fad",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-7",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6414,7 +6414,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "d0eb8a24-d5e3-4955-8edd-41d4f99e3ccc",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-5",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6424,7 +6424,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "d3970f14-bc03-481d-aa8c-5ba149065789",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-6",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6434,7 +6434,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "d4fbd45b-4c65-4b60-86f2-a385abfd8156",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-12",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6444,7 +6444,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "dec218ad-1271-4842-973f-165c9dbc77b1",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-5",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6454,7 +6454,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "df4f67cc-6c11-468a-a154-71c323485a8c",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-4",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6464,7 +6464,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "e00a8c7c-b269-493e-a72a-04e7e7c2b88d",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-2",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6474,7 +6474,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "e02b1dd0-d857-4f9d-afa4-9a0186003b31",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-12",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6484,7 +6484,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "e2612375-816f-4ce9-a4ae-f75ead848133",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-10",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6494,7 +6494,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "e677524c-98cd-4bc5-8f96-890dadbffe29",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-9",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6504,7 +6504,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "e765c497-e487-41b0-b277-43c3e527c36f",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-7",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6514,7 +6514,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "ea6b4870-edc4-4db5-999b-db7b3644ff99",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-3",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6524,7 +6524,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "eb5c0485-7b18-4f6e-9df6-35bec0a180f0",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2016-8",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6534,7 +6534,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "ebc50c7e-0573-451b-8d12-4b9e93b6c662",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-11",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6544,7 +6544,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "ec7d76dd-a294-42ef-9fb9-4e5ffa0a0c52",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-11",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6554,7 +6554,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "ed3a2e45-2073-41b8-886a-b3acfa26b9d2",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2015-2",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6564,7 +6564,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "eea7269a-79e2-4482-a2d9-b8b143835bd8",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-3",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6574,7 +6574,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "efda0f87-94fe-4454-9650-1edbd18fe310",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-6",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6584,7 +6584,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f0e470d7-8a89-465a-9a2e-9e3da0c2bc9a",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-10",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6594,7 +6594,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f3bf6d71-d6bf-43bf-86e3-b75026410b5d",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-5",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6604,7 +6604,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f417dd74-2dd0-463d-80f3-eae8da6d79f4",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-5",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6614,7 +6614,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f4fac265-67b8-4c8a-a0c3-ef86fb873310",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-10",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6624,7 +6624,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f58a3bf7-461c-4f8c-b441-209d5fad3f62",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2022-2",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6634,7 +6634,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f5b4a1bf-a0a7-4d4f-b6a4-dea4dca2a329",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2014-8",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6644,7 +6644,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f8a090c0-8a4d-4426-b475-dd0e053a6348",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2017-6",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6654,7 +6654,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f9a5d03a-bab1-4ec5-87a6-1d63a89e3a72",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2021-1",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6664,7 +6664,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "fa15b6a9-a691-4eba-a817-0245d0e903d0",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2019-5",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6674,7 +6674,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "fcd7a4d1-fdcb-4981-8205-2df38dd81342",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2018-5",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6684,7 +6684,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "fd71330b-d1bc-4073-99d9-b51d9381995e",
-        "changedAt": "2026-08-29T13:56:21.000Z",
+        "changedAt": "2026-08-29T22:56:21.000Z",
         "key": "2020-2",
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6694,7 +6694,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "e87debfe-f95b-426c-aa32-16f58a9eef87",
-        "changedAt": "2026-08-29T14:34:44.000Z",
+        "changedAt": "2026-08-29T23:34:44.000Z",
         "key": "2026-8-4",
         "type": "주간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
@@ -6709,7 +6709,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
     "history": [
       {
         "eventId": "0ae18bcc-3dfa-4afa-8f18-a3b83d819d09",
-        "changedAt": "2026-08-23T01:29:09.000Z",
+        "changedAt": "2026-08-23T10:29:09.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "yyy",
@@ -6720,7 +6720,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "087909ef-4712-461a-979e-62c17a1019d7",
-        "changedAt": "2026-08-23T01:30:08.000Z",
+        "changedAt": "2026-08-23T10:30:08.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "yyyfdlsdfsldfs\ndfsfsdflsdfldsjkfsdf\ndfjsfsdkfsjfd\n\ndfsjdsfjsldfs\n",
@@ -6731,7 +6731,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "0feb2ce5-a129-48ca-8465-d41ffc1c85cd",
-        "changedAt": "2026-08-23T01:30:12.000Z",
+        "changedAt": "2026-08-23T10:30:12.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "yyyfdlsdfsldfs\ndfsfsdflsdfldsjkfsdf\ndfjsfsdkfsjfd\n\ndfsjdsfjsldfs\n",
@@ -6742,7 +6742,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "7728907a-faa8-47c7-bb63-72b883dbb3d9",
-        "changedAt": "2026-08-23T01:34:10.000Z",
+        "changedAt": "2026-08-23T10:34:10.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "",
@@ -6753,7 +6753,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "c9c9a4c4-7bc7-4b77-b3b6-c6f7afc5db67",
-        "changedAt": "2026-08-23T01:34:16.000Z",
+        "changedAt": "2026-08-23T10:34:16.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "[2026. 08. 23. (일) 10:34:10]\n",
@@ -6764,7 +6764,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "9f5738f8-4266-4629-a0c5-2d0dbd36605f",
-        "changedAt": "2026-08-23T03:07:40.000Z",
+        "changedAt": "2026-08-23T12:07:40.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "yyy",
@@ -6775,7 +6775,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "1357dd10-e826-4e51-aeaf-595491528868",
-        "changedAt": "2026-08-23T03:53:40.000Z",
+        "changedAt": "2026-08-23T12:53:40.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "yyy",
@@ -6786,7 +6786,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "48b915de-3a3b-47c3-9efd-203ffe73125f",
-        "changedAt": "2026-08-23T03:54:10.000Z",
+        "changedAt": "2026-08-23T12:54:10.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "",
@@ -6797,7 +6797,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "4ee565c4-1fe7-47b7-ab55-ca577a1ab868",
-        "changedAt": "2026-08-23T03:54:11.000Z",
+        "changedAt": "2026-08-23T12:54:11.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "ㅁ",
@@ -6808,7 +6808,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "1a5945c3-3e1a-4e42-af4a-9dae3c8cf4c4",
-        "changedAt": "2026-08-23T03:54:12.000Z",
+        "changedAt": "2026-08-23T12:54:12.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "",
@@ -6819,7 +6819,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "c2df5004-0aa5-4ec9-bfa9-8c12f5acc218",
-        "changedAt": "2026-08-23T03:54:13.000Z",
+        "changedAt": "2026-08-23T12:54:13.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "aa",
@@ -6830,7 +6830,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "ecb8ced6-8308-49b3-a8f9-4a1309dfcb70",
-        "changedAt": "2026-08-23T03:54:14.000Z",
+        "changedAt": "2026-08-23T12:54:14.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "aaa",
@@ -6841,7 +6841,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "fd80a17f-7d28-4384-b61b-80a343a07bfc",
-        "changedAt": "2026-08-23T03:54:14.000Z",
+        "changedAt": "2026-08-23T12:54:14.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "",
@@ -6852,7 +6852,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "8ab2849d-0cd8-4608-a925-1dc160de6907",
-        "changedAt": "2026-08-23T04:02:50.000Z",
+        "changedAt": "2026-08-23T13:02:50.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "aaa",
@@ -6863,7 +6863,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "d598e5d4-8534-4936-8f90-cc60b0edf9cc",
-        "changedAt": "2026-08-23T04:02:52.000Z",
+        "changedAt": "2026-08-23T13:02:52.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "",
@@ -6874,7 +6874,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "699aef03-8298-452c-9f46-244463ce1847",
-        "changedAt": "2026-08-23T04:02:55.000Z",
+        "changedAt": "2026-08-23T13:02:55.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "q",
@@ -6885,7 +6885,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "72ac9686-b3da-4fbd-81fa-fe5cd54a1ce2",
-        "changedAt": "2026-08-23T04:24:54.000Z",
+        "changedAt": "2026-08-23T13:24:54.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "aaa",
@@ -6896,7 +6896,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "e80ce02b-84a2-4f6e-aee7-06128d367664",
-        "changedAt": "2026-08-23T04:25:07.000Z",
+        "changedAt": "2026-08-23T13:25:07.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "aaa",
@@ -6907,7 +6907,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "11f630e8-3a9a-43e4-8382-46a13e2b969c",
-        "changedAt": "2026-08-23T04:29:58.000Z",
+        "changedAt": "2026-08-23T13:29:58.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "",
@@ -6918,7 +6918,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "b8e62ba4-c826-4f5b-be1f-733d738b57ae",
-        "changedAt": "2026-08-23T04:30:00.000Z",
+        "changedAt": "2026-08-23T13:30:00.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "ㅁ",
@@ -6929,7 +6929,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "5da15d4d-1420-4f9f-ae38-bbf30d5a7e1c",
-        "changedAt": "2026-08-23T04:30:08.000Z",
+        "changedAt": "2026-08-23T13:30:08.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무더위",
@@ -6940,7 +6940,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "d14ccfac-61b8-479e-823f-3b5b1ada9937",
-        "changedAt": "2026-08-23T04:30:19.000Z",
+        "changedAt": "2026-08-23T13:30:19.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무더위_ㅁㅁㅁ",
@@ -6951,7 +6951,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "da79256a-2778-4378-8b26-6078a1c42919",
-        "changedAt": "2026-08-23T04:30:21.000Z",
+        "changedAt": "2026-08-23T13:30:21.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "",
@@ -6962,7 +6962,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "b32fd684-23c7-4bc4-a692-92ed210b2174",
-        "changedAt": "2026-08-23T04:30:38.000Z",
+        "changedAt": "2026-08-23T13:30:38.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무더위_ㅁㅁㅁ",
@@ -6973,7 +6973,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "7b15928e-62ab-474b-9cca-9bb4b9d2c740",
-        "changedAt": "2026-08-23T04:31:15.000Z",
+        "changedAt": "2026-08-23T13:31:15.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무더위_ㅁㅁㅁ",
@@ -6984,7 +6984,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "728d029f-c006-46ed-8429-a5d4db39ce39",
-        "changedAt": "2026-08-23T04:33:02.000Z",
+        "changedAt": "2026-08-23T13:33:02.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무더위_ㅁㅁㅁ",
@@ -6995,7 +6995,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "d7de8b2f-f54c-429f-8c03-c850b7e0e9ca",
-        "changedAt": "2026-08-23T04:33:14.000Z",
+        "changedAt": "2026-08-23T13:33:14.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무더위_ㅁㅁㅁ",
@@ -7006,7 +7006,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "e0929e38-a0fe-4eb3-9fa6-ea4b6ccc834c",
-        "changedAt": "2026-08-23T04:33:43.000Z",
+        "changedAt": "2026-08-23T13:33:43.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "",
@@ -7017,7 +7017,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "481c4796-870f-4a2b-8ef8-d9347b32c677",
-        "changedAt": "2026-08-23T04:33:46.000Z",
+        "changedAt": "2026-08-23T13:33:46.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "ㅁㅁㅁㅁㅁㅁ",
@@ -7028,7 +7028,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "03bc26cd-8416-40e8-bad8-36dad3d22463",
-        "changedAt": "2026-08-23T04:33:48.000Z",
+        "changedAt": "2026-08-23T13:33:48.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "",
@@ -7039,7 +7039,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "5608ccea-6dd9-426d-aeb1-d96c97812d52",
-        "changedAt": "2026-08-23T07:33:15.000Z",
+        "changedAt": "2026-08-23T16:33:15.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "ㅁㅁㅁㅁㅁㅁ",
@@ -7050,7 +7050,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "368024d7-6800-48e6-95e5-f999400e735a",
-        "changedAt": "2026-08-23T07:39:55.000Z",
+        "changedAt": "2026-08-23T16:39:55.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "",
@@ -7061,7 +7061,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f69199df-b677-4cd4-a8eb-99d6f421a437",
-        "changedAt": "2026-08-23T07:39:56.000Z",
+        "changedAt": "2026-08-23T16:39:56.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "ㅏㅏㅏㅏㅏ",
@@ -7072,7 +7072,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "6f764af3-ad98-417c-ad2e-8e4581957bfc",
-        "changedAt": "2026-08-23T08:01:16.000Z",
+        "changedAt": "2026-08-23T17:01:16.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "ㅏㅏㅏㅏㅏ",
@@ -7083,7 +7083,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f91e166f-421d-4376-a822-8da76a6402d0",
-        "changedAt": "2026-08-23T09:07:03.000Z",
+        "changedAt": "2026-08-23T18:07:03.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "",
@@ -7094,7 +7094,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "1ac2f5dd-76b4-4836-9bba-6ab4cfa07f53",
-        "changedAt": "2026-08-23T09:07:17.000Z",
+        "changedAt": "2026-08-23T18:07:17.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무척 덥다",
@@ -7105,7 +7105,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "110dae92-edd2-4b4e-acd4-2e22bd6a11e1",
-        "changedAt": "2026-08-23T09:07:21.000Z",
+        "changedAt": "2026-08-23T18:07:21.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무척 덥다. 그러면",
@@ -7116,7 +7116,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "5bc60736-c4fb-4115-b252-c9a2796776e9",
-        "changedAt": "2026-08-23T09:07:22.000Z",
+        "changedAt": "2026-08-23T18:07:22.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무척 덥다. 그러면\n──────────\n",
@@ -7127,7 +7127,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "814017b1-09fb-4c61-a5da-c7eb0ff955b4",
-        "changedAt": "2026-08-23T09:07:23.000Z",
+        "changedAt": "2026-08-23T18:07:23.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무척 덥다. 그러면\n──────────\nㄴ",
@@ -7138,7 +7138,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "8d6c59a1-b949-4e11-aaf6-2350bbdee1b0",
-        "changedAt": "2026-08-23T09:07:25.000Z",
+        "changedAt": "2026-08-23T18:07:25.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무척 덥다. 그러면\n──────────\n나",
@@ -7149,7 +7149,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "c478a442-72f2-42ca-988e-507362863898",
-        "changedAt": "2026-08-23T20:36:42.000Z",
+        "changedAt": "2026-08-24T05:36:42.000Z",
         "key": "2026-8-2",
         "type": "주간",
         "beforeValue": "무척 덥다. 그러면\n──────────\n나",
@@ -7160,7 +7160,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "6a0459c5-c866-4a81-8fb0-920692e8422a",
-        "changedAt": "2026-08-23T22:25:20.000Z",
+        "changedAt": "2026-08-24T07:25:20.000Z",
         "key": "2026-8-4",
         "type": "주간",
         "beforeValue": "",
@@ -7171,7 +7171,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "a39f81bf-0368-4889-b31c-b27efd749796",
-        "changedAt": "2026-08-23T22:25:23.000Z",
+        "changedAt": "2026-08-24T07:25:23.000Z",
         "key": "2026-8-4",
         "type": "주간",
         "beforeValue": "말",
@@ -7182,7 +7182,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "a9ad20a7-cf8a-427b-be7c-7edbfd578620",
-        "changedAt": "2026-08-23T22:25:47.000Z",
+        "changedAt": "2026-08-24T07:25:47.000Z",
         "key": "2026-8-4",
         "type": "주간",
         "beforeValue": "",
@@ -7193,7 +7193,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "f0c8daae-2fc2-4a75-a32c-fbcb72319eeb",
-        "changedAt": "2026-08-23T22:26:40.000Z",
+        "changedAt": "2026-08-24T07:26:40.000Z",
         "key": "2026-8-4",
         "type": "주간",
         "beforeValue": "말말",
@@ -7204,7 +7204,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "7e4fc75f-bb6c-469f-acd7-1ba87e6277e3",
-        "changedAt": "2026-08-24T01:14:16.000Z",
+        "changedAt": "2026-08-24T10:14:16.000Z",
         "key": "2026-8-4",
         "type": "주간",
         "beforeValue": "",
@@ -7215,7 +7215,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "d4fb38a5-daef-408e-b352-935e49d5b6c5",
-        "changedAt": "2026-08-24T01:14:56.000Z",
+        "changedAt": "2026-08-24T10:14:56.000Z",
         "key": "2026-8-4",
         "type": "주간",
         "beforeValue": "ㅁㅁㅁㄴ",
@@ -7226,7 +7226,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
       },
       {
         "eventId": "cd333ca1-8563-4f42-bd4b-f30898ad5a23",
-        "changedAt": "2026-08-24T02:15:58.000Z",
+        "changedAt": "2026-08-24T11:15:58.000Z",
         "key": "2026-8-4",
         "type": "주간",
         "beforeValue": "ㅁㅁㅁㄴ",
