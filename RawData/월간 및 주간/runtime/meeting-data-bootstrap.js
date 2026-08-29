@@ -2,7 +2,7 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "b08866b11ffe20fe11d2b07e0cb172f265acb628195687130cb0b75b99acaa98",
+  "sourceSha256": "784eac4b3d325c1cb3e0f90928c88b45a89c0e9777f34723cdd62f7a973d0562",
   "status": {
     "rows": [
       {
@@ -5404,6 +5404,21 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "source": "카드 원클릭 상태 전환 · client:f36e5365-509 · session:75aa770e · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": ""
+      },
+      {
+        "key": "2026-8-4",
+        "type": "주간",
+        "year": 2026,
+        "month": 8,
+        "week": 4,
+        "status": "작성",
+        "counterIncluded": "Y",
+        "cardVisible": "Y",
+        "referenceDate": "2026-08-27",
+        "updatedAt": "2026-08-29T14:34:44.000Z",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "exceptionCode": "",
+        "note": "실제 회의록 파일 확인: 2026/2026_08_04_회의록.html"
       }
     ],
     "history": [
@@ -6675,6 +6690,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
         "afterValue": "{\"type\":\"월간\",\"year\":2020,\"month\":2,\"week\":null,\"status\":\"미작성\",\"counterIncluded\":\"N\",\"cardVisible\":\"N\",\"referenceDate\":null,\"source\":\"기존 월간 HTML 하드코딩 마이그레이션\",\"exceptionCode\":\"LEGACY_NAVIGATOR_ONLY\",\"note\":\"월간 회의.html 기존 미작성 월 폴백 이관 · 내비게이션 전용\"}",
         "source": "기존 월간 HTML 하드코딩 마이그레이션",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "e87debfe-f95b-426c-aa32-16f58a9eef87",
+        "changedAt": "2026-08-29T14:34:44.000Z",
+        "key": "2026-8-4",
+        "type": "주간",
+        "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
+        "afterValue": "{\"type\":\"주간\",\"year\":2026,\"month\":8,\"week\":4,\"status\":\"작성\",\"counterIncluded\":\"Y\",\"cardVisible\":\"Y\",\"referenceDate\":\"2026-08-27\",\"source\":\"GitHub 회의록 파일 자동 점검\",\"exceptionCode\":\"\",\"note\":\"실제 회의록 파일 확인: 2026/2026_08_04_회의록.html\"}",
+        "source": "GitHub 회의록 파일 자동 점검",
         "syncStatus": "완료"
       }
     ]

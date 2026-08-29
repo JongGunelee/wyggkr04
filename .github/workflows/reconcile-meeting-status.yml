@@ -1,0 +1,55 @@
+name: Reconcile meeting status from source files
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reconcile-meeting-status
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out status repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Reconcile XLSB from monthly and weekly source repositories
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node 'RawData/월간 및 주간/tools/reconcile_meeting_files.mjs' --github --write
+
+      - name: Regenerate direct-file bootstrap
+        run: node 'RawData/월간 및 주간/tools/generate_meeting_bootstrap.mjs' --write
+
+      - name: Verify idempotence and bridge contract
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node 'RawData/월간 및 주간/tools/reconcile_meeting_files.mjs' --github --check
+          node 'RawData/월간 및 주간/tools/validate_navigator_status_bridge.mjs'
+
+      - name: Commit reconciled data when changed
+        shell: bash
+        run: |
+          if git diff --quiet -- 'RawData/월간 및 주간/회의_안건_현황.xlsb' 'RawData/월간 및 주간/runtime/meeting-data-bootstrap.js'; then
+            echo 'Meeting status is already synchronized.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'RawData/월간 및 주간/회의_안건_현황.xlsb' 'RawData/월간 및 주간/runtime/meeting-data-bootstrap.js'
+          git commit -m 'Sync meeting status from source files'
+          git push

@@ -24,6 +24,14 @@
 - 월간 과거 미작성 110건: `LEGACY_NAVIGATOR_ONLY`로 이관 완료
 - 과거 월간 110건은 통합 현황 집계를 바꾸지 않도록 `카운터포함=N`, `카드표시=N`으로 보존
 
+## 회의록 파일 자동 대조
+
+- 월간 작성 상태는 `JongGunelee/wyggkr`의 `YYYY/YYYY_MM_회의록.html|pdf` 파일 존재 여부를 기준으로 합니다.
+- 주간 작성 상태는 `JongGunelee/wyggkr03`의 `YYYY/YYYY_MM_WW_회의록.html|pdf` 파일 존재 여부를 기준으로 합니다.
+- `tools/reconcile_meeting_files.mjs`가 실제 파일과 XLSB를 양방향 대조하여 파일이 있으면 `작성`, 없으면 `미작성`으로 맞춥니다.
+- `.github/workflows/reconcile-meeting-status.yml`이 매시간 및 수동 실행 시 XLSB와 직접 파일 실행용 부트스트랩을 자동 갱신합니다.
+- 기존 행과 변경이력은 보존하고 실제 상태가 달라진 키만 추가 전용 변경이력으로 기록합니다.
+
 토큰은 HTML, XLSB, 저장소 파일에 기록하지 않습니다. 인증은 `runtime/meeting-github-credential.js`와 기존 암호화 토큰 보관소만 사용합니다.
 
 상세 계약은 [docs/navigator-status-contract.md](docs/navigator-status-contract.md)를 참고하세요.
