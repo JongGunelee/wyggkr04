@@ -11799,6 +11799,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
                 margin-bottom: 2px;
                 flex-shrink: 0;
+                touch-action: none !important;
+                -webkit-touch-callout: none !important;
+                user-select: none !important;
+                cursor: grab;
             }
 
             .btn-group-label {
@@ -11808,18 +11812,44 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 gap: 1px;
                 letter-spacing: -0.4px;
                 line-height: 1.1;
+                touch-action: none !important;
+                -webkit-touch-callout: none !important;
+                user-select: none !important;
             }
 
             .btn-group-align-trigger {
                 padding: 2.5px 1px;
                 font-size: 7.5px;
                 min-height: 20px;
+                touch-action: none !important;
             }
 
             .btn-group-lock-trigger {
                 padding: 2.5px 1px;
                 font-size: 7.5px;
                 min-height: 20px;
+                touch-action: none !important;
+            }
+
+            .bubble-group-header-wrap.bubble-selected {
+                box-shadow: 0 0 0 3px #3b82f6, 0 0 16px rgba(59, 130, 246, 0.6), 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+                transform: scale(1.06) !important;
+                z-index: 10016 !important;
+            }
+
+            body.dark-mode .bubble-group-header-wrap.bubble-selected {
+                box-shadow: 0 0 0 3px #f43f5e, 0 0 16px rgba(244, 63, 94, 0.7), 0 4px 12px rgba(0, 0, 0, 0.45) !important;
+            }
+
+            .bubble-group-header-wrap.bubble-dragging {
+                cursor: grabbing !important;
+                transform: scale(1.08) !important;
+                box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.35), 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+                z-index: 10022 !important;
+            }
+
+            body.dark-mode .bubble-group-header-wrap.bubble-dragging {
+                box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.35), 0 8px 24px rgba(0, 0, 0, 0.55) !important;
             }
 
             .bubble-align-flyout {
@@ -17841,7 +17871,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     if (button.disabled || event.button !== 0 || activeDrag) return;
                     if (button.classList.contains('bubble-group-header-wrap') && event.target.closest('.bubble-align-flyout')) return;
 
-                    const stackCommand = button.classList.contains('bubble-group-header-wrap')
+                    const isWrap = button.classList.contains('bubble-group-header-wrap');
+                    const isLockBtn = isWrap && !!event.target.closest('[data-bubble-lock-group]');
+                    const stackCommand = isWrap
                         ? event.target.closest('[data-bubble-reset-group], [data-bubble-align-group], [data-bubble-lock-group]')
                         : null;
                     button.dataset.pendingStackCommandId = stackCommand?.id || '';
@@ -17850,28 +17882,31 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     startPointerX = event.clientX;
                     startPointerY = event.clientY;
 
-                    // 👆 모바일 및 터치/마우스 0.4초 롱 프레스(Long Press) 다중 선택 토글 타이머
-                    if (!isControlButtonLocked(button)) {
-                        longPressTimer = setTimeout(() => {
-                            longPressFired = true;
-                            button.classList.toggle('bubble-selected');
-                            updateAlignFlyoutSelectionBadges(buttons);
-                            if (navigator.vibrate) navigator.vibrate(35);
-                            if (typeof showToast === 'function') {
-                                const isSel = button.classList.contains('bubble-selected');
-                                showToast(isSel ? '☑️ 버튼이 다중 선택되었습니다 (함께 이동 가능)' : '◻️ 선택 해제되었습니다', 'info');
-                            }
-                            button.dataset.suppressClickUntil = String(performance.now() + 500);
-                        }, 400);
-                    }
-
-                    // 🔒 해당 버튼이 속한 그룹의 위치 잠금 상태 검사
+                    // 🔒 잠금 상태 검사:
+                    // 3단 적층 메뉴의 잠금 버튼(lockBtn)을 탭하여 잠금을 풀려고 할 때는 흔들림/반환 없이 통과
                     if (isControlButtonLocked(button)) {
-                        button.classList.add('bubble-locked-shake');
-                        setTimeout(() => button.classList.remove('bubble-locked-shake'), 380);
-                        if (navigator.vibrate) navigator.vibrate([12, 30, 12]);
+                        if (!isLockBtn) {
+                            button.classList.add('bubble-locked-shake');
+                            setTimeout(() => button.classList.remove('bubble-locked-shake'), 380);
+                            if (navigator.vibrate) navigator.vibrate([12, 30, 12]);
+                            return;
+                        }
                         return;
                     }
+
+                    // 👆 모바일 및 터치/마우스 0.35초 롱 프레스(Long Press) 다중 선택 토글 타이머
+                    longPressTimer = setTimeout(() => {
+                        longPressFired = true;
+                        button.classList.toggle('bubble-selected');
+                        updateAlignFlyoutSelectionBadges(buttons);
+                        if (navigator.vibrate) navigator.vibrate(35);
+                        if (typeof showToast === 'function') {
+                            const isSel = button.classList.contains('bubble-selected');
+                            const label = isWrap ? '적층 메뉴 바가' : '버튼이';
+                            showToast(isSel ? `☑️ ${label} 다중 선택되었습니다 (함께 이동 가능)` : '◻️ 선택 해제되었습니다', 'info');
+                        }
+                        button.dataset.suppressClickUntil = String(performance.now() + 500);
+                    }, 350);
 
                     const isPartOfSelection = button.classList.contains('bubble-selected');
                     if (!isPartOfSelection && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
@@ -17911,14 +17946,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 });
 
                 button.addEventListener('pointermove', event => {
-                    if (longPressTimer && Math.hypot(event.clientX - startPointerX, event.clientY - startPointerY) > 8) {
+                    if (longPressTimer && Math.hypot(event.clientX - startPointerX, event.clientY - startPointerY) > 6) {
                         clearTimeout(longPressTimer);
                         longPressTimer = null;
                     }
                     if (!activeDrag || activeDrag.leaderButton !== button || activeDrag.pointerId !== event.pointerId) return;
                     const deltaX = event.clientX - activeDrag.startX;
                     const deltaY = event.clientY - activeDrag.startY;
-                    if (!activeDrag.dragged && Math.hypot(deltaX, deltaY) < CONTROL_BUBBLE_DRAG_THRESHOLD) return;
+                    const isMobile = getControlBubbleViewportMode() === 'mobilePortrait';
+                    const dragThreshold = isMobile ? 4 : CONTROL_BUBBLE_DRAG_THRESHOLD;
+                    if (!activeDrag.dragged && Math.hypot(deltaX, deltaY) < dragThreshold) return;
                     event.preventDefault();
 
                     if (!activeDrag.dragged) {
