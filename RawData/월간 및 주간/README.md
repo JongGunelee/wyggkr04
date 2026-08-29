@@ -6,7 +6,7 @@
 
 - `runtime/`: XLSB 저장소, GitHub 인증, 내비게이션 상태 브리지
 - `vendor/`: 브라우저에서 XLSB를 읽고 쓰는 SheetJS 런타임
-- `tools/`: 부트스트랩 생성과 무결성 검증 도구
+- `tools/`: 부트스트랩 생성, 회의록 대조, 오프라인 패키지 생성 및 무결성 검증 도구
 - `docs/`: 데이터 계약과 운영 규칙
 - `evidence/`: 화면·동작 검증 증빙
 
@@ -37,7 +37,13 @@
 - 마지막 정상 동기화 상태를 월간·주간별 브라우저 캐시에 보존합니다.
 - 오프라인을 감지하면 원격 요청을 기다리지 않고 캐시 상태로 즉시 화면을 구성합니다.
 - 오프라인 중 상태 변경은 IndexedDB 대기열에 보존하며, 인터넷 복구 시 최신 GitHub 상태를 자동 재조회합니다.
-- 최초 실행부터 오프라인이고 캐시가 없는 경우에는 상태를 추정하지 않고 `미지정`으로 표시합니다.
+- 최초 실행부터 오프라인인 경우에는 패키지의 `offline-runtime/meeting-data-bootstrap.js` 읽기 전용 스냅샷을 사용합니다. 패키지도 없으면 상태를 추정하지 않고 `미지정`으로 표시합니다.
+
+오프라인 패키지 배포:
+
+1. 온라인 환경에서 `node tools/build_offline_package.mjs --html-root="<HTML 폴더>" --out="<패키지 폴더>"`를 실행합니다. GitHub 런타임·XLSB·부트스트랩이 내려받아집니다.
+2. 생성된 폴더의 `월간 회의.html`, `주간 회의.html`, `offline-runtime/`(JS 4개), `vendor/xlsx.full.min.js`, `data/`(XLSB 2개), `manifest.json`을 폴더 구조 그대로 업로드/복사합니다.
+3. 오프라인에서는 HTML과 `offline-runtime/`, `vendor/`가 같은 패키지 폴더에 있어야 합니다. 배포 후 `node tools/build_offline_package.mjs --out="<패키지 폴더>" --verify`로 SHA-256을 확인합니다.
 
 토큰은 HTML, XLSB, 저장소 파일에 기록하지 않습니다. 인증은 `runtime/meeting-github-credential.js`와 기존 암호화 토큰 보관소만 사용합니다.
 

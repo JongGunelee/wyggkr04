@@ -61,6 +61,13 @@
             await loadScript(new URL('../vendor/xlsx.full.min.js', runtimeBase), () => Boolean(global.XLSX && global.XLSX.read));
             await loadScript(new URL('meeting-data-store.js', runtimeBase), () => Boolean(global.MeetingDataStore));
             await loadScript(new URL('meeting-github-credential.js', runtimeBase), () => Boolean(global.MeetingGithubCredential));
+            // 오프라인 패키지에 함께 배포된 읽기 전용 배틀을 선택적으로 로드한다. 
+            // 최신 캐시/아웃박스가 있으면 기존 데이터를 덮어쓰지 않고, 처음 열는 오프라인 패키지에서만 폴백으로 사용한다.
+            try {
+                await loadScript(new URL('meeting-data-bootstrap.js', runtimeBase), () => Boolean(global.MEETING_DATA_BOOTSTRAP));
+            } catch (_) {
+                // 원격 배포에 배틀이 없어도 기존 원격/캐시 로직은 계속 사용한다.
+            }
         })().catch(error => {
             dependenciesPromise = null;
             throw error;
@@ -156,7 +163,19 @@
                 throwOnError: false
             });
             lastRemoteResult = results.status || null;
-            return emit(lastRemoteResult && lastRemoteResult.ok ? 'remote-loaded' : 'offline-cache', {
+            let fallbackApplied = false;
+            const bootstrap = global.MEETING_DATA_BOOTSTRAP;
+            if (!(lastRemoteResult && lastRemoteResult.ok) && bootstrap && bootstrap.status && Array.isArray(bootstrap.status.rows)) {
+                const currentRows = store.getRows('status');
+                const pendingCount = await store.pendingCount('status');
+                // 전에 성공한 캐시 또는 사용자 편집 아웃박스가 있을 때는 덮어쓰지 않아 무결성을 보장한다.
+                if (currentRows.length === 0 && pendingCount === 0) {
+                    await store.replaceLocalData({ status: bootstrap.status, memo: bootstrap.memo }, { force: false });
+                    fallbackApplied = true;
+                    lastRemoteResult = { ok: false, source: 'offline-bundle', reason: 'bootstrap' };
+                }
+            }
+            return emit(fallbackApplied ? 'offline-bundle' : (lastRemoteResult && lastRemoteResult.ok ? 'remote-loaded' : 'offline-cache'), {
                 error: lastRemoteResult && lastRemoteResult.error ? publicError(lastRemoteResult.error) : null
             });
         }
