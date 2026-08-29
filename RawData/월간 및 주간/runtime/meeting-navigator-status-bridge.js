@@ -165,7 +165,8 @@
             lastRemoteResult = results.status || null;
             let fallbackApplied = false;
             const bootstrap = global.MEETING_DATA_BOOTSTRAP;
-            if (!(lastRemoteResult && lastRemoteResult.ok) && bootstrap && bootstrap.status && Array.isArray(bootstrap.status.rows)) {
+            const hasRemoteData = Boolean(lastRemoteResult && lastRemoteResult.ok && lastRemoteResult.exists !== false);
+            if (!hasRemoteData && bootstrap && bootstrap.status && Array.isArray(bootstrap.status.rows)) {
                 const currentRows = store.getRows('status');
                 const pendingCount = await store.pendingCount('status');
                 // 전에 성공한 캐시 또는 사용자 편집 아웃박스가 있을 때는 덮어쓰지 않아 무결성을 보장한다.
@@ -175,7 +176,7 @@
                     lastRemoteResult = { ok: false, source: 'offline-bundle', reason: 'bootstrap' };
                 }
             }
-            return emit(fallbackApplied ? 'offline-bundle' : (lastRemoteResult && lastRemoteResult.ok ? 'remote-loaded' : 'offline-cache'), {
+            return emit(fallbackApplied ? 'offline-bundle' : (hasRemoteData ? 'remote-loaded' : 'offline-cache'), {
                 error: lastRemoteResult && lastRemoteResult.error ? publicError(lastRemoteResult.error) : null
             });
         }
