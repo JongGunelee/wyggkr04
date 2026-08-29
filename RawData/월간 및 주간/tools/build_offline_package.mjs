@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const defaultHtmlRoot = path.resolve(repoRoot, '..', '..', '..', '01 코딩', '02 월간 및 주간');
+const defaultHtmlRoot = path.resolve(repoRoot, '..', '..', '..', '..', '01 코딩', '02 월간 및 주간');
 const githubRoot = 'https://raw.githubusercontent.com/JongGunelee/wyggkr04/main/RawData/%EC%9B%94%EA%B0%84%20%EB%B0%8F%20%EC%A3%BC%EA%B0%84';
 
 const args = Object.fromEntries(process.argv.slice(2).map((arg) => {
