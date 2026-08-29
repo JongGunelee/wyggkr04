@@ -32,6 +32,13 @@
 - `.github/workflows/reconcile-meeting-status.yml`이 매시간 및 수동 실행 시 XLSB와 직접 파일 실행용 부트스트랩을 자동 갱신합니다.
 - 기존 행과 변경이력은 보존하고 실제 상태가 달라진 키만 추가 전용 변경이력으로 기록합니다.
 
+오프라인 동작:
+
+- 마지막 정상 동기화 상태를 월간·주간별 브라우저 캐시에 보존합니다.
+- 오프라인을 감지하면 원격 요청을 기다리지 않고 캐시 상태로 즉시 화면을 구성합니다.
+- 오프라인 중 상태 변경은 IndexedDB 대기열에 보존하며, 인터넷 복구 시 최신 GitHub 상태를 자동 재조회합니다.
+- 최초 실행부터 오프라인이고 캐시가 없는 경우에는 상태를 추정하지 않고 `미지정`으로 표시합니다.
+
 토큰은 HTML, XLSB, 저장소 파일에 기록하지 않습니다. 인증은 `runtime/meeting-github-credential.js`와 기존 암호화 토큰 보관소만 사용합니다.
 
 상세 계약은 [docs/navigator-status-contract.md](docs/navigator-status-contract.md)를 참고하세요.
