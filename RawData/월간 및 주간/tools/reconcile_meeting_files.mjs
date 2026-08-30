@@ -10,6 +10,7 @@ const dataRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const repositoryRoot = path.resolve(dataRoot, '..', '..');
 const workbookPath = path.join(dataRoot, '회의_안건_현황.xlsb');
 const sourceName = 'GitHub 회의록 파일 자동 점검';
+const manualStatusSourcePattern = /(?:수동|원클릭|직접|사용자|로컬\s*XLSB|오프라인|원격\s*확인\s*후|카드)/;
 const args = new Set(process.argv.slice(2));
 const writeChanges = args.has('--write');
 const checkOnly = args.has('--check');
@@ -164,14 +165,24 @@ function buildExpectations(type, existingRows, files, timeline) {
 
 function auditRows(rows, files, expectations, type) {
     const byKey = new Map(rows.filter(row => row.type === type).map(row => [row.key, row]));
+    const isAutomaticTarget = key => !isManualStatusOverride(byKey.get(key));
     return {
-        fileButNotWritten: [...files.keys()].filter(key => byKey.get(key)?.status !== '작성'),
-        writtenWithoutFile: [...byKey.values()].filter(row => row.status === '작성' && !files.has(row.key)).map(row => row.key),
+        fileButNotWritten: [...files.keys()].filter(key => isAutomaticTarget(key) && byKey.get(key)?.status !== '작성'),
+        writtenWithoutFile: [...byKey.values()].filter(row => !isManualStatusOverride(row) && row.status === '작성' && !files.has(row.key)).map(row => row.key),
         missingManagedRows: expectations.filter(item => !byKey.has(item.key)).map(item => item.key),
-        statusMismatches: expectations.filter(item => byKey.get(item.key) && byKey.get(item.key).status !== item.status)
+        statusMismatches: expectations.filter(item => byKey.get(item.key) && !isManualStatusOverride(byKey.get(item.key)) && byKey.get(item.key).status !== item.status)
             .map(item => ({ key: item.key, expected: item.status, actual: byKey.get(item.key).status }))
     };
 }
+
+function isManualStatusOverride(row) {
+    if (!row) return false;
+    const source = String(row.source || '');
+    return manualStatusSourcePattern.test(source);
+}
+
+assert.equal(isManualStatusOverride({ source: sourceName }), false, '자동 점검 행은 자동 관리 대상이어야 합니다.');
+assert.equal(isManualStatusOverride({ source: '월간 회의 내비게이션 수동 상태 관리' }), true, '수동 지정 행을 식별해야 합니다.');
 
 const asOf = parseAsOfDate();
 const [monthlyTree, weeklyTree] = await Promise.all([
@@ -202,6 +213,9 @@ const createdEventIds = new Set();
 
 for (const expected of [...monthlyExpectations, ...weeklyExpectations]) {
     const current = originalRowsByKey.get(expected.key) || null;
+    // 사용자가 화면에서 명시적으로 지정한 상태는 자동 파일 점검보다 우선한다.
+    // 나머지 행은 기존과 동일하게 실제 회의록 파일 존재 여부로 자동 정합화한다.
+    if (isManualStatusOverride(current)) continue;
     if (current?.status === expected.status) continue;
     const desired = current ? { ...current, status: expected.status } : {
         key: expected.key,
