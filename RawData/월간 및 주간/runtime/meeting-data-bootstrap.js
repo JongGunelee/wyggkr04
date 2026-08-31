@@ -2,7 +2,7 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "8ba9e3b70520cb5ef9dce21718564a05ee2a455e8cb9378d613cf298be236e5c",
+  "sourceSha256": "457347208b94a4d29630dd70a511138a4c2747146a2f70d54cd051d934b56688",
   "status": {
     "rows": [
       {
@@ -7284,6 +7284,39 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "source": "웹 회의 요약 편집 · client:42a4edfd-d86 · session:d0343177 · Asia/Seoul UTC+09:00",
         "syncStatus": "완료",
         "revision": 7
+      },
+      {
+        "eventId": "a5e89754-2994-48a8-a98a-33268f609560",
+        "changedAt": "2026-09-01T07:00:28.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "",
+        "afterValue": "테스트",
+        "source": "웹 회의 요약 편집 · client:f0c400c2-1eb · session:bfe4ce83 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료",
+        "revision": 1
+      },
+      {
+        "eventId": "68c815d5-e1d5-4a11-a201-b563ab6aec71",
+        "changedAt": "2026-09-01T07:00:29.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "테스트",
+        "afterValue": "테스트",
+        "source": "웹 저장 · GitHub XLSB · client:f0c400c2-1eb · session:bfe4ce83 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료",
+        "revision": 2
+      },
+      {
+        "eventId": "ff0aa169-51e0-46f7-a794-d044945c2097",
+        "changedAt": "2026-09-01T07:01:45.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "테스트",
+        "afterValue": "",
+        "source": "웹 회의 요약 편집 · client:ebb0bd53-ec1 · session:c7494920 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료",
+        "revision": 3
       }
     ]
   }
