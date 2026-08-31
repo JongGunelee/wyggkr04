@@ -2,7 +2,7 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "d71bdd87762017974921e0736b29e0529f5a815ec52e3e9e2ab3fa63a6c1308d",
+  "sourceSha256": "8ba9e3b70520cb5ef9dce21718564a05ee2a455e8cb9378d613cf298be236e5c",
   "status": {
     "rows": [
       {
@@ -5421,6 +5421,21 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "note": "실제 회의록 파일 확인: 2026/2026_08_04_회의록.html"
       },
       {
+        "key": "2026-9",
+        "type": "월간",
+        "year": 2026,
+        "month": 9,
+        "week": null,
+        "status": "작성",
+        "counterIncluded": "Y",
+        "cardVisible": "Y",
+        "referenceDate": "2026-09-01",
+        "updatedAt": "2026-08-31T13:59:33.000Z",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "exceptionCode": "",
+        "note": "실제 회의록 파일 확인: 2026/2026_09_회의록.html"
+      },
+      {
         "key": "2026-9-1",
         "type": "주간",
         "year": 2026,
@@ -6724,6 +6739,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "type": "주간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
         "afterValue": "{\"type\":\"주간\",\"year\":2026,\"month\":9,\"week\":1,\"status\":\"미작성\",\"counterIncluded\":\"Y\",\"cardVisible\":\"Y\",\"referenceDate\":\"2026-09-03\",\"source\":\"GitHub 회의록 파일 자동 점검\",\"exceptionCode\":\"\",\"note\":\"2026-08-31 기준 회의록 파일 없음\"}",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "03789a56-90d5-40b0-b3a3-4879d0491b4f",
+        "changedAt": "2026-08-31T13:59:33.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
+        "afterValue": "{\"type\":\"월간\",\"year\":2026,\"month\":9,\"week\":null,\"status\":\"작성\",\"counterIncluded\":\"Y\",\"cardVisible\":\"Y\",\"referenceDate\":\"2026-09-01\",\"source\":\"GitHub 회의록 파일 자동 점검\",\"exceptionCode\":\"\",\"note\":\"실제 회의록 파일 확인: 2026/2026_09_회의록.html\"}",
         "source": "GitHub 회의록 파일 자동 점검",
         "syncStatus": "완료"
       }
