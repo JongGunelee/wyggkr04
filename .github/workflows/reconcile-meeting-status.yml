@@ -1,6 +1,12 @@
 name: Reconcile meeting status from source files
 
 on:
+  push:
+    paths:
+      - '.github/**'
+      - 'RawData/월간 및 주간/**'
+      - '월간 및 주간 회의.html'
+      - 'RawData/00 HTML 백업/041 월간 및 주간 회의.html'
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
@@ -14,6 +20,8 @@ concurrency:
 
 jobs:
   reconcile:
+    # Actions가 생성한 동기화 커밋으로 스스로 재실행되는 것을 막는다.
+    if: github.event_name != 'push' || github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Check out status repository
@@ -26,6 +34,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Validate meeting data integrity before any write
+        run: node '.github/scripts/validate-meeting-integrity.mjs'
+
       - name: Reconcile XLSB from monthly and weekly source repositories
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -33,6 +44,9 @@ jobs:
 
       - name: Regenerate direct-file bootstrap
         run: node 'RawData/월간 및 주간/tools/generate_meeting_bootstrap.mjs' --write
+
+      - name: Validate generated files and bootstrap integrity
+        run: node '.github/scripts/validate-meeting-integrity.mjs' --post
 
       - name: Verify idempotence and bridge contract
         env:

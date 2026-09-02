@@ -3,6 +3,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
   "sourceSha256": "692d31dd53db0dcfae05fd93a50652151da61461b6a0f952ed76f3f3c3ab4288",
+  "sourceFiles": {
+    "status": {
+      "sha256": "5a82f9961644c2e7b2ab1d3d8ec8ca1c87a95fe00e9853416ac7c0658f53fb6e",
+      "byteLength": 106674
+    },
+    "memo": {
+      "sha256": "8127358a04eddda10dda9a18c04705688d0da8861f4179c106c74af8b5503410",
+      "byteLength": 12001
+    }
+  },
   "status": {
     "rows": [
       {

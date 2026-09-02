@@ -24,10 +24,18 @@ const sha256 = createHash('sha256')
     .update(statusBytes)
     .update(memoBytes)
     .digest('hex');
+const fileDescriptor = bytes => ({
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    byteLength: bytes.byteLength
+});
 const data = {
     schemaVersion: globalThis.MeetingDataStore.schemaVersion,
     generatedFrom: 'RawData/월간 및 주간/*.xlsb',
     sourceSha256: sha256,
+    sourceFiles: {
+        status: fileDescriptor(statusBytes),
+        memo: fileDescriptor(memoBytes)
+    },
     status: { rows: status.rows, history: status.history },
     memo: { rows: memo.rows, history: memo.history }
 };
