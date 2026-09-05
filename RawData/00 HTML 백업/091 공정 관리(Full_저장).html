@@ -384,7 +384,11 @@
                     });
                 }).catch(function(err) {
                     try { window.__codexEarlyWorkbookFetchError = String(err && err.message || err); } catch (e) { }
-                    throw err;
+                    return {
+                        ok: false,
+                        error: err,
+                        finishedAt: (window.performance && performance.now) ? performance.now() : Date.now()
+                    };
                 })
             };
         } catch (e) { }
@@ -90142,6 +90146,32 @@ function showPendingSettlementModal(periodType, projects) {
                         var CNAMES = ['\uc120\ud0dd','NO.','\uc720\uc9c0\uad00\ub9ac\ubc88\ud638','\uace0\uac1d\uc0ac','\ube44\uc6a9\uacc4\uc815','\ube44\uc6a9\ubc30\ubd84','\uc791\uc5c5\uc720\ud615','\uac74\ubb3c\ub3d9','\uc81c\ubaa9','\uc791\uc5c5\uc644\ub8cc\uc77c','PR\uae08\uc561','PO\uae08\uc561','\uc2dc\uacf5\uc0ac','B-A(\ucc28\uc561)','A/B(\ud6a8\uc728)','\uc99d\ube59\ub9c1\ud06c','\ud2b9\uc774\uc0ac\ud56d'];
                         function cn(i) { return CNAMES[i] || 'Col'+i; }
 
+                        function ensureHeaderColumnCoordinates() {
+                            var thd = table.querySelector('thead');
+                            if (!thd) return;
+                            var rows = thd.querySelectorAll('tr');
+                            var grid = [];
+                            for (var r = 0; r < rows.length; r++) {
+                                grid[r] = grid[r] || [];
+                                var logicalColumn = 0;
+                                var cells = rows[r].children;
+                                for (var c = 0; c < cells.length; c++) {
+                                    while (grid[r][logicalColumn]) logicalColumn++;
+                                    var cell = cells[c];
+                                    var colspan = parseInt(cell.getAttribute('colspan'), 10) || 1;
+                                    var rowspan = parseInt(cell.getAttribute('rowspan'), 10) || 1;
+                                    cell.dataset.colStart = String(logicalColumn);
+                                    cell.dataset.colEnd = String(logicalColumn + colspan - 1);
+                                    for (var dr = 0; dr < rowspan; dr++) {
+                                        grid[r + dr] = grid[r + dr] || [];
+                                        for (var dc = 0; dc < colspan; dc++) grid[r + dr][logicalColumn + dc] = cell;
+                                    }
+                                    logicalColumn += colspan;
+                                }
+                            }
+                        }
+                        ensureHeaderColumnCoordinates();
+
                         // Grid-based cell finder for 2-row header with rowspan/colspan
                         function cellsAt(ci) {
                             var res = [];
@@ -90149,23 +90179,12 @@ function showPendingSettlementModal(periodType, projects) {
                             if (cols[ci]) res.push(cols[ci]);
                             var thd = table.querySelector('thead');
                             if (thd) {
-                                var hrs = thd.querySelectorAll('tr');
-                                var g = [];
-                                for (var r = 0; r < hrs.length; r++) {
-                                    g[r] = g[r] || [];
-                                    var cs2 = hrs[r].children, lc = 0;
-                                    for (var c = 0; c < cs2.length; c++) {
-                                        while (g[r][lc]) lc++;
-                                        var el = cs2[c];
-                                        var cs = parseInt(el.getAttribute('colspan'))||1;
-                                        var rs = parseInt(el.getAttribute('rowspan'))||1;
-                                        for (var dr = 0; dr < rs; dr++) {
-                                            g[r+dr] = g[r+dr]||[];
-                                            for (var dc = 0; dc < cs; dc++) g[r+dr][lc+dc] = el;
-                                        }
-                                        if (lc <= ci && ci < lc+cs && res.indexOf(el)===-1) res.push(el);
-                                        lc += cs;
-                                    }
+                                var headers = thd.querySelectorAll('th');
+                                for (var h = 0; h < headers.length; h++) {
+                                    var el = headers[h];
+                                    var start = parseInt(el.dataset.colStart, 10);
+                                    var end = parseInt(el.dataset.colEnd, 10);
+                                    if (!isNaN(start) && !isNaN(end) && start <= ci && ci <= end) res.push(el);
                                 }
                             }
                             var tb = table.querySelector('tbody');
@@ -90468,8 +90487,25 @@ function showPendingSettlementModal(periodType, projects) {
                             for (var i = 0; i < old.length; i++) old[i].classList.remove('stl-col-hidden');
                             CTRL.hiddenCols.forEach(function(ci) {
                                 var cc = cellsAt(ci);
-                                for (var j = 0; j < cc.length; j++) cc[j].classList.add('stl-col-hidden');
+                                for (var j = 0; j < cc.length; j++) {
+                                    var cell = cc[j];
+                                    if (cell.tagName === 'TH' && (parseInt(cell.getAttribute('colspan'), 10) || 1) > 1) continue;
+                                    cell.classList.add('stl-col-hidden');
+                                }
                             });
+                            var mergedHeaders = table.querySelectorAll('thead th[colspan]');
+                            for (var mh = 0; mh < mergedHeaders.length; mh++) {
+                                var merged = mergedHeaders[mh];
+                                var start = parseInt(merged.dataset.colStart, 10);
+                                var end = parseInt(merged.dataset.colEnd, 10);
+                                if (isNaN(start) || isNaN(end)) continue;
+                                var visibleChildren = 0;
+                                for (var ci = start; ci <= end; ci++) {
+                                    if (!CTRL.hiddenCols.has(ci)) visibleChildren++;
+                                }
+                                merged.colSpan = Math.max(1, visibleChildren);
+                                if (visibleChildren === 0) merged.classList.add('stl-col-hidden');
+                            }
                             updateChipBar();
                             applyFreeze();
                         }
