@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "830fcaea0a00e525fbdd5f1a393231f40c3302ab3205d85f5b3af10d614a9a3e",
+  "sourceSha256": "9fa332077c0c20dc8d56193a3784bbf59df7e4de6484cd374d5f9e8cfcafb044",
   "sourceFiles": {
     "status": {
-      "sha256": "5a82f9961644c2e7b2ab1d3d8ec8ca1c87a95fe00e9853416ac7c0658f53fb6e",
-      "byteLength": 106674
+      "sha256": "9cd494a5ccdd16fd0ac2cea86effe4081b01d9fd467d13805fec5fbf966474e7",
+      "byteLength": 106938
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -5144,6 +5144,21 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "source": "GitHub 회의록 파일 자동 점검",
         "exceptionCode": "",
         "note": "2026-09-02 기준 회의록 파일 없음"
+      },
+      {
+        "key": "2026-9-2",
+        "type": "주간",
+        "year": 2026,
+        "month": 9,
+        "week": 2,
+        "status": "미작성",
+        "counterIncluded": "Y",
+        "cardVisible": "Y",
+        "referenceDate": "2026-09-10",
+        "updatedAt": "2026-09-06T17:06:46.000Z",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "exceptionCode": "",
+        "note": "2026-09-07 기준 회의록 파일 없음"
       }
     ],
     "history": [
@@ -8564,6 +8579,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "type": "월간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
         "afterValue": "{\"type\":\"월간\",\"year\":2021,\"month\":10,\"week\":null,\"status\":\"미작성\",\"counterIncluded\":\"Y\",\"cardVisible\":\"Y\",\"referenceDate\":\"2021-10-01\",\"source\":\"GitHub 회의록 파일 자동 점검\",\"exceptionCode\":\"\",\"note\":\"2026-09-02 기준 회의록 파일 없음\"}",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "6984dd90-1108-4674-8093-4e3a908b6bca",
+        "changedAt": "2026-09-06T17:06:46.000Z",
+        "key": "2026-9-2",
+        "type": "주간",
+        "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
+        "afterValue": "{\"type\":\"주간\",\"year\":2026,\"month\":9,\"week\":2,\"status\":\"미작성\",\"counterIncluded\":\"Y\",\"cardVisible\":\"Y\",\"referenceDate\":\"2026-09-10\",\"source\":\"GitHub 회의록 파일 자동 점검\",\"exceptionCode\":\"\",\"note\":\"2026-09-07 기준 회의록 파일 없음\"}",
         "source": "GitHub 회의록 파일 자동 점검",
         "syncStatus": "완료"
       }
