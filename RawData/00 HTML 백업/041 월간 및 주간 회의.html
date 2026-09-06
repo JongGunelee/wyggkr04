@@ -11607,7 +11607,25 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
             h1 {
                 gap: 9px;
-                font-size: 1.72em;
+                max-width: 100%;
+                margin-inline: auto;
+                font-size: clamp(1.48rem, 7vw, 1.72rem);
+                white-space: nowrap;
+            }
+
+            #month-view-actions {
+                gap: 12px;
+                margin-bottom: 14px;
+            }
+
+            #month-view-actions button {
+                min-width: 0;
+                flex: 1 1 0;
+                justify-content: center;
+                gap: 6px;
+                padding: 10px 12px;
+                font-size: 17px;
+                line-height: 1.2;
                 white-space: nowrap;
             }
 
@@ -11891,10 +11909,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 min-height: 34px;
             }
 
-                        .memo-wrapper:not(.hidden) {
+            .memo-wrapper:not(.hidden) {
                 max-height: 440px;
                 padding: 8px;
                 overflow: auto;
+                overscroll-behavior: contain;
+                scrollbar-gutter: stable;
             }
 
             .memo-wrapper textarea {
@@ -11921,7 +11941,18 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             }
 
             .memo-editor-actions {
-                padding-top: 7px;
+                position: sticky;
+                bottom: 0;
+                z-index: 2;
+                margin: 0 -8px -8px;
+                padding: 8px;
+                background: #f7f9fc;
+                box-shadow: 0 -5px 10px rgba(22, 49, 84, 0.08);
+            }
+
+            body.dark-mode .memo-editor-actions {
+                background: #131920;
+                box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.25);
             }
 
             .memo-editor-actions .memo-commit-actions {
@@ -12890,6 +12921,37 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         let meetingMemoRows = [];
         let meetingMemoHistoryRows = [];
         let confirmedMeetingMemoRows = [];
+        /*
+         * 회의록 존재 여부는 상태 XLSB의 수동 이력을 변경하지 않는 "표시·집계 보강" 데이터다.
+         * - 기존 현황 마이그레이션/자동 등록 행: GitHub 회의록 파일 존재 여부를 기본 상태로 사용
+         * - 카드 원클릭/수동 관리 행: 사용자가 확정한 XLSB 상태를 항상 우선
+         * 따라서 네트워크 오류나 원격 파일의 일시적인 조회 실패가 수동 상태를 훼손하지 않는다.
+         */
+        const MEETING_RECORD_AVAILABILITY_CACHE_KEY = 'meetingRecordAvailabilityV1';
+        const MEETING_RECORD_AVAILABILITY_VERSION = 1;
+        const MEETING_RECORD_SOURCES = Object.freeze({
+            monthly: {
+                repo: 'JongGunelee/wyggkr',
+                label: '월간 회의록',
+                expression: /^(\d{4})\/(\d{4})_(\d{2})_회의록\.(?:html|pdf)$/i
+            },
+            weekly: {
+                repo: 'JongGunelee/wyggkr03',
+                label: '주간 회의록',
+                expression: /^(\d{4})\/(\d{4})_(\d{2})_(\d{2})_회의록\.(?:html|pdf)$/i
+            }
+        });
+        const MANUAL_STATUS_SOURCE_PATTERN = /(?:수동|원클릭|직접|사용자|로컬\s*XLSB|오프라인|원격\s*확인\s*후|카드)/;
+        let meetingRecordAvailability = {
+            state: 'idle',
+            monthly: new Set(),
+            weekly: new Set(),
+            fetchedAt: '',
+            source: 'none',
+            error: ''
+        };
+        let meetingRecordAvailabilityPromise = null;
+        let meetingRecordAvailabilityNetworkListenersAttached = false;
         let tempMeetingMemos = {};
         let tempSkippedDates = [];
         const memoIndicatorStates = new Map();
@@ -12913,6 +12975,173 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         let lastMemoAvailabilityPeriodKey = '';
         const MEMO_FOCUS_OPTIONS_KEY = 'meetingMemoFocusOptionsV1';
         const MEMO_FOCUS_PREFERENCES_KEY = 'meetingMemoFocusPreferencesV1';
+
+        function isManualMeetingStatusOverride(row = {}) {
+            const source = String(row.source || '');
+            const exception = String(row.exceptionCode || '').trim();
+            return MANUAL_STATUS_SOURCE_PATTERN.test(source)
+                || source.includes('기존 하드코딩 보존')
+                || Boolean(exception && exception !== 'FORCED_WEEK5');
+        }
+
+        function meetingRecordKey(row = {}) {
+            const year = Number(row.year);
+            const month = Number(row.month);
+            const week = row.week === null || row.week === undefined || row.week === '' ? null : Number(row.week);
+            if (!Number.isInteger(year) || !Number.isInteger(month)) return '';
+            return week === null || !Number.isInteger(week)
+                ? `${year}-${String(month).padStart(2, '0')}`
+                : `${year}-${String(month).padStart(2, '0')}-${String(week).padStart(2, '0')}`;
+        }
+
+        function isPastOrCurrentMeetingPeriod(row = {}, now = new Date()) {
+            const reference = Date.parse(`${String(row.referenceDate || '').slice(0, 10)}T23:59:59`);
+            if (!Number.isFinite(reference)) return true;
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).getTime();
+            return reference <= today;
+        }
+
+        function resolveEffectiveMeetingStatusRow(row, availability = meetingRecordAvailability) {
+            if (!row || !['월간', '주간'].includes(row.type)) return row;
+            const originalStatus = row.status === '미작성' ? '미작성' : '작성';
+            const recordKey = meetingRecordKey(row);
+            const set = row.type === '월간' ? availability.monthly : availability.weekly;
+            const canUseAutomaticStatus = ['github', 'cache', 'refreshing'].includes(availability.state)
+                && !isManualMeetingStatusOverride(row)
+                && isPastOrCurrentMeetingPeriod(row)
+                && Boolean(recordKey);
+            if (!canUseAutomaticStatus) {
+                return { ...row, status: originalStatus, statusOrigin: 'manual', recordAvailable: null };
+            }
+            const recordAvailable = set.has(recordKey);
+            return {
+                ...row,
+                status: recordAvailable ? '작성' : '미작성',
+                statusOrigin: 'record',
+                recordAvailable
+            };
+        }
+
+        function resolveEffectiveMeetingStatusRows(rows, availability = meetingRecordAvailability) {
+            return (Array.isArray(rows) ? rows : []).map(row => resolveEffectiveMeetingStatusRow(row, availability));
+        }
+
+        function readMeetingRecordAvailabilityCache() {
+            try {
+                const cached = JSON.parse(localStorage.getItem(MEETING_RECORD_AVAILABILITY_CACHE_KEY) || 'null');
+                if (!cached || cached.version !== MEETING_RECORD_AVAILABILITY_VERSION) return false;
+                if (!Array.isArray(cached.monthly) || !Array.isArray(cached.weekly)) return false;
+                meetingRecordAvailability = {
+                    state: 'cache',
+                    monthly: new Set(cached.monthly),
+                    weekly: new Set(cached.weekly),
+                    fetchedAt: String(cached.fetchedAt || ''),
+                    source: 'cache',
+                    error: ''
+                };
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function persistMeetingRecordAvailabilityCache() {
+            try {
+                localStorage.setItem(MEETING_RECORD_AVAILABILITY_CACHE_KEY, JSON.stringify({
+                    version: MEETING_RECORD_AVAILABILITY_VERSION,
+                    fetchedAt: meetingRecordAvailability.fetchedAt,
+                    monthly: [...meetingRecordAvailability.monthly],
+                    weekly: [...meetingRecordAvailability.weekly]
+                }));
+            } catch (error) {
+                console.warn('회의록 자동 판정 캐시를 저장하지 못했습니다:', error);
+            }
+        }
+
+        async function fetchMeetingRecordAvailabilityTree(kind) {
+            const descriptor = MEETING_RECORD_SOURCES[kind];
+            const response = await fetch(`https://api.github.com/repos/${descriptor.repo}/git/trees/main?recursive=1`, {
+                headers: { Accept: 'application/vnd.github+json' },
+                cache: 'no-store'
+            });
+            if (!response.ok) throw new Error(`${descriptor.label} 목록 조회 실패 (${response.status})`);
+            const payload = await response.json();
+            if (!Array.isArray(payload?.tree) || payload.truncated) {
+                throw new Error(`${descriptor.label} 목록이 완전하지 않습니다.`);
+            }
+            const keys = new Set();
+            for (const item of payload.tree) {
+                if (item?.type !== 'blob') continue;
+                const match = descriptor.expression.exec(String(item.path || ''));
+                if (!match) continue;
+                const year = Number(match[1]);
+                const month = Number(match[3]);
+                const week = kind === 'weekly' ? Number(match[4]) : null;
+                keys.add(week === null
+                    ? `${year}-${String(month).padStart(2, '0')}`
+                    : `${year}-${String(month).padStart(2, '0')}-${String(week).padStart(2, '0')}`);
+            }
+            return keys;
+        }
+
+        function refreshMeetingRecordAvailabilityPresentation() {
+            if (!meetingStore) return;
+            applyStoreSnapshot(meetingStore.getSnapshot());
+            updateAnalyticsTooltip();
+            if (currentYear) {
+                if (currentMonth) showMonthView(currentMonth, currentYear, tempSkippedDates);
+                else renderYearView(currentYear, tempSkippedDates);
+            }
+        }
+
+        async function initializeMeetingRecordAvailability(options = {}) {
+            if (meetingRecordAvailabilityPromise && !options.force) return meetingRecordAvailabilityPromise;
+            const hasCache = readMeetingRecordAvailabilityCache();
+            if (hasCache) refreshMeetingRecordAvailabilityPresentation();
+            if (navigator.onLine === false) {
+                if (!hasCache) meetingRecordAvailability.state = 'error';
+                refreshMeetingRecordAvailabilityPresentation();
+                return meetingRecordAvailability;
+            }
+            meetingRecordAvailability.state = hasCache ? 'refreshing' : 'loading';
+            meetingRecordAvailability.error = '';
+            const task = Promise.all([
+                fetchMeetingRecordAvailabilityTree('monthly'),
+                fetchMeetingRecordAvailabilityTree('weekly')
+            ]).then(([monthly, weekly]) => {
+                meetingRecordAvailability = {
+                    state: 'github',
+                    monthly,
+                    weekly,
+                    fetchedAt: new Date().toISOString(),
+                    source: 'github',
+                    error: ''
+                };
+                persistMeetingRecordAvailabilityCache();
+                refreshMeetingRecordAvailabilityPresentation();
+                return meetingRecordAvailability;
+            }).catch(error => {
+                console.warn('회의록 자동 작성 상태 조회 실패:', error);
+                meetingRecordAvailability.state = hasCache ? 'cache' : 'error';
+                meetingRecordAvailability.error = error.message;
+                refreshMeetingRecordAvailabilityPresentation();
+                return meetingRecordAvailability;
+            }).finally(() => {
+                meetingRecordAvailabilityPromise = null;
+            });
+            meetingRecordAvailabilityPromise = task;
+            return task;
+        }
+
+        function attachMeetingRecordAvailabilityNetworkListeners() {
+            if (meetingRecordAvailabilityNetworkListenersAttached || typeof window === 'undefined') return;
+            window.addEventListener('online', () => {
+                // 오프라인 동안에는 마지막 캐시/수동 상태를 유지하고, 복구 시에만 원격 회의록을 다시 판정한다.
+                void initializeMeetingRecordAvailability({ force: true });
+            });
+            meetingRecordAvailabilityNetworkListenersAttached = true;
+        }
+
         async function ensureMeetingDataBootstrap() {
             if (!window.MEETING_DATA_BOOTSTRAP) {
                 throw new Error('단독 HTML에 내장된 XLSB 기준 데이터를 확인할 수 없습니다.');
@@ -12988,9 +13217,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         }
 
         function applyStoreSnapshot(snapshot = {}) {
-            meetingStatusRows = Array.isArray(snapshot.status?.rows)
+            const storedStatusRows = Array.isArray(snapshot.status?.rows)
                 ? snapshot.status.rows
                 : (Array.isArray(snapshot.statusRows) ? snapshot.statusRows : []);
+            meetingStatusRows = resolveEffectiveMeetingStatusRows(storedStatusRows);
             meetingMemoRows = Array.isArray(snapshot.memo?.rows)
                 ? snapshot.memo.rows
                 : (Array.isArray(snapshot.memoRows) ? snapshot.memoRows : []);
@@ -13974,6 +14204,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             if (!statusRow || statusRow.cardVisible !== 'Y') return null;
             const status = statusRow.status === '미작성' ? '미작성' : '작성';
             const nextStatus = status === '작성' ? '미작성' : '작성';
+            const originLabel = statusRow.statusOrigin === 'record'
+                ? 'GitHub 회의록 자동 판정'
+                : '수동/XLSB 상태';
             const syncState = cardStatusSyncStates.get(key) || null;
             const button = document.createElement('button');
             button.type = 'button';
@@ -13981,6 +14214,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             button.dataset.statusKey = key;
             button.dataset.currentStatus = status;
             button.dataset.status = status === '작성' ? 'written' : 'missing';
+            button.dataset.statusOrigin = statusRow.statusOrigin || 'manual';
             button.dataset.syncState = syncState?.state || 'idle';
             button.setAttribute('aria-pressed', String(status === '작성'));
             button.setAttribute('aria-live', 'polite');
@@ -14000,7 +14234,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 button.setAttribute('aria-label', button.title);
             } else {
                 button.textContent = status === '작성' ? '✓' : '—';
-                button.title = `${cardLabel}: 현재 '${status}'. 클릭하면 '${nextStatus}'으로 즉시 전환하고 GitHub XLSB에 동기화합니다.`;
+                button.title = `${cardLabel}: 현재 '${status}' (${originLabel}). 클릭하면 수동 상태 '${nextStatus}'으로 즉시 전환하고 GitHub XLSB에 동기화합니다.`;
                 button.setAttribute('aria-label', button.title);
             }
             return button;
@@ -14026,7 +14260,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 const currentRow = meetingStore.getSnapshot().status.rows
                     .find(row => row.key === key && row.cardVisible === 'Y');
                 if (!currentRow) throw new Error(`카드 상태 행을 찾을 수 없습니다: ${key}`);
-                const targetStatus = currentRow.status === '미작성' ? '작성' : '미작성';
+                const effectiveCurrentRow = resolveEffectiveMeetingStatusRow(currentRow);
+                const targetStatus = effectiveCurrentRow.status === '미작성' ? '작성' : '미작성';
                 cardStatusSyncStates.set(key, { state: 'saving', targetStatus });
                 await meetingStore.setStatus(key, targetStatus, {
                     source: auditSource('카드 원클릭 상태 전환')
@@ -15083,8 +15318,24 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             };
             const statusMappingText = describeMapping('status', '회의_안건_현황.xlsb', all.total);
             const memoMappingText = describeMapping('memo', '회의_요약_메모.xlsb', meetingMemoRows.length);
+            const automaticRecordStatusText = (() => {
+                const monthlyCount = meetingRecordAvailability.monthly.size;
+                const weeklyCount = meetingRecordAvailability.weekly.size;
+                if (meetingRecordAvailability.state === 'github') {
+                    const checkedAt = meetingRecordAvailability.fetchedAt
+                        ? new Date(meetingRecordAvailability.fetchedAt).toLocaleString('ko-KR', { hour12: false })
+                        : '방금';
+                    return `GitHub 회의록 자동 판정 · 월간 ${monthlyCount}건 / 주간 ${weeklyCount}건 · ${checkedAt}`;
+                }
+                if (meetingRecordAvailability.state === 'cache' || meetingRecordAvailability.state === 'refreshing') {
+                    return `저장된 회의록 판정 캐시 사용 · 월간 ${monthlyCount}건 / 주간 ${weeklyCount}건 · 원격 최신본 확인 중`;
+                }
+                if (meetingRecordAvailability.state === 'loading') return 'GitHub 회의록 목록을 확인 중 · XLSB 수동 상태는 유지';
+                return `회의록 자동 판정 연결 불가 · XLSB 수동 상태 유지${meetingRecordAvailability.error ? ` (${meetingRecordAvailability.error})` : ''}`;
+            })();
 
             const tooltipText = `[권위 데이터]\n- ${statusMappingText}\n- ${memoMappingText}\n\n` +
+                `[회의록 자동 판정]\n- ${automaticRecordStatusText}\n- 카드 원클릭·수동 관리 상태는 회의록 자동 판정보다 우선\n\n` +
                 `최초 작성 (월간): ${monthly.first}\n` +
                 `마지막 작성 (월간): ${monthly.last}\n` +
                 `최초 작성 (주간): ${weekly.first}\n` +
@@ -18279,6 +18530,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
             loadSettings();
             initializeDraggableControlButtons();
+            attachMeetingRecordAvailabilityNetworkListeners();
+            // 상태 XLSB 초기화와 병렬로 실제 월간·주간 회의록 존재 여부를 확인한다.
+            // 완료 전에는 기존 XLSB 상태를 표시하고, 완료 후에만 자동 판정으로 화면·집계를 보강한다.
+            void initializeMeetingRecordAvailability();
             initializeMeetingData().catch(error => {
                 console.error('회의 XLSB 초기화 실패:', error);
                 updateDataSyncStatus(`데이터 초기화 실패: ${error.message}`, 'error');
