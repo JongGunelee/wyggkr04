@@ -4855,6 +4855,12 @@
     min-height: 0;
   }
 
+  .droplet-menu.is-search-expanding,
+  .droplet-menu.is-manual-mode {
+    height: auto !important;
+    max-height: calc(100vh - 24px) !important;
+  }
+
   .droplet-menu.is-geometry-interacting {
     transition: none;
   }
@@ -4998,7 +5004,7 @@
     flex-direction: column;
     gap: 6px;
     min-height: 0;
-    max-height: min(390px, calc(100vh - 218px));
+    max-height: min(540px, calc(100vh - 160px));
     flex: 1 1 auto;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -5008,6 +5014,18 @@
 
   .droplet-menu.has-user-geometry .droplet-options-list {
     max-height: none;
+  }
+
+  .droplet-menu.is-search-expanding .droplet-options-list,
+  .droplet-menu.is-manual-mode .droplet-options-list {
+    max-height: calc(100vh - 140px) !important;
+    overflow-y: auto !important;
+  }
+
+  .droplet-menu.is-manual-mode #dropletOrdererSelectorContainer {
+    flex: 0 0 auto !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .droplet-menu-resize-handle {
@@ -5082,6 +5100,8 @@
   }
 
   .droplet-manual-filter-item {
+    flex: 0 0 auto;
+    min-height: 40px;
     border: 1px solid #dbe5ee;
     border-radius: 9px;
     background: #f8fafc;
@@ -5155,11 +5175,19 @@
     margin-bottom: 6px;
   }
 
+  .droplet-manual-filter-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    width: 100%;
+  }
+
   .droplet-manual-filter-search {
     width: 100%;
     min-width: 0;
     height: 30px;
-    padding: 4px 7px;
+    padding: 4px 58px 4px 7px;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
     color: #334155;
@@ -5170,6 +5198,31 @@
   .droplet-manual-filter-search:focus {
     outline: 2px solid rgba(56, 189, 248, 0.35);
     border-color: #38bdf8;
+  }
+
+  .droplet-manual-filter-search-count {
+    position: absolute;
+    right: 6px;
+    font-size: 9px;
+    font-weight: 800;
+    color: #0284c7;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+    padding: 1px 5px;
+    border-radius: 4px;
+    pointer-events: none;
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+
+  .droplet-manual-filter-search-count.is-zero {
+    color: #ef4444;
+    background: #fee2e2;
+    border-color: #fecaca;
+  }
+
+  .droplet-manual-filter-search-count.hidden {
+    display: none;
   }
 
   .droplet-manual-filter-all-btn,
@@ -5219,13 +5272,48 @@
   }
 
   .droplet-manual-filter-choices {
-    max-height: 145px;
+    max-height: 160px;
     overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 #f1f5f9;
     padding: 2px;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
     background: #f8fafc;
     overscroll-behavior: contain;
+    transition: max-height 0.2s ease;
+  }
+
+  .droplet-manual-filter-choices::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .droplet-manual-filter-choices::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+
+  .droplet-manual-filter-choices::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 4px;
+  }
+
+  .droplet-manual-filter-choices::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
+
+  .droplet-manual-filter-choices.is-searching {
+    max-height: 340px;
+    overflow-y: auto;
+  }
+
+  .droplet-manual-filter-empty-search {
+    padding: 10px 8px;
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.4;
   }
 
   .droplet-manual-filter-choice {
@@ -10640,12 +10728,12 @@
           <button type="button" class="scenario-manual-mode-btn"
             data-manual-mode-surface="scenario"
             aria-pressed="false"
-            title="시나리오·빠른 연도·자동 예외·피벗 및 차트 보조 필터를 해제하고 전체 원본 범위에서 직접 조합합니다.">
-            <span>🧭 완전 수동모드</span>
-            <small>모든 자동 기준·예외를 해제하고 직접 조합</small>
+            title="현재 자동모드입니다. 클릭 시 모든 자동 기준·예외를 해제하고 완전 수동모드로 전환합니다.">
+            <span>🧭 수동모드로 전환</span>
+            <small>현재 자동모드 ➔ 클릭 시 직접 조합 진입</small>
           </button>
           <p class="scenario-manual-mode-guide" role="note">
-            권장: ① 연도·발주처(범위) → ② 작업유형·건물(대상) → ③ 부서·마감월(연관) → ④ 카드·표 교차 확인
+            권장: ① 발주처·연도(범위) → ② 작업유형·건물동(대상) → ③ 부서·마감월(연관) → ④ 카드·표 교차 확인
           </p>
           <button class="scenario-orderer-btn flex justify-between items-center w-full px-2.5 py-1.5 border rounded-lg bg-white hover:bg-slate-50 text-[11px] font-bold text-slate-700 transition-colors shadow-sm" style="border-color: rgba(148, 163, 184, 0.25);">
             <div style="display: flex; align-items: center; gap: 4px;">
@@ -10683,22 +10771,22 @@
         const description = manualModeBtn.querySelector("small");
         if (label) {
           label.textContent = isCompleteManual
-            ? "✓ 완전 수동모드 적용됨"
-            : "🧭 완전 수동모드";
+            ? "✓ 수동모드 적용됨"
+            : "🧭 수동모드로 전환";
         }
         if (description) {
           description.textContent = isCompleteManual
-            ? "클릭하여 이전 자동모드로 복원"
-            : "모든 자동 기준·예외를 해제하고 직접 조합";
+            ? "현재 수동모드 ➔ 클릭 시 자동모드 복귀"
+            : "현재 자동모드 ➔ 클릭 시 직접 조합 진입";
         }
         manualModeBtn.title = isCompleteManual
-          ? "완전 수동모드를 종료하고 진입 직전의 자동 필터 상태로 복원"
-          : "모든 자동 기준·예외를 해제하고 직접 조합";
+          ? "현재 수동모드입니다. 클릭 시 이전의 자동 시나리오 모드로 복원합니다."
+          : "현재 자동모드입니다. 클릭 시 모든 자동 기준·예외를 해제하고 수동모드로 전환합니다.";
         manualModeBtn.setAttribute(
           "aria-label",
           isCompleteManual
-            ? "완전 수동모드 적용됨. 클릭하면 이전 자동모드로 복원"
-            : "완전 수동모드 적용",
+            ? "현재 수동모드 적용됨. 클릭 시 자동모드로 복귀"
+            : "현재 자동모드. 수동모드로 전환",
         );
         manualModeBtn.addEventListener("click", async (e) => {
           e.preventDefault();
@@ -11529,22 +11617,22 @@
         const description = button.querySelector("small");
         if (label) {
           label.textContent = isActive
-            ? "✓ 완전 수동모드 적용됨"
-            : "🧭 완전 수동모드";
+            ? "✓ 수동모드 적용됨"
+            : "🧭 수동모드로 전환";
         }
         if (description) {
           description.textContent = isActive
-            ? "클릭하여 이전 자동모드로 복원"
-            : "모든 자동 기준·예외를 해제하고 직접 조합";
+            ? "현재 수동모드 ➔ 클릭 시 자동모드 복귀"
+            : "현재 자동모드 ➔ 클릭 시 직접 조합 진입";
         }
         button.title = isActive
-          ? "완전 수동모드를 종료하고 진입 직전의 자동 필터 상태로 복원"
-          : "모든 자동 기준·예외를 해제하고 직접 조합";
+          ? "현재 수동모드입니다. 클릭 시 이전의 자동 시나리오 모드로 복원합니다."
+          : "현재 자동모드입니다. 클릭 시 모든 자동 기준·예외를 해제하고 수동모드로 전환합니다.";
         button.setAttribute(
           "aria-label",
           isActive
-            ? "완전 수동모드 적용됨. 클릭하면 이전 자동모드로 복원"
-            : "완전 수동모드 적용",
+            ? "현재 수동모드 적용됨. 클릭 시 자동모드로 복귀"
+            : "현재 자동모드. 수동모드로 전환",
         );
       });
 
@@ -14987,11 +15075,17 @@
 
         const tools = document.createElement("div");
         tools.className = "droplet-manual-filter-tools";
+        const searchWrap = document.createElement("div");
+        searchWrap.className = "droplet-manual-filter-search-wrap";
         const search = document.createElement("input");
         search.type = "search";
         search.className = "droplet-manual-filter-search";
         search.placeholder = meta.label + " 검색";
         search.setAttribute("aria-label", meta.label + " 필터 검색");
+        const searchCountBadge = document.createElement("span");
+        searchCountBadge.className = "droplet-manual-filter-search-count hidden";
+        searchWrap.append(search, searchCountBadge);
+
         const allButton = document.createElement("button");
         allButton.type = "button";
         allButton.className = "droplet-manual-filter-all-btn";
@@ -15002,7 +15096,7 @@
         applyButton.className = "droplet-manual-filter-apply-btn";
         applyButton.textContent = "적용";
         applyButton.title = meta.label + " 필터 선택 적용";
-        tools.append(search, allButton, applyButton);
+        tools.append(searchWrap, allButton, applyButton);
 
         const choices = document.createElement("div");
         choices.className = "droplet-manual-filter-choices";
@@ -15032,6 +15126,11 @@
           });
           labels.forEach((lbl) => choices.appendChild(lbl));
         };
+
+        const searchEmptyHint = document.createElement("p");
+        searchEmptyHint.className = "droplet-manual-filter-empty-search hidden";
+        searchEmptyHint.textContent = "일치하는 검색 결과가 없습니다.";
+        choices.appendChild(searchEmptyHint);
 
         options.forEach((optionValue, optIdx) => {
           const label = document.createElement("label");
@@ -15076,9 +15175,7 @@
         const setExpanded = (expanded) => {
           toggle.setAttribute("aria-expanded", String(expanded));
           panel.classList.toggle("hidden", !expanded);
-          if (expanded) {
-            requestAnimationFrame(() => adjustDropletMenuPosition());
-          }
+          requestAnimationFrame(() => adjustDropletMenuPosition());
         };
         toggle.addEventListener("click", (event) => {
           event.preventDefault();
@@ -15099,14 +15196,49 @@
         panel.addEventListener("click", (event) => event.stopPropagation());
         search.addEventListener("input", () => {
           const query = search.value.trim().toLocaleLowerCase("ko-KR");
+          let matchedCount = 0;
           choices
             .querySelectorAll(".droplet-manual-filter-choice")
             .forEach((label) => {
-              label.classList.toggle(
-                "is-search-hidden",
-                !!query && !label.dataset.searchText.includes(query),
-              );
+              const isMatched = !query || label.dataset.searchText.includes(query);
+              label.classList.toggle("is-search-hidden", !isMatched);
+              if (isMatched) matchedCount++;
             });
+          
+          // [무결성 보증] 검색 시 모달 전체 높이 및 목록 표시 영역 실시간 동적 자동 확장 (Auto-Fit)
+          const menuEl = document.getElementById("dropletMenu");
+          if (query.length > 0) {
+            searchCountBadge.textContent = matchedCount > 0 ? `${matchedCount}개 일치` : "0개";
+            searchCountBadge.classList.toggle("is-zero", matchedCount === 0);
+            searchCountBadge.classList.remove("hidden");
+            choices.classList.add("is-searching");
+            choices.style.maxHeight = matchedCount <= 8 ? "none" : "340px";
+            choices.style.overflowY = "auto";
+            if (menuEl) {
+              menuEl.classList.add("is-search-expanding");
+              menuEl.style.height = "auto";
+              menuEl.style.maxHeight = "calc(100vh - 24px)";
+            }
+          } else {
+            searchCountBadge.classList.add("hidden");
+            choices.classList.remove("is-searching");
+            choices.style.maxHeight = "";
+            choices.style.overflowY = "auto";
+            if (menuEl) {
+              menuEl.classList.remove("is-search-expanding");
+              menuEl.style.height = "";
+              menuEl.style.maxHeight = "";
+              restoreStoredDropletMenuGeometry(menuEl);
+            }
+          }
+
+          if (searchEmptyHint) {
+            searchEmptyHint.classList.toggle("hidden", matchedCount > 0 || options.length === 0);
+          }
+
+          if (typeof adjustDropletMenuPosition === "function") {
+            requestAnimationFrame(() => adjustDropletMenuPosition());
+          }
         });
         allButton.addEventListener("click", (event) => {
           event.preventDefault();
@@ -15322,8 +15454,13 @@
       menu.style.left = clamped.left + "px";
       menu.style.top = clamped.top + "px";
       menu.style.width = clamped.width + "px";
-      menu.style.height = clamped.height + "px";
-      menu.style.maxHeight = clamped.height + "px";
+      if (!menu.classList.contains("is-manual-mode") && !menu.classList.contains("is-search-expanding")) {
+        menu.style.height = clamped.height + "px";
+        menu.style.maxHeight = clamped.height + "px";
+      } else {
+        menu.style.height = "auto";
+        menu.style.maxHeight = "calc(100vh - 24px)";
+      }
       menu.style.right = "auto";
       menu.style.bottom = "auto";
       menu.style.transformOrigin = "center";
@@ -15690,6 +15827,9 @@
         requestAnimationFrame(() => adjustDropletMenuPosition());
       } else {
         menu.classList.add("hidden");
+        menu.classList.remove("is-search-expanding");
+        menu.style.height = "";
+        menu.style.maxHeight = "";
       }
       menu.setAttribute("aria-hidden", String(!shouldOpen));
       handle.setAttribute("aria-expanded", String(shouldOpen));
@@ -15902,6 +16042,40 @@
           width: activeRect.width,
           height: activeRect.height,
         });
+        return;
+      }
+
+      // [v5.52] 완전 수동모드 또는 검색 확장 상태일 때: 모달 전체 높이를 모든 필터 항목 및 전개된 내용에 맞춰 실시간 자동 확장(Auto-Fit)하고 화면 내 안전하게 클램핑
+      if (menu.classList.contains("is-manual-mode") || menu.classList.contains("is-search-expanding")) {
+        const viewport = getDropletMenuViewport();
+        const limits = getDropletMenuGeometryLimits(viewport);
+        const stored = getStoredDropletMenuGeometry(getDropletMenuGeometryProfile());
+        
+        let width = stored ? stored.width : Math.max(0, Math.min(320, viewport.width - viewport.edge * 2));
+        width = Math.max(limits.minWidth, Math.min(width, limits.maxWidth));
+        menu.style.position = "fixed";
+        menu.style.width = width + "px";
+        menu.style.height = "auto";
+        menu.style.maxHeight = Math.max(1, viewport.height - viewport.edge * 2) + "px";
+        
+        let left = stored ? stored.left : (droplet.getBoundingClientRect().right - width);
+        left = Math.max(viewport.left + viewport.edge, Math.min(left, viewport.left + viewport.width - width - viewport.edge));
+        
+        const menuHeight = menu.offsetHeight || 300;
+        let top = stored ? stored.top : (droplet.getBoundingClientRect().top - menuHeight - viewport.edge);
+        
+        // 뷰포트 상/하단 벗어남 방지 실시간 클램핑
+        if (top + menuHeight > viewport.top + viewport.height - viewport.edge) {
+          top = Math.max(viewport.top + viewport.edge, viewport.top + viewport.height - menuHeight - viewport.edge);
+        }
+        if (top < viewport.top + viewport.edge) {
+          top = viewport.top + viewport.edge;
+        }
+
+        menu.style.left = left + "px";
+        menu.style.top = top + "px";
+        menu.style.bottom = "auto";
+        menu.style.right = "auto";
         return;
       }
 
