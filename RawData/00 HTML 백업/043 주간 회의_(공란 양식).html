@@ -1454,6 +1454,9 @@
             -webkit-user-select: none;
             touch-action: manipulation;
         }
+        body.focused-editor-active .text-format-toolbar {
+            z-index: 32005 !important;
+        }
         .text-format-toolbar .toolbar-btn {
             background: transparent;
             border: none;
@@ -2955,6 +2958,248 @@
             border-color: #38bdf8;
             box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.28), 0 12px 28px rgba(0, 0, 0, 0.48);
         }
+
+
+        .text-format-toolbar .color-picker-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .text-format-toolbar .color-picker-trigger {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 4px;
+            gap: 2px;
+            min-width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            border: none;
+            background: transparent;
+            color: #ddd;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .text-format-toolbar .color-picker-trigger:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+        .text-format-toolbar .color-picker-trigger.active {
+            background: #007acc;
+            color: #fff;
+        }
+        .text-format-toolbar .color-picker-trigger .color-picker-icon {
+            font-size: 13px;
+            line-height: 1;
+            pointer-events: none;
+        }
+        .text-format-toolbar .color-indicator-bar {
+            width: 16px;
+            height: 3px;
+            border-radius: 1.5px;
+            background: #ef4444;
+            pointer-events: none;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            transition: background-color 0.15s ease;
+        }
+        .text-format-toolbar .color-indicator-bar.bg-bar {
+            background: #fef08a;
+        }
+        .text-format-toolbar .toolbar-color-picker.visually-hidden-proxy {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* START: 텍스트 서식 색상 옵션 선택 팝오버 UI (데스크탑 & 모바일 공통) */
+        .text-color-popover {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 258px;
+            background: rgba(26, 28, 35, 0.98) !important;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 10px !important;
+            padding: 10px 12px !important;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5) !important;
+            z-index: 32050 !important;
+            color: #f3f4f6;
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+            animation: textPopoverFadeIn 0.15s ease-out;
+        }
+        .text-color-popover.popover-above {
+            top: auto !important;
+            bottom: calc(100% + 8px) !important;
+        }
+        @keyframes textPopoverFadeIn {
+            from { opacity: 0; transform: translate(-50%, -4px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+        .text-color-popover .color-popover-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .text-color-popover .color-popover-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #f1f5f9;
+            letter-spacing: -0.2px;
+        }
+        .text-color-popover .color-popover-close-btn {
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            line-height: 1;
+            transition: all 0.12s ease;
+        }
+        .text-color-popover .color-popover-close-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .text-color-popover .color-popover-quick-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 6px;
+            padding: 5px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #e2e8f0;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.15s ease;
+        }
+        .text-color-popover .color-popover-quick-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .text-color-popover .color-popover-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .text-color-popover .color-swatch-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            position: relative;
+            padding: 0;
+            transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .text-color-popover .color-swatch-btn:hover,
+        .text-color-popover .color-swatch-btn:focus-visible {
+            transform: scale(1.15);
+            border-color: #fff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+            z-index: 2;
+        }
+        .text-color-popover .color-swatch-btn.active-color {
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px #007acc;
+        }
+        .text-color-popover .color-popover-custom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            font-size: 11px;
+            color: #cbd5e1;
+        }
+        .text-color-popover .color-popover-custom-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .text-color-popover .color-popover-native-input {
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            background: transparent;
+            outline: none;
+        }
+        .text-color-popover .color-popover-native-input::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .text-color-popover .color-popover-native-input::-webkit-color-swatch {
+            border: 1.5px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+        }
+        .text-color-popover .color-popover-hex-input {
+            width: 64px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: #fff;
+            font-size: 11px;
+            text-align: center;
+            outline: none;
+        }
+        .text-color-popover .color-popover-apply-btn {
+            background: #007acc;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .text-color-popover .color-popover-apply-btn:hover {
+            background: #0098ff;
+        }
+        /* END: 텍스트 서식 색상 옵션 선택 팝오버 UI */
+
+        #textFormatToolbar input[type="color"]::-webkit-color-swatch {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+        }
+        #textFormatToolbar .toolbar-divider {
+            width: 1px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 0 2px;
+        }
+        /* END: 텍스트 서식 툴바 CSS 정의 */
 
         .multi-image-zoom-item.is-dragging {
             cursor: grabbing;
@@ -4583,9 +4828,26 @@
 
             .text-format-toolbar .toolbar-btn,
             .text-format-toolbar .toolbar-size-input,
-            .text-format-toolbar .color-picker-wrapper {
-                min-width: 34px;
-                min-height: 34px;
+            .text-format-toolbar .color-picker-wrapper,
+            .text-format-toolbar .color-picker-trigger {
+                min-width: 36px;
+                min-height: 36px;
+            }
+
+            .text-color-popover {
+                top: auto !important;
+                bottom: calc(100% + 10px) !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                width: min(290px, calc(100vw - 16px)) !important;
+                max-width: 320px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+            }
+            .text-color-popover .color-swatch-btn {
+                width: 36px;
+                height: 36px;
+                min-width: 36px;
+                min-height: 36px;
             }
 
             .zoom-editor-toolbar {
@@ -6101,13 +6363,38 @@
             <input type="number" id="floatFontSize" class="toolbar-size-input" min="10" max="100" value="16" title="글꼴 크기">
             <div class="toolbar-divider"></div>
             <div class="color-picker-wrapper" title="글자 색상">
-                <span class="color-picker-icon">🎨</span>
-                <input type="color" id="floatFontColor" class="toolbar-color-picker" value="#000000">
+                <button type="button" class="color-picker-trigger" id="floatFontColorBtn" title="글자 색상 선택" aria-label="글자 색상 선택">
+                    <span class="color-picker-icon">🎨</span>
+                    <span class="color-indicator-bar" id="floatFontColorBar"></span>
+                </button>
+                <input type="color" id="floatFontColor" class="toolbar-color-picker visually-hidden-proxy" value="#000000" tabindex="-1">
             </div>
-            <div class="color-picker-wrapper" title="배경 색상">
-                <span class="color-picker-icon">🖌️</span>
-                <input type="color" id="floatBackColor" class="toolbar-color-picker" value="#ffffff">
+            <div class="color-picker-wrapper" title="배경 색상 (형광펜)">
+                <button type="button" class="color-picker-trigger" id="floatBackColorBtn" title="배경 색상 (형광펜) 선택" aria-label="배경 색상 선택">
+                    <span class="color-picker-icon">🖌️</span>
+                    <span class="color-indicator-bar bg-bar" id="floatBackColorBar"></span>
+                </button>
+                <input type="color" id="floatBackColor" class="toolbar-color-picker visually-hidden-proxy" value="#ffffff" tabindex="-1">
             </div>
+
+            <!-- START: 색상 옵션 선택 팝오버 창 -->
+            <div id="textColorPickerPopover" class="text-color-popover" style="display: none;">
+                <div class="color-popover-header">
+                    <span class="color-popover-title" id="colorPopoverTitle">🎨 글자 색상 선택</span>
+                    <button type="button" class="color-popover-close-btn" id="colorPopoverCloseBtn" title="닫기">✕</button>
+                </div>
+                <button type="button" class="color-popover-quick-btn" id="colorPopoverQuickBtn">↺ 기본 색상으로 복원</button>
+                <div class="color-popover-grid" id="colorPopoverGrid"></div>
+                <div class="color-popover-custom">
+                    <div class="color-popover-custom-left">
+                        <span>직접 선택</span>
+                        <input type="color" id="popoverCustomColorPicker" class="color-popover-native-input" value="#ff0000" title="색상 선택기">
+                    </div>
+                    <input type="text" id="popoverCustomColorHex" class="color-popover-hex-input" value="#FF0000" maxlength="7" title="16진수 색상 코드">
+                    <button type="button" class="color-popover-apply-btn" id="popoverCustomApplyBtn">적용</button>
+                </div>
+            </div>
+            <!-- END: 색상 옵션 선택 팝오버 창 -->
         </div>
         <!-- END: 텍스트 서식 플로팅 툴바 HTML 구조 -->
     </div>
@@ -7749,6 +8036,15 @@ function hideTextFormatToolbar() {
                 toolbar.style.display = 'none';
                 toolbar.classList.remove('interacting');
             }
+            const popover = document.getElementById('textColorPickerPopover');
+            if (popover) {
+                popover.style.display = 'none';
+            }
+            if (typeof activeColorMode !== 'undefined') {
+                activeColorMode = null;
+            }
+            document.getElementById('floatFontColorBtn')?.classList.remove('active');
+            document.getElementById('floatBackColorBtn')?.classList.remove('active');
             document.querySelectorAll('#textFormatToolbar, .text-format-toolbar').forEach(tb => {
                 tb.style.display = 'none';
                 tb.classList.remove('interacting');
@@ -7794,15 +8090,18 @@ function hideTextFormatToolbar() {
         function syncFloatingTextToolbarVisibility() {
         window.syncFloatingTextToolbarVisibility = syncFloatingTextToolbarVisibility;
             const toolbar = document.getElementById('textFormatToolbar');
+            const popover = document.getElementById('textColorPickerPopover');
+            const isPopoverOpen = popover && popover.style.display !== 'none';
+
+            if (toolbar && (toolbar.contains(document.activeElement) || toolbar.classList.contains('interacting') || isPopoverOpen)) {
+                return;
+            }
+
             const validSelection = getValidTextSelection();
 
             if (!validSelection || isMouseDownOnEditor) {
                 if (toolbar) toolbar.classList.remove('interacting');
                 hideFloatingTextTools();
-                return;
-            }
-
-            if (toolbar && (toolbar.contains(document.activeElement) || toolbar.classList.contains('interacting'))) {
                 return;
             }
 
@@ -7855,12 +8154,20 @@ function hideTextFormatToolbar() {
                 if (floatFontColorInput && fontColor) {
                     floatFontColorInput.value = fontColor;
                 }
+                const fontColorBar = document.getElementById('floatFontColorBar');
+                if (fontColorBar && fontColor) {
+                    fontColorBar.style.backgroundColor = fontColor;
+                }
 
                 // 배경색 동기화 (RGB to Hex)
                 const backColor = rgbToHex(style.backgroundColor);
                 const floatBackColorInput = document.getElementById('floatBackColor');
                 if (floatBackColorInput && backColor) {
                     floatBackColorInput.value = backColor;
+                }
+                const backColorBar = document.getElementById('floatBackColorBar');
+                if (backColorBar && backColor) {
+                    backColorBar.style.backgroundColor = (backColor === '#000000' && style.backgroundColor === 'transparent') ? '#fef08a' : backColor;
                 }
             }
         }
@@ -9201,14 +9508,18 @@ function hideTextFormatToolbar() {
         }
 
         function handleDocumentClick(event) {
+            const textToolbar = document.getElementById('textFormatToolbar');
+            const isInsideTextToolbar = Boolean(textToolbar && (textToolbar.contains(event.target) || (event.target.closest && event.target.closest('#textFormatToolbar, .text-format-toolbar, .text-color-popover'))));
+
             const isClickInsideAppOrGlobalControls = appContainer.contains(event.target) ||
                 (menuPanel && menuPanel.contains(event.target)) ||
                 (annotationSettingsPanel && annotationSettingsPanel.contains(event.target)) ||
                 (transferModalOverlay && transferModalOverlay.contains(event.target)) ||
                 (miniToolbar && miniToolbar.contains(event.target)) ||
+                isInsideTextToolbar ||
                 (document.getElementById('imageCropOverlay') && document.getElementById('imageCropOverlay').contains(event.target)) ||
                 (document.getElementById('focusedEditorOverlay') && document.getElementById('focusedEditorOverlay').contains(event.target)) ||
-                event.target.closest('.floating-menu-icon, #compareModeToggleBtn, .fullscreen-btn-class, #multiZoomTriggerBtn, .exit-true-fullscreen-btn, #annotationDisplayToggleBtn, #annotationSettingsToggleBtn, #memoAnnotationToggleBtn, #selection-bar, #deletion-bar');
+                Boolean(event.target.closest && event.target.closest('.floating-menu-icon, #compareModeToggleBtn, .fullscreen-btn-class, #multiZoomTriggerBtn, .exit-true-fullscreen-btn, #annotationDisplayToggleBtn, #annotationSettingsToggleBtn, #memoAnnotationToggleBtn, #selection-bar, #deletion-bar'));
 
             if (!isClickInsideAppOrGlobalControls) {
                 if (currentlyActiveItemControlsElement) {
@@ -9231,6 +9542,19 @@ function hideTextFormatToolbar() {
                     toggleCompareMode(true);
                 }
                 hideFloatingTextTools();
+            } else {
+                // 앱 내부 클릭 시 색상 팝오버 바깥 클릭이면 색상 팝오버만 정돈하여 닫음
+                const popover = document.getElementById('textColorPickerPopover');
+                if (popover && popover.style.display !== 'none') {
+                    const isClickOnColorTrigger = Boolean(event.target.closest && event.target.closest('#floatFontColorBtn, #floatBackColorBtn, .color-picker-trigger'));
+                    if (!popover.contains(event.target) && !isClickOnColorTrigger) {
+                        if (typeof closeColorPickerPopover === 'function') {
+                            closeColorPickerPopover();
+                        } else {
+                            popover.style.display = 'none';
+                        }
+                    }
+                }
             }
 
             if (contentArea.contains(event.target) && !isSelectionModeActive && !isDeletionModeActive) {
@@ -9973,7 +10297,13 @@ function hideTextFormatToolbar() {
                 document.execCommand('foreColor', false, styleValue);
             } else if (styleProperty === 'backgroundColor' || styleProperty === 'backColor') {
                 document.execCommand('styleWithCSS', false, true);
-                document.execCommand('backColor', false, styleValue);
+                if (styleValue === 'transparent' || styleValue === 'none' || !styleValue) {
+                    document.execCommand('hiliteColor', false, 'transparent');
+                } else {
+                    if (!document.execCommand('hiliteColor', false, styleValue)) {
+                        document.execCommand('backColor', false, styleValue);
+                    }
+                }
             } else {
                 // bold, italic, underline, strikeThrough 등 기본 명령어 처리용 Fallback 추가
                 document.execCommand('styleWithCSS', false, true);
@@ -11542,10 +11872,15 @@ function hideTextFormatToolbar() {
             document.addEventListener('selectionchange', handleSelectionChangeForToolbar);
             document.addEventListener('pointerdown', (event) => {
                 const toolbar = document.getElementById('textFormatToolbar');
-                if (toolbar && toolbar.contains(event.target)) return;
+                if (toolbar && (toolbar.contains(event.target) || Boolean(event.target.closest && event.target.closest('#textFormatToolbar, .text-format-toolbar, .text-color-popover')))) return;
                 const activeSurface = getActiveEditingSurface();
                 if (!activeSurface || !activeSurface.contains(event.target)) {
                     hideFloatingTextTools();
+                } else {
+                    const popover = document.getElementById('textColorPickerPopover');
+                    if (popover && popover.style.display !== 'none') {
+                        closeColorPickerPopover();
+                    }
                 }
             }, true);
             document.addEventListener('keyup', (event) => {
@@ -11553,7 +11888,15 @@ function hideTextFormatToolbar() {
                     setTimeout(syncFloatingTextToolbarVisibility, 0);
                 }
             });
-            window.addEventListener('blur', hideFloatingTextTools);
+            window.addEventListener('blur', () => {
+                const toolbar = document.getElementById('textFormatToolbar');
+                const popover = document.getElementById('textColorPickerPopover');
+                const isPopoverOpen = popover && popover.style.display !== 'none';
+                if (toolbar && (toolbar.classList.contains('interacting') || isPopoverOpen || toolbar.contains(document.activeElement))) {
+                    return;
+                }
+                hideFloatingTextTools();
+            });
             document.addEventListener('mouseup', () => {
                 isMouseDownOnEditor = false;
                 setTimeout(syncFloatingTextToolbarVisibility, 0);
@@ -11573,7 +11916,10 @@ function hideTextFormatToolbar() {
                 }
             });
             document.addEventListener('mouseup', () => {
-                floatToolbar.classList.remove('interacting');
+                const popover = document.getElementById('textColorPickerPopover');
+                if (!popover || popover.style.display === 'none') {
+                    floatToolbar.classList.remove('interacting');
+                }
             });
 
             // [무결성 핵심] 툴바 클릭 시 포커스 이동으로 인한 Selection 풀림 원천 방지
@@ -11609,6 +11955,297 @@ function hideTextFormatToolbar() {
                 floatFontSizeInput.addEventListener('change', handleSizeChange);
             }
 
+            // START: 색상 선택 팝오버 및 실시간 즉시 반영 시스템
+            const TEXT_COLOR_PRESETS = [
+                { color: '#111827', title: '기본 검정' },
+                { color: '#4b5563', title: '진회색' },
+                { color: '#9ca3af', title: '밝은 회색' },
+                { color: '#ef4444', title: '선명한 빨강' },
+                { color: '#f97316', title: '주황' },
+                { color: '#d97706', title: '호박/갈색' },
+                { color: '#10b981', title: '초록' },
+                { color: '#06b6d4', title: '청록' },
+                { color: '#2563eb', title: '파랑' },
+                { color: '#4f46e5', title: '남색' },
+                { color: '#8b5cf6', title: '보라' },
+                { color: '#ec4899', title: '분홍/자주' }
+            ];
+
+            const BACK_COLOR_PRESETS = [
+                { color: 'transparent', title: '배경색 없음 (형광펜 지우기)', isClear: true },
+                { color: '#fef08a', title: '형광 노랑' },
+                { color: '#bbf7d0', title: '형광 초록' },
+                { color: '#bfdbfe', title: '형광 파랑' },
+                { color: '#fbcfe8', title: '형광 분홍' },
+                { color: '#fed7aa', title: '형광 주황' },
+                { color: '#e9d5ff', title: '형광 보라' },
+                { color: '#f1f5f9', title: '연한 회색' },
+                { color: '#fde047', title: '진한 노랑' },
+                { color: '#86efac', title: '진한 초록' },
+                { color: '#93c5fd', title: '진한 파랑' },
+                { color: '#fdba74', title: '진한 주황' }
+            ];
+
+            let activeColorMode = null; // 'foreColor' | 'backColor'
+            window.activeColorMode = activeColorMode;
+
+            function renderColorSwatches(container, presets, mode) {
+                if (!container) return;
+                container.innerHTML = '';
+                presets.forEach(p => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'color-swatch-btn';
+                    btn.title = p.title;
+                    btn.setAttribute('aria-label', p.title);
+                    btn.dataset.color = p.color;
+
+                    if (p.isClear) {
+                        btn.style.background = 'repeating-linear-gradient(45deg, #374151, #374151 4px, #1f2937 4px, #1f2937 8px)';
+                        btn.innerHTML = '<span style="font-size:12px; color:#f87171; font-weight:bold; line-height:1;">✕</span>';
+                    } else {
+                        btn.style.backgroundColor = p.color;
+                    }
+
+                    // Selection 소실 방지를 위한 preventDefault
+                    btn.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    });
+
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        selectColor(mode, p.color);
+                    });
+
+                    container.appendChild(btn);
+                });
+            }
+
+            function selectColor(mode, colorValue) {
+                const toolbar = document.getElementById('textFormatToolbar');
+                if (toolbar) toolbar.classList.add('interacting');
+
+                restoreSelection();
+                applyStyleToSelection(mode, colorValue);
+
+                // 인디케이터 바 동기화
+                if (mode === 'foreColor') {
+                    const bar = document.getElementById('floatFontColorBar');
+                    if (bar) bar.style.backgroundColor = (colorValue === 'inherit' ? '#111827' : colorValue);
+                    const proxy = document.getElementById('floatFontColor');
+                    if (proxy && colorValue !== 'inherit') proxy.value = colorValue;
+                } else {
+                    const bar = document.getElementById('floatBackColorBar');
+                    if (bar) bar.style.backgroundColor = (colorValue === 'transparent' ? 'transparent' : colorValue);
+                    const proxy = document.getElementById('floatBackColor');
+                    if (proxy && colorValue !== 'transparent') proxy.value = colorValue;
+                }
+
+                // 팝오버 스와치 활성 표시
+                const popover = document.getElementById('textColorPickerPopover');
+                if (popover) {
+                    popover.querySelectorAll('.color-swatch-btn').forEach(b => {
+                        b.classList.toggle('active-color', b.dataset.color === colorValue);
+                    });
+                }
+
+                // 선택 영역 재확보
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                    savedRange = sel.getRangeAt(0).cloneRange();
+                }
+            }
+
+            function positionColorPickerPopover(triggerBtn) {
+                const popover = document.getElementById('textColorPickerPopover');
+                const toolbar = document.getElementById('textFormatToolbar');
+                if (!popover || !toolbar) return;
+
+                const isMobile = window.innerWidth <= 600 || window.matchMedia('(max-width: 600px)').matches;
+                if (isMobile) {
+                    popover.classList.add('popover-above');
+                    return;
+                }
+
+                // Desktop positioning: viewport 공간 계산
+                const tbRect = toolbar.getBoundingClientRect();
+                const popoverHeight = 230;
+
+                if (tbRect.top < popoverHeight + 20) {
+                    popover.classList.remove('popover-above');
+                } else {
+                    popover.classList.add('popover-above');
+                }
+            }
+
+            function openColorPickerPopover(mode, triggerBtn) {
+                const popover = document.getElementById('textColorPickerPopover');
+                const toolbar = document.getElementById('textFormatToolbar');
+                if (!popover || !toolbar) return;
+
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                    savedRange = sel.getRangeAt(0).cloneRange();
+                }
+
+                activeColorMode = mode;
+                window.activeColorMode = activeColorMode;
+                toolbar.classList.add('interacting');
+
+                const titleEl = document.getElementById('colorPopoverTitle');
+                const quickBtn = document.getElementById('colorPopoverQuickBtn');
+                const gridEl = document.getElementById('colorPopoverGrid');
+                const hexInput = document.getElementById('popoverCustomColorHex');
+                const nativeInput = document.getElementById('popoverCustomColorPicker');
+
+                if (mode === 'foreColor') {
+                    if (titleEl) titleEl.textContent = '🎨 글자 색상 선택';
+                    if (quickBtn) {
+                        quickBtn.innerHTML = '↺ 기본 글자색 (검정) 복원';
+                        quickBtn.dataset.color = 'inherit';
+                    }
+                    renderColorSwatches(gridEl, TEXT_COLOR_PRESETS, mode);
+                    if (hexInput && nativeInput) {
+                        const cur = document.getElementById('floatFontColor')?.value || '#ef4444';
+                        hexInput.value = cur.toUpperCase();
+                        nativeInput.value = cur;
+                    }
+                } else {
+                    if (titleEl) titleEl.textContent = '🖍️ 배경 색상 (형광펜)';
+                    if (quickBtn) {
+                        quickBtn.innerHTML = '🚫 배경색 지우기 (투명)';
+                        quickBtn.dataset.color = 'transparent';
+                    }
+                    renderColorSwatches(gridEl, BACK_COLOR_PRESETS, mode);
+                    if (hexInput && nativeInput) {
+                        const cur = document.getElementById('floatBackColor')?.value || '#fef08a';
+                        hexInput.value = cur.toUpperCase();
+                        nativeInput.value = cur;
+                    }
+                }
+
+                document.getElementById('floatFontColorBtn')?.classList.toggle('active', mode === 'foreColor');
+                document.getElementById('floatBackColorBtn')?.classList.toggle('active', mode === 'backColor');
+
+                popover.style.display = 'block';
+                positionColorPickerPopover(triggerBtn);
+            }
+
+            function closeColorPickerPopover() {
+                const popover = document.getElementById('textColorPickerPopover');
+                const toolbar = document.getElementById('textFormatToolbar');
+                if (popover) popover.style.display = 'none';
+                activeColorMode = null;
+                window.activeColorMode = null;
+                document.getElementById('floatFontColorBtn')?.classList.remove('active');
+                document.getElementById('floatBackColorBtn')?.classList.remove('active');
+                if (toolbar) toolbar.classList.remove('interacting');
+            }
+            window.closeColorPickerPopover = closeColorPickerPopover;
+
+            const fontColorBtn = document.getElementById('floatFontColorBtn');
+            if (fontColorBtn) {
+                fontColorBtn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    const sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                        savedRange = sel.getRangeAt(0).cloneRange();
+                    }
+                });
+                fontColorBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const popover = document.getElementById('textColorPickerPopover');
+                    if (activeColorMode === 'foreColor' && popover && popover.style.display !== 'none') {
+                        closeColorPickerPopover();
+                    } else {
+                        openColorPickerPopover('foreColor', fontColorBtn);
+                    }
+                });
+            }
+
+            const backColorBtn = document.getElementById('floatBackColorBtn');
+            if (backColorBtn) {
+                backColorBtn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    const sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                        savedRange = sel.getRangeAt(0).cloneRange();
+                    }
+                });
+                backColorBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const popover = document.getElementById('textColorPickerPopover');
+                    if (activeColorMode === 'backColor' && popover && popover.style.display !== 'none') {
+                        closeColorPickerPopover();
+                    } else {
+                        openColorPickerPopover('backColor', backColorBtn);
+                    }
+                });
+            }
+
+            const closeBtn = document.getElementById('colorPopoverCloseBtn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeColorPickerPopover();
+                });
+            }
+
+            const quickBtn = document.getElementById('colorPopoverQuickBtn');
+            if (quickBtn) {
+                quickBtn.addEventListener('mousedown', (e) => e.preventDefault());
+                quickBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const col = quickBtn.dataset.color || (activeColorMode === 'foreColor' ? 'inherit' : 'transparent');
+                    if (activeColorMode) {
+                        selectColor(activeColorMode, col);
+                    }
+                });
+            }
+
+            const customPicker = document.getElementById('popoverCustomColorPicker');
+            const customHex = document.getElementById('popoverCustomColorHex');
+            const customApplyBtn = document.getElementById('popoverCustomApplyBtn');
+
+            if (customPicker && customHex) {
+                customPicker.addEventListener('input', (e) => {
+                    customHex.value = e.target.value.toUpperCase();
+                    if (activeColorMode) {
+                        selectColor(activeColorMode, e.target.value);
+                    }
+                });
+                customHex.addEventListener('input', (e) => {
+                    let val = e.target.value.trim();
+                    if (!val.startsWith('#')) val = '#' + val;
+                    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+                        customPicker.value = val;
+                        if (activeColorMode) {
+                            selectColor(activeColorMode, val);
+                        }
+                    }
+                });
+            }
+
+            if (customApplyBtn && customHex) {
+                customApplyBtn.addEventListener('mousedown', (e) => e.preventDefault());
+                customApplyBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    let val = customHex.value.trim();
+                    if (!val.startsWith('#')) val = '#' + val;
+                    if (activeColorMode && /^#[0-9A-Fa-f]{3,8}$/.test(val)) {
+                        selectColor(activeColorMode, val);
+                    }
+                });
+            }
+
+            // 하위 호환성용 proxy inputs 이벤트
             const floatFontColorInput = document.getElementById('floatFontColor');
             if (floatFontColorInput) {
                 floatFontColorInput.addEventListener('input', (e) => {
@@ -11622,6 +12259,7 @@ function hideTextFormatToolbar() {
                     applyStyleToSelection('backColor', e.target.value);
                 });
             }
+            // END: 색상 선택 팝오버 및 실시간 즉시 반영 시스템
         }
         // --- END: 상황별 미니 툴바 기능 ---
 
