@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "087d8aa83bcce524c98e37b754265290b9ef35c26ed89a8d4ddbccac81a044ef",
+  "sourceSha256": "c3f783253356288f536737a8d917d133a664a4b6baf0b99ccfa2584b3f959da5",
   "sourceFiles": {
     "status": {
-      "sha256": "ffac97750f759ced8fb687c59c8b3941ad1411bb612b224e22ac905aa1cd0772",
-      "byteLength": 107066
+      "sha256": "10f12c555e303b209a3849f596d6efe784f4d71f9c179894aff754afc88b2a78",
+      "byteLength": 107255
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -5121,11 +5121,11 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": null,
-        "status": "미작성",
+        "status": "작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-01",
-        "updatedAt": "2026-09-07T10:25:08.000Z",
+        "updatedAt": "2026-09-07T10:44:12.000Z",
         "source": "GitHub 회의록 파일 자동 점검",
         "exceptionCode": "",
         "note": "실제 회의록 파일 확인: 2026/2026_09_회의록.html"
@@ -5151,11 +5151,11 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": 2,
-        "status": "미작성",
+        "status": "작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-10",
-        "updatedAt": "2026-09-06T17:06:46.000Z",
+        "updatedAt": "2026-09-07T10:44:12.000Z",
         "source": "GitHub 회의록 파일 자동 점검",
         "exceptionCode": "",
         "note": "2026-09-07 기준 회의록 파일 없음"
@@ -8599,6 +8599,26 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "type": "월간",
         "beforeValue": "작성",
         "afterValue": "미작성",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "d801f7b9-a86f-41de-8064-0d8f89d261d0",
+        "changedAt": "2026-09-07T10:44:12.000Z",
+        "key": "2026-9-2",
+        "type": "주간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "f12f6c76-01d5-47f1-979d-325062ce0ae0",
+        "changedAt": "2026-09-07T10:44:12.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
         "source": "GitHub 회의록 파일 자동 점검",
         "syncStatus": "완료"
       }
