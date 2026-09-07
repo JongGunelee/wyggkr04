@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "9fa332077c0c20dc8d56193a3784bbf59df7e4de6484cd374d5f9e8cfcafb044",
+  "sourceSha256": "087d8aa83bcce524c98e37b754265290b9ef35c26ed89a8d4ddbccac81a044ef",
   "sourceFiles": {
     "status": {
-      "sha256": "9cd494a5ccdd16fd0ac2cea86effe4081b01d9fd467d13805fec5fbf966474e7",
-      "byteLength": 106938
+      "sha256": "ffac97750f759ced8fb687c59c8b3941ad1411bb612b224e22ac905aa1cd0772",
+      "byteLength": 107066
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -5121,11 +5121,11 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": null,
-        "status": "작성",
+        "status": "미작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-01",
-        "updatedAt": "2026-09-02T00:18:05.000Z",
+        "updatedAt": "2026-09-07T10:25:08.000Z",
         "source": "GitHub 회의록 파일 자동 점검",
         "exceptionCode": "",
         "note": "실제 회의록 파일 확인: 2026/2026_09_회의록.html"
@@ -8589,6 +8589,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "type": "주간",
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
         "afterValue": "{\"type\":\"주간\",\"year\":2026,\"month\":9,\"week\":2,\"status\":\"미작성\",\"counterIncluded\":\"Y\",\"cardVisible\":\"Y\",\"referenceDate\":\"2026-09-10\",\"source\":\"GitHub 회의록 파일 자동 점검\",\"exceptionCode\":\"\",\"note\":\"2026-09-07 기준 회의록 파일 없음\"}",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "e71c1d10-7810-4f24-9787-bab1c7c678cc",
+        "changedAt": "2026-09-07T10:25:08.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
         "source": "GitHub 회의록 파일 자동 점검",
         "syncStatus": "완료"
       }
