@@ -385,16 +385,18 @@
 
         @media (max-width: 600px) and (orientation: portrait) {
             .navigator-status-item>.month-link {
-                min-height: 36px;
+                min-height: 28px;
                 display: inline-flex;
                 align-items: center;
+                padding: 4px 8px;
+                font-size: 0.85em;
             }
 
             .navigator-status-toggle {
-                width: 34px;
-                height: 34px;
-                min-width: 34px;
-                font-size: 15px;
+                width: 22px;
+                height: 22px;
+                min-width: 22px;
+                font-size: 11px;
             }
         }
 
@@ -1307,7 +1309,13 @@
         .resizable-image-wrapper {
             position: relative !important;
             display: inline-block !important;
-            user-select: none;
+            user-select: auto;
+            -webkit-user-select: auto;
+        }
+        .resizable-image-wrapper .resize-handle-img,
+        .resizable-image-wrapper .item-controls {
+            user-select: none !important;
+            -webkit-user-select: none !important;
         }
         .resizable-image-wrapper.selected,
         .resizable-image-wrapper.active {
@@ -2755,10 +2763,10 @@
         .resizable-image-wrapper {
             position: relative;
             display: inline-block;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+            user-select: auto;
+            -webkit-user-select: auto;
+            -moz-user-select: auto;
+            -ms-user-select: auto;
             line-height: 0;
             vertical-align: bottom;
             /* contenteditable 내에서 정렬 문제 방지 */
@@ -2772,6 +2780,8 @@
             transform: scale(1.02);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             transition: none;
+            user-select: none !important;
+            -webkit-user-select: none !important;
         }
 
         .resizable-image-wrapper.active {
@@ -2787,7 +2797,8 @@
             width: 100%;
             height: auto;
             /* 이동 가능함을 암시 */
-            user-select: none;
+            user-select: auto;
+            -webkit-user-select: auto;
             -webkit-user-drag: none;
         }
 
@@ -2853,11 +2864,8 @@
             z-index: 20001;
         }
 
-        /* START: 텍스트 서식 플로팅 툴바 CSS 정의 */
+        /* START: 텍스트 서식 플로팅 툴바 CSS 정의 (043 주간 회의 벤치마킹 동일 구현) */
         .text-format-toolbar {
-            max-width: 94vw !important;
-            overflow-x: auto !important;
-            touch-action: manipulation !important;
             position: absolute;
             display: none;
             align-items: center !important;
@@ -2875,12 +2883,15 @@
             min-height: 0 !important;
             width: auto !important;
             height: auto !important;
-            z-index: 10005;
+            z-index: 35000 !important;
             user-select: none;
             -webkit-user-select: none;
-            max-width: min(94vw, 420px);
+            touch-action: manipulation;
         }
-        .text-format-toolbar button {
+        body.focused-editor-active .text-format-toolbar {
+            z-index: 35000 !important;
+        }
+        .text-format-toolbar .toolbar-btn {
             background: transparent;
             border: none;
             color: #ddd;
@@ -2895,11 +2906,11 @@
             font-weight: bold;
             transition: all 0.15s ease;
         }
-        .text-format-toolbar button:hover {
+        .text-format-toolbar .toolbar-btn:hover {
             background: rgba(255, 255, 255, 0.15);
             color: #fff;
         }
-        .text-format-toolbar button.active {
+        .text-format-toolbar .toolbar-btn.active {
             background: #007acc;
             color: #fff;
         }
@@ -2916,33 +2927,232 @@
         }
         .text-format-toolbar .color-picker-wrapper {
             position: relative;
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
-            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.15s;
         }
-        .text-format-toolbar .color-picker-wrapper:hover {
+        .text-format-toolbar .color-picker-trigger {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 4px;
+            gap: 2px;
+            min-width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            border: none;
+            background: transparent;
+            color: #ddd;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .text-format-toolbar .color-picker-trigger:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+        .text-format-toolbar .color-picker-trigger.active {
+            background: #007acc;
+            color: #fff;
+        }
+        .text-format-toolbar .color-picker-trigger .color-picker-icon {
+            font-size: 13px;
+            line-height: 1;
+            pointer-events: none;
+        }
+        .text-format-toolbar .color-indicator-bar {
+            width: 16px;
+            height: 3px;
+            border-radius: 1.5px;
+            background: #ef4444;
+            pointer-events: none;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            transition: background-color 0.15s ease;
+        }
+        .text-format-toolbar .color-indicator-bar.bg-bar {
+            background: #fef08a;
+        }
+        .text-format-toolbar .toolbar-color-picker.visually-hidden-proxy {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+            opacity: 0;
+        }
+
+        /* START: 텍스트 서식 색상 옵션 선택 팝오버 UI (데스크탑 & 모바일 공통) */
+        .text-color-popover {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 258px;
+            background: rgba(26, 28, 35, 0.98) !important;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 10px !important;
+            padding: 10px 12px !important;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5) !important;
+            z-index: 35100 !important;
+            color: #f3f4f6;
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+            animation: textPopoverFadeIn 0.15s ease-out;
+        }
+        .text-color-popover.popover-above {
+            top: auto !important;
+            bottom: calc(100% + 8px) !important;
+        }
+        @keyframes textPopoverFadeIn {
+            from { opacity: 0; transform: translate(-50%, -4px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+        .text-color-popover .color-popover-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .text-color-popover .color-popover-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #f1f5f9;
+            letter-spacing: -0.2px;
+        }
+        .text-color-popover .color-popover-close-btn {
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            line-height: 1;
+            transition: all 0.12s ease;
+        }
+        .text-color-popover .color-popover-close-btn:hover {
+            color: #fff;
             background: rgba(255, 255, 255, 0.15);
         }
-        .text-format-toolbar .color-picker-icon {
-            font-size: 15px;
-            pointer-events: none;
-            z-index: 1;
-        }
-        .text-format-toolbar .toolbar-color-picker {
-            position: absolute;
-            top: 0;
-            left: 0;
+        .text-color-popover .color-popover-quick-btn {
             width: 100%;
-            height: 100%;
-            opacity: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 6px;
+            padding: 5px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #e2e8f0;
             cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.15s ease;
+        }
+        .text-color-popover .color-popover-quick-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .text-color-popover .color-popover-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .text-color-popover .color-swatch-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            position: relative;
+            padding: 0;
+            transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .text-color-popover .color-swatch-btn:hover,
+        .text-color-popover .color-swatch-btn:focus-visible {
+            transform: scale(1.15);
+            border-color: #fff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+            z-index: 2;
+        }
+        .text-color-popover .color-swatch-btn.active-color {
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px #007acc;
+        }
+        .text-color-popover .color-popover-custom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            font-size: 11px;
+            color: #cbd5e1;
+        }
+        .text-color-popover .color-popover-custom-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .text-color-popover .color-popover-native-input {
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            background: transparent;
+            outline: none;
+        }
+        .text-color-popover .color-popover-native-input::-webkit-color-swatch-wrapper {
             padding: 0;
         }
+        .text-color-popover .color-popover-native-input::-webkit-color-swatch {
+            border: 1.5px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+        }
+        .text-color-popover .color-popover-hex-input {
+            width: 64px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: #fff;
+            font-size: 11px;
+            text-align: center;
+            outline: none;
+        }
+        .text-color-popover .color-popover-apply-btn {
+            background: #007acc;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .text-color-popover .color-popover-apply-btn:hover {
+            background: #0098ff;
+        }
+        /* END: 텍스트 서식 색상 옵션 선택 팝오버 UI */
+
         #textFormatToolbar input[type="color"]::-webkit-color-swatch {
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
@@ -4367,12 +4577,7 @@
                 flex-basis: 100%;
             }
 
-            .text-format-toolbar {
-                max-width: calc(100vw - 16px) !important;
-                flex-wrap: wrap !important;
-                justify-content: center !important;
-                padding: 6px 8px !important;
-            }
+            
 
             .zoom-editor-toolbar {
                 left: 8px;
@@ -4409,9 +4614,11 @@
 
         /* --- START: 모바일 세로 모드(스마트폰) 완벽 최적화 --- */
         @media (max-width: 600px) {
-            /* 1. 컨테이너 여백 극소화 (공간 낭비 최소화) */
+            /* 1. 컨테이너 여백 극소화 (상단 여백은 JS 동적 계산 보존하여 네비게이션 가림 방지) */
             .container {
-                padding: 4px 6px 40px !important;
+                padding-left: 6px !important;
+                padding-right: 6px !important;
+                padding-bottom: 40px !important;
             }
             
             /* 2. 하위 항목 들여쓰기 축소 (가독성 확보) */
@@ -4424,10 +4631,46 @@
                 padding: 8px !important;
             }
 
-            /* 3. 제목 크기 축소 (세로 개행 방지) */
+            /* 3. 상단 헤더 및 제목 모바일 분리 최적화 (시간/타이머와 제목 겹침 방지) */
+            #header-info-display {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                height: 26px !important;
+                min-height: 26px !important;
+                box-sizing: border-box !important;
+                padding: 2px 10px !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                border: none !important;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+                background-color: #f8fafc !important;
+                justify-content: flex-end !important;
+                gap: 10px !important;
+                font-size: 11px !important;
+                z-index: 10006 !important;
+            }
+            #header-info-display .info-line {
+                gap: 3px !important;
+            }
+            #header-info-display .info-line .icon {
+                font-size: 1em !important;
+            }
+
             h1#page-title {
+                position: fixed !important;
+                top: 26px !important;
+                left: 0 !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
                 font-size: 1.1em !important;
-                padding: 10px 12px !important;
+                padding: 8px 12px !important;
+                margin: 0 !important;
+                background: #ffffff !important;
+                border-bottom: 2px solid #cbd5e1 !important;
+                z-index: 999 !important;
             }
             .section-title {
                 font-size: 1.05em !important;
@@ -4466,17 +4709,42 @@
             }
 
             .text-format-toolbar {
-                gap: 4px !important;
+                position: fixed !important;
+                left: 8px !important;
+                right: 8px !important;
+                top: auto !important;
+                bottom: max(10px, env(safe-area-inset-bottom)) !important;
+                width: auto !important;
+                justify-content: center !important;
+                flex-wrap: wrap;
+                gap: 8px !important;
+                padding: 8px !important;
+                z-index: 35000 !important;
             }
 
-            .text-format-toolbar button {
-                width: 32px;
-                height: 32px;
+            .text-format-toolbar .toolbar-btn,
+            .text-format-toolbar .toolbar-size-input,
+            .text-format-toolbar .color-picker-wrapper,
+            .text-format-toolbar .color-picker-trigger {
+                min-width: 36px;
+                min-height: 36px;
             }
 
-            .text-format-toolbar .toolbar-size-input {
-                width: 46px;
-                height: 32px;
+            .text-color-popover {
+                z-index: 35100 !important;
+                top: auto !important;
+                bottom: calc(100% + 10px) !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                width: min(290px, calc(100vw - 16px)) !important;
+                max-width: 320px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+            }
+            .text-color-popover .color-swatch-btn {
+                width: 36px;
+                height: 36px;
+                min-width: 36px;
+                min-height: 36px;
             }
 
             .zoom-editor-toolbar {
@@ -4566,11 +4834,139 @@
                 height: 12px !important;
             }
 
-            /* 10. 모바일 네비게이터 터치 및 여백 최적화 */
+            /* 10. 모바일 네비게이터 터치 및 여백 최적화: 가로 1줄 스와이프 칩 바 */
             #monthlyNavigatorContainer {
                 max-width: 100vw !important;
+                padding: 4px 8px !important;
+                background-color: #f1f5f9 !important;
+                border-bottom: 1px solid #cbd5e1 !important;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                box-sizing: border-box !important;
+                z-index: 998 !important;
+                position: fixed !important;
+                left: 0 !important;
+                width: 100% !important;
+            }
+
+            #monthlyNavigatorContent {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                width: 100% !important;
+                max-height: 120px !important;
+                overflow: visible !important;
+                transition: max-height 0.25s ease-in-out, opacity 0.2s ease !important;
+            }
+
+            #monthlyNavigatorContainer.nav-collapsed #monthlyNavigatorContent {
+                max-height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+
+            #yearNavigator {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin-bottom: 3px !important;
+                gap: 4px !important;
+                position: relative !important;
+                width: 100% !important;
+            }
+
+            #yearNavigator button {
+                padding: 2px 8px !important;
+                font-size: 0.95em !important;
+                min-width: 28px !important;
+                min-height: 28px !important;
+                max-width: 36px !important;
+                max-height: 36px !important;
+                border-radius: 4px !important;
+            }
+
+            #currentYearSpan {
+                margin: 0 8px !important;
+                font-size: 0.95em !important;
+                min-width: 55px !important;
+            }
+
+            #navToggleBtn {
+                min-width: 28px !important;
+                min-height: 28px !important;
+                max-width: 36px !important;
+                max-height: 36px !important;
+                padding: 2px 6px !important;
+                font-size: 0.85em !important;
+                position: absolute !important;
+                right: 8px !important;
+                top: 4px !important;
+                border-radius: 4px !important;
+                margin: 0 !important;
+                z-index: 10 !important;
+            }
+
+            #monthLinksContainer {
+                display: flex !important;
+                flex-wrap: nowrap !important;
                 overflow-x: auto !important;
+                overflow-y: hidden !important;
+                -webkit-overflow-scrolling: touch !important;
+                scroll-behavior: smooth !important;
+                padding: 2px calc(50% - 32px) 4px calc(50% - 32px) !important;
+                gap: 6px !important;
+                justify-content: flex-start !important;
+                scrollbar-width: thin !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                scroll-snap-type: x proximity !important;
+            }
+
+            #monthLinksContainer::-webkit-scrollbar {
+                height: 3px !important;
+            }
+
+            #monthLinksContainer::-webkit-scrollbar-thumb {
+                background: #cbd5e1 !important;
+                border-radius: 3px !important;
+            }
+
+            .navigator-status-item {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 2px !important;
+                flex: 0 0 auto !important;
+                margin: 0 !important;
+                scroll-snap-align: center !important;
+            }
+
+            .navigator-status-item > .month-link {
+                padding: 4px 8px !important;
+                font-size: 0.82em !important;
+                min-height: 26px !important;
+                border-radius: 5px !important;
                 white-space: nowrap !important;
+                display: inline-flex !important;
+                align-items: center !important;
+            }
+
+            #monthlyNavigatorContainer button.navigator-status-toggle,
+            .navigator-status-toggle {
+                width: 20px !important;
+                height: 20px !important;
+                min-width: 20px !important;
+                min-height: 20px !important;
+                max-width: 20px !important;
+                max-height: 20px !important;
+                font-size: 10px !important;
+                padding: 0 !important;
+                border-radius: 50% !important;
+                flex: 0 0 20px !important;
             }
 
             /* 11. 개별 칩(flow-span) 폰트 크기 및 높이 조정 */
@@ -4897,35 +5293,7 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
-                /* 텍스트 서식 툴바 내 크기 조절 삼각형 버튼 스타일 */
-        .text-format-toolbar button.size-adjust-btn {
-            background: transparent !important;
-            border: none !important;
-            color: #ddd !important;
-            width: 20px !important;
-            height: 28px !important;
-            border-radius: 4px !important;
-            cursor: pointer !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            font-size: 9px !important;
-            padding: 0 !important;
-            user-select: none !important;
-            transition: all 0.15s ease !important;
-        }
-        .text-format-toolbar button.size-adjust-btn:hover {
-            background: rgba(255, 255, 255, 0.15) !important;
-            color: #fff !important;
-        }
-        #floatFontSize::-webkit-outer-spin-button,
-        #floatFontSize::-webkit-inner-spin-button {
-            -webkit-appearance: none !important;
-            margin: 0 !important;
-        }
-        #floatFontSize {
-            -moz-appearance: textfield !important;
-        }
+                /* 043 표준 toolbar-size-input 적용 */
         #duplicatePanel {
             max-width: calc(100vw - 24px);
             max-height: calc(100vh - 24px);
@@ -5557,27 +5925,50 @@
         </div>
         <!-- END: 이미지 확대 보기(Zoom)를 위한 HTML 구조 (주간 코드에서 이식) -->
 
-        <!-- START: 텍스트 드래그 시 활성화되는 미니 포맷 툴바 -->
+                <!-- START: 텍스트 서식 플로팅 툴바 HTML 구조 -->
         <div id="textFormatToolbar" class="text-format-toolbar" style="display: none;">
-            <button type="button" id="floatBtnBold" title="굵게" data-command="bold">B</button>
-            <button type="button" id="floatBtnItalic" title="기울임꼴" data-command="italic">I</button>
-            <button type="button" id="floatBtnUnderline" title="밑줄" data-command="underline">U</button>
-            <button type="button" id="floatBtnStrike" title="취소선" data-command="strikeThrough">S</button>
+            <button id="floatBtnBold" class="toolbar-btn" data-command="bold" title="굵게"><b>B</b></button>
+            <button id="floatBtnItalic" class="toolbar-btn" data-command="italic" title="기울임"><i>I</i></button>
+            <button id="floatBtnUnderline" class="toolbar-btn" data-command="underline" title="밑줄"><u>U</u></button>
+            <button id="floatBtnStrike" class="toolbar-btn" data-command="strikeThrough" title="취소선"><s>S</s></button>
             <div class="toolbar-divider"></div>
-            <button type="button" id="floatBtnSizeDown" class="size-adjust-btn" title="글자 크기 작게">▼</button>
-            <input type="number" id="floatFontSize" title="글꼴 크기" min="8" max="72" value="16" style="width: 32px; text-align: center; border: 1px solid #555; background: #222; color: #fff; border-radius: 4px; padding: 2px 0;">
-            <button type="button" id="floatBtnSizeUp" class="size-adjust-btn" title="글자 크기 크게">▲</button>
+            <input type="number" id="floatFontSize" class="toolbar-size-input" min="10" max="100" value="16" title="글꼴 크기">
             <div class="toolbar-divider"></div>
-            <div style="position: relative; display: flex; align-items: center;" title="글자 색상">
-                <span style="color: #fff; font-size: 11px; margin-right: 4px; font-weight: bold;">A</span>
-                <input type="color" id="floatFontColor" value="#000000">
+            <div class="color-picker-wrapper" title="글자 색상">
+                <button type="button" class="color-picker-trigger" id="floatFontColorBtn" title="글자 색상 선택" aria-label="글자 색상 선택">
+                    <span class="color-picker-icon">🎨</span>
+                    <span class="color-indicator-bar" id="floatFontColorBar"></span>
+                </button>
+                <input type="color" id="floatFontColor" class="toolbar-color-picker visually-hidden-proxy" value="#000000" tabindex="-1">
             </div>
-            <div style="position: relative; display: flex; align-items: center;" title="글자 배경색">
-                <span style="font-size: 12px; margin-right: 4px;">✏️</span>
-                <input type="color" id="floatBackColor" value="#ffffff">
+            <div class="color-picker-wrapper" title="배경 색상 (형광펜)">
+                <button type="button" class="color-picker-trigger" id="floatBackColorBtn" title="배경 색상 (형광펜) 선택" aria-label="배경 색상 선택">
+                    <span class="color-picker-icon">🖌️</span>
+                    <span class="color-indicator-bar bg-bar" id="floatBackColorBar"></span>
+                </button>
+                <input type="color" id="floatBackColor" class="toolbar-color-picker visually-hidden-proxy" value="#ffffff" tabindex="-1">
             </div>
+
+            <!-- START: 색상 옵션 선택 팝오버 창 -->
+            <div id="textColorPickerPopover" class="text-color-popover" style="display: none;">
+                <div class="color-popover-header">
+                    <span class="color-popover-title" id="colorPopoverTitle">🎨 글자 색상 선택</span>
+                    <button type="button" class="color-popover-close-btn" id="colorPopoverCloseBtn" title="닫기">✕</button>
+                </div>
+                <button type="button" class="color-popover-quick-btn" id="colorPopoverQuickBtn">↺ 기본 색상으로 복원</button>
+                <div class="color-popover-grid" id="colorPopoverGrid"></div>
+                <div class="color-popover-custom">
+                    <div class="color-popover-custom-left">
+                        <span>직접 선택</span>
+                        <input type="color" id="popoverCustomColorPicker" class="color-popover-native-input" value="#ff0000" title="색상 선택기">
+                    </div>
+                    <input type="text" id="popoverCustomColorHex" class="color-popover-hex-input" value="#FF0000" maxlength="7" title="16진수 색상 코드">
+                    <button type="button" class="color-popover-apply-btn" id="popoverCustomApplyBtn">적용</button>
+                </div>
+            </div>
+            <!-- END: 색상 옵션 선택 팝오버 창 -->
         </div>
-        <!-- END: 텍스트 드래그 시 활성화되는 미니 포맷 툴바 -->
+        <!-- END: 텍스트 서식 플로팅 툴바 HTML 구조 -->
     </div>
     <div id="customMessageBox" class="custom-message-box"></div>
 
@@ -8052,118 +8443,380 @@ function compressImage(file) {
 
 
 
-async function handleClipboardPaste(e, targetContainer) {
-            const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
-            if (!items) return;
+// --- START: 무결성 보증 통합 복사/잘라내기/붙여넣기 글로벌 엔진 ---
+        async function handleUnifiedPaste(e, targetContainer) {
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                return; // 기본 input/textarea 입력 보호
+            }
+            if (!targetContainer) targetContainer = document.getElementById('contentArea') || document.body;
+            const clipboardData = e.clipboardData || window.clipboardData;
+            if (!clipboardData) return;
 
-            let imageFiles = [];
-            for (let i = 0; i < items.length; i++) {
-                if (items[i].type.indexOf('image') !== -1) {
-                    const file = items[i].getAsFile();
-                    if (file) imageFiles.push(file);
+            const items = clipboardData.items;
+
+            // 1. 바이너리 이미지 파일(스크린샷, 이미지 파일 직접 복사 등) 처리
+            let hasRawImageFile = false;
+            const imageFiles = [];
+            if (items) {
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    if (item.type && item.type.indexOf('image/') !== -1) {
+                        const file = item.getAsFile();
+                        if (file) {
+                            hasRawImageFile = true;
+                            imageFiles.push(file);
+                        }
+                    }
                 }
             }
 
-            if (imageFiles.length > 0) {
+            if (hasRawImageFile && imageFiles.length > 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                showMessage(`${imageFiles.length}개 이미지 처리 중...`, 'info', 3000);
+
+                const processingPromises = imageFiles.map(file => {
+                    return new Promise(async (resolve) => {
+                        if (typeof COMPRESSION_THRESHOLD !== 'undefined' && file.size > COMPRESSION_THRESHOLD && typeof compressImage === 'function') {
+                            try {
+                                resolve(await compressImage(file));
+                            } catch (error) {
+                                console.error('Clipboard image compression failed:', error);
+                                const reader = new FileReader();
+                                reader.onload = (ev) => resolve(ev.target.result);
+                                reader.readAsDataURL(file);
+                            }
+                        } else {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => resolve(ev.target.result);
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                });
+
+                const base64Images = await Promise.all(processingPromises);
+
+                const selection = window.getSelection();
+                let range = null;
+                if (selection && selection.rangeCount > 0) {
+                    const selRange = selection.getRangeAt(0);
+                    if (targetContainer.contains(selRange.commonAncestorContainer) || targetContainer.contains(selection.anchorNode)) {
+                        range = selRange;
+                    }
+                }
+                if (!range) {
+                    targetContainer.focus();
+                    range = document.createRange();
+                    range.selectNodeContents(targetContainer);
+                    range.collapse(false);
+                    if (selection) {
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+                }
+
+                const requestedImageWidth = 300;
+                const containerWidth = Math.max(80, (targetContainer.clientWidth || window.innerWidth) - 16);
+                const imageWidth = Math.min(requestedImageWidth, containerWidth);
+
+                base64Images.forEach(imageSrc => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'resizable-image-wrapper';
+                    wrapper.setAttribute('contenteditable', 'false');
+                    wrapper.dataset.editableType = 'image-wrapper';
+                    wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    wrapper.style.width = `${imageWidth}px`;
+                    wrapper.innerHTML = `
+                        <img src="${imageSrc}" alt="사용자 붙여넣기 이미지">
+                        <div class="resize-handle-img rh-top-left"></div>
+                        <div class="resize-handle-img rh-top-right"></div>
+                        <div class="resize-handle-img rh-bottom-left"></div>
+                        <div class="resize-handle-img rh-bottom-right"></div>
+                    `;
+
+                    range.insertNode(wrapper);
+                    range.setStartAfter(wrapper);
+                    range.collapse(true);
+
+                    setTimeout(() => {
+                        if (typeof ensureImageWrapperStructure === 'function') ensureImageWrapperStructure(wrapper);
+                        if (typeof makeImageDraggable === 'function') makeImageDraggable(wrapper);
+                        wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
+                        const active = targetContainer.querySelector('.resizable-image-wrapper.active');
+                        if (active && active !== wrapper) active.classList.remove('active');
+                        wrapper.classList.add('active');
+                        currentlyActiveItemControlsElement = wrapper;
+                        if (typeof normalizeMonthlyEditingLayout === 'function') {
+                            normalizeMonthlyEditingLayout(targetContainer);
+                        }
+                        if (typeof clampImagesToContainers === 'function') {
+                            clampImagesToContainers(targetContainer);
+                        }
+                    }, 0);
+                });
+
+                targetContainer.dispatchEvent(new Event('input', { bubbles: true }));
+                showMessage(`${base64Images.length}개 이미지가 붙여넣기 되었습니다.`, 'success', 2000);
+                return;
+            }
+
+            // 2. HTML 클립보드에 <img> 또는 .resizable-image-wrapper가 포함된 경우 (텍스트+이미지+기호+이모지 혼합 복사 대상)
+            const html = clipboardData.getData('text/html');
+            if (html && (html.indexOf('<img') !== -1 || html.indexOf('resizable-image-wrapper') !== -1)) {
                 e.preventDefault();
                 e.stopPropagation();
 
-                showMessage(`${imageFiles.length}개 이미지 압축 및 삽입 중...`, 'info', 3000);
+                try {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
 
-                for (const file of imageFiles) {
-                    try {
-                        let compressedDataUrl;
-                        if (file.size > COMPRESSION_THRESHOLD) {
-                            try {
-                                compressedDataUrl = await compressImage(file);
-                            } catch (err) {
-                                console.error('Pasted image compression failed, using fallback:', err);
-                                compressedDataUrl = await new Promise((resolve, reject) => {
-                                    const reader = new FileReader();
-                                    reader.onload = (event) => resolve(event.target.result);
-                                    reader.onerror = reject;
-                                    reader.readAsDataURL(file);
-                                });
+                    // 위험 및 임시 UI 태그 제거
+                    doc.querySelectorAll('script, style, meta, link, noscript, title').forEach(el => el.remove());
+                    doc.querySelectorAll('.resize-handle-img, .item-controls, .insert-area-toggle-btn, .box-toggle-btn').forEach(el => el.remove());
+
+                    const containerWidth = Math.max(80, (targetContainer.clientWidth || window.innerWidth) - 16);
+
+                    // 포함된 모든 <img> 태그 검사 및 정규 래퍼화
+                    const images = Array.from(doc.body.querySelectorAll('img'));
+                    images.forEach(img => {
+                        let wrapper = img.closest('.resizable-image-wrapper');
+                        if (!wrapper) {
+                            wrapper = document.createElement('div');
+                            wrapper.className = 'resizable-image-wrapper';
+                            wrapper.setAttribute('contenteditable', 'false');
+                            wrapper.dataset.editableType = 'image-wrapper';
+                            wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                            const imgW = img.width || img.naturalWidth || 300;
+                            wrapper.style.width = `${Math.min(imgW, containerWidth)}px`;
+                            img.parentNode.insertBefore(wrapper, img);
+                            wrapper.appendChild(img);
+                        } else {
+                            wrapper.setAttribute('contenteditable', 'false');
+                            wrapper.dataset.editableType = 'image-wrapper';
+                            wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                            delete wrapper.dataset.draggableInitialized;
+                            wrapper.removeAttribute('data-draggable-initialized');
+                            const curW = parseFloat(wrapper.style.width) || containerWidth;
+                            if (curW > containerWidth) {
+                                wrapper.style.width = `${containerWidth}px`;
                             }
-                        } else {
-                            compressedDataUrl = await new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = (event) => resolve(event.target.result);
-                                reader.onerror = reject;
-                                reader.readAsDataURL(file);
-                            });
                         }
+                        wrapper.classList.remove('active', 'selected', 'is-dragging', 'controls-active');
+                    });
 
-                        // 삽입 위치 결정
-                        let selection = window.getSelection();
-                        let range = null;
-                        if (selection.rangeCount > 0 && targetContainer.contains(selection.anchorNode)) {
-                            range = selection.getRangeAt(0);
-                        } else {
-                            range = document.createRange();
-                            range.selectNodeContents(targetContainer);
-                            range.collapse(false);
+                    // 추후 이벤트 바인딩할 래퍼 목록
+                    const wrappersToBind = Array.from(doc.body.querySelectorAll('.resizable-image-wrapper'));
+
+                    const selection = window.getSelection();
+                    let range = null;
+                    if (selection && selection.rangeCount > 0) {
+                        const selRange = selection.getRangeAt(0);
+                        if (targetContainer.contains(selRange.commonAncestorContainer) || targetContainer.contains(selection.anchorNode)) {
+                            range = selRange;
                         }
-
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'resizable-image-wrapper';
-                        wrapper.setAttribute('contenteditable', 'false');
-
-                        const containerWidth = (range.commonAncestorContainer?.parentElement?.clientWidth || targetContainer.clientWidth || window.innerWidth) - 16;
-                        const defaultWidth = Math.min(300, Math.max(80, containerWidth));
-                        wrapper.style.width = `${defaultWidth}px`;
-
-                        wrapper.innerHTML = `
-                            <img src="${compressedDataUrl}" alt="붙여넣은 이미지">
-                            <div class="resize-handle-img rh-top-left"></div>
-                            <div class="resize-handle-img rh-top-right"></div>
-                            <div class="resize-handle-img rh-bottom-left"></div>
-                            <div class="resize-handle-img rh-bottom-right"></div>
-                        `;
-
-                        let container = range.endContainer;
-                        if (container.nodeType === 3) container = container.parentNode;
-                        const editableAncestor = container.closest('[contenteditable="true"]');
-
-                        if (editableAncestor) {
-                            range.insertNode(wrapper);
-                            range.setStartAfter(wrapper);
-                            range.collapse(true);
-                        } else if (targetContainer.appendChild) {
-                            targetContainer.appendChild(wrapper);
-                        } else {
-                            targetContainer.parentNode.insertBefore(wrapper, targetContainer.nextSibling);
+                    }
+                    if (!range) {
+                        targetContainer.focus();
+                        range = document.createRange();
+                        range.selectNodeContents(targetContainer);
+                        range.collapse(false);
+                        if (selection) {
+                            selection.removeAllRanges();
+                            selection.addRange(range);
                         }
+                    }
 
-                        setTimeout(() => {
-                            ensureImageWrapperStructure(wrapper);
-                            makeImageDraggable(wrapper);
-                            // generateItemControls(wrapper) 제거 (이미지 오염 방지)
-                            wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
-                            const active = document.querySelector('.resizable-image-wrapper.active');
-                            if (active && active !== wrapper) active.classList.remove('active');
-                            wrapper.classList.add('active');
-                            activateControls(wrapper);
-                            clampImagesToContainers(targetContainer);
-                        }, 0);
+                    range.deleteContents();
 
-                        // 줄바꿈 브레이크 추가
-                        const br = document.createElement('br');
-                        wrapper.parentNode.insertBefore(br, wrapper.nextSibling);
+                    const fragment = document.createDocumentFragment();
+                    while (doc.body.firstChild) {
+                        fragment.appendChild(doc.body.firstChild);
+                    }
 
-                        range.setStartAfter(br);
+                    range.insertNode(fragment);
+
+                    // 삽입된 이미지 래퍼 핸들 및 드래그 바인딩
+                    wrappersToBind.forEach(wrapper => {
+                        if (typeof ensureImageWrapperStructure === 'function') ensureImageWrapperStructure(wrapper);
+                        if (typeof makeImageDraggable === 'function') makeImageDraggable(wrapper);
+                        wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
+                    });
+
+                    if (wrappersToBind.length > 0) {
+                        const last = wrappersToBind[wrappersToBind.length - 1];
+                        range.setStartAfter(last);
+                        range.collapse(true);
+                        if (selection) {
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                        }
+                    }
+
+                    if (typeof clampImagesToContainers === 'function') clampImagesToContainers(targetContainer);
+                    if (typeof normalizeMonthlyEditingLayout === 'function') normalizeMonthlyEditingLayout(targetContainer);
+                    targetContainer.dispatchEvent(new Event('input', { bubbles: true }));
+                    showMessage(`${wrappersToBind.length}개 이미지를 포함한 대상이 붙여넣기 되었습니다.`, 'success', 2000);
+                    return;
+                } catch (err) {
+                    console.error('HTML 붙여넣기 처리 중 오류 발생:', err);
+                }
+            }
+
+            // 3. 순수 텍스트, 기호, 이모지 붙여넣기 (UTF-8 100% 무손실 보존)
+            const text = clipboardData.getData('text/plain') || clipboardData.getData('text');
+            if (text) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0 && targetContainer.contains(selection.anchorNode)) {
+                    if (document.queryCommandSupported && document.queryCommandSupported('insertText')) {
+                        document.execCommand('insertText', false, text);
+                    } else {
+                        const range = selection.getRangeAt(0);
+                        range.deleteContents();
+                        const textNode = document.createTextNode(text);
+                        range.insertNode(textNode);
+                        range.setStartAfter(textNode);
                         range.collapse(true);
                         selection.removeAllRanges();
                         selection.addRange(range);
-
-                    } catch (err) {
-                        console.error('Pasted image handling failed:', err);
-                        showMessage('이미지 붙여넣기 실패', 'error');
                     }
+                    if (typeof normalizeMonthlyEditingLayout === 'function') {
+                        normalizeMonthlyEditingLayout(targetContainer);
+                    }
+                    targetContainer.dispatchEvent(new Event('input', { bubbles: true }));
                 }
-                showMessage('이미지가 성공적으로 압축 삽입되었습니다.', 'success');
             }
         }
+
+        // 전역 호환성 보장
+        const handleClipboardPaste = handleUnifiedPaste;
+
+        // 전역 복사(Ctrl+C / Cmd+C / 모바일 복사) 무결성 보증 리스너
+        function handleGlobalCopy(e) {
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                return; // 기본 input/textarea 복사 보호
+            }
+            const activeWrapper = document.querySelector('.resizable-image-wrapper.active');
+            const selection = window.getSelection();
+            const isSelectionEmptyOrCollapsed = !selection || selection.isCollapsed || selection.rangeCount === 0;
+
+            // 1. 범위 선택(Selection Range)이 텍스트/이미지를 포함하는 경우 우선 처리
+            if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const clonedContents = range.cloneContents();
+                const wrappers = clonedContents.querySelectorAll('.resizable-image-wrapper');
+
+                if (wrappers.length > 0) {
+                    e.preventDefault();
+                    wrappers.forEach(w => {
+                        w.querySelectorAll('.resize-handle-img, .item-controls').forEach(el => el.remove());
+                        w.classList.remove('active', 'selected', 'is-dragging', 'controls-active');
+                        delete w.dataset.draggableInitialized;
+                        w.removeAttribute('data-draggable-initialized');
+                    });
+                    const container = document.createElement('div');
+                    container.appendChild(clonedContents);
+                    e.clipboardData.setData('text/html', container.innerHTML);
+                    e.clipboardData.setData('text/plain', selection.toString());
+                    showMessage(`${wrappers.length}개 이미지를 포함한 대상이 복사되었습니다.`, 'info', 1800);
+                    return;
+                }
+                // 이미지가 없는 순수 텍스트/이모지/기호는 브라우저 기본 복사 처리
+                return;
+            }
+
+            // 2. 단일 이미지 클릭 활성화 상태 복사
+            if (activeWrapper && isSelectionEmptyOrCollapsed) {
+                e.preventDefault();
+                const clone = activeWrapper.cloneNode(true);
+                clone.querySelectorAll('.resize-handle-img, .item-controls').forEach(el => el.remove());
+                clone.classList.remove('active', 'selected', 'is-dragging', 'controls-active');
+                delete clone.dataset.draggableInitialized;
+                clone.removeAttribute('data-draggable-initialized');
+
+                const cleanHtml = clone.outerHTML;
+                e.clipboardData.setData('text/html', cleanHtml);
+                e.clipboardData.setData('text/plain', '[이미지]');
+                showMessage('선택한 이미지가 클립보드에 복사되었습니다.', 'info', 1800);
+                return;
+            }
+        }
+
+        // 전역 잘라내기(Ctrl+X / Cmd+X / 모바일 잘라내기) 무결성 보증 리스너
+        function handleGlobalCut(e) {
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                return; // 기본 input/textarea 잘라내기 보호
+            }
+            const activeWrapper = document.querySelector('.resizable-image-wrapper.active');
+            const selection = window.getSelection();
+            const isSelectionEmptyOrCollapsed = !selection || selection.isCollapsed || selection.rangeCount === 0;
+
+            // 1. 범위 선택 잘라내기 (이미지 포함 시)
+            if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const clonedContents = range.cloneContents();
+                const wrappers = clonedContents.querySelectorAll('.resizable-image-wrapper');
+
+                if (wrappers.length > 0) {
+                    e.preventDefault();
+                    wrappers.forEach(w => {
+                        w.querySelectorAll('.resize-handle-img, .item-controls').forEach(el => el.remove());
+                        w.classList.remove('active', 'selected', 'is-dragging', 'controls-active');
+                        delete w.dataset.draggableInitialized;
+                        w.removeAttribute('data-draggable-initialized');
+                    });
+                    const container = document.createElement('div');
+                    container.appendChild(clonedContents);
+                    e.clipboardData.setData('text/html', container.innerHTML);
+                    e.clipboardData.setData('text/plain', selection.toString());
+
+                    const commonAncestor = range.commonAncestorContainer;
+                    range.deleteContents();
+                    const target = commonAncestor.nodeType === Node.ELEMENT_NODE ? commonAncestor : commonAncestor.parentElement;
+                    if (target) {
+                        target.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    showMessage(`${wrappers.length}개 이미지를 포함한 대상이 잘라내기 되었습니다.`, 'info', 1800);
+                    return;
+                }
+                return;
+            }
+
+            // 2. 단일 이미지 클릭 활성화 상태 잘라내기
+            if (activeWrapper && isSelectionEmptyOrCollapsed) {
+                e.preventDefault();
+                const clone = activeWrapper.cloneNode(true);
+                clone.querySelectorAll('.resize-handle-img, .item-controls').forEach(el => el.remove());
+                clone.classList.remove('active', 'selected', 'is-dragging', 'controls-active');
+                delete clone.dataset.draggableInitialized;
+                clone.removeAttribute('data-draggable-initialized');
+
+                const cleanHtml = clone.outerHTML;
+                e.clipboardData.setData('text/html', cleanHtml);
+                e.clipboardData.setData('text/plain', '[이미지]');
+
+                const parent = activeWrapper.parentElement;
+                activeWrapper.remove();
+                if (currentlyActiveItemControlsElement === activeWrapper) {
+                    currentlyActiveItemControlsElement = null;
+                }
+                if (parent) {
+                    parent.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                showMessage('선택한 이미지가 잘라내기 되었습니다.', 'info', 1800);
+                return;
+            }
+        }
+
+        // 전역 복사/잘라내기 리스너 바인딩 (중복 등록 방지)
+        if (!document._clipboardListenersAttached) {
+            document.addEventListener('copy', handleGlobalCopy);
+            document.addEventListener('cut', handleGlobalCut);
+            document._clipboardListenersAttached = true;
+        }
+        // --- END: 무결성 보증 통합 복사/잘라내기/붙여넣기 글로벌 엔진 ---
 
 function clampImagesToContainers(scope = contentArea) {
             scope.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
@@ -8374,32 +9027,41 @@ function clampImagesToContainers(scope = contentArea) {
                 const titleEl = pageTitle;
                 const navigatorEl = document.getElementById('monthlyNavigatorContainer');
                 const contentEl = contentArea;
+                const headerInfo = document.getElementById('header-info-display');
 
                 if (!titleEl || !navigatorEl || !contentEl || document.body.classList.contains('is-in-iframe')) return;
 
                 requestAnimationFrame(() => {
-                    const titleHeight = titleEl.offsetHeight;
                     const isNavVisible = getComputedStyle(navigatorEl).display !== 'none';
+                    const isMobilePortrait = window.innerWidth <= 600;
+
+                    let titleTop = 0;
+                    if (isMobilePortrait && headerInfo && getComputedStyle(headerInfo).display !== 'none') {
+                        titleTop = headerInfo.offsetHeight || 26;
+                        titleEl.style.top = `${titleTop}px`;
+                    } else if (!document.body.classList.contains('true-fullscreen-active')) {
+                        titleEl.style.top = '0px';
+                    }
+
+                    const titleHeight = titleEl.offsetHeight;
+                    const navTop = titleTop + titleHeight;
 
                     let navigatorHeight = 0;
                     if (isNavVisible) {
-                        navigatorEl.style.top = `${titleHeight}px`;
+                        navigatorEl.style.top = `${navTop}px`;
 
                         if (navigatorEl.classList.contains('nav-collapsed')) {
-                            const yearNavigator = document.getElementById('yearNavigator');
-                            if (yearNavigator) {
-                                const yearNavHeight = yearNavigator.offsetHeight;
-                                navigatorHeight = yearNavHeight * 1.1;
-                            } else {
-                                navigatorHeight = navigatorEl.offsetHeight;
-                            }
+                            navigatorHeight = navigatorEl.offsetHeight;
                         } else {
                             navigatorHeight = navigatorEl.offsetHeight;
                         }
                     }
 
-                    const totalHeaderHeight = titleHeight + navigatorHeight;
-                    contentEl.style.paddingTop = `${totalHeaderHeight + 20}px`;
+                    const totalHeaderHeight = navTop + navigatorHeight;
+                    contentEl.style.setProperty('padding-top', `${totalHeaderHeight + 15}px`, 'important');
+                    if (isMobilePortrait && isNavVisible && !navigatorEl.classList.contains('nav-collapsed')) {
+                        centerCurrentMonthInNav(false);
+                    }
                 });
             }
 
@@ -9241,6 +9903,46 @@ function clampImagesToContainers(scope = contentArea) {
 
                 navContainer.style.display = 'flex';
                 setNavCollapsedState(monthlyNavigatorConfig.isNavCollapsed);
+
+                if (window.innerWidth <= 600) {
+                    requestAnimationFrame(() => {
+                        centerCurrentMonthInNav(false);
+                        setTimeout(() => centerCurrentMonthInNav(true), 120);
+                    });
+                }
+            }
+
+            function centerCurrentMonthInNav(smooth = true) {
+                const navContainer = document.getElementById('monthlyNavigatorContainer');
+                const monthLinksContainer = document.getElementById('monthLinksContainer');
+                if (!monthLinksContainer || !navContainer) return;
+                if (navContainer.classList.contains('nav-collapsed')) return;
+
+                const isMobilePortrait = window.innerWidth <= 600 || 
+                    (window.matchMedia && window.matchMedia('(max-width: 600px) and (orientation: portrait)').matches);
+                if (!isMobilePortrait) return;
+
+                const currentLink = monthLinksContainer.querySelector('.month-link.current');
+                if (!currentLink) return;
+
+                const currentItem = currentLink.closest('.navigator-status-item') || currentLink;
+                const containerWidth = monthLinksContainer.clientWidth;
+                if (containerWidth <= 0) return;
+
+                const itemLeft = currentItem.offsetLeft;
+                const itemWidth = currentItem.offsetWidth;
+
+                // 아이템의 중심점을 컨테이너의 정중앙에 정확히 일치시키는 scrollLeft 계산
+                const targetScrollLeft = Math.round(itemLeft + (itemWidth / 2) - (containerWidth / 2));
+
+                if (smooth && typeof monthLinksContainer.scrollTo === 'function') {
+                    monthLinksContainer.scrollTo({
+                        left: Math.max(0, targetScrollLeft),
+                        behavior: 'smooth'
+                    });
+                } else {
+                    monthLinksContainer.scrollLeft = Math.max(0, targetScrollLeft);
+                }
             }
 
             function setNavCollapsedState(isCollapsed) {
@@ -9254,6 +9956,11 @@ function clampImagesToContainers(scope = contentArea) {
                 toggleBtn.title = isCollapsed ? '네비게이션 펴기' : '네비게이션 접기';
 
                 adjustContainerPadding();
+                if (!isCollapsed) {
+                    requestAnimationFrame(() => {
+                        setTimeout(() => centerCurrentMonthInNav(true), 50);
+                    });
+                }
             }
 
             // --- START: 시각적 '미작성 월' 관리 기능 ---
@@ -10059,121 +10766,702 @@ function clampImagesToContainers(scope = contentArea) {
 
         
 
-            // START: 텍스트 서식 플로팅 툴바 제어 함수 (무결성 보증 개작)
-            function showTextFormatToolbar(range) {
-                const toolbar = document.getElementById('textFormatToolbar');
-                if (!toolbar) return;
-                if (!range) {
-                    hideTextFormatToolbar();
-                    return;
-                }
+            // START: 텍스트 서식 플로팅 툴바 제어 함수 (043 주간 회의 벤치마킹 동일 구현)
+        let isMouseDownOnEditor = false;
+        let selectionChangeTimeout;
+        let miniToolbarHideTimeout;
+        let activeColorMode = null; // 'foreColor' | 'backColor'
+        window.activeColorMode = activeColorMode;
 
-                const rect = range.getBoundingClientRect();
-                if (rect.width === 0 && rect.height === 0) {
-                    hideTextFormatToolbar();
-                    return;
-                }
-
-                const focusedEditor = document.getElementById('focusedEditorOverlay');
-                const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
-                const defaultParent = document.getElementById('appContainer') || document.body;
-
-                // [무결성 보증 핵심] 툴바는 오직 appContainer 또는 body 직계 자식으로만 위치시킴 (에디터 본문 내부 침투/중복 표출 원천 차단)
-                if (toolbar.parentNode !== defaultParent && toolbar.parentNode !== document.body) {
-                    defaultParent.appendChild(toolbar);
-                }
-
-                // 크기 계산을 위해 일시적으로 보임 처리
-                toolbar.style.display = 'flex';
-
-                const toolbarRect = toolbar.getBoundingClientRect();
-                const pageScrollY = window.scrollY || window.pageYOffset || 0;
-                const pageScrollX = window.scrollX || window.pageXOffset || 0;
-
-                const selTop = rect.top + pageScrollY;
-                const selLeft = rect.left + pageScrollX;
-
-                const tbHeight = toolbarRect.height || 42;
-                const tbWidth = toolbarRect.width || 230;
-
-                let targetTop = selTop - tbHeight - 10;
-                let targetLeft = selLeft + (rect.width / 2) - (tbWidth / 2);
-
-                // 화면 상단 선택영역 위 공간 부족 시 아래쪽에 배치
-                if (targetTop < pageScrollY + 4) {
-                    targetTop = selTop + rect.height + 8;
-                }
-
-                // 좌우 경계 제한 (Clamping & Mobile Viewport Support)
-                const minLeft = pageScrollX + 4;
-                const maxLeft = pageScrollX + document.documentElement.clientWidth - tbWidth - 4;
-                targetLeft = Math.max(minLeft, Math.min(maxLeft, targetLeft));
-
-                toolbar.style.position = 'absolute';
-                toolbar.style.top = `${targetTop}px`;
-                toolbar.style.left = `${targetLeft}px`;
-                toolbar.style.right = 'auto';
-                toolbar.style.bottom = 'auto';
-                toolbar.style.zIndex = isFocusedActive ? '32005' : '10005';
-                toolbar.style.display = 'flex';
-
-                updateFloatFormattingUI();
+        function showTextFormatToolbar(range) {
+            window.showTextFormatToolbar = showTextFormatToolbar;
+            const toolbar = document.getElementById('textFormatToolbar');
+            if (!toolbar) return;
+            const validSelection = getValidTextSelection();
+            if (!validSelection || !range) {
+                hideTextFormatToolbar();
+                return;
             }
 
-            function hideTextFormatToolbar(options = {}) {
-                const { clearSavedRange = true } = options;
-                const toolbar = document.getElementById('textFormatToolbar');
-                if (toolbar) {
-                    toolbar.style.display = 'none';
-                    toolbar.classList.remove('interacting');
-                }
-                if (clearSavedRange) savedRange = null;
+            const rect = range.getBoundingClientRect();
+            if (rect.width === 0 && rect.height === 0) {
+                toolbar.style.display = 'none';
+                return;
             }
 
-            function updateFloatFormattingUI() {
-                const toolbar = document.getElementById('textFormatToolbar');
-                if (!toolbar || toolbar.style.display !== 'flex') return;
+            const focusedEditor = document.getElementById('focusedEditorOverlay');
+            const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
+            
+            // [무결성 보증 핵심] 툴바는 오직 document.body 직계 자식으로만 위치시킴 (에디터 본문 내부 침투/중복 표출 원천 차단)
+            if (toolbar.parentNode !== document.body) {
+                document.body.appendChild(toolbar);
+            }
 
-                const selection = window.getSelection();
-                const focusedSurface = document.getElementById('focusedEditorSurface');
-                const isInContentArea = contentArea.contains(selection.anchorNode);
-                const isInFocusedSurface = focusedSurface && focusedSurface.contains(selection.anchorNode);
+            // 크기 계산을 위해 일시적으로 보임 처리
+            toolbar.style.display = 'flex';
 
-                if (!selection.rangeCount || (!isInContentArea && !isInFocusedSurface)) return;
+            const toolbarRect = toolbar.getBoundingClientRect();
+            const pageScrollY = window.scrollY || window.pageYOffset || 0;
+            const pageScrollX = window.scrollX || window.pageXOffset || 0;
 
-                const element = selection.anchorNode.nodeType === 1 ? selection.anchorNode : selection.anchorNode.parentElement;
-                const computedStyle = window.getComputedStyle(element);
+            const selTop = rect.top + pageScrollY;
+            const selLeft = rect.left + pageScrollX;
 
-                const btnBold = document.getElementById('floatBtnBold');
-                const btnItalic = document.getElementById('floatBtnItalic');
-                const btnUnderline = document.getElementById('floatBtnUnderline');
-                const btnStrike = document.getElementById('floatBtnStrike');
-                const inputSize = document.getElementById('floatFontSize');
-                const inputColor = document.getElementById('floatFontColor');
-                const inputBackColor = document.getElementById('floatBackColor');
+            const tbHeight = toolbarRect.height || 42;
+            const tbWidth = toolbarRect.width || 230;
 
-                if (btnBold) btnBold.classList.toggle('active', document.queryCommandState('bold'));
-                if (btnItalic) btnItalic.classList.toggle('active', document.queryCommandState('italic'));
-                if (btnUnderline) btnUnderline.classList.toggle('active', document.queryCommandState('underline'));
-                if (btnStrike) btnStrike.classList.toggle('active', document.queryCommandState('strikeThrough'));
+            let targetTop = selTop - tbHeight - 10;
+            let targetLeft = selLeft + (rect.width / 2) - (tbWidth / 2);
 
-                if (inputSize) inputSize.value = parseInt(computedStyle.fontSize) || 16;
+            // 화면 상단 선택영역 위 공간 부족 시 아래쪽에 배치
+            if (targetTop < pageScrollY + 4) {
+                targetTop = selTop + rect.height + 8;
+            }
 
-                if (inputColor) {
-                    const foreColor = document.queryCommandValue('foreColor');
-                    inputColor.value = foreColor ? rgbToHex(foreColor) : '#000000';
+            // 좌우 경계 제한 (Clamping)
+            const minLeft = pageScrollX + 4;
+            const maxLeft = pageScrollX + document.documentElement.clientWidth - tbWidth - 4;
+            targetLeft = Math.max(minLeft, Math.min(maxLeft, targetLeft));
+
+            toolbar.style.position = 'absolute';
+            toolbar.style.top = `${targetTop}px`;
+            toolbar.style.left = `${targetLeft}px`;
+            toolbar.style.right = 'auto';
+            toolbar.style.bottom = 'auto';
+            toolbar.style.zIndex = isFocusedActive ? '35000' : '10005';
+            toolbar.style.display = 'flex';
+
+            updateFloatFormattingUI();
+        }
+
+        function hideTextFormatToolbar() {
+            window.hideTextFormatToolbar = hideTextFormatToolbar;
+            const toolbar = document.getElementById('textFormatToolbar');
+            if (toolbar) {
+                toolbar.style.display = 'none';
+                toolbar.classList.remove('interacting');
+            }
+            const popover = document.getElementById('textColorPickerPopover');
+            if (popover) {
+                popover.style.display = 'none';
+            }
+            activeColorMode = null;
+            window.activeColorMode = null;
+            document.getElementById('floatFontColorBtn')?.classList.remove('active');
+            document.getElementById('floatBackColorBtn')?.classList.remove('active');
+            document.querySelectorAll('#textFormatToolbar, .text-format-toolbar').forEach(tb => {
+                tb.style.display = 'none';
+                tb.classList.remove('interacting');
+            });
+        }
+
+        function hideFloatingTextTools() {
+            hideTextFormatToolbar();
+            if (typeof hideMiniToolbar === 'function') hideMiniToolbar();
+        }
+
+        function getActiveEditingSurface() {
+            const focusedEditor = document.getElementById('focusedEditorOverlay');
+            const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
+            return isFocusedActive ? document.getElementById('focusedEditorSurface') : (typeof contentArea !== 'undefined' && contentArea ? contentArea : document.getElementById('content'));
+        }
+
+        function getValidTextSelection() {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0 || selection.isCollapsed || !selection.toString().trim()) {
+                return null;
+            }
+
+            const range = selection.getRangeAt(0);
+            const container = getActiveEditingSurface();
+            if (!container) return null;
+
+            const anchorNode = selection.anchorNode;
+            const focusNode = selection.focusNode;
+            const commonAncestor = range.commonAncestorContainer;
+            const isInsideActiveSurface =
+                container.contains(anchorNode) &&
+                container.contains(focusNode) &&
+                container.contains(commonAncestor.nodeType === Node.ELEMENT_NODE ? commonAncestor : commonAncestor.parentNode);
+
+            if (!isInsideActiveSurface) return null;
+
+            const rect = range.getBoundingClientRect();
+            if (rect.width === 0 && rect.height === 0) return null;
+            return { selection, range, container };
+        }
+
+        function syncFloatingTextToolbarVisibility() {
+            window.syncFloatingTextToolbarVisibility = syncFloatingTextToolbarVisibility;
+            const toolbar = document.getElementById('textFormatToolbar');
+            const popover = document.getElementById('textColorPickerPopover');
+            const isPopoverOpen = popover && popover.style.display !== 'none';
+
+            if (toolbar && (toolbar.contains(document.activeElement) || toolbar.classList.contains('interacting') || isPopoverOpen)) {
+                return;
+            }
+
+            const validSelection = getValidTextSelection();
+
+            if (!validSelection || isMouseDownOnEditor) {
+                if (toolbar) toolbar.classList.remove('interacting');
+                hideFloatingTextTools();
+                return;
+            }
+
+            savedRange = validSelection.range.cloneRange();
+            showTextFormatToolbar(savedRange);
+        }
+
+        function updateFloatFormattingUI() {
+            const toolbar = document.getElementById('textFormatToolbar');
+            if (!toolbar || toolbar.style.display === 'none') return;
+
+            // 텍스트 서식 툴바 내부 요소가 포커스를 가졌거나 조작 중이면 동기화로 인한 값 덮어쓰기 방지
+            if (toolbar.contains(document.activeElement) || toolbar.classList.contains('interacting')) {
+                return;
+            }
+
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            // 서식 적용 활성화 상태 파악
+            const isBold = document.queryCommandState('bold');
+            const isItalic = document.queryCommandState('italic');
+            const isUnderline = document.queryCommandState('underline');
+            const isStrike = document.queryCommandState('strikeThrough');
+
+            document.getElementById('floatBtnBold')?.classList.toggle('active', isBold);
+            document.getElementById('floatBtnItalic')?.classList.toggle('active', isItalic);
+            document.getElementById('floatBtnUnderline')?.classList.toggle('active', isUnderline);
+            document.getElementById('floatBtnStrike')?.classList.toggle('active', isStrike);
+
+            // 폰트 크기 및 색상 동기화
+            let parentEl = selection.anchorNode;
+            if (parentEl && parentEl.nodeType === Node.TEXT_NODE) {
+                parentEl = parentEl.parentNode;
+            }
+
+            if (parentEl) {
+                const style = window.getComputedStyle(parentEl);
+                
+                // 크기 동기화 (px 단위를 숫자로 변환)
+                const fontSize = parseFloat(style.fontSize);
+                const floatFontSizeInput = document.getElementById('floatFontSize');
+                if (floatFontSizeInput && fontSize) {
+                    floatFontSizeInput.value = Math.round(fontSize);
                 }
 
-                if (inputBackColor) {
-                    const backColor = document.queryCommandValue('backColor');
-                    if (backColor && backColor !== 'transparent' && backColor !== 'rgba(0, 0, 0, 0)') {
-                        inputBackColor.value = rgbToHex(backColor);
-                    } else {
-                        inputBackColor.value = '#ffffff';
+                // 색상 동기화 (RGB to Hex)
+                const fontColor = rgbToHex(style.color);
+                const floatFontColorInput = document.getElementById('floatFontColor');
+                if (floatFontColorInput && fontColor) {
+                    floatFontColorInput.value = fontColor;
+                }
+                const fontColorBar = document.getElementById('floatFontColorBar');
+                if (fontColorBar && fontColor) {
+                    fontColorBar.style.backgroundColor = fontColor;
+                }
+
+                // 배경색 동기화 (RGB to Hex)
+                const backColor = rgbToHex(style.backgroundColor);
+                const floatBackColorInput = document.getElementById('floatBackColor');
+                if (floatBackColorInput && backColor) {
+                    floatBackColorInput.value = backColor;
+                }
+                const backColorBar = document.getElementById('floatBackColorBar');
+                if (backColorBar && backColor) {
+                    backColorBar.style.backgroundColor = (backColor === '#000000' && style.backgroundColor === 'transparent') ? '#fef08a' : backColor;
+                }
+            }
+        }
+
+        function handleSelectionChangeForToolbar() {
+            clearTimeout(selectionChangeTimeout);
+            selectionChangeTimeout = setTimeout(() => {
+                clearTimeout(miniToolbarHideTimeout);
+                syncFloatingTextToolbarVisibility();
+            }, 100);
+        }
+
+        function initializeScrollTracking() {
+            const handleScroll = (event) => {
+                const surface = event.target;
+                if (surface.id === 'focusedEditorSurface' || surface === contentArea) {
+                    if (typeof currentlyActiveItemControlsElement !== 'undefined' && currentlyActiveItemControlsElement && typeof adjustControlsPosition === 'function') {
+                        adjustControlsPosition(currentlyActiveItemControlsElement);
+                    }
+                    const selection = window.getSelection();
+                    if (selection && !selection.isCollapsed && document.getElementById('textFormatToolbar') && document.getElementById('textFormatToolbar').style.display !== 'none') {
+                        showTextFormatToolbar(selection.getRangeAt(0));
+                    }
+                    const focusedEditorButton = document.getElementById('openFocusedEditorBtn');
+                    if (focusedEditorButton && focusedEditorButton.classList.contains('visible') && typeof positionFocusedEditorButton === 'function') {
+                        positionFocusedEditorButton(focusedEditorButton);
                     }
                 }
+            };
+
+            if (contentArea) contentArea.addEventListener('scroll', handleScroll, { passive: true });
+            const surface = document.getElementById('focusedEditorSurface');
+            if (surface) {
+                surface.addEventListener('scroll', handleScroll, { passive: true });
             }
-            // END: 텍스트 서식 플로팅 툴바 제어 함수
+        }
+
+        function initializeMiniToolbar() {
+            if (initializeMiniToolbar._initialized) return;
+            initializeMiniToolbar._initialized = true;
+
+            const editorSurfaces = [contentArea, document.getElementById('focusedEditorSurface')].filter(Boolean);
+
+            editorSurfaces.forEach(surface => {
+                surface.addEventListener('mousedown', () => {
+                    isMouseDownOnEditor = true;
+                });
+                surface.addEventListener('mouseup', () => {
+                    isMouseDownOnEditor = false;
+                    setTimeout(handleSelectionChangeForToolbar, 10);
+                });
+                surface.addEventListener('input', () => setTimeout(syncFloatingTextToolbarVisibility, 0));
+                surface.addEventListener('paste', () => setTimeout(syncFloatingTextToolbarVisibility, 0));
+                surface.addEventListener('scroll', hideFloatingTextTools, { passive: true });
+            });
+
+            document.addEventListener('selectionchange', handleSelectionChangeForToolbar);
+            document.addEventListener('pointerdown', (event) => {
+                const toolbar = document.getElementById('textFormatToolbar');
+                if (toolbar && (toolbar.contains(event.target) || Boolean(event.target.closest && event.target.closest('#textFormatToolbar, .text-format-toolbar, .text-color-popover')))) return;
+                const activeSurface = getActiveEditingSurface();
+                if (!activeSurface || !activeSurface.contains(event.target)) {
+                    hideFloatingTextTools();
+                } else {
+                    const popover = document.getElementById('textColorPickerPopover');
+                    if (popover && popover.style.display !== 'none') {
+                        closeColorPickerPopover();
+                    }
+                }
+            }, true);
+            document.addEventListener('keyup', (event) => {
+                if (['Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) {
+                    setTimeout(syncFloatingTextToolbarVisibility, 0);
+                }
+            });
+            window.addEventListener('blur', () => {
+                const toolbar = document.getElementById('textFormatToolbar');
+                const popover = document.getElementById('textColorPickerPopover');
+                const isPopoverOpen = popover && popover.style.display !== 'none';
+                if (toolbar && (toolbar.classList.contains('interacting') || isPopoverOpen || toolbar.contains(document.activeElement))) {
+                    return;
+                }
+                hideFloatingTextTools();
+            });
+            document.addEventListener('mouseup', () => {
+                isMouseDownOnEditor = false;
+                setTimeout(syncFloatingTextToolbarVisibility, 0);
+            });
+
+            initializeScrollTracking();
+
+            const floatToolbar = document.getElementById('textFormatToolbar');
+            if (!floatToolbar) return;
+
+            // mousedown에서 에디터 포커스 소실 방지 (단, INPUT 박스는 우회) 및 조작 상태 마킹
+            floatToolbar.addEventListener('mousedown', (e) => {
+                floatToolbar.classList.add('interacting');
+                if (e.target.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+            document.addEventListener('mouseup', () => {
+                const popover = document.getElementById('textColorPickerPopover');
+                if (!popover || popover.style.display === 'none') {
+                    floatToolbar.classList.remove('interacting');
+                }
+            });
+
+            // [무결성 핵심] 툴바 클릭 시 포커스 이동으로 인한 Selection 풀림 원천 방지
+            floatToolbar.addEventListener('mousedown', (e) => {
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                    savedRange = sel.getRangeAt(0).cloneRange();
+                }
+                if (!e.target.closest('input, select, textarea')) {
+                    e.preventDefault();
+                }
+            });
+
+            floatToolbar.addEventListener('touchstart', (e) => {
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                    savedRange = sel.getRangeAt(0).cloneRange();
+                }
+            }, { passive: true });
+
+            floatToolbar.querySelectorAll('.toolbar-btn[data-command]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const command = btn.dataset.command;
+                    applyStyleToSelection(command, null);
+                    updateFloatFormattingUI();
+                });
+            });
+
+            const floatFontSizeInput = document.getElementById('floatFontSize');
+            if (floatFontSizeInput) {
+                const handleSizeChange = (e) => {
+                    const size = parseInt(e.target.value, 10);
+                    if (size >= 10 && size <= 100) {
+                        applyStyleToSelection('fontSize', size + 'px');
+                    }
+                };
+                floatFontSizeInput.addEventListener('input', handleSizeChange);
+                floatFontSizeInput.addEventListener('change', handleSizeChange);
+            }
+
+            // START: 색상 선택 팝오버 및 실시간 즉시 반영 시스템
+            const TEXT_COLOR_PRESETS = [
+                { color: '#111827', title: '기본 검정' },
+                { color: '#4b5563', title: '진회색' },
+                { color: '#9ca3af', title: '밝은 회색' },
+                { color: '#ef4444', title: '선명한 빨강' },
+                { color: '#f97316', title: '주황' },
+                { color: '#d97706', title: '호박/갈색' },
+                { color: '#10b981', title: '초록' },
+                { color: '#06b6d4', title: '청록' },
+                { color: '#2563eb', title: '파랑' },
+                { color: '#4f46e5', title: '남색' },
+                { color: '#8b5cf6', title: '보라' },
+                { color: '#ec4899', title: '분홍/자주' }
+            ];
+
+            const BACK_COLOR_PRESETS = [
+                { color: 'transparent', title: '배경색 없음 (형광펜 지우기)', isClear: true },
+                { color: '#fef08a', title: '형광 노랑' },
+                { color: '#bbf7d0', title: '형광 초록' },
+                { color: '#bfdbfe', title: '형광 파랑' },
+                { color: '#fbcfe8', title: '형광 분홍' },
+                { color: '#fed7aa', title: '형광 주황' },
+                { color: '#e9d5ff', title: '형광 보라' },
+                { color: '#f1f5f9', title: '연한 회색' },
+                { color: '#fde047', title: '진한 노랑' },
+                { color: '#86efac', title: '진한 초록' },
+                { color: '#93c5fd', title: '진한 파랑' },
+                { color: '#fdba74', title: '진한 주황' }
+            ];
+
+            function renderColorSwatches(container, presets, mode) {
+                if (!container) return;
+                container.innerHTML = '';
+                presets.forEach(p => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'color-swatch-btn';
+                    btn.title = p.title;
+                    btn.setAttribute('aria-label', p.title);
+                    btn.dataset.color = p.color;
+
+                    if (p.isClear) {
+                        btn.style.background = 'repeating-linear-gradient(45deg, #374151, #374151 4px, #1f2937 4px, #1f2937 8px)';
+                        btn.innerHTML = '<span style="font-size:12px; color:#f87171; font-weight:bold; line-height:1;">✕</span>';
+                    } else {
+                        btn.style.backgroundColor = p.color;
+                    }
+
+                    // Selection 소실 방지를 위한 preventDefault
+                    btn.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    });
+
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        selectColor(mode, p.color);
+                        const hexInput = document.getElementById('popoverCustomColorHex');
+                        const nativeInput = document.getElementById('popoverCustomColorPicker');
+                        if (p.color && p.color !== 'transparent') {
+                            if (hexInput) hexInput.value = p.color.toUpperCase();
+                            if (nativeInput && /^#[0-9A-Fa-f]{6}$/.test(p.color)) nativeInput.value = p.color;
+                        }
+                        closeColorPickerPopover();
+                    });
+
+                    container.appendChild(btn);
+                });
+            }
+
+            function selectColor(mode, colorValue) {
+                const toolbar = document.getElementById('textFormatToolbar');
+                if (toolbar) toolbar.classList.add('interacting');
+
+                restoreSelection();
+                applyStyleToSelection(mode, colorValue);
+
+                // 인디케이터 바 동기화
+                if (mode === 'foreColor') {
+                    const bar = document.getElementById('floatFontColorBar');
+                    if (bar) bar.style.backgroundColor = (colorValue === 'inherit' || colorValue === '#000000' ? '#111827' : colorValue);
+                    const proxy = document.getElementById('floatFontColor');
+                    if (proxy) {
+                        proxy.value = (colorValue === 'inherit' || !/^#[0-9A-Fa-f]{6}$/.test(colorValue) ? '#000000' : colorValue);
+                    }
+                } else {
+                    const bar = document.getElementById('floatBackColorBar');
+                    if (bar) bar.style.backgroundColor = (colorValue === 'transparent' ? 'transparent' : colorValue);
+                    const proxy = document.getElementById('floatBackColor');
+                    if (proxy && /^#[0-9A-Fa-f]{6}$/.test(colorValue)) proxy.value = colorValue;
+                }
+
+                // 팝오버 스와치 활성 표시
+                const popover = document.getElementById('textColorPickerPopover');
+                if (popover) {
+                    popover.querySelectorAll('.color-swatch-btn').forEach(b => {
+                        b.classList.toggle('active-color', b.dataset.color === colorValue);
+                    });
+                }
+
+                // 선택 영역 재확보
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                    savedRange = sel.getRangeAt(0).cloneRange();
+                }
+            }
+
+            function positionColorPickerPopover(triggerBtn) {
+                const popover = document.getElementById('textColorPickerPopover');
+                const toolbar = document.getElementById('textFormatToolbar');
+                if (!popover || !toolbar) return;
+
+                const isMobile = window.innerWidth <= 600 || window.matchMedia('(max-width: 600px)').matches;
+                if (isMobile) {
+                    popover.classList.add('popover-above');
+                    return;
+                }
+
+                // Desktop positioning: viewport 공간 계산
+                const tbRect = toolbar.getBoundingClientRect();
+                const popoverHeight = 230;
+
+                if (tbRect.top < popoverHeight + 20) {
+                    popover.classList.remove('popover-above');
+                } else {
+                    popover.classList.add('popover-above');
+                }
+            }
+
+            function openColorPickerPopover(mode, triggerBtn) {
+                const popover = document.getElementById('textColorPickerPopover');
+                const toolbar = document.getElementById('textFormatToolbar');
+                if (!popover || !toolbar) return;
+
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                    savedRange = sel.getRangeAt(0).cloneRange();
+                }
+
+                activeColorMode = mode;
+                window.activeColorMode = activeColorMode;
+                toolbar.classList.add('interacting');
+
+                const titleEl = document.getElementById('colorPopoverTitle');
+                const quickBtn = document.getElementById('colorPopoverQuickBtn');
+                const gridEl = document.getElementById('colorPopoverGrid');
+                const hexInput = document.getElementById('popoverCustomColorHex');
+                const nativeInput = document.getElementById('popoverCustomColorPicker');
+
+                if (mode === 'foreColor') {
+                    if (titleEl) titleEl.textContent = '🎨 글자 색상 선택';
+                    if (quickBtn) {
+                        quickBtn.innerHTML = '↺ 기본 글자색 (검정) 복원';
+                        quickBtn.dataset.color = '#000000';
+                    }
+                    renderColorSwatches(gridEl, TEXT_COLOR_PRESETS, mode);
+                    if (hexInput && nativeInput) {
+                        const cur = document.getElementById('floatFontColor')?.value || '#000000';
+                        hexInput.value = cur.toUpperCase();
+                        if (/^#[0-9A-Fa-f]{6}$/.test(cur)) nativeInput.value = cur;
+                    }
+                } else {
+                    if (titleEl) titleEl.textContent = '🖍️ 배경 색상 (형광펜)';
+                    if (quickBtn) {
+                        quickBtn.innerHTML = '🚫 배경색 지우기 (투명)';
+                        quickBtn.dataset.color = 'transparent';
+                    }
+                    renderColorSwatches(gridEl, BACK_COLOR_PRESETS, mode);
+                    if (hexInput && nativeInput) {
+                        const cur = document.getElementById('floatBackColor')?.value || '#fef08a';
+                        hexInput.value = cur.toUpperCase();
+                        if (/^#[0-9A-Fa-f]{6}$/.test(cur)) nativeInput.value = cur;
+                    }
+                }
+
+                document.getElementById('floatFontColorBtn')?.classList.toggle('active', mode === 'foreColor');
+                document.getElementById('floatBackColorBtn')?.classList.toggle('active', mode === 'backColor');
+
+                popover.style.display = 'block';
+                positionColorPickerPopover(triggerBtn);
+            }
+
+            function closeColorPickerPopover() {
+                const popover = document.getElementById('textColorPickerPopover');
+                const toolbar = document.getElementById('textFormatToolbar');
+                if (popover) popover.style.display = 'none';
+                activeColorMode = null;
+                window.activeColorMode = null;
+                document.getElementById('floatFontColorBtn')?.classList.remove('active');
+                document.getElementById('floatBackColorBtn')?.classList.remove('active');
+                if (toolbar) toolbar.classList.remove('interacting');
+            }
+            window.closeColorPickerPopover = closeColorPickerPopover;
+
+            const fontColorBtn = document.getElementById('floatFontColorBtn');
+            if (fontColorBtn) {
+                fontColorBtn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    const sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                        savedRange = sel.getRangeAt(0).cloneRange();
+                    }
+                });
+                fontColorBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const popover = document.getElementById('textColorPickerPopover');
+                    if (activeColorMode === 'foreColor' && popover && popover.style.display !== 'none') {
+                        closeColorPickerPopover();
+                    } else {
+                        openColorPickerPopover('foreColor', fontColorBtn);
+                    }
+                });
+            }
+
+            const backColorBtn = document.getElementById('floatBackColorBtn');
+            if (backColorBtn) {
+                backColorBtn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    const sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                        savedRange = sel.getRangeAt(0).cloneRange();
+                    }
+                });
+                backColorBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const popover = document.getElementById('textColorPickerPopover');
+                    if (activeColorMode === 'backColor' && popover && popover.style.display !== 'none') {
+                        closeColorPickerPopover();
+                    } else {
+                        openColorPickerPopover('backColor', backColorBtn);
+                    }
+                });
+            }
+
+            const closeBtn = document.getElementById('colorPopoverCloseBtn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeColorPickerPopover();
+                });
+            }
+
+            const quickBtn = document.getElementById('colorPopoverQuickBtn');
+            if (quickBtn) {
+                quickBtn.addEventListener('mousedown', (e) => e.preventDefault());
+                quickBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const targetMode = activeColorMode;
+                    const col = quickBtn.dataset.color || (targetMode === 'foreColor' ? '#000000' : 'transparent');
+                    if (targetMode) {
+                        selectColor(targetMode, col);
+                        const hexInput = document.getElementById('popoverCustomColorHex');
+                        const nativeInput = document.getElementById('popoverCustomColorPicker');
+                        if (targetMode === 'foreColor') {
+                            if (hexInput) hexInput.value = '#000000';
+                            if (nativeInput) nativeInput.value = '#000000';
+                        }
+                    }
+                    closeColorPickerPopover();
+                });
+            }
+
+            const customPicker = document.getElementById('popoverCustomColorPicker');
+            const customHex = document.getElementById('popoverCustomColorHex');
+            const customApplyBtn = document.getElementById('popoverCustomApplyBtn');
+
+            if (customPicker && customHex) {
+                customPicker.addEventListener('input', (e) => {
+                    customHex.value = e.target.value.toUpperCase();
+                    if (activeColorMode) {
+                        selectColor(activeColorMode, e.target.value);
+                    }
+                });
+                customHex.addEventListener('input', (e) => {
+                    let val = e.target.value.trim();
+                    if (!val.startsWith('#')) val = '#' + val;
+                    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+                        customPicker.value = val;
+                        if (activeColorMode) {
+                            selectColor(activeColorMode, val);
+                        }
+                    }
+                });
+            }
+
+            if (customApplyBtn && customHex) {
+                customApplyBtn.addEventListener('mousedown', (e) => e.preventDefault());
+                customApplyBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const targetMode = activeColorMode;
+                    let val = customHex.value.trim();
+                    if (!val) {
+                        val = (targetMode === 'foreColor') ? '#000000' : 'transparent';
+                    } else if (val.toLowerCase() === 'transparent' || val === '투명') {
+                        val = 'transparent';
+                    } else {
+                        if (!val.startsWith('#')) val = '#' + val;
+                        if (/^#[0-9A-Fa-f]{3}$/.test(val)) {
+                            val = '#' + val[1] + val[1] + val[2] + val[2] + val[3] + val[3];
+                        }
+                    }
+                    if (targetMode) {
+                        if (val === 'transparent' || /^#[0-9A-Fa-f]{6}$/i.test(val) || /^#[0-9A-Fa-f]{8}$/i.test(val)) {
+                            selectColor(targetMode, val);
+                        } else {
+                            selectColor(targetMode, targetMode === 'foreColor' ? '#000000' : '#ffff00');
+                        }
+                    }
+                    closeColorPickerPopover();
+                });
+
+                customHex.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        customApplyBtn.click();
+                    }
+                });
+            }
+
+            // 하위 호환성용 proxy inputs 이벤트
+            const floatFontColorInput = document.getElementById('floatFontColor');
+            if (floatFontColorInput) {
+                floatFontColorInput.addEventListener('input', (e) => {
+                    applyStyleToSelection('foreColor', e.target.value);
+                });
+            }
+
+            const floatBackColorInput = document.getElementById('floatBackColor');
+            if (floatBackColorInput) {
+                floatBackColorInput.addEventListener('input', (e) => {
+                    applyStyleToSelection('backColor', e.target.value);
+                });
+            }
+            // END: 색상 선택 팝오버 및 실시간 즉시 반영 시스템
+        }
+        // END: 텍스트 서식 플로팅 툴바 제어 함수
 
             function handlePanelDragStart(e) {
                 const panel = e.target.closest('.floating-panel');
@@ -10898,7 +12186,16 @@ function clampImagesToContainers(scope = contentArea) {
             }
 
             function activateControls(elementToActivate, focusAndSelect = false) {
-            if (!elementToActivate) return;
+            if (!elementToActivate) {
+                if (currentlyActiveItemControlsElement) {
+                    currentlyActiveItemControlsElement.classList.remove('controls-active', 'active', 'selected');
+                    currentlyActiveItemControlsElement = null;
+                }
+                document.querySelectorAll('.resizable-image-wrapper.active, .resizable-image-wrapper.selected').forEach(w => {
+                    w.classList.remove('active', 'selected');
+                });
+                return;
+            }
             // 입력창 포커스 시 해당 입력창 요소 또는 상위 안건 노드에 대해 controls-active 적용
             if (elementToActivate.closest) {
                 const itemOwner = elementToActivate.closest('.item, .insert-area, [data-editable-type], [contenteditable="true"]');
@@ -11457,6 +12754,9 @@ function clampImagesToContainers(scope = contentArea) {
             }
 
             function handleDocumentClick(event) {
+                const textToolbar = document.getElementById('textFormatToolbar');
+                const isInsideTextToolbar = Boolean(textToolbar && (textToolbar.contains(event.target) || (event.target.closest && event.target.closest('#textFormatToolbar, .text-format-toolbar, .text-color-popover'))));
+
                 const focusedEditorOverlay = document.getElementById('focusedEditorOverlay');
                 const duplicatePanel = document.getElementById('duplicatePanel');
                 const isClickInsideAppOrGlobalControls = appContainer.contains(event.target) ||
@@ -11471,10 +12771,24 @@ function clampImagesToContainers(scope = contentArea) {
                     (selectionZoomOverlay && selectionZoomOverlay.contains(event.target)) ||
                     (document.getElementById('imageZoomOverlay') && document.getElementById('imageZoomOverlay').contains(event.target)) ||
                     (document.getElementById('imageCropOverlay') && document.getElementById('imageCropOverlay').contains(event.target)) ||
-                    (compareModeToggleBtn && compareModeToggleBtn.contains(event.target));
+                    (compareModeToggleBtn && compareModeToggleBtn.contains(event.target)) ||
+                    isInsideTextToolbar;
 
+                // 앱 내부 클릭 시 색상 팝오버 바깥 클릭이면 색상 팝오버 닫음
+                const popover = document.getElementById('textColorPickerPopover');
+                if (popover && popover.style.display !== 'none') {
+                    const isClickOnColorTrigger = Boolean(event.target.closest && event.target.closest('#floatFontColorBtn, #floatBackColorBtn, .color-picker-trigger'));
+                    if (!popover.contains(event.target) && !isClickOnColorTrigger) {
+                        if (typeof closeColorPickerPopover === 'function') {
+                            closeColorPickerPopover();
+                        } else {
+                            popover.style.display = 'none';
+                        }
+                    }
+                }
 
                 if (!isClickInsideAppOrGlobalControls) {
+                    hideFloatingTextTools();
                     if (currentlyActiveItemControlsElement) activateControls(null);
                     if (elementsForMultiZoom.length > 0) clearMultiZoomSelectionVisuals();
                     const activeImage = document.querySelector('.resizable-image-wrapper.active');
@@ -11746,56 +13060,126 @@ function clampImagesToContainers(scope = contentArea) {
             }
 
             function applyStyleToSelection(styleProperty, styleValue) {
-                restoreSelection();
+            restoreSelection();
 
-                const selection = window.getSelection();
-                if (!selection.rangeCount || selection.isCollapsed) {
-                    showMessage("먼저 텍스트를 선택하세요.", "warning");
-                    return;
-                }
-
-                document.execCommand('styleWithCSS', false, true);
-
-                if (styleProperty === 'fontSize') {
-                    const sizeMap = { "1": "10px", "2": "13px", "3": "16px", "4": "18px", "5": "24px", "6": "32px", "7": "48px" };
-                    const legacySize = Object.keys(sizeMap).find(key => sizeMap[key] === styleValue);
-
-                    if (legacySize) {
-                        document.execCommand('fontSize', false, legacySize);
-                    } else {
-                        const range = selection.getRangeAt(0);
-                        const selectedFragment = range.extractContents();
-                        const span = document.createElement('span');
-                        span.style.fontSize = styleValue;
-
-                        selectedFragment.querySelectorAll('span').forEach(s => s.style.fontSize = '');
-                        span.appendChild(selectedFragment);
-                        range.insertNode(span);
-
-                        selection.removeAllRanges();
-                        const newRange = document.createRange();
-                        newRange.selectNodeContents(span);
-                        selection.addRange(newRange);
-                    }
-                } else if (styleProperty === 'color') {
-                    document.execCommand('foreColor', false, styleValue);
-                } else if (styleProperty === 'backgroundColor') {
-                    document.execCommand('backColor', false, styleValue);
-                }
-                document.execCommand('styleWithCSS', false, false);
-                // [원초적 해결] 서식 적용 후 선택 영역 하이라이트 영구 보존
-                if (selection.rangeCount > 0 && !selection.isCollapsed) {
-                    savedRange = selection.getRangeAt(0).cloneRange();
-                    selection.removeAllRanges();
-                    selection.addRange(savedRange);
-                } else if (savedRange) {
-                    selection.removeAllRanges();
-                    selection.addRange(savedRange);
-                }
-                setTimeout(updateAllFormattingUIs, 0);
+            const selection = window.getSelection();
+            if (!selection.rangeCount || selection.isCollapsed) {
+                showMessage("먼저 텍스트를 선택하세요.", "warning");
+                return;
             }
 
-            function applyBlockStyle(styleProperty, styleValue) {
+            const focusedEditor = document.getElementById('focusedEditorOverlay');
+            const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
+            const targetEditor = isFocusedActive ? document.getElementById('focusedEditorSurface') : (typeof contentArea !== 'undefined' && contentArea ? contentArea : document.getElementById('content'));
+
+            if (styleProperty === 'fontSize') {
+                // fontSize 변경 시 execCommand('fontSize', false, '7')을 실행하여 영역을 확보한 뒤 span으로 치환
+                // CSS 스타일 인라인화를 끄고 font 태그 강제 생성을 하도록 styleWithCSS를 임시로 비활성화합니다.
+                document.execCommand('styleWithCSS', false, false);
+                document.execCommand('fontSize', false, '7');
+                if (targetEditor) {
+                    const fontTags = targetEditor.querySelectorAll('font[size="7"]');
+                    fontTags.forEach(fontEl => {
+                        // 중첩된 font-size 스타일을 가진 자식 span 노드를 찾아 제거하여 스타일 꼬임 및 오작동 해결
+                        fontEl.querySelectorAll('span').forEach(s => {
+                            s.style.fontSize = '';
+                            if (!s.getAttribute('style') || s.style.cssText.trim() === '') {
+                                const pNode = s.parentNode;
+                                while (s.firstChild) {
+                                    pNode.insertBefore(s.firstChild, s);
+                                }
+                                s.remove();
+                            }
+                        });
+
+                        fontEl.removeAttribute('size');
+                        const span = document.createElement('span');
+                        span.style.fontSize = styleValue; // 예: "16px"
+                        while (fontEl.firstChild) {
+                            span.appendChild(fontEl.firstChild);
+                        }
+                        fontEl.parentNode.replaceChild(span, fontEl);
+                        span.classList.add('temp-font-replacement');
+                    });
+                    
+                    const newSpans = targetEditor.querySelectorAll('span.temp-font-replacement');
+                    if (newSpans.length > 0) {
+                        const newRange = document.createRange();
+                        newRange.setStart(newSpans[0], 0);
+                        const lastSpan = newSpans[newSpans.length - 1];
+                        newRange.setEnd(lastSpan, lastSpan.childNodes.length);
+                        selection.removeAllRanges();
+                        selection.addRange(newRange);
+                        newSpans.forEach(s => s.classList.remove('temp-font-replacement'));
+                    }
+                }
+            } else if (styleProperty === 'color' || styleProperty === 'foreColor') {
+                document.execCommand('styleWithCSS', false, true);
+                const colorToApply = (styleValue === 'inherit' || styleValue === 'initial' || styleValue === 'black') ? '#000000' : styleValue;
+                document.execCommand('foreColor', false, colorToApply);
+            } else if (styleProperty === 'backgroundColor' || styleProperty === 'backColor') {
+                document.execCommand('styleWithCSS', false, true);
+                if (styleValue === 'transparent' || styleValue === 'none' || !styleValue) {
+                    document.execCommand('hiliteColor', false, 'transparent');
+                    try {
+                        const sel = window.getSelection();
+                        if (sel && sel.rangeCount > 0) {
+                            const range = sel.getRangeAt(0);
+                            const container = range.commonAncestorContainer;
+                            const el = container.nodeType === Node.TEXT_NODE ? container.parentElement : container;
+                            if (el && targetEditor && targetEditor.contains(el)) {
+                                el.querySelectorAll?.('[style*="background"]').forEach(s => {
+                                    s.style.backgroundColor = '';
+                                    if (!s.getAttribute('style') || s.style.cssText.trim() === '') {
+                                        const pNode = s.parentNode;
+                                        while (s.firstChild) pNode.insertBefore(s.firstChild, s);
+                                        s.remove();
+                                    }
+                                });
+                                const closestBg = el.closest('[style*="background"]');
+                                if (closestBg && targetEditor.contains(closestBg)) {
+                                    closestBg.style.backgroundColor = '';
+                                    if (!closestBg.getAttribute('style') || closestBg.style.cssText.trim() === '') {
+                                        const pNode = closestBg.parentNode;
+                                        while (closestBg.firstChild) pNode.insertBefore(closestBg.firstChild, closestBg);
+                                        closestBg.remove();
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('배경색 제거 예외:', e);
+                    }
+                } else {
+                    if (!document.execCommand('hiliteColor', false, styleValue)) {
+                        document.execCommand('backColor', false, styleValue);
+                    }
+                }
+            } else {
+                // bold, italic, underline, strikeThrough 등 기본 명령어 처리용 Fallback 추가
+                document.execCommand('styleWithCSS', false, true);
+                document.execCommand(styleProperty, false, styleValue || null);
+            }
+
+            document.execCommand('styleWithCSS', false, false);
+
+            // [원초적 해결] 서식 적용 후 선택 영역 하이라이트 영구 보존 및 강제 복원
+            if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                savedRange = selection.getRangeAt(0).cloneRange();
+                selection.removeAllRanges();
+                selection.addRange(savedRange);
+            } else if (savedRange) {
+                selection.removeAllRanges();
+                selection.addRange(savedRange);
+            }
+            if (typeof updateAllFormattingUIs === 'function') {
+                setTimeout(updateAllFormattingUIs, 0);
+            } else if (typeof updateFloatFormattingUI === 'function') {
+                setTimeout(updateFloatFormattingUI, 0);
+            }
+        }
+
+        function applyBlockStyle(styleProperty, styleValue) {
                 restoreSelection();
                 const selection = window.getSelection();
                 if (!selection.rangeCount) return;
@@ -13681,119 +15065,7 @@ function clampImagesToContainers(scope = contentArea) {
                     });
                 }
 
-                async function handleClipboardPaste(e, targetContainer) {
-                    const items = e.clipboardData && e.clipboardData.items;
-                    if (!items) return;
-
-                    let hasImage = false;
-                    const imageFiles = [];
-                    for (let i = 0; i < items.length; i++) {
-                        const item = items[i];
-                        if (item.type && item.type.indexOf('image/') !== -1) {
-                            hasImage = true;
-                            const file = item.getAsFile();
-                            if (file) {
-                                imageFiles.push(file);
-                            }
-                        }
-                    }
-
-                    if (hasImage) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        showMessage(`${imageFiles.length}개 이미지 처리 중...`, 'info', 5000);
-
-                        const processingPromises = imageFiles.map(file => {
-                            return new Promise(async (resolve) => {
-                                if (file.size > COMPRESSION_THRESHOLD) {
-                                    try {
-                                        resolve(await compressImage(file));
-                                    } catch (error) {
-                                        console.error('Clipboard image compression failed:', error);
-                                        const reader = new FileReader();
-                                        reader.onload = (ev) => resolve(ev.target.result);
-                                        reader.readAsDataURL(file);
-                                    }
-                                } else {
-                                    const reader = new FileReader();
-                                    reader.onload = (ev) => resolve(ev.target.result);
-                                    reader.readAsDataURL(file);
-                                }
-                            });
-                        });
-
-                        const base64Images = await Promise.all(processingPromises);
-                        showMessage(`${base64Images.length}개 이미지가 붙여넣기 되었습니다.`, 'success');
-
-                        const selection = window.getSelection();
-                        if (!selection.rangeCount) return;
-                        let range = selection.getRangeAt(0);
-
-                        if (!targetContainer.contains(range.commonAncestorContainer)) {
-                            targetContainer.focus();
-                            range = document.createRange();
-                            range.selectNodeContents(targetContainer);
-                            range.collapse(false);
-                            selection.removeAllRanges();
-                            selection.addRange(range);
-                        }
-
-                        const requestedImageWidth = 300;
-                        const containerWidth = Math.max(80, targetContainer.clientWidth - 8);
-                        const imageWidth = Math.min(requestedImageWidth, containerWidth);
-
-                        base64Images.forEach(imageSrc => {
-                            const wrapper = document.createElement('div');
-                            wrapper.className = 'resizable-image-wrapper';
-                            wrapper.setAttribute('contenteditable', 'false');
-                            wrapper.dataset.editableType = 'image-wrapper';
-                            wrapper.style.width = `${imageWidth}px`;
-                            wrapper.innerHTML = `
-                                <img src="${imageSrc}" alt="사용자 붙여넣기 이미지">
-                                <div class="resize-handle-img rh-top-left"></div>
-                                <div class="resize-handle-img rh-top-right"></div>
-                                <div class="resize-handle-img rh-bottom-left"></div>
-                                <div class="resize-handle-img rh-bottom-right"></div>
-                            `;
-
-                            range.insertNode(wrapper);
-                            range.setStartAfter(wrapper);
-                            range.collapse(true);
-
-                            setTimeout(() => {
-                                ensureImageWrapperStructure(wrapper);
-                                makeImageDraggable(wrapper);
-                                // generateItemControls(wrapper) 제거 (이미지 오염 방지)
-                                wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
-                                const active = targetContainer.querySelector('.resizable-image-wrapper.active');
-                                if (active && active !== wrapper) active.classList.remove('active');
-                                wrapper.classList.add('active');
-                                currentlyActiveItemControlsElement = wrapper;
-                                if (typeof normalizeMonthlyEditingLayout === 'function') {
-                                    normalizeMonthlyEditingLayout(targetContainer);
-                                }
-                                clampImagesToContainers(targetContainer);
-                            }, 0);
-                        });
-
-                        targetContainer.dispatchEvent(new Event('input', { bubbles: true }));
-                        return;
-                    }
-
-                    const text = e.clipboardData.getData('text/plain');
-                    if (text) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        const selection = window.getSelection();
-                        if (selection.rangeCount > 0 && targetContainer.contains(selection.anchorNode)) {
-                            document.execCommand('insertText', false, text);
-                            if (typeof normalizeMonthlyEditingLayout === 'function') {
-                                normalizeMonthlyEditingLayout(targetContainer);
-                            }
-                        }
-                    }
-                }
+                // (중복 handleClipboardPaste는 상단 글로벌 handleUnifiedPaste로 단일화되어 통합 관리됩니다)
 
                 function clampImagesToContainers(scope = contentArea) {
                     if (!scope) return;
@@ -14000,7 +15272,7 @@ function clampImagesToContainers(scope = contentArea) {
                 }
 
                 function cleanEditableCloneForFocusedEditor(container) {
-                    container.querySelectorAll('.item-controls, .insert-area-toggle-btn, .box-toggle-btn, .resize-handle-img, .text-format-toolbar, #textFormatToolbar, .mini-toolbar, #miniToolbar, .zoom-editor-toolbar, #zoomEditorToolbar, #imageZoomOverlay, #selectionZoomOverlay').forEach(el => el.remove());
+                    container.querySelectorAll('.item-controls, .insert-area-toggle-btn, .box-toggle-btn, .resize-handle-img, .text-format-toolbar, #textFormatToolbar, .mini-toolbar, #miniToolbar, .text-color-popover, #textColorPickerPopover, .zoom-editor-toolbar, #zoomEditorToolbar, #imageZoomOverlay, #selectionZoomOverlay').forEach(el => el.remove());
                     container.querySelectorAll('[data-draggable-initialized], [data-listener-attached]').forEach(el => {
                         el.removeAttribute('data-draggable-initialized');
                         el.removeAttribute('data-listener-attached');
@@ -15375,8 +16647,8 @@ function finishFocusedEditorSession(overlay, surface) {
                     contentArea.addEventListener('keydown', protectFlowChipBoundary, true);
                     contentArea.addEventListener('beforeinput', protectFlowChipBeforeInput, true);
 
-                    surface?.addEventListener('paste', (e) => {
-                        handleClipboardPaste(e, surface);
+                    surface?.addEventListener('paste', async (e) => {
+                        await handleUnifiedPaste(e, surface);
                     });
 
                     let modalSavedRange = null;
@@ -15751,39 +17023,7 @@ document.addEventListener('focusin', e => {
         
 
                 contentArea.addEventListener('paste', async (e) => {
-                const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
-                let hasImage = false;
-                if (items) {
-                    for (let i = 0; i < items.length; i++) {
-                        if (items[i].type.indexOf('image') !== -1) {
-                            hasImage = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (hasImage) {
-                    await handleClipboardPaste(e, contentArea);
-                } else {
-                    e.preventDefault();
-                    const text = (e.clipboardData || window.clipboardData).getData('text');
-                    if (document.queryCommandSupported('insertText')) {
-                        document.execCommand('insertText', false, text);
-                    } else {
-                        const selection = window.getSelection();
-                        if (selection.rangeCount) {
-                            const range = selection.getRangeAt(0);
-                            range.deleteContents();
-                            const textNode = document.createTextNode(text);
-                            range.insertNode(textNode);
-                            range.setStartAfter(textNode);
-                            range.collapse(true);
-                            selection.removeAllRanges();
-                            selection.addRange(range);
-                        }
-                    }
-                    requestAnimationFrame(() => processPastedImages(contentArea));
-                }
+                await handleUnifiedPaste(e, contentArea);
             });
 
             
@@ -16494,238 +17734,10 @@ document.addEventListener('focusin', e => {
 
             resetIdleTimer();
 
-                // selectionchange 이벤트 리스너 및 플로팅 툴바 로직 (043 개선 버전 병합)
-                let selectionChangeTimeout;
-                let miniToolbarHideTimeout;
-                let isMouseDownOnEditor = false;
+                // 텍스트 서식 플로팅 툴바 및 색상 팝오버 초기화 (043 주간 회의 벤치마킹)
+            initializeMiniToolbar();
 
-                function getFormattingContainer() {
-                    const focusedEditor = document.getElementById('focusedEditorOverlay');
-                    const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
-                    return isFocusedActive ? document.getElementById('focusedEditorSurface') : contentArea;
-                }
-
-                function getValidFormattingSelection(container) {
-                    const selection = window.getSelection();
-                    if (!selection || !container || !selection.rangeCount || selection.isCollapsed) return null;
-
-                    const anchorInside = selection.anchorNode && container.contains(selection.anchorNode);
-                    const focusInside = selection.focusNode && container.contains(selection.focusNode);
-                    if (!anchorInside || !focusInside) return null;
-
-                    const range = selection.getRangeAt(0);
-                    const rect = range.getBoundingClientRect();
-                    if (rect.width === 0 && rect.height === 0) return null;
-
-                    return { selection, range };
-                }
-
-                function handleSelectionChangeForToolbar() {
-                    clearTimeout(selectionChangeTimeout);
-                    selectionChangeTimeout = setTimeout(() => {
-                        clearTimeout(miniToolbarHideTimeout);
-
-                        const toolbar = document.getElementById('textFormatToolbar');
-                        const container = getFormattingContainer();
-                        const validSelection = getValidFormattingSelection(container);
-
-                        const activeEl = document.activeElement;
-                        const isEditorFocused = activeEl === container || (container && container.contains(activeEl)) || !!validSelection;
-
-                        const toolbarHasFocus = toolbar && toolbar.contains(document.activeElement);
-                        if (toolbar && (toolbar.classList.contains('interacting') || toolbarHasFocus)) {
-                            if (validSelection) {
-                                savedRange = validSelection.range.cloneRange();
-                            }
-                            if (!savedRange) {
-                                hideTextFormatToolbar();
-                            }
-                            return;
-                        }
-
-                        if (!isEditorFocused) {
-                            hideTextFormatToolbar();
-                            return;
-                        }
-
-                        if (!validSelection) {
-                            hideTextFormatToolbar();
-                            return;
-                        }
-
-                        if (isMouseDownOnEditor) {
-                            return;
-                        }
-
-                        if (container && container.contains(validSelection.selection.anchorNode)) {
-                            savedRange = validSelection.range.cloneRange();
-                            showTextFormatToolbar(savedRange);
-                        } else {
-                            miniToolbarHideTimeout = setTimeout(hideTextFormatToolbar, 200);
-                        }
-                    }, 100);
-                }
-
-                const editorSurfaces = [contentArea, document.getElementById('focusedEditorSurface')].filter(Boolean);
-                editorSurfaces.forEach(surface => {
-                    surface.addEventListener('mousedown', () => {
-                        isMouseDownOnEditor = true;
-                    });
-                    surface.addEventListener('mouseup', () => {
-                        isMouseDownOnEditor = false;
-                        setTimeout(handleSelectionChangeForToolbar, 10);
-                    });
-                });
-
-                document.addEventListener('selectionchange', handleSelectionChangeForToolbar);
-                document.addEventListener('mouseup', () => {
-                    isMouseDownOnEditor = false;
-                });
-
-                document.addEventListener('pointerdown', (event) => {
-                    const toolbar = document.getElementById('textFormatToolbar');
-                    if (!toolbar || toolbar.style.display === 'none' || toolbar.contains(event.target)) return;
-                    hideTextFormatToolbar();
-                }, true);
-
-                const handleScrollForToolbar = (event) => {
-                    const surface = event.target;
-                    if (surface.id === 'focusedEditorSurface' || surface === contentArea) {
-                        const selection = window.getSelection();
-                        if (selection && !selection.isCollapsed && document.getElementById('textFormatToolbar') && document.getElementById('textFormatToolbar').style.display !== 'none') {
-                            showTextFormatToolbar(selection.getRangeAt(0));
-                        } else {
-                            hideTextFormatToolbar();
-                        }
-                    }
-                };
-                contentArea.addEventListener('scroll', handleScrollForToolbar, { passive: true });
-                const focusedSurfaceLocal = document.getElementById('focusedEditorSurface');
-                if (focusedSurfaceLocal) {
-                    focusedSurfaceLocal.addEventListener('scroll', handleScrollForToolbar, { passive: true });
-                }
-
-                // 텍스트 포맷 플로팅 툴바 이벤트 리스너 바인딩
-                const floatToolbar = document.getElementById('textFormatToolbar');
-                if (floatToolbar) {
-                    // mousedown에서 에디터 포커스 소실 방지 및 상태 마킹
-                    floatToolbar.addEventListener('mousedown', (e) => {
-                        floatToolbar.classList.add('interacting');
-                        if (e.target.tagName !== 'INPUT') {
-                            e.preventDefault();
-                            e.stopPropagation();
-                        }
-                    });
-                    document.addEventListener('mouseup', () => {
-                        setTimeout(() => {
-                            floatToolbar.classList.remove('interacting');
-                            handleSelectionChangeForToolbar();
-                        }, 150);
-                    });
-
-                    // B, I, U, S 버튼 연동
-                    ['floatBtnBold', 'floatBtnItalic', 'floatBtnUnderline', 'floatBtnStrike'].forEach(id => {
-                        const btn = document.getElementById(id);
-                        if (btn) {
-                            btn.addEventListener('click', () => {
-                                const command = btn.getAttribute('data-command');
-                                restoreSelection();
-                                executeFormatCommand(command);
-                                updateFloatFormattingUI();
-                            });
-                        }
-                    });
-
-                    // 글자 크기 변경
-                    const floatFontSizeInput = document.getElementById('floatFontSize');
-                    if (floatFontSizeInput) {
-                        const applyFloatSize = (val) => {
-                            restoreSelection();
-                            changeFontSize(val);
-                        };
-                        
-                        floatFontSizeInput.addEventListener('change', (e) => {
-                            applyFloatSize(e.target.value);
-                            updateFloatFormattingUI();
-                        });
-                        floatFontSizeInput.addEventListener('keydown', (e) => {
-                            if (e.key === 'Enter') {
-                                applyFloatSize(e.target.value);
-                                updateFloatFormattingUI();
-                                e.target.blur();
-                            }
-                        });
-
-                        const floatBtnSizeDown = document.getElementById('floatBtnSizeDown');
-                        const floatBtnSizeUp = document.getElementById('floatBtnSizeUp');
-                        if (floatBtnSizeDown && floatBtnSizeUp) {
-                            const adjustSize = (delta) => {
-                                let currentVal = parseInt(floatFontSizeInput.value, 10) || 16;
-                                let newVal = currentVal + delta;
-                                if (newVal < 8) newVal = 8;
-                                if (newVal > 72) newVal = 72;
-                                floatFontSizeInput.value = newVal;
-                                applyFloatSize(newVal);
-                                
-                                const focusedEditor = document.getElementById('focusedEditorOverlay');
-                                const isFocusedActive = focusedEditor && focusedEditor.classList.contains('active');
-                                const container = isFocusedActive ? document.getElementById('focusedEditorSurface') : contentArea;
-                                if (container) {
-                                    container.focus();
-                                    restoreSelection();
-                                }
-
-                                updateFloatFormattingUI();
-                            };
-
-                            [floatBtnSizeDown, floatBtnSizeUp].forEach(btn => {
-                                btn.addEventListener('mousedown', (e) => {
-                                    e.preventDefault(); // 에디터의 포커스를 잃지 않도록 mousedown 방지
-                                });
-                            });
-
-                            floatBtnSizeDown.addEventListener('click', (e) => {
-                                e.preventDefault();
-                                adjustSize(-1);
-                            });
-
-                            floatBtnSizeUp.addEventListener('click', (e) => {
-                                e.preventDefault();
-                                adjustSize(1);
-                            });
-                        }
-                    }
-
-                    // 글자 색상 변경
-                    const floatFontColorInput = document.getElementById('floatFontColor');
-                    if (floatFontColorInput) {
-                        floatFontColorInput.addEventListener('input', (e) => {
-                            restoreSelection();
-                            changeFontColor(e.target.value);
-                        });
-                        floatFontColorInput.addEventListener('change', (e) => {
-                            restoreSelection();
-                            changeFontColor(e.target.value);
-                            updateFloatFormattingUI();
-                        });
-                    }
-
-                    // 글자 배경색 변경
-                    const floatBackColorInput = document.getElementById('floatBackColor');
-                    if (floatBackColorInput) {
-                        floatBackColorInput.addEventListener('input', (e) => {
-                            restoreSelection();
-                            changeBackColor(e.target.value);
-                        });
-                        floatBackColorInput.addEventListener('change', (e) => {
-                            restoreSelection();
-                            changeBackColor(e.target.value);
-                            updateFloatFormattingUI();
-                        });
-                    }
-                }
-
-                processPastedImages(contentArea);
+            processPastedImages(contentArea);
                 normalizeMonthlyEditingLayout(contentArea);
                 clampImagesToContainers(contentArea);
                 initializeFocusedEditorFeature();
@@ -16817,6 +17829,9 @@ document.addEventListener('focusin', e => {
             initializeCollapsibleElements();
 
             document.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
+                if (typeof ensureImageWrapperStructure === 'function') {
+                    ensureImageWrapperStructure(wrapper);
+                }
                 makeImageDraggable(wrapper);
                 // Migration for old format and standard loading
                 const img = wrapper.querySelector('img');
@@ -16872,9 +17887,16 @@ document.addEventListener('focusin', e => {
             window.addEventListener('resize', () => {
                 adjustContainerPadding();
                 setupAnnotationCanvas();
+                centerCurrentMonthInNav(false);
                 if (document.body.classList.contains('image-zoom-active')) {
                     resizeZoomCanvas();
                 }
+            });
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => {
+                    adjustContainerPadding();
+                    centerCurrentMonthInNav(false);
+                }, 100);
             });
 
             // 확대 편집 닫기 버튼 이벤트 리스너 추가
@@ -17115,13 +18137,10 @@ document.addEventListener('focusin', e => {
                 touch-action: manipulation;
             }
 
-            #weeklyNavigatorContainer button,
-            #monthlyNavigatorContainer button,
-            #prevYearBtn,
-            #nextYearBtn,
+            #weeklyNavigatorContainer button:not(.navigator-status-toggle),
+            #monthlyNavigatorContainer button:not(.navigator-status-toggle):not(#navToggleBtn):not(#prevYearBtn):not(#nextYearBtn),
             #prevMonthBtn,
             #nextMonthBtn,
-            #navToggleBtn,
             #floatingMenuToggleBtn,
             #compareModeToggleBtn,
             #trueFullscreenBtn,
