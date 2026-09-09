@@ -15589,12 +15589,92 @@ function clampImagesToContainers(scope = contentArea) {
                         return {
                             dialog: document.getElementById('focusedEditorDialog'),
                             toggle: document.getElementById('focusedEditorMasterToggle'),
-                            surface: document.getElementById('focusedEditorSurface')
+                            surface: document.getElementById('focusedEditorSurface'),
+                            body: document.getElementById('focusedEditorBody'),
+                            overlay: document.getElementById('focusedEditorOverlay')
                         };
                     }
 
-                    function render(nextVisible = isHeadersVisible) {
-                        const { dialog, toggle, surface } = getElements();
+                    function moveCursorAndScrollToTop(surface, body, dialog, overlay) {
+                        if (!surface) return;
+
+                        // 1. 스크롤 컨테이너 최상단(오프셋 0)으로 강제 이동
+                        if (body) {
+                            body.scrollTop = 0;
+                            body.scrollLeft = 0;
+                        }
+                        if (dialog) {
+                            dialog.scrollTop = 0;
+                            dialog.scrollLeft = 0;
+                        }
+                        if (overlay) {
+                            overlay.scrollTop = 0;
+                            overlay.scrollLeft = 0;
+                        }
+                        surface.scrollTop = 0;
+                        surface.scrollLeft = 0;
+
+                        // 2. 텍스트 커서(캐럿)를 확대 편집 모드 본문 최상단(첫 글자/요소 앞)으로 자동 이동
+                        try {
+                            surface.focus({ preventScroll: true });
+                        } catch (e) {
+                            surface.focus();
+                        }
+
+                        const selection = window.getSelection();
+                        if (selection) {
+                            const range = document.createRange();
+                            let targetNode = surface;
+                            let targetOffset = 0;
+                            let node = surface.firstChild;
+
+                            while (node) {
+                                if (node.nodeType === Node.TEXT_NODE) {
+                                    targetNode = node;
+                                    targetOffset = 0;
+                                    break;
+                                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                                    if (node.childNodes && node.childNodes.length > 0) {
+                                        node = node.firstChild;
+                                    } else {
+                                        targetNode = node;
+                                        targetOffset = 0;
+                                        break;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+
+                            try {
+                                range.setStart(targetNode, targetOffset);
+                                range.collapse(true);
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                            } catch (err) {
+                                range.selectNodeContents(surface);
+                                range.collapse(true);
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                            }
+                        }
+
+                        // 3. 커서 배치 후 추가 스크롤 최상단 고정 (브라우저 기본 focus 스크롤 동작 및 리플로우 방어)
+                        if (body) {
+                            body.scrollTop = 0;
+                            body.scrollLeft = 0;
+                        }
+                        if (dialog) {
+                            dialog.scrollTop = 0;
+                        }
+                        if (overlay) {
+                            overlay.scrollTop = 0;
+                        }
+                        surface.scrollTop = 0;
+                    }
+
+                    function render(nextVisible = isHeadersVisible, shouldScrollToTop = true) {
+                        const { dialog, toggle, surface, body, overlay } = getElements();
                         isHeadersVisible = nextVisible;
                         if (dialog) dialog.classList.toggle('focused-editor-chrome-hidden', !isHeadersVisible);
                         if (toggle) {
@@ -15602,18 +15682,32 @@ function clampImagesToContainers(scope = contentArea) {
                             toggle.setAttribute('title', isHeadersVisible ? '전체 헤더 숨기기 (-)' : '전체 헤더 보이기 (+)');
                             toggle.setAttribute('aria-pressed', String(!isHeadersVisible));
                         }
-                        if (surface) requestAnimationFrame(() => surface.focus());
+
+                        if (surface) {
+                            if (shouldScrollToTop) {
+                                // 즉시 1차 적용
+                                moveCursorAndScrollToTop(surface, body, dialog, overlay);
+                                // 레이아웃 리플로우 및 모바일/데스크탑 렌더링 완료 후 2차/3차 방어
+                                requestAnimationFrame(() => {
+                                    moveCursorAndScrollToTop(surface, body, dialog, overlay);
+                                    setTimeout(() => moveCursorAndScrollToTop(surface, body, dialog, overlay), 30);
+                                    setTimeout(() => moveCursorAndScrollToTop(surface, body, dialog, overlay), 80);
+                                });
+                            } else {
+                                requestAnimationFrame(() => surface.focus());
+                            }
+                        }
                     }
 
                     function bind() {
                         const { toggle } = getElements();
                         if (!toggle || isBound) return;
-                        toggle.addEventListener('click', () => render(!isHeadersVisible));
+                        toggle.addEventListener('click', () => render(!isHeadersVisible, true));
                         isBound = true;
                     }
 
                     function reset() {
-                        render(true);
+                        render(true, false);
                     }
 
                     return Object.freeze({ bind, reset, render });

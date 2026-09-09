@@ -3969,7 +3969,7 @@
 
         #focusedEditorDialog.focused-editor-chrome-hidden #focusedEditorSurface {
             min-height: 100%;
-            height: 100%;
+            height: auto;
             border: 0;
             border-radius: 0;
             padding: 24px;
@@ -14954,12 +14954,76 @@ function ensureImageWrapperStructure(wrapper) {
                 return {
                     dialog: document.getElementById('focusedEditorDialog'),
                     toggle: document.getElementById('focusedEditorMasterToggle'),
-                    surface: document.getElementById('focusedEditorSurface')
+                    surface: document.getElementById('focusedEditorSurface'),
+                    body: document.getElementById('focusedEditorBody')
                 };
             }
 
-            function render(nextVisible = isHeadersVisible) {
-                const { dialog, toggle, surface } = getElements();
+            // [무결성 보증] 확대 편집 모드에서 '전체 헤더 숨기기/보이기' 토글 시
+            // 화면 스크롤과 텍스트 커서(캐럿)를 최상단 맨 처음 위치로 완벽 자동 이동
+            function scrollToTopAndMoveCaretToTop(surface, body, dialog) {
+                if (!surface) return;
+
+                // 1. 텍스트 커서(캐럿)를 최상단 맨 처음 위치로 이동
+                try {
+                    surface.focus({ preventScroll: true });
+                    const sel = window.getSelection();
+                    if (sel) {
+                        sel.removeAllRanges();
+                        const range = document.createRange();
+                        if (surface.firstChild) {
+                            range.setStart(surface.firstChild, 0);
+                            range.setEnd(surface.firstChild, 0);
+                        } else {
+                            range.setStart(surface, 0);
+                            range.setEnd(surface, 0);
+                        }
+                        range.collapse(true);
+                        sel.addRange(range);
+                    }
+                } catch (e) {
+                    try {
+                        const sel = window.getSelection();
+                        if (sel) {
+                            sel.removeAllRanges();
+                            const range = document.createRange();
+                            range.selectNodeContents(surface);
+                            range.collapse(true);
+                            sel.addRange(range);
+                        }
+                    } catch (err) {}
+                }
+
+                // 2. 스크롤 컨테이너(#focusedEditorBody, #focusedEditorSurface, #focusedEditorDialog) 모두 최상단으로 강제 스크롤
+                if (body) {
+                    body.scrollTop = 0;
+                    body.scrollLeft = 0;
+                    if (typeof body.scrollTo === 'function') body.scrollTo(0, 0);
+                }
+                surface.scrollTop = 0;
+                surface.scrollLeft = 0;
+                if (typeof surface.scrollTo === 'function') surface.scrollTo(0, 0);
+                if (dialog) {
+                    dialog.scrollTop = 0;
+                    if (typeof dialog.scrollTo === 'function') dialog.scrollTo(0, 0);
+                }
+
+                // 3. 최상단 요소 뷰포트 정렬
+                const firstEl = surface.firstElementChild || surface;
+                if (firstEl && typeof firstEl.scrollIntoView === 'function') {
+                    try {
+                        firstEl.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'instant' });
+                    } catch (e) {
+                        try { firstEl.scrollIntoView(true); } catch (err) {}
+                    }
+                }
+
+                if (body) body.scrollTop = 0;
+                surface.scrollTop = 0;
+            }
+
+            function render(nextVisible = isHeadersVisible, shouldScrollToTop = true) {
+                const { dialog, toggle, surface, body } = getElements();
                 isHeadersVisible = nextVisible;
                 if (dialog) dialog.classList.toggle('focused-editor-chrome-hidden', !isHeadersVisible);
                 if (toggle) {
@@ -14967,18 +15031,29 @@ function ensureImageWrapperStructure(wrapper) {
                     toggle.setAttribute('title', isHeadersVisible ? '전체 헤더 숨기기 (-)' : '전체 헤더 보이기 (+)');
                     toggle.setAttribute('aria-pressed', String(!isHeadersVisible));
                 }
-                if (surface) requestAnimationFrame(() => surface.focus());
+
+                if (shouldScrollToTop) {
+                    scrollToTopAndMoveCaretToTop(surface, body, dialog);
+                    requestAnimationFrame(() => {
+                        scrollToTopAndMoveCaretToTop(surface, body, dialog);
+                    });
+                    setTimeout(() => {
+                        scrollToTopAndMoveCaretToTop(surface, body, dialog);
+                    }, 30);
+                } else {
+                    if (surface) requestAnimationFrame(() => surface.focus());
+                }
             }
 
             function bind() {
                 const { toggle } = getElements();
                 if (!toggle || isBound) return;
-                toggle.addEventListener('click', () => render(!isHeadersVisible));
+                toggle.addEventListener('click', () => render(!isHeadersVisible, true));
                 isBound = true;
             }
 
             function reset() {
-                render(true);
+                render(true, false);
             }
 
             return Object.freeze({ bind, reset, render });
