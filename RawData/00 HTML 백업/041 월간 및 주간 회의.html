@@ -15231,8 +15231,21 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             checkAndActivateRemoteMeetingFiles(year, month);
         }
 
-        const remoteMeetingCheckCache = new Map();
-        const REMOTE_CHECK_CACHE_TTL_MS = 60000; // 60초 내 동일 키 중복 네트워크 요청 방지
+        // 🔧 [수정] sessionStorage 기반 캐시 — 새로고침 후에도 60초 TTL 유지
+        //   기존 Map은 새로고침 시 초기화되어 HEAD 요청이 매번 누적 발생하는 버그였음
+        const REMOTE_CHECK_CACHE_TTL_MS = 60000;
+        const _RMCC_SK = 'rmcc_v1';
+        const remoteMeetingCheckCache = (() => {
+            function _ld() { try { return JSON.parse(sessionStorage.getItem(_RMCC_SK) || '{}'); } catch { return {}; } }
+            function _sv(d) { try { sessionStorage.setItem(_RMCC_SK, JSON.stringify(d)); } catch {} }
+            return {
+                get(k) { const d = _ld(); return d[k]; },
+                set(k, v) { const d = _ld(); d[k] = v; _sv(d); },
+                has(k) { return _ld()[k] !== undefined; },
+                delete(k) { const d = _ld(); delete d[k]; _sv(d); },
+                clear() { sessionStorage.removeItem(_RMCC_SK); }
+            };
+        })();
 
         async function checkAndActivateRemoteMeetingFiles(year, month) {
             const targetYear = Number(year);
@@ -15244,7 +15257,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
             const paddedMonth = String(targetMonth).padStart(2, '0');
             const nowTime = Date.now();
-            const cacheBuster = `?_t=${nowTime}`;
+            // 🔧 [수정] cacheBuster 제거 — 타임스탬프가 브라우저 캐시를 무력화하여 새로고침마다 HEAD 요청 누적 발생
+            const cacheBuster = ''; // 비활성화 (sessionStorage TTL 캐시로 대체)
 
             // 1. 📅 월간 회의록 원격 파일 실시간 검증 및 양방향 정합화 (wyggkr)
             const monthlyCard = document.getElementById('monthly-report-card');
@@ -15263,7 +15277,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     const monthlyPagesUrl = `https://jonggunelee.github.io/wyggkr/${targetYear}/${expectedMonthlyFileName}`;
 
                     try {
-                        const mRes = await fetch(monthlyRawUrl, { method: 'HEAD', cache: 'no-store' });
+                        // 🔧 [수정] cache: 'default'로 변경 — 브라우저 HTTP ETag 캐시 활용
+                        const mRes = await fetch(monthlyRawUrl, { method: 'HEAD', cache: 'default' });
                         remoteMeetingCheckCache.set(monthlyKey, { time: nowTime, status: mRes.status });
                         if (mRes.ok) {
                             // [실제 파일 확인됨: 200 OK] -> 카드 즉시 활성화 및 '작성' 승격
@@ -15384,7 +15399,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     const pagesUrl = `https://jonggunelee.github.io/wyggkr03/${targetYear}/${expectedFileName}`;
 
                     try {
-                        const res = await fetch(rawUrl, { method: 'HEAD', cache: 'no-store' });
+                        // 🔧 [수정] cache: 'default'로 변경 — 브라우저 HTTP ETag 캐시 활용
+                        const res = await fetch(rawUrl, { method: 'HEAD', cache: 'default' });
                         remoteMeetingCheckCache.set(key, { time: nowTime, status: res.status });
                         if (res.ok) {
                             // [실제 파일 확인됨: 200 OK] -> 카드 즉시 활성화 및 '작성' 승격
