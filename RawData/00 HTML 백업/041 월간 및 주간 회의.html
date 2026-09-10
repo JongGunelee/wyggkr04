@@ -8072,6 +8072,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             backface-visibility: hidden;
             transition: transform 0.6s cubic-bezier(0.45, 0, 0.55, 1), opacity 0.5s ease-in-out;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -11757,8 +11759,15 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 cursor: pointer !important;
             }
 
+            #view-wrapper {
+                touch-action: pan-y;
+            }
+
             .view {
-                padding: 4px 8px 16px;
+                padding: 6px 8px 16px;
+                -webkit-overflow-scrolling: touch;
+                touch-action: pan-y;
+                overscroll-behavior-y: contain;
             }
 
             #month-view {
@@ -11768,6 +11777,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
             #month-view-actions {
                 gap: 8px;
+                margin-top: 2px;
                 margin-bottom: 2px;
             }
 
@@ -15204,7 +15214,13 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 setTimeout(() => {
                     const currentWeekCard = document.querySelector('.week-card.current');
                     if (currentWeekCard) {
-                        currentWeekCard.closest('.week-card-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        const isMobilePortrait = window.matchMedia('(max-width: 600px) and (orientation: portrait)').matches;
+                        if (!isMobilePortrait) {
+                            currentWeekCard.closest('.week-card-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        } else {
+                            const monthView = document.getElementById('month-view');
+                            if (monthView) monthView.scrollTop = 0;
+                        }
                         currentWeekCard.classList.add('card-highlight');
                         setTimeout(() => { currentWeekCard.classList.remove('card-highlight'); }, 2500);
                     }
@@ -15215,6 +15231,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             checkAndActivateRemoteMeetingFiles(year, month);
         }
 
+        const remoteMeetingCheckCache = new Map();
+        const REMOTE_CHECK_CACHE_TTL_MS = 60000; // 60초 내 동일 키 중복 네트워크 요청 방지
+
         async function checkAndActivateRemoteMeetingFiles(year, month) {
             const targetYear = Number(year);
             const targetMonth = Number(month);
@@ -15224,14 +15243,17 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             updateMeetingProgressInsightsPeriod();
 
             const paddedMonth = String(targetMonth).padStart(2, '0');
-            const cacheBuster = `?_t=${Date.now()}`;
+            const nowTime = Date.now();
+            const cacheBuster = `?_t=${nowTime}`;
 
             // 1. 📅 월간 회의록 원격 파일 실시간 검증 및 양방향 정합화 (wyggkr)
             const monthlyCard = document.getElementById('monthly-report-card');
             let monthlyChanged = false;
             if (monthlyCard) {
                 const monthlyKey = `${targetYear}-${targetMonth}`;
-                if (!cardStatusSyncStates.has(monthlyKey)) {
+                const cachedMonthly = remoteMeetingCheckCache.get(monthlyKey);
+                const isMonthlyCacheFresh = cachedMonthly && (nowTime - cachedMonthly.time < REMOTE_CHECK_CACHE_TTL_MS);
+                if (!cardStatusSyncStates.has(monthlyKey) && !isMonthlyCacheFresh) {
                     const monthlyToggleBtn = monthlyCard.querySelector('.card-status-toggle');
                     const monthlyCutoff = new Date(2025, 5, 1);
                     const mDate = new Date(targetYear, targetMonth - 1, 1);
@@ -15242,6 +15264,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
                     try {
                         const mRes = await fetch(monthlyRawUrl, { method: 'HEAD', cache: 'no-store' });
+                        remoteMeetingCheckCache.set(monthlyKey, { time: nowTime, status: mRes.status });
                         if (mRes.ok) {
                             // [실제 파일 확인됨: 200 OK] -> 카드 즉시 활성화 및 '작성' 승격
                             if (monthlyCard.classList.contains('not-written') || monthlyCard.dataset.href !== monthlyPagesUrl) {
@@ -15347,6 +15370,11 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     const w = parts[2];
                     if (!w) return;
 
+                    const cachedWeekly = remoteMeetingCheckCache.get(key);
+                    if (cachedWeekly && (nowTime - cachedWeekly.time < REMOTE_CHECK_CACHE_TTL_MS)) {
+                        return;
+                    }
+
                     const paddedWeek = String(w).padStart(2, '0');
                     const wCutoff = new Date(2025, 5, 8);
                     const wDate = new Date(targetYear, targetMonth - 1, w * 7);
@@ -15357,6 +15385,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
                     try {
                         const res = await fetch(rawUrl, { method: 'HEAD', cache: 'no-store' });
+                        remoteMeetingCheckCache.set(key, { time: nowTime, status: res.status });
                         if (res.ok) {
                             // [실제 파일 확인됨: 200 OK] -> 카드 즉시 활성화 및 '작성' 승격
                             if (card.classList.contains('not-written') || card.dataset.href !== pagesUrl) {
@@ -16438,9 +16467,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         async function fetchTemplateFromURL(url, type) {
             try {
                 const response = await fetch(url, { cache: "no-store" });
-                if (!response.ok) { console.error(`'${type}' 템플릿 로딩 실패: ${response.status}. URL: ${url}`); return ``; }
+                if (!response.ok) { console.warn(`'${type}' 템플릿 로딩 안내: ${response.status}. URL: ${url}`); return ``; }
                 return await response.text();
-            } catch (error) { console.error(`'${type}' 템플릿 로딩 중 네트워크 오류. URL: ${url}`, error); return ``; }
+            } catch (error) { console.warn(`'${type}' 템플릿 로딩 중 네트워크 안내. URL: ${url}`, error); return ``; }
         }
 
         function appendHighlightedText(container, text, regex) {
@@ -16527,7 +16556,13 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             setTimeout(() => {
                 const currentWeekCard = document.querySelector('.week-card.current');
                 if (currentWeekCard) {
-                    currentWeekCard.closest('.week-card-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const isMobilePortrait = window.matchMedia('(max-width: 600px) and (orientation: portrait)').matches;
+                    if (!isMobilePortrait) {
+                        currentWeekCard.closest('.week-card-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else {
+                        const monthView = document.getElementById('month-view');
+                        if (monthView) monthView.scrollTop = 0;
+                    }
                     currentWeekCard.classList.add('card-highlight');
                     setTimeout(() => { currentWeekCard.classList.remove('card-highlight'); }, 2000);
                 }
@@ -18183,7 +18218,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
             document.addEventListener('pointerdown', (e) => {
                 const bothLocked = isControlBubbleGroupLocked('left') && isControlBubbleGroupLocked('right');
-                if (e.button !== 0 || isInteractiveTarget(e.target) || bothLocked) return;
+                if (e.pointerType !== 'mouse' || e.button !== 0 || isInteractiveTarget(e.target) || bothLocked) return;
 
                 startX = e.clientX;
                 startY = e.clientY;
