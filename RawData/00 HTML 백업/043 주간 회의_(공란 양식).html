@@ -1209,6 +1209,10 @@
             margin: 10px 0;
             border-radius: 4px;
             position: relative;
+            max-height: min(45vh, 400px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-gutter: stable;
         }
 
         .action-item-block.completed {
@@ -1237,6 +1241,10 @@
         .action-item-task {
             flex-grow: 1;
             font-weight: 500;
+            max-height: min(35vh, 320px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            word-break: break-word;
         }
 
         .action-item-details {
@@ -1345,25 +1353,43 @@
             transition: all 0.2s ease-in-out;
         }
 
-        .insert-area.collapsed {
-            min-height: 0;
-            max-height: 22px;
-            padding-top: 2px;
-            padding-bottom: 2px;
-            border-top: 1px dashed #ddd;
-            border-bottom: 1px dashed #ddd;
-            border-left: 1px solid #ccc;
-            border-right: 1px solid #ccc;
-            overflow: hidden;
-            white-space: nowrap;
-            color: #aaa;
+        .insert-area.collapsed,
+        .insert-area.collapsed:focus,
+        .insert-area.collapsed:has(.resizable-image-wrapper, img) {
+            min-height: 24px !important;
+            max-height: 24px !important;
+            height: 24px !important;
+            padding-top: 2px !important;
+            padding-bottom: 2px !important;
+            padding-left: 8px !important;
+            padding-right: 8px !important;
+            border-top: 1px dashed #ddd !important;
+            border-bottom: 1px dashed #ddd !important;
+            border-left: 1px solid #ccc !important;
+            border-right: 1px solid #ccc !important;
+            overflow: hidden !important;
+            overflow-y: hidden !important;
+            overflow-x: hidden !important;
+            white-space: nowrap !important;
+            text-overflow: ellipsis !important;
+            color: #888 !important;
+            line-height: 20px !important;
+            box-sizing: border-box !important;
+            cursor: pointer;
         }
 
-        /* [무결성 보증] 이미지를 포함한 줄노트 입력란은 어떠한 경우에도 22px 한줄로 축소/절단되지 않음 */
-        .insert-area:has(.resizable-image-wrapper, img) {
-            max-height: none !important;
+        .insert-area.collapsed .resizable-image-wrapper,
+        .insert-area.collapsed img,
+        .insert-area.collapsed .item-controls {
+            display: none !important;
+        }
+
+        /* [무결성 보증] 이미지를 포함한 줄노트 입력란은 펼침 상태에서 반응형 높이 제한 및 스크롤바 유지 */
+        .insert-area:not(.collapsed):has(.resizable-image-wrapper, img) {
             min-height: 50px !important;
-            overflow: visible !important;
+            max-height: min(52vh, 480px) !important;
+            overflow-y: auto !important;
+            overflow-x: hidden;
             white-space: normal !important;
         }
 
@@ -3915,18 +3941,71 @@
             white-space: pre-wrap;
         }
 
-        .insert-area {
+        .insert-area:not(.collapsed) {
             line-height: 1.75;
-            max-height: min(52vh, 560px);
-            overflow: auto;
+            max-height: min(52vh, 480px);
+            overflow-y: auto;
+            overflow-x: hidden;
             scrollbar-gutter: stable;
             text-align: left !important;
             justify-content: flex-start !important;
             align-items: flex-start !important;
         }
 
-        .insert-area:focus {
+        .insert-area:not(.collapsed):focus {
             min-height: 180px;
+        }
+
+        .item,
+        .default-shape-item {
+            max-height: min(45vh, 400px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            word-break: break-word;
+        }
+
+        /* 입력창 세로 스크롤바 일관성 디자인 (모바일 세로 모드 및 데스크탑 공용) */
+        .insert-area,
+        .action-item-block,
+        .action-item-task,
+        .item,
+        .default-shape-item {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+
+        .insert-area::-webkit-scrollbar,
+        .action-item-block::-webkit-scrollbar,
+        .action-item-task::-webkit-scrollbar,
+        .item::-webkit-scrollbar,
+        .default-shape-item::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .insert-area::-webkit-scrollbar-track,
+        .action-item-block::-webkit-scrollbar-track,
+        .action-item-task::-webkit-scrollbar-track,
+        .item::-webkit-scrollbar-track,
+        .default-shape-item::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .insert-area::-webkit-scrollbar-thumb,
+        .action-item-block::-webkit-scrollbar-thumb,
+        .action-item-task::-webkit-scrollbar-thumb,
+        .item::-webkit-scrollbar-thumb,
+        .default-shape-item::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .insert-area::-webkit-scrollbar-thumb:hover,
+        .action-item-block::-webkit-scrollbar-thumb:hover,
+        .action-item-task::-webkit-scrollbar-thumb:hover,
+        .item::-webkit-scrollbar-thumb:hover,
+        .default-shape-item::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         .section-header.pr-section {
@@ -4425,12 +4504,60 @@
                 top: -18px;
             }
 
-            .insert-area {
+            .insert-area:not(.collapsed) {
                 min-height: 120px;
-                max-height: 58vh;
+                max-height: min(48vh, 420px) !important;
                 padding: 10px;
                 font-size: 16px;
                 line-height: 1.8;
+                overflow-y: auto !important;
+                overflow-x: hidden;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .insert-area:not(.collapsed):has(.resizable-image-wrapper, img) {
+                max-height: min(48vh, 420px) !important;
+                overflow-y: auto !important;
+                overflow-x: hidden;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .insert-area.collapsed,
+            .insert-area.collapsed:focus,
+            .insert-area.collapsed:has(.resizable-image-wrapper, img) {
+                min-height: 26px !important;
+                max-height: 26px !important;
+                height: 26px !important;
+                padding-top: 2px !important;
+                padding-bottom: 2px !important;
+                padding-left: 6px !important;
+                padding-right: 6px !important;
+                overflow: hidden !important;
+                overflow-y: hidden !important;
+                overflow-x: hidden !important;
+                white-space: nowrap !important;
+                text-overflow: ellipsis !important;
+                line-height: 22px !important;
+                box-sizing: border-box !important;
+            }
+
+            .action-item-block {
+                max-height: min(45vh, 380px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .action-item-task {
+                max-height: min(35vh, 300px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .item,
+            .default-shape-item {
+                max-height: min(45vh, 380px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .action-item-header {
@@ -7345,11 +7472,13 @@
             const persistence = {
                 resetRuntimeArtifacts(clonedDoc) {
                     if (!clonedDoc) return;
-                    clonedDoc.getElementById('selectedImageDownloadBtn')?.remove();
+                    const getById = (id) => (clonedDoc.getElementById ? clonedDoc.getElementById(id) : clonedDoc.querySelector ? clonedDoc.querySelector('#' + id) : null);
+                    getById('selectedImageDownloadBtn')?.remove();
                     cleanCurrentDocumentOfDuplicateToolbars(clonedDoc);
                     restoreZoomEditorToolbarHome(clonedDoc);
 
-                    clonedDoc.body?.classList.remove(
+                    const clonedBody = clonedDoc.body || (clonedDoc.tagName === 'BODY' ? clonedDoc : clonedDoc.querySelector?.('body'));
+                    clonedBody?.classList.remove(
                         'true-fullscreen-active', 'screensaver-active',
                         'show-icons-all', 'show-icons-selected',
                         'selection-zoom-active', 'image-zoom-active', 'multi-image-item-editing',
@@ -7360,7 +7489,7 @@
                         'selection-mode-active'
                     );
 
-                    const clonedAppContainer = clonedDoc.getElementById('appContainer');
+                    const clonedAppContainer = getById('appContainer');
                     if (clonedAppContainer) clonedAppContainer.classList.remove('simulated-fullscreen');
 
                     // (1) 본문 에디터 영역 내부에 실수로 침투/복사된 불필요한 툴바 노드 전면 제거 (중복 표출 원천 방지)
@@ -7377,7 +7506,7 @@
                         'menuPanel',
                         'annotationSettingsPanel'
                     ].forEach(id => {
-                        const element = clonedDoc.getElementById(id);
+                        const element = getById(id);
                         if (element) {
                             element.style.display = 'none';
                             element.classList.remove('interacting', 'visible', 'collapsed', 'is-dragging');
@@ -7385,13 +7514,13 @@
                     });
 
                     // 링크 팝오버 숨김 및 입력창 초기화 (N차 저장 무결성 보증)
-                    const clonedLinkPopover = clonedDoc.getElementById('textLinkPopover');
+                    const clonedLinkPopover = getById('textLinkPopover');
                     if (clonedLinkPopover) clonedLinkPopover.style.display = 'none';
-                    const clonedLinkInput = clonedDoc.getElementById('linkPopoverUrlInput');
+                    const clonedLinkInput = getById('linkPopoverUrlInput');
                     if (clonedLinkInput) clonedLinkInput.value = '';
 
                     // 확대 편집 버튼 숨김 및 위치 스타일 초기화 (N차 저장 무결성 보증)
-                    const clonedFocusedEditorBtn = clonedDoc.getElementById('openFocusedEditorBtn');
+                    const clonedFocusedEditorBtn = getById('openFocusedEditorBtn');
                     if (clonedFocusedEditorBtn) {
                         clonedFocusedEditorBtn.classList.remove('visible');
                         clonedFocusedEditorBtn.style.display = 'none';
@@ -7400,7 +7529,7 @@
                     }
 
                     // 모바일 수동 자판 버튼 숨김 및 런타임 상태 초기화 (N차 저장 무결성 보증)
-                    const clonedMobileKbBtn = clonedDoc.getElementById('mobileKeyboardToggleBtn');
+                    const clonedMobileKbBtn = getById('mobileKeyboardToggleBtn');
                     if (clonedMobileKbBtn) {
                         clonedMobileKbBtn.classList.remove('visible', 'active');
                         clonedMobileKbBtn.style.display = 'none';
@@ -7408,12 +7537,13 @@
                         clonedMobileKbBtn.style.top = '';
                         clonedMobileKbBtn.innerHTML = '<span class="mobile-kb-icon">⌨️</span><span class="mobile-kb-text">자판</span>';
                     }
-                    const clonedFocusedKbBtn = clonedDoc.getElementById('focusedEditorKeyboardBtn');
+                    const clonedFocusedKbBtn = getById('focusedEditorKeyboardBtn');
                     if (clonedFocusedKbBtn) {
                         clonedFocusedKbBtn.classList.remove('active');
                         clonedFocusedKbBtn.removeAttribute('style');
                         clonedFocusedKbBtn.innerHTML = '<span class="mobile-kb-icon">⌨️</span><span class="mobile-kb-text">자판</span>';
                     }
+                    clonedDoc.querySelectorAll('[inputmode]').forEach(el => el.removeAttribute('inputmode'));
                     clonedDoc.querySelectorAll('[data-mobile-kb-guarded]').forEach(el => {
                         el.removeAttribute('inputmode');
                         if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.readOnly = false;
@@ -7423,12 +7553,12 @@
                         delete el.dataset.keyboardUnlocked;
                     });
 
-                    const clonedSelectionZoomOverlay = clonedDoc.getElementById('selectionZoomOverlay');
+                    const clonedSelectionZoomOverlay = getById('selectionZoomOverlay');
                     if (clonedSelectionZoomOverlay) {
                         clonedSelectionZoomOverlay.classList.remove('multi-image-layout');
                         clonedSelectionZoomOverlay.removeAttribute('aria-label');
                     }
-                    const clonedSelectionZoomContent = clonedDoc.getElementById('selectionZoomContent');
+                    const clonedSelectionZoomContent = getById('selectionZoomContent');
                     if (clonedSelectionZoomContent) {
                         clonedSelectionZoomContent.innerHTML = '';
                         clonedSelectionZoomContent.removeAttribute('style');
@@ -7436,15 +7566,23 @@
                         clonedSelectionZoomContent.removeAttribute('aria-label');
                     }
 
+                    // 입력창 인라인 무한 확장 스타일(maxHeight: none, overflow: visible) 제거 및 스크롤 위치 초기화 (N차 저장 무결성 보증)
+                    clonedDoc.querySelectorAll('.insert-area, .action-item-block, .action-item-task, .item, .default-shape-item').forEach(el => {
+                        if (el.style.maxHeight === 'none') el.style.removeProperty('max-height');
+                        if (el.style.overflow === 'visible') el.style.removeProperty('overflow');
+                        if (el.style.overflowY === 'visible') el.style.removeProperty('overflow-y');
+                        el.scrollTop = 0;
+                    });
+
                     ['zoomToolbarCollapseToggle', 'annotationPanelCollapseToggle'].forEach(id => {
-                        const toggle = clonedDoc.getElementById(id);
+                        const toggle = getById(id);
                         if (toggle) {
                             toggle.textContent = '-';
                             toggle.setAttribute('aria-expanded', 'true');
                         }
                     });
 
-                    clonedDoc.getElementById('customMessageBox')?.remove();
+                    getById('customMessageBox')?.remove();
                     clonedDoc.querySelectorAll('.flatpickr-calendar').forEach(el => el.remove());
                     clonedDoc.querySelectorAll('[data-pan-bound]').forEach(el => { delete el.dataset.panBound; el.removeAttribute('data-pan-bound'); });
             clonedDoc.querySelectorAll('[data-pinch-bound]').forEach(el => { delete el.dataset.pinchBound; el.removeAttribute('data-pinch-bound'); });
@@ -7487,19 +7625,20 @@
                         });
                     });
 
-                    const focusedEditor = clonedDoc.getElementById('focusedEditorSurface');
+                    const focusedEditor = getById('focusedEditorSurface');
                     if (focusedEditor) focusedEditor.innerHTML = '';
 
-                    const focusedEditorButton = clonedDoc.getElementById('openFocusedEditorBtn');
+                    const focusedEditorButton = getById('openFocusedEditorBtn');
                     if (focusedEditorButton) {
                         focusedEditorButton.removeAttribute('style');
                         focusedEditorButton.removeAttribute('data-drag-initialized');
                         focusedEditorButton.classList.remove('is-dragging');
                     }
 
-                    const focusedEditorDialog = clonedDoc.getElementById('focusedEditorDialog');
+
+                    const focusedEditorDialog = getById('focusedEditorDialog');
                     if (focusedEditorDialog) focusedEditorDialog.classList.remove('focused-editor-chrome-hidden');
-                    const focusedEditorMasterToggle = clonedDoc.getElementById('focusedEditorMasterToggle');
+                    const focusedEditorMasterToggle = getById('focusedEditorMasterToggle');
                     if (focusedEditorMasterToggle) {
                         focusedEditorMasterToggle.textContent = '−';
                         focusedEditorMasterToggle.setAttribute('title', '전체 헤더 숨기기 (-)');
@@ -7507,26 +7646,26 @@
                     }
 
                     // 이벤트 리스너 연결 여부는 런타임 상태이므로 저장 HTML에 직렬화하지 않는다.
-                    clonedDoc.getElementById('columnShutterControls')?.removeAttribute('data-bound');
-                    clonedDoc.getElementById('lastWeekShutterBtn')?.removeAttribute('style');
-                    clonedDoc.getElementById('thisWeekShutterBtn')?.removeAttribute('style');
-                    const cLastCol = clonedDoc.getElementById('lastWeekColumn');
+                    getById('columnShutterControls')?.removeAttribute('data-bound');
+                    getById('lastWeekShutterBtn')?.removeAttribute('style');
+                    getById('thisWeekShutterBtn')?.removeAttribute('style');
+                    const cLastCol = getById('lastWeekColumn');
                     if (cLastCol) {
                         cLastCol.removeAttribute('style');
                         cLastCol.setAttribute('data-shuttered', 'false');
                         cLastCol.setAttribute('aria-hidden', 'false');
                         cLastCol.removeAttribute('inert');
                     }
-                    const cThisCol = clonedDoc.getElementById('thisWeekColumn');
+                    const cThisCol = getById('thisWeekColumn');
                     if (cThisCol) {
                         cThisCol.removeAttribute('style');
                         cThisCol.setAttribute('data-shuttered', 'false');
                         cThisCol.setAttribute('aria-hidden', 'false');
                         cThisCol.removeAttribute('inert');
                     }
-                    clonedDoc.getElementById('content')?.setAttribute('data-column-layout', 'both');
+                    getById('content')?.setAttribute('data-column-layout', 'both');
 
-                    clonedDoc.getElementById('state-placeholder-script')?.remove();
+                    getById('state-placeholder-script')?.remove();
                 }
             };
 
@@ -10140,7 +10279,12 @@ function hideTextFormatToolbar() {
             newItem.querySelectorAll('[id]').forEach(descendant => descendant.removeAttribute('id'));
             newItem.querySelectorAll('.item-controls, .insert-area-toggle-btn, .resize-handle-img').forEach(ctrl => ctrl.remove());
             newItem.classList.remove('controls-active', 'multi-zoom-selected', 'active');
-                delete newItem.dataset.draggableInitialized; /* draggable reset */
+            delete newItem.dataset.draggableInitialized; /* draggable reset */
+            [newItem, ...newItem.querySelectorAll('.insert-area, .action-item-block, .action-item-task, .item, .default-shape-item')].forEach(el => {
+                el.style.removeProperty('max-height');
+                el.style.removeProperty('overflow');
+                el.style.removeProperty('overflow-y');
+            });
 
             const clonedImageWrappers = [
                 ...(newItem.matches('.resizable-image-wrapper') ? [newItem] : []),
@@ -10160,6 +10304,7 @@ function hideTextFormatToolbar() {
             } else {
                 generateItemControls(newItem);
                 newItem.querySelectorAll('[data-editable-type]').forEach(desc => generateItemControls(desc));
+                initializeInsertAreaToggles(newItem);
             }
 
             // 복제된 이미지 wrapper 구조와 이벤트 보장
@@ -10473,11 +10618,32 @@ function hideTextFormatToolbar() {
             const toggleBtn = target.closest('.insert-area-toggle-btn');
             if (toggleBtn) {
                 event.stopPropagation();
-                const wrapper = toggleBtn.parentElement;
-                const area = wrapper.querySelector('.insert-area');
+                const wrapper = toggleBtn.closest('.insert-area-wrapper') || toggleBtn.parentElement;
+                const area = wrapper ? wrapper.querySelector('.insert-area') : null;
                 if (area) {
-                    area.classList.toggle('collapsed');
-                    toggleBtn.textContent = area.classList.contains('collapsed') ? '▶' : '▼';
+                    const isCollapsed = area.classList.toggle('collapsed');
+                    toggleBtn.textContent = isCollapsed ? '▶' : '▼';
+                    toggleBtn.title = isCollapsed ? '내용 펴기' : '내용 접기';
+                    toggleBtn.setAttribute('aria-expanded', String(!isCollapsed));
+                    if (isCollapsed && document.activeElement === area) {
+                        area.blur();
+                    }
+                }
+                return;
+            }
+
+            const collapsedArea = target.closest('.insert-area.collapsed');
+            if (collapsedArea && !target.closest('.insert-area-toggle-btn')) {
+                event.stopPropagation();
+                collapsedArea.classList.remove('collapsed');
+                const wrapper = collapsedArea.closest('.insert-area-wrapper');
+                if (wrapper) {
+                    const btn = wrapper.querySelector('.insert-area-toggle-btn');
+                    if (btn) {
+                        btn.textContent = '▼';
+                        btn.title = '내용 접기';
+                        btn.setAttribute('aria-expanded', 'true');
+                    }
                 }
                 return;
             }
@@ -10717,17 +10883,22 @@ function hideTextFormatToolbar() {
             }
         }
 
-        function initializeInsertAreaToggles(scope = contentArea) {
-            const wrappers = scope.matches('.insert-area-wrapper') ? [scope] : scope.querySelectorAll('.insert-area-wrapper');
+        function initializeInsertAreaToggles(scope) {
+            const targetScope = scope || (typeof contentArea !== 'undefined' && contentArea ? contentArea : document);
+            if (!targetScope || !targetScope.querySelectorAll) return;
+            const wrappers = (targetScope.matches && targetScope.matches('.insert-area-wrapper')) ? [targetScope] : Array.from(targetScope.querySelectorAll('.insert-area-wrapper'));
             wrappers.forEach(wrapper => {
-                if (!wrapper.querySelector('.insert-area-toggle-btn')) {
-                    const toggleBtn = document.createElement('button');
+                let toggleBtn = wrapper.querySelector('.insert-area-toggle-btn');
+                const area = wrapper.querySelector('.insert-area');
+                const isCollapsed = area && area.classList.contains('collapsed');
+                if (!toggleBtn) {
+                    toggleBtn = document.createElement('button');
                     toggleBtn.className = 'insert-area-toggle-btn';
-                    const area = wrapper.querySelector('.insert-area');
-                    toggleBtn.textContent = area && area.classList.contains('collapsed') ? '▶' : '▼';
-                    toggleBtn.title = '내용 접기/펴기';
                     wrapper.insertBefore(toggleBtn, wrapper.firstChild);
                 }
+                toggleBtn.textContent = isCollapsed ? '▶' : '▼';
+                toggleBtn.title = isCollapsed ? '내용 펴기' : '내용 접기';
+                toggleBtn.setAttribute('aria-expanded', String(!isCollapsed));
             });
         }
 
@@ -10806,6 +10977,11 @@ function hideTextFormatToolbar() {
                 if (!newItem) return;
                 newItem.classList.remove('item-carried-over');
                 newItem.querySelector('.item-control-carryover-btn')?.remove();
+                [newItem, ...newItem.querySelectorAll('.insert-area, .action-item-block, .action-item-task, .item')].forEach(el => {
+                    el.style.removeProperty('max-height');
+                    el.style.removeProperty('overflow');
+                    el.style.removeProperty('overflow-y');
+                });
 
                 if (insertTarget) {
                     firstSection.insertBefore(newItem, insertTarget.nextSibling);
@@ -10813,6 +10989,7 @@ function hideTextFormatToolbar() {
                     firstSection.appendChild(newItem);
                 }
                 generateItemControls(newItem);
+                initializeInsertAreaToggles(newItem);
             });
 
             localStorage.removeItem(CARRYOVER_STORAGE_KEY);
@@ -10958,6 +11135,11 @@ function hideTextFormatToolbar() {
                     clonedItem.classList.remove('selectable-item', 'is-selected', 'item-carried-over', 'controls-active', 'active');
                     clonedItem.querySelectorAll('.selectable-item, .is-selected, .item-carried-over, .controls-active, .active').forEach(el => el.classList.remove('selectable-item', 'is-selected', 'item-carried-over', 'controls-active', 'active'));
                     clonedItem.querySelectorAll('.item-controls').forEach(el => el.remove());
+                    [clonedItem, ...clonedItem.querySelectorAll('.insert-area, .action-item-block, .action-item-task, .item')].forEach(el => {
+                        el.style.removeProperty('max-height');
+                        el.style.removeProperty('overflow');
+                        el.style.removeProperty('overflow-y');
+                    });
 
                     targetSection.appendChild(clonedItem);
 
@@ -10965,9 +11147,7 @@ function hideTextFormatToolbar() {
                     if (clonedItem.matches('[data-editable-type]')) {
                         generateItemControls(clonedItem);
                     }
-                    if (clonedItem.matches('.insert-area-wrapper, .item-group')) {
-                        initializeInsertAreaToggles(clonedItem);
-                    }
+                    initializeInsertAreaToggles(clonedItem);
                 }
             });
 
@@ -11850,6 +12030,7 @@ function hideTextFormatToolbar() {
                 clonedFocusedKbButton.classList.remove('active');
                 clonedFocusedKbButton.innerHTML = '<span class="mobile-kb-icon">⌨️</span><span class="mobile-kb-text">자판</span>';
             }
+            clonedDoc.querySelectorAll('[inputmode]').forEach(el => el.removeAttribute('inputmode'));
             clonedDoc.querySelectorAll('[data-mobile-kb-guarded]').forEach(el => {
                 el.removeAttribute('inputmode');
                 if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.readOnly = false;
@@ -15966,12 +16147,6 @@ function ensureImageWrapperStructure(wrapper) {
                 if (!wrapper.style.width || wrapper.style.width === '0px' || wrapper.style.width === 'auto') {
                     wrapper.style.width = '300px';
                 }
-                const parentInsertArea = wrapper.closest('.insert-area');
-                if (parentInsertArea && parentInsertArea.classList.contains('collapsed')) {
-                    parentInsertArea.classList.remove('collapsed');
-                    parentInsertArea.style.maxHeight = 'none';
-                    parentInsertArea.style.overflow = 'visible';
-                }
                 const img = wrapper.querySelector('img');
                 if (img) {
                     img.style.maxWidth = '100%';
@@ -16022,12 +16197,7 @@ function ensureImageWrapperStructure(wrapper) {
                 } else {
                     wrapper.style.height = 'auto';
                     wrapper.style.overflow = 'visible';
-                    const parentInsertArea = wrapper.closest('.insert-area');
-                    if (parentInsertArea && parentInsertArea.classList.contains('collapsed')) {
-                        parentInsertArea.classList.remove('collapsed');
-                        parentInsertArea.style.maxHeight = 'none';
-                        parentInsertArea.style.overflow = 'visible';
-                    }
+
                     ensureImageWrapperStructure(wrapper);
                     makeImageDraggable(wrapper);
                     // generateItemControls(wrapper) 제거 (이미지 오염 방지)
@@ -16435,6 +16605,10 @@ function ensureImageWrapperStructure(wrapper) {
             hideFocusedEditorButton();
 
             setTimeout(() => {
+                // [개선 ##1] 확대 편집 진입 시 가상 자판 100% 비활성화 — surface에 inputmode="none"을 먼저 부여한 뒤 포커스
+                if (typeof MobileKeyboardFeature !== 'undefined' && MobileKeyboardFeature.isMobilePortrait()) {
+                    MobileKeyboardFeature.setFocusedTarget(surface);
+                }
                 surface.focus();
                 const range = document.createRange();
                 range.selectNodeContents(surface);
@@ -16442,9 +16616,6 @@ function ensureImageWrapperStructure(wrapper) {
                 const selection = window.getSelection();
                 selection.removeAllRanges();
                 selection.addRange(range);
-                if (typeof MobileKeyboardFeature !== 'undefined' && MobileKeyboardFeature.isMobilePortrait()) {
-                    MobileKeyboardFeature.activateKeyboard(surface);
-                }
             }, 0);
         }
 
@@ -17026,16 +17197,28 @@ function ensureImageWrapperStructure(wrapper) {
                     }
                 });
 
-                // 이미지 포함 줄노트 상자가 22px 스트립으로 접히지 않도록 사전 해제
-                node.querySelectorAll('.insert-area:has(.resizable-image-wrapper, img), .insert-area.collapsed:has(.resizable-image-wrapper, img)').forEach(ia => {
-                    ia.classList.remove('collapsed');
-                    ia.style.maxHeight = 'none';
-                    ia.style.overflow = 'visible';
+                // [무결성 보증 & 잔여 스타일 제거] 인라인 max-height 및 overflow 잔여 스타일을 완전히 제거하여 반응형 CSS 스크롤 규칙 적용 보장
+                node.querySelectorAll('.insert-area:has(.resizable-image-wrapper, img), .insert-area.collapsed:has(.resizable-image-wrapper, img), .insert-area').forEach(ia => {
+                    ia.style.removeProperty('max-height');
+                    ia.style.removeProperty('overflow');
+                    ia.style.removeProperty('overflow-y');
                 });
-                if (node.classList && node.classList.contains('insert-area') && (node.querySelector('img') || node.querySelector('.resizable-image-wrapper'))) {
-                    node.classList.remove('collapsed');
-                    node.style.maxHeight = 'none';
-                    node.style.overflow = 'visible';
+                if (node.classList && node.classList.contains('insert-area')) {
+                    node.style.removeProperty('max-height');
+                    node.style.removeProperty('overflow');
+                    node.style.removeProperty('overflow-y');
+                }
+
+                // 복제된 액션 아이템 및 일반 항목의 인라인 무한 확장 잔여 스타일 제거
+                node.querySelectorAll('.action-item-block, .action-item-task, .item, .default-shape-item').forEach(el => {
+                    el.style.removeProperty('max-height');
+                    el.style.removeProperty('overflow');
+                    el.style.removeProperty('overflow-y');
+                });
+                if (node.matches && node.matches('.action-item-block, .action-item-task, .item, .default-shape-item')) {
+                    node.style.removeProperty('max-height');
+                    node.style.removeProperty('overflow');
+                    node.style.removeProperty('overflow-y');
                 }
 
                 const clonedWrappers = [
@@ -17084,11 +17267,7 @@ function ensureImageWrapperStructure(wrapper) {
                 }
                 
                 if (typeof initializeInsertAreaToggles === 'function') {
-                    if (node.classList.contains('insert-area-wrapper') || node.classList.contains('item-group')) {
-                        initializeInsertAreaToggles(node);
-                    } else {
-                        node.querySelectorAll('.insert-area-wrapper, .item-group').forEach(initializeInsertAreaToggles);
-                    }
+                    initializeInsertAreaToggles(node);
                 }
             };
 
@@ -17569,9 +17748,10 @@ function ensureImageWrapperStructure(wrapper) {
         }
 
         // ===================================================================
-        // 모바일 세로 모드 전용 입력 자판 자동 활성화 & 제어 기능 (MobileKeyboardFeature)
-        // [개선 ##1] 일반 화면 및 확대 편집 화면에서 입력창 터치 시 가상 자판 100% 자동 활성화
-        //            확대 편집 하단 및 일반 화면 자판 버튼으로 즉시 토글 및 안정적 입력 지원
+        // 모바일 세로 모드 전용 입력 자판 제어 기능 (MobileKeyboardFeature)
+        // [개선 ##1] 일반 화면 및 확대 편집 화면에서 입력창 터치 시 자판 자동 활성화 안 함
+        //            ⌨️ 자판 버튼 클릭 시에만 활성화/비활성화 토글 (버튼 전용 제어)
+        //            입력창 터치: 자판 버튼 표시 + activeTarget 추적만 수행
         // ===================================================================
         const MobileKeyboardFeature = (() => {
             let activeTarget = null;
@@ -17654,10 +17834,22 @@ function ensureImageWrapperStructure(wrapper) {
                 }
             }
 
-            function ensureEditable(target) {
+            function ensureEditable(target, active = isKeyboardActive) {
                 if (!target) return;
-                target.removeAttribute('inputmode');
-                target.setAttribute('inputmode', 'text');
+                if (!isMobilePortrait()) {
+                    target.removeAttribute('inputmode');
+                    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+                        target.readOnly = false;
+                    }
+                    return;
+                }
+                // [개선 ##1] 모바일 세로 모드: active가 true(자판 활성화 상태)일 때만 'text',
+                //           평상시(비활성 상태)에는 'none'으로 가상 자판 팝업 100% 억제
+                if (active) {
+                    target.setAttribute('inputmode', 'text');
+                } else {
+                    target.setAttribute('inputmode', 'none');
+                }
                 if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
                     target.readOnly = false;
                 }
@@ -17677,7 +17869,8 @@ function ensureImageWrapperStructure(wrapper) {
 
                 activeTarget = target;
                 lastActiveTarget = target;
-                ensureEditable(target);
+                isKeyboardActive = true;
+                ensureEditable(target, true);
 
                 // Focus and ensure caret / selection
                 target.focus();
@@ -17713,12 +17906,17 @@ function ensureImageWrapperStructure(wrapper) {
             }
 
             function dismissKeyboard() {
+                isKeyboardActive = false;
                 if (activeTarget) {
+                    ensureEditable(activeTarget, false);
                     lastActiveTarget = activeTarget;
                     activeTarget.blur();
                 }
                 const surface = document.getElementById('focusedEditorSurface');
-                if (surface) surface.blur();
+                if (surface) {
+                    ensureEditable(surface, false);
+                    surface.blur();
+                }
 
                 if (navigator.virtualKeyboard && typeof navigator.virtualKeyboard.hide === 'function') {
                     try {
@@ -17796,7 +17994,9 @@ function ensureImageWrapperStructure(wrapper) {
 
                 activeTarget = target;
                 lastActiveTarget = target;
-                ensureEditable(target);
+                if (!isKeyboardActive) {
+                    ensureEditable(target, false);
+                }
                 btn.classList.add('visible');
                 positionButton(target);
             }
@@ -17807,18 +18007,36 @@ function ensureImageWrapperStructure(wrapper) {
                     btn.classList.remove('visible', 'active');
                     btn.innerHTML = '<span class="mobile-kb-icon">⌨️</span><span class="mobile-kb-text">자판</span>';
                 }
-                updateButtonsState(false);
+                dismissKeyboard();
                 activeTarget = null;
             }
 
-            // 구 가드 잔류 속성 정화
+            // [개선 ##1] 확대 편집 진입 시 target만 등록 (가상 자판 100% 비활성화 유지)
+            function setFocusedTarget(target) {
+                if (!target) return;
+                activeTarget = target;
+                lastActiveTarget = target;
+                isKeyboardActive = false;
+                ensureEditable(target, false); // surface inputmode='none'으로 자판 자동 팝업 100% 억제
+                updateButtonsState(false);
+            }
+
+            // 모바일 세로 모드 진입 시 모든 편집창에 기본 inputmode="none" 가드 적용 (가상 자판 자동 팝업 100% 차단)
+            // 데스크탑/가로 모드에서는 inputmode 속성 제거하여 물리 키보드 정상 입력 보장
             function applyMobileInputGuards() {
-                document.querySelectorAll('[data-mobile-kb-guarded="true"]').forEach(el => {
-                    el.removeAttribute('inputmode');
-                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.readOnly = false;
-                    delete el.dataset.mobileKbGuarded;
+                const isPortrait = isMobilePortrait();
+                document.querySelectorAll('[contenteditable="true"], input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]), textarea').forEach(el => {
+                    if (isPortrait) {
+                        if (!isKeyboardActive || (activeTarget !== el)) {
+                            el.setAttribute('inputmode', 'none');
+                        }
+                        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.readOnly = false;
+                    } else {
+                        el.removeAttribute('inputmode');
+                        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.readOnly = false;
+                    }
                 });
-                if (!isMobilePortrait()) {
+                if (!isPortrait) {
                     hide();
                 }
             }
@@ -17851,16 +18069,28 @@ function ensureImageWrapperStructure(wrapper) {
                 }
 
                 // 터치 인터랙션 감지 (모바일 세로 모드 전용)
+                // [개선 ##1] 터치 시 자판 자동 활성화 안 함 — 자판 100% 비활성화, 자판 버튼만 표시
                 const handleTouchInteraction = (e) => {
                     if (!isMobilePortrait()) return;
                     if (e.target.closest('#mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #openFocusedEditorBtn, .zoom-editor-toolbar, #imageZoomOverlay')) return;
 
                     const editable = isEditableTarget(e.target);
                     if (editable) {
+                        // activeTarget 추적 + 버튼 표시만, 자판은 100% 비활성화 상태 유지
                         activeTarget = editable;
-                        activateKeyboard(editable);
+                        lastActiveTarget = editable;
+                        if (!isKeyboardActive) {
+                            ensureEditable(editable, false);
+                        }
+                        if (!editable.closest('#focusedEditorOverlay')) {
+                            const btn = getToggleBtn();
+                            if (btn) {
+                                btn.classList.add('visible');
+                                positionButton(editable);
+                            }
+                        }
                     } else {
-                        // 입력창 외의 영역 탭 시
+                        // 입력창 외의 영역 탭 시 버튼 숨김
                         if (!e.target.closest('#focusedEditorOverlay')) {
                             hide();
                         }
@@ -17872,15 +18102,27 @@ function ensureImageWrapperStructure(wrapper) {
                     if (e.pointerType === 'touch') handleTouchInteraction(e);
                 }, { passive: true });
 
+                // [개선 ##1] focusin: activeTarget 추적 및 버튼 표시, 자판 비활성 상태면 inputmode='none' 유지
                 document.addEventListener('focusin', e => {
                     if (!isMobilePortrait()) return;
                     if (e.target.closest('#mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #openFocusedEditorBtn')) return;
                     const editable = isEditableTarget(e.target);
                     if (editable) {
                         activeTarget = editable;
-                        activateKeyboard(editable);
+                        lastActiveTarget = editable;
+                        if (!isKeyboardActive) {
+                            ensureEditable(editable, false);
+                        }
+                        if (!editable.closest('#focusedEditorOverlay')) {
+                            const btn = getToggleBtn();
+                            if (btn) {
+                                btn.classList.add('visible');
+                                positionButton(editable);
+                            }
+                        }
                     }
                 });
+
 
                 document.addEventListener('mousedown', e => {
                     if (e.target.closest('#mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #openFocusedEditorBtn, #focusedEditorOverlay, .zoom-editor-toolbar')) return;
@@ -17917,6 +18159,7 @@ function ensureImageWrapperStructure(wrapper) {
                 activateKeyboard,
                 dismissKeyboard,
                 toggleKeyboard,
+                setFocusedTarget,
                 unlockKeyboard: activateKeyboard,
                 lockKeyboard: dismissKeyboard,
                 applyMobileInputGuards,
