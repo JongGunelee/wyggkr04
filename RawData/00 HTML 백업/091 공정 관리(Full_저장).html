@@ -86032,6 +86032,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 const rows = Array.isArray(data) ? data : [];
                 const assigned = { count: 0, amount: 0, keys: [] };
                 const pending = { count: 0, amount: 0, keys: [] };
+                const centerStats = new Map();
                 const assignedKeySet = new Set();
                 const pendingKeySet = new Set();
                 const readProjectMonth = (project) => {
@@ -86043,9 +86044,13 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     if (!project) return;
                     const amount = getSettlementProjectPoAmount20260626(project);
                     const monthKey = project.manualSettlementDate ? parseSettlementMonth(project.manualSettlementDate) : '';
+                    const centerName = (typeof window.resolveSiCenterText === 'function' ? window.resolveSiCenterText(project) : '') || '미지정';
+                    const centerEntry = centerStats.get(centerName) || { assigned: { count: 0, amount: 0 }, pending: { count: 0, amount: 0 } };
                     if (monthKey) {
                         assigned.count += 1;
                         assigned.amount += amount;
+                        centerEntry.assigned.count += 1;
+                        centerEntry.assigned.amount += amount;
                         if (!assignedKeySet.has(monthKey)) {
                             assignedKeySet.add(monthKey);
                             assigned.keys.push(monthKey);
@@ -86053,12 +86058,15 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     } else {
                         pending.count += 1;
                         pending.amount += amount;
+                        centerEntry.pending.count += 1;
+                        centerEntry.pending.amount += amount;
                         const pendingKey = readProjectMonth(project);
                         if (pendingKey && !pendingKeySet.has(pendingKey)) {
                             pendingKeySet.add(pendingKey);
                             pending.keys.push(pendingKey);
                         }
                     }
+                    centerStats.set(centerName, centerEntry);
                 });
 
                 const normalizeSummaryKeys = (keys) => {
@@ -86116,12 +86124,20 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 const pendingRange = formatRange(pending.keys);
                 const assignedRange = formatRange(assigned.keys);
                 const formatWon = (value) => `${Math.round(Number(value || 0)).toLocaleString('ko-KR')}원`;
+                const centerOrder = (name) => name === '운영센터' ? 0 : (name === '공사센터' ? 1 : 2);
+                const centerSummary = Array.from(centerStats.entries())
+                    .sort((a, b) => centerOrder(a[0]) - centerOrder(b[0]) || a[0].localeCompare(b[0], 'ko'))
+                    .map(([name, stats]) => `${escapeHtml(name)} 미정산 ${formatWon(stats.pending.amount)} (${stats.pending.count}건) · 완료 ${formatWon(stats.assigned.amount)} (${stats.assigned.count}건)`)
+                    .join(' | ');
                 return `
                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold whitespace-nowrap" title="정산 월이 비어 있는 프로젝트 기준입니다.">
                         미정산 ${pendingRange}: ${formatWon(pending.amount)} (${pending.count}건)
                     </span>
                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold whitespace-nowrap" title="정산 월이 배정된 프로젝트 기준입니다.">
                         완료 ${assignedRange}: ${formatWon(assigned.amount)} (${assigned.count}건)
+                    </span>
+                    <span data-settlement-si-center-summary class="inline-flex items-center px-2 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200 text-xs font-normal whitespace-normal" aria-label="S&I 센터별 미정산 및 완료 현황" title="S&I 센터별 정산 월 배정 여부 기준입니다.">
+                        S&amp;I 센터별&nbsp; ${centerSummary}
                     </span>
                 `;
             }
@@ -88313,23 +88329,43 @@ function showPendingSettlementModal(periodType, projects) {
                         const aoa = [
                             ['\uc21c\ubc88', '\uc720\uc9c0\uad00\ub9ac\ubc88\ud638', 'S&I \uc13c\ud130', '\ud504\ub85c\uc81d\ud2b8\uba85', '\uae08\uc561(PO)', '\uc9c4\ud589\uc0c1\ud669(%)']
                         ];
+                        const centerRows = new Map();
                         projectList.forEach((p, idx) => {
                             const canonical = settlementLookup.resolveProject(p);
                             const maintenanceCode = settlementLookup.resolveMaintenanceCode(canonical);
                             const poAmount = Number(canonical?.poAmount ?? canonical?.cost ?? 0) || 0;
                             const progress = canonical?.progress != null ? Number(canonical.progress) : 0;
-                            aoa.push([
+                            const centerName = String(window.resolveSiCenterText(canonical || p) || '\ubbf8\uc9c0\uc815');
+                            const row = [
                                 idx + 1,
                                 String(maintenanceCode || ''),
-                                String(window.resolveSiCenterText(canonical || p) || '\ubbf8\uc9c0\uc815'),
+                                centerName,
                                 String(canonical?.name || canonical?.title || ''),
                                 poAmount,
                                 progress
-                            ]);
+                            ];
+                            aoa.push(row);
+                            const rows = centerRows.get(centerName) || [];
+                            rows.push(row);
+                            centerRows.set(centerName, rows);
                         });
                         const ws = XLSX.utils.aoa_to_sheet(aoa);
                         const wb = XLSX.utils.book_new();
                         XLSX.utils.book_append_sheet(wb, ws, '\uc791\uc5c5\uc911');
+                        const orderedCenters = Array.from(centerRows.entries()).sort((a, b) => {
+                            const rank = name => name === '\uc6b4\uc601\uc13c\ud130' ? 0 : (name === '\uacf5\uc0ac\uc13c\ud130' ? 1 : 2);
+                            return rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0], 'ko');
+                        });
+                        const centerSummary = [['S&I \uc13c\ud130', '\uac74\uc218', 'PO\ud569\uacc4']];
+                        orderedCenters.forEach(([centerName, rows]) => {
+                            centerSummary.push([centerName, rows.length, rows.reduce((sum, row) => sum + (Number(row[4]) || 0), 0)]);
+                        });
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(centerSummary), 'S&I \uc13c\ud130\ubcc4 \uc694\uc57d');
+                        orderedCenters.forEach(([centerName, rows]) => {
+                            const safeName = String(centerName || '\ubbf8\uc9c0\uc815').replace(/[\\\/:*?"<>|\[\]]/g, '_').substring(0, 20).trim() || '\ubbf8\uc9c0\uc815';
+                            const centerSheet = XLSX.utils.aoa_to_sheet([aoa[0]].concat(rows));
+                            XLSX.utils.book_append_sheet(wb, centerSheet, (`\uc791\uc5c5\uc911-${safeName}`).substring(0, 31));
+                        });
                         const now = new Date();
                         const ts = [
                             String(now.getFullYear()).slice(-2),
@@ -91049,8 +91085,9 @@ function showPendingSettlementModal(periodType, projects) {
                             const costalloc = resolveText(p, ['\ube44\uc6a9\ubc30\ubd84', 'costallocation']) || resolveText(c, ['\ube44\uc6a9\ubc30\ubd84', 'costallocation']) || '\uacf5\uc6a9';
                             const type = p.taskType || c?.taskType || '\ubbf8\uc9c0\uc815';
                             const ctr = resolveText(p, ['\uc2dc\uacf5\uc0ac', 'contractor', 'constructor']) || resolveText(c, ['\uc2dc\uacf5\uc0ac', 'contractor', 'constructor']) || '\ubbf8\uc9c0\uc815';
+                            const siCenter = (typeof window.resolveSiCenterText === 'function' ? (window.resolveSiCenterText(c || p) || window.resolveSiCenterText(p)) : '') || '미지정';
                             const note = c?.remarks || c?.note || c?.settlementNote || p?.remarks || p?.note || p?.settlementNote || '';
-                            return { ...p, pr, po, diff: po - pr, eff: po > 0 ? (pr / po) : 0, cust, cost, costalloc, type, ctr, note, c };
+                            return { ...p, pr, po, diff: po - pr, eff: po > 0 ? (pr / po) : 0, cust, cost, costalloc, type, ctr, siCenter, note, c };
                         });
 
                         const customerGroups = new Map();
@@ -91149,6 +91186,58 @@ function showPendingSettlementModal(periodType, projects) {
                             detSheet.getRow(1).alignment = { horizontal: 'center' };
                         };
 
+                        const createSiCenterSheets = (centerName, centerProjects) => {
+                            const safeCenter = String(centerName || '미지정').replace(/[\/:*?"<>|\[\]]/g, '_').substring(0, 20).trim() || '미지정';
+                            const stats = { customer: new Map(), costAccount: new Map(), taskType: new Map(), contractor: new Map() };
+                            let totalPR = 0, totalPO = 0;
+                            centerProjects.forEach(p => {
+                                totalPR += p.pr; totalPO += p.po;
+                                [
+                                    { m: stats.customer, v: p.cust }, { m: stats.costAccount, v: p.cost },
+                                    { m: stats.taskType, v: p.type }, { m: stats.contractor, v: p.ctr }
+                                ].forEach(item => {
+                                    const entry = item.m.get(item.v) || { count: 0, pr: 0, po: 0 };
+                                    entry.count += 1; entry.pr += p.pr; entry.po += p.po;
+                                    item.m.set(item.v, entry);
+                                });
+                            });
+                            const analysisSheet = workbook.addWorksheet(`센터분석-${safeCenter}`.substring(0, 31));
+                            analysisSheet.columns = [
+                                { header: '분류', key: 'cat', width: 25 }, { header: '항목', key: 'item', width: 30 }, { header: '건수', key: 'cnt', width: 10 },
+                                { header: 'PR금액 (A)', key: 'pr', width: 18 }, { header: 'PO금액 (B)', key: 'po', width: 18 }, { header: '차액 (B-A)', key: 'diff', width: 18 }, { header: '효율 (A/B)', key: 'eff', width: 12 }
+                            ];
+                            const summaryRow = analysisSheet.addRow({ cat: 'S&I 센터별 분석', item: `${centerName} (${monthKey})`, cnt: centerProjects.length, pr: totalPR, po: totalPO, diff: totalPO - totalPR, eff: (totalPO > 0 ? Math.round((totalPR / totalPO) * 100) : 0) + '%' });
+                            summaryRow.font = { bold: true, color: { argb: 'FF075985' } };
+                            applyAccountingStyle(summaryRow); analysisSheet.addRow([]);
+                            addSection(analysisSheet, '고객사별 집계', stats.customer, 'FFDDEBF7');
+                            addSection(analysisSheet, '비용계정별 집계', stats.costAccount, 'FFE2EFDA');
+                            addSection(analysisSheet, '작업유형별 집계', stats.taskType, 'FFFFF2CC');
+                            addSection(analysisSheet, '시공사별 집계', stats.contractor, 'FFFCE4D6');
+                            analysisSheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+                            const detailSheet = workbook.addWorksheet(`센터상세-${safeCenter}`.substring(0, 31));
+                            detailSheet.columns = [
+                                { header: 'NO', key: 'no', width: 5 }, { header: '유지관리번호', key: 'mc', width: 15 }, { header: 'S&I 센터', key: 'siCenter', width: 14 },
+                                { header: '고객사', key: 'cust', width: 15 }, { header: '비용계정', key: 'cost', width: 15 }, { header: '비용배분', key: 'costalloc', width: 12 },
+                                { header: '작업유형', key: 'type', width: 16 }, { header: '프로젝트명', key: 'title', width: 40 }, { header: '완료일', key: 'date', width: 12 },
+                                { header: 'PR금액 (A)', key: 'pr', width: 18 }, { header: 'PO금액 (B)', key: 'po', width: 18 }, { header: '시공사', key: 'ctr', width: 15 },
+                                { header: '차액 (B-A)', key: 'diff', width: 18 }, { header: '효율', key: 'eff', width: 10 }, { header: '특이사항', key: 'note', width: 30 }
+                            ];
+                            centerProjects.forEach((p, index) => {
+                                const row = detailSheet.addRow({
+                                    no: index + 1, mc: settlementLookup.resolveMaintenanceCode(p.c) || '', siCenter: p.siCenter, cust: p.cust, cost: p.cost,
+                                    costalloc: p.costalloc, type: p.type, title: p.c?.name || p.name || '',
+                                    date: (typeof formatDateYMDLocal === 'function' ? formatDateYMDLocal(p.c?.endDate || p.c?.completedDate || p.endDate) : ''),
+                                    pr: p.pr, po: p.po, ctr: p.ctr, diff: p.diff, eff: Math.round(p.eff * 100) + '%', note: p.note || ''
+                                });
+                                applyAccountingStyle(row);
+                                row.getCell('note').alignment = { vertical: 'top', wrapText: true };
+                            });
+                            detailSheet.views = [{ state: 'frozen', ySplit: 1 }];
+                            detailSheet.getRow(1).font = { bold: true };
+                            detailSheet.getRow(1).alignment = { horizontal: 'center' };
+                        };
+
 
                         /* [v5.36.0] Populate '\ucd1d\uc9d1\uacc4' Worksheet - Mobile/Global Refinement */
                         const tSheet = workbook.getWorksheet('\ucd1d\uc9d1\uacc4');
@@ -91242,7 +91331,17 @@ function showPendingSettlementModal(periodType, projects) {
                                 createCustomerSheets(custName, entry.projects);
                             }
                         }
-                                                showProgress('\ub2e4\uc6b4\ub85c\ub4dc \uc911', '\ud30c\uc77c \uc0dd\uc131\uc744 \ub9c8\ucce4\uc2b5\ub2c8\ub2e4. \uc7a0\uc2dc\ub9cc \uae30\ub2e4\ub824 \uc8fc\uc138\uc694...');
+                        const centerGroups = new Map();
+                        processed.forEach(p => {
+                            const entry = centerGroups.get(p.siCenter) || { count: 0, pr: 0, po: 0, projects: [] };
+                            entry.count += 1; entry.pr += p.pr; entry.po += p.po; entry.projects.push(p);
+                            centerGroups.set(p.siCenter, entry);
+                        });
+                        addTotalSection(tSheet, 'S&I 센터별 요약', centerGroups, 'FFD9EAF7');
+                        Array.from(centerGroups.entries())
+                            .sort((a, b) => (a[0] === '운영센터' ? 0 : (a[0] === '공사센터' ? 1 : 2)) - (b[0] === '운영센터' ? 0 : (b[0] === '공사센터' ? 1 : 2)) || a[0].localeCompare(b[0], 'ko'))
+                            .forEach(([centerName, entry]) => createSiCenterSheets(centerName, entry.projects));
+                        showProgress('\ub2e4\uc6b4\ub85c\ub4dc \uc911', '\ud30c\uc77c \uc0dd\uc131\uc744 \ub9c8\ucce4\uc2b5\ub2c8\ub2e4. \uc7a0\uc2dc\ub9cc \uae30\ub2e4\ub824 \uc8fc\uc138\uc694...');
                         const buffer = await workbook.xlsx.writeBuffer();
                         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                         const url = window.URL.createObjectURL(blob);
