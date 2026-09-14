@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "46a986710ba0c1e03fab0fb0369e184c259e091d793fec0fb6dd31dfb5da9744",
+  "sourceSha256": "a732ff6c578578876256517182f583fd3442c446f601730f1a981fc6ed6e9f34",
   "sourceFiles": {
     "status": {
-      "sha256": "128ea38495d27b2f7e5d101638cbb21a0dc42013dccfe7c50ab4c9259fa70afa",
-      "byteLength": 107499
+      "sha256": "fe2392cb742d03ef9c549b05b5f2f19e2670877051e88df1cd898c934dc87f0f",
+      "byteLength": 107737
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -5166,12 +5166,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": 3,
-        "status": "미작성",
+        "status": "작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-17",
-        "updatedAt": "2026-09-13T16:23:54.000Z",
-        "source": "GitHub 회의록 파일 자동 점검",
+        "updatedAt": "2026-09-14T12:53:18.000Z",
+        "source": "카드 원클릭 상태 전환 · client:b1c9e20f-c89 · session:660392eb · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": "2026-09-14 기준 회의록 파일 없음"
       }
@@ -8645,6 +8645,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
         "afterValue": "{\"type\":\"주간\",\"year\":2026,\"month\":9,\"week\":3,\"status\":\"미작성\",\"counterIncluded\":\"Y\",\"cardVisible\":\"Y\",\"referenceDate\":\"2026-09-17\",\"source\":\"GitHub 회의록 파일 자동 점검\",\"exceptionCode\":\"\",\"note\":\"2026-09-14 기준 회의록 파일 없음\"}",
         "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "362976f8-71db-4f32-acc8-00b38e39a9a7",
+        "changedAt": "2026-09-14T12:53:18.000Z",
+        "key": "2026-9-3",
+        "type": "주간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
+        "source": "카드 원클릭 상태 전환 · client:b1c9e20f-c89 · session:660392eb · Asia/Seoul UTC+09:00",
         "syncStatus": "완료"
       }
     ]
