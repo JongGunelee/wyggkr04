@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "d0fd913e1777c87269729bbbc1fe79ec75445e9374551437ca74bdcf836a0d6f",
+  "sourceSha256": "a01904bca4195713ee0949101cf6b9f3c49b66718bbaf0abda8b7fd81c735747",
   "sourceFiles": {
     "status": {
-      "sha256": "4a0dce8ed01e016736ff2f7245666b173c38135fde1e9cace034d813d477ef0d",
-      "byteLength": 111877
+      "sha256": "12f99a0e9f18ce83b42c9506ddb8a7a4786a3b17eb9f7322a10718a441dd2baa",
+      "byteLength": 112789
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -5121,12 +5121,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": null,
-        "status": "작성",
+        "status": "미작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-01",
-        "updatedAt": "2026-09-15T20:55:41.000Z",
-        "source": "카드 원클릭 상태 전환 · client:3cd3fd8e-3a8 · session:f2078fc1 · Asia/Seoul UTC+09:00",
+        "updatedAt": "2026-09-15T21:13:06.000Z",
+        "source": "카드 원클릭 상태 전환 · client:c6701f92-81c · session:2fbc797f · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": "실제 회의록 파일 확인: 2026/2026_09_회의록.html"
       },
@@ -5166,12 +5166,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": 3,
-        "status": "작성",
+        "status": "미작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-17",
-        "updatedAt": "2026-09-15T20:55:47.000Z",
-        "source": "카드 원클릭 상태 전환 · client:3cd3fd8e-3a8 · session:f2078fc1 · Asia/Seoul UTC+09:00",
+        "updatedAt": "2026-09-15T21:12:53.000Z",
+        "source": "카드 원클릭 상태 전환 · client:c6701f92-81c · session:2fbc797f · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": "2026-09-14 기준 회의록 파일 없음"
       }
@@ -8948,6 +8948,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "syncStatus": "완료"
       },
       {
+        "eventId": "71bfc68b-06bc-4531-9121-1293ba7e9aff",
+        "changedAt": "2026-09-15T20:21:14.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
         "eventId": "85f6c1f7-60c7-4be3-85a7-dc97efe0f0f0",
         "changedAt": "2026-09-15T20:21:14.000Z",
         "key": "2026-9-3",
@@ -8965,6 +8975,26 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "beforeValue": "작성",
         "afterValue": "미작성",
         "source": "카드 원클릭 상태 전환 · client:c6701f92-81c · session:782386d6 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "018ca1d3-cecd-4a4f-a24f-28c3e0be16b2",
+        "changedAt": "2026-09-15T20:23:08.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "889e1c37-a7ae-4962-9bf0-7296c7a7e753",
+        "changedAt": "2026-09-15T20:23:09.000Z",
+        "key": "2026-9-3",
+        "type": "주간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
+        "source": "GitHub 회의록 파일 자동 점검",
         "syncStatus": "완료"
       },
       {
@@ -9005,6 +9035,56 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "beforeValue": "미작성",
         "afterValue": "작성",
         "source": "카드 원클릭 상태 전환 · client:3cd3fd8e-3a8 · session:f2078fc1 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "9bbb2454-7260-4255-b6c2-abe9e89395eb",
+        "changedAt": "2026-09-15T21:12:20.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "카드 원클릭 상태 전환 · client:c6701f92-81c · session:1e80673f · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "73db6383-b41f-42bd-9bd6-9dbb2fea7a35",
+        "changedAt": "2026-09-15T21:12:27.000Z",
+        "key": "2026-9-3",
+        "type": "주간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "카드 원클릭 상태 전환 · client:c6701f92-81c · session:1e80673f · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "f91e92ac-5e53-401a-944d-342ed6490c24",
+        "changedAt": "2026-09-15T21:12:53.000Z",
+        "key": "2026-9-3",
+        "type": "주간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "카드 원클릭 상태 전환 · client:c6701f92-81c · session:2fbc797f · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "b9d21a09-5a17-47c7-b725-b0c41ee88b56",
+        "changedAt": "2026-09-15T21:13:00.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
+        "source": "카드 원클릭 상태 전환 · client:c6701f92-81c · session:2fbc797f · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "760e87b0-f7b1-4265-8ec3-a91e4cb38da7",
+        "changedAt": "2026-09-15T21:13:06.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "카드 원클릭 상태 전환 · client:c6701f92-81c · session:2fbc797f · Asia/Seoul UTC+09:00",
         "syncStatus": "완료"
       }
     ]
