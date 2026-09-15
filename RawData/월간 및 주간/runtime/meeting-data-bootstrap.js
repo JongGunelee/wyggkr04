@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "80addf6640c952abfdae334680de4559b6101b187e3c31d1db9ad8795697aae4",
+  "sourceSha256": "f065ddcdfec14a4c7d3f4ef4792deac4540224d26387e111b362dac4c75b4a8e",
   "sourceFiles": {
     "status": {
-      "sha256": "52e3ff150b2cbec695ebcb601e0ae304d17ea7b54693d4b8baaa9fa399d8bd01",
-      "byteLength": 113868
+      "sha256": "7d69b99ca6674b162ddf834467838302ee935c9f9a360f70ef72c15da9436469",
+      "byteLength": 114100
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -5121,12 +5121,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": null,
-        "status": "작성",
+        "status": "미작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-01",
-        "updatedAt": "2026-09-15T21:55:54.000Z",
-        "source": "카드 원클릭 상태 전환 · client:3cd3fd8e-3a8 · session:88ad9377 · Asia/Seoul UTC+09:00",
+        "updatedAt": "2026-09-15T22:02:00.000Z",
+        "source": "카드 원클릭 상태 전환 · client:64da435c-7da · session:da4afcfa · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": "실제 회의록 파일 확인: 2026/2026_09_회의록.html"
       },
@@ -5166,12 +5166,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": 3,
-        "status": "작성",
+        "status": "미작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-17",
-        "updatedAt": "2026-09-15T21:56:00.000Z",
-        "source": "카드 원클릭 상태 전환 · client:3cd3fd8e-3a8 · session:88ad9377 · Asia/Seoul UTC+09:00",
+        "updatedAt": "2026-09-15T22:01:51.000Z",
+        "source": "카드 원클릭 상태 전환 · client:64da435c-7da · session:da4afcfa · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": "2026-09-14 기준 회의록 파일 없음"
       }
@@ -9175,6 +9175,26 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "beforeValue": "미작성",
         "afterValue": "작성",
         "source": "카드 원클릭 상태 전환 · client:3cd3fd8e-3a8 · session:88ad9377 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "cc1ca5ea-fce1-4738-894f-e236601e86e1",
+        "changedAt": "2026-09-15T22:01:51.000Z",
+        "key": "2026-9-3",
+        "type": "주간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "카드 원클릭 상태 전환 · client:64da435c-7da · session:da4afcfa · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "854831c8-43ba-47c5-87cb-4851371ef226",
+        "changedAt": "2026-09-15T22:02:00.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "카드 원클릭 상태 전환 · client:64da435c-7da · session:da4afcfa · Asia/Seoul UTC+09:00",
         "syncStatus": "완료"
       }
     ]
