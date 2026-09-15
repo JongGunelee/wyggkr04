@@ -8233,7 +8233,6 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             cursor: not-allowed;
             background-color: #f8f9fa !important;
             color: #adb5bd !important;
-            overflow: hidden;
         }
 
         .month-card.not-written {
@@ -9273,12 +9272,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
         /* --- 개선 1: 현재 월/주 카드 강조 스타일 통일 및 오늘 주차 뱃지 --- */
         .week-card.current,
-        #monthly-report-card.current {
+        #monthly-report-card.current,
+        .month-card.current {
             background-color: #e8f5e9;
             color: var(--current-month-color);
             font-weight: bold;
             border-color: var(--current-month-color);
             position: relative;
+            overflow: visible !important;
             box-shadow: 0 0 16px rgba(245, 158, 11, 0.35), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
         }
 
@@ -9351,33 +9352,43 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
         }
 
-        /* 미작성(not-written) 상태의 카드에는 '오늘 주차' / '오늘 월' 뱃지 잔상 및 테두리 글로우 일체 미표시 */
+        /* 미작성(not-written) 상태의 오늘 주차/오늘 월 카드: 섹션 활성화 및 뱃지 명확 보존 */
         .week-card.not-written.current::before,
         #monthly-report-card.not-written.current::before,
         .month-card.not-written.current::before {
-            display: none !important;
+            display: inline-block !important;
+            background: #f59e0b !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4) !important;
+            z-index: 10 !important;
         }
 
         .week-card.not-written.current,
         #monthly-report-card.not-written.current,
         .month-card.not-written.current {
-            box-shadow: none !important;
-            border-color: #ced4da !important;
-            border-left-color: #ced4da !important;
-            border-top-color: #ced4da !important;
-            background-color: #f8f9fa !important;
-            color: #adb5bd !important;
+            border: 2px solid #f59e0b !important;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.25) !important;
+            background-color: #fffbeb !important;
+            color: #92400e !important;
+            overflow: visible !important;
+        }
+
+        body.dark-mode .week-card.not-written.current::before,
+        body.dark-mode #monthly-report-card.not-written.current::before,
+        body.dark-mode .month-card.not-written.current::before {
+            background: #d97706 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 8px rgba(217, 119, 6, 0.6) !important;
         }
 
         body.dark-mode .week-card.not-written.current,
         body.dark-mode #monthly-report-card.not-written.current,
         body.dark-mode .month-card.not-written.current {
-            box-shadow: none !important;
-            border-color: #334155 !important;
-            border-left-color: #334155 !important;
-            border-top-color: #334155 !important;
-            background-color: #1e2736 !important;
-            color: #64748b !important;
+            border: 2px solid #d97706 !important;
+            box-shadow: 0 0 12px rgba(217, 119, 6, 0.3) !important;
+            background-color: #2a2218 !important;
+            color: #fcd34d !important;
+            overflow: visible !important;
         }
 
         .not-written.card-highlight {
@@ -11811,19 +11822,27 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 box-sizing: border-box;
             }
 
+            .week-card.current,
+            #monthly-report-card.current,
+            .month-card.current,
+            .week-card.not-written.current,
+            #monthly-report-card.not-written.current,
+            .month-card.not-written.current {
+                overflow: visible !important;
+            }
+
             .week-card.current::before,
             #monthly-report-card.current::before,
-            .month-card.current::before {
+            .month-card.current::before,
+            .week-card.not-written.current::before,
+            #monthly-report-card.not-written.current::before,
+            .month-card.not-written.current::before {
+                display: inline-block !important;
                 font-size: 8px;
                 padding: 1px 5px;
                 right: 8px;
                 top: -8px;
-            }
-
-            .week-card.not-written.current::before,
-            #monthly-report-card.not-written.current::before,
-            .month-card.not-written.current::before {
-                display: none !important;
+                z-index: 10 !important;
             }
 
             #weekly-cards-container {
@@ -13111,6 +13130,33 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         let lastMemoAvailabilityPeriodKey = '';
         const MEMO_FOCUS_OPTIONS_KEY = 'meetingMemoFocusOptionsV1';
         const MEMO_FOCUS_PREFERENCES_KEY = 'meetingMemoFocusPreferencesV1';
+        const USER_MANUAL_CARD_STATUS_KEY = 'meetingUserManualCardStatusV1';
+
+        function getUserManualCardStatusMap() {
+            try {
+                if (typeof localStorage === 'undefined') return {};
+                const stored = JSON.parse(localStorage.getItem(USER_MANUAL_CARD_STATUS_KEY) || '{}');
+                return stored && typeof stored === 'object' ? stored : {};
+            } catch (_) {
+                return {};
+            }
+        }
+
+        function getUserManualCardStatus(key) {
+            if (!key) return null;
+            const map = getUserManualCardStatusMap();
+            return map[String(key)]?.status || null;
+        }
+
+        function saveUserManualCardStatus(key, status) {
+            if (!key) return;
+            try {
+                if (typeof localStorage === 'undefined') return;
+                const map = getUserManualCardStatusMap();
+                map[String(key)] = { status, updatedAt: new Date().toISOString() };
+                localStorage.setItem(USER_MANUAL_CARD_STATUS_KEY, JSON.stringify(map));
+            } catch (_) {}
+        }
         async function ensureMeetingDataBootstrap() {
             if (!window.MEETING_DATA_BOOTSTRAP) {
                 throw new Error('단독 HTML에 내장된 XLSB 기준 데이터를 확인할 수 없습니다.');
@@ -13195,6 +13241,43 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             meetingMemoHistoryRows = Array.isArray(snapshot.memo?.history)
                 ? snapshot.memo.history
                 : (Array.isArray(snapshot.memoHistory) ? snapshot.memoHistory : []);
+
+            // 사용자가 수동으로 선택한 '미작성'/'작성' 상태(localStorage)를 meetingStatusRows에 오버라이드 영구 보존
+            const manualStatusMap = getUserManualCardStatusMap();
+            for (const [key, manual] of Object.entries(manualStatusMap)) {
+                if (!manual || !manual.status) continue;
+                const existingRow = meetingStatusRows.find(row => row.key === key);
+                if (existingRow) {
+                    existingRow.status = manual.status;
+                    existingRow.source = auditSource('카드 원클릭 상태 전환');
+                } else {
+                    const match = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/.exec(String(key || '').trim());
+                    if (match) {
+                        const y = Number(match[1]);
+                        const m = Number(match[2]);
+                        const w = match[3] === undefined ? null : Number(match[3]);
+                        const paddedMonth = String(m).padStart(2, '0');
+                        meetingStatusRows.push({
+                            key,
+                            type: w === null ? '월간' : '주간',
+                            year: y,
+                            month: m,
+                            week: w,
+                            status: manual.status,
+                            counterIncluded: 'Y',
+                            cardVisible: 'Y',
+                            referenceDate: w === null
+                                ? `${y}-${paddedMonth}-01`
+                                : `${y}-${paddedMonth}-${String(Math.min(28, (w || 1) * 7)).padStart(2, '0')}`,
+                            updatedAt: manual.updatedAt || new Date().toISOString(),
+                            source: auditSource('카드 원클릭 상태 전환'),
+                            exceptionCode: '',
+                            note: manual.status === '미작성' ? '사용자 수동 미작성 지정' : '사용자 수동 작성 지정'
+                        });
+                    }
+                }
+            }
+
             tempSkippedDates = meetingStatusRows
                 .filter(row => row.status === '미작성' && row.cardVisible === 'Y')
                 .map(row => row.key);
@@ -14187,8 +14270,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         }
 
         function createCardStatusToggle(key, statusRow, cardLabel) {
-            if (!statusRow || statusRow.cardVisible !== 'Y') return null;
-            const status = statusRow.status === '미작성' ? '미작성' : '작성';
+            const manualStatus = getUserManualCardStatus(key);
+            const resolvedStatus = manualStatus || (statusRow?.status === '미작성' ? '미작성' : '작성');
+            if (!statusRow && !manualStatus) return null;
+            const status = resolvedStatus;
             const nextStatus = status === '작성' ? '미작성' : '작성';
             const syncState = cardStatusSyncStates.get(key) || null;
             const button = document.createElement('button');
@@ -14251,16 +14336,60 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             const key = String(button?.dataset.statusKey || '');
             if (!key || !meetingStore || cardStatusTogglePromises.has(key)) return;
             const operation = (async () => {
+                const manualStatus = getUserManualCardStatus(key);
                 const currentRow = meetingStore.getSnapshot().status.rows
-                    .find(row => row.key === key && row.cardVisible === 'Y');
-                if (!currentRow) throw new Error(`카드 상태 행을 찾을 수 없습니다: ${key}`);
-                const targetStatus = currentRow.status === '미작성' ? '작성' : '미작성';
+                    .find(row => row.key === key && row.cardVisible === 'Y') || meetingStatusRows.find(row => row.key === key);
+                const currentStatus = manualStatus || currentRow?.status || button.dataset.currentStatus || '작성';
+                const targetStatus = currentStatus === '미작성' ? '작성' : '미작성';
+
+                // 1. 사용자 수동 선택 상태를 localStorage에 즉시 영구 저장 (새로고침/재접속 시 100% 보존)
+                saveUserManualCardStatus(key, targetStatus);
+
+                // 수동 전환 시 캐시 즉시 삭제하여 지연 없이 GitHub 원격 실시간 감지 보장
+                remoteMeetingCheckCache.delete(key);
+                try {
+                    sessionStorage.removeItem(`rmcc_dir_wyggkr_${currentYear}`);
+                    sessionStorage.removeItem(`rmcc_dir_wyggkr03_${currentYear}`);
+                } catch (_) {}
                 cardStatusSyncStates.set(key, { state: 'saving', targetStatus });
-                await meetingStore.setStatus(key, targetStatus, {
-                    source: auditSource('카드 원클릭 상태 전환')
-                });
+
+                if (currentRow) {
+                    await meetingStore.setStatus(key, targetStatus, {
+                        source: auditSource('카드 원클릭 상태 전환')
+                    });
+                } else {
+                    const match = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/.exec(key);
+                    const y = match ? Number(match[1]) : (currentYear || 2026);
+                    const m = match ? Number(match[2]) : (currentMonth || 9);
+                    const w = match && match[3] !== undefined ? Number(match[3]) : null;
+                    const paddedMonth = String(m).padStart(2, '0');
+                    await meetingStore.upsertStatus({
+                        key,
+                        type: w === null ? '월간' : '주간',
+                        year: y,
+                        month: m,
+                        week: w,
+                        status: targetStatus,
+                        counterIncluded: 'Y',
+                        cardVisible: 'Y',
+                        referenceDate: w === null
+                            ? `${y}-${paddedMonth}-01`
+                            : `${y}-${paddedMonth}-${String(Math.min(28, (w || 1) * 7)).padStart(2, '0')}`,
+                        exceptionCode: '',
+                        note: `사용자 수동 ${targetStatus} 지정`
+                    }, { source: auditSource('카드 원클릭 상태 전환') });
+                }
+
+                const inMemoryRow = meetingStatusRows.find(row => row.key === key);
+                if (inMemoryRow) {
+                    inMemoryRow.status = targetStatus;
+                    inMemoryRow.source = auditSource('카드 원클릭 상태 전환');
+                }
+
                 refreshDashboardFromStore();
                 focusCardStatusToggle(key);
+
+                // 수동 전환 상태를 즉시 UI에 반영하고 포커스 유지
 
                 if (dashboardConfig.dataManagement.mode === 'api') {
                     const result = await syncPendingStatusChanges([key], targetStatus);
@@ -15091,8 +15220,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             const todayWeek = isoNow.isoWeekOfMonth;
             const skippedDateSet = new Set(skippedDates);
             const monthlyKey = `${year}-${month}`;
+            const monthlyManual = getUserManualCardStatus(monthlyKey);
             const monthlyStatusRow = getVisibleMeetingStatusRow(monthlyKey);
-            const isMonthlyManuallySkipped = skippedDateSet.has(monthlyKey);
+            const isMonthlyManuallySkipped = monthlyManual === '미작성' || skippedDateSet.has(monthlyKey);
             const isMonthlyMemoAvailable = isMeetingMemoPeriodAvailable(year, month, null, isoNow);
             const monthlyCardText = document.createElement('span');
             monthlyCardText.textContent = "월간 회의 안건 보기";
@@ -15115,7 +15245,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             } else {
                 const isFutureMonth = parseInt(year) > todayYear || (parseInt(year) === todayYear && parseInt(month) > todayMonth);
                 const isLegacyMonth = parseInt(year) < 2023 || (parseInt(year) === 2023 && parseInt(month) < 3);
-                const isMonthlyWrittenInStatus = monthlyStatusRow?.status === '작성';
+                const isMonthlyWrittenInStatus = monthlyManual === '작성' || (monthlyManual !== '미작성' && monthlyStatusRow?.status === '작성');
                 if (isLegacyMonth || (isFutureMonth && !isMonthlyWrittenInStatus)) {
                     monthlyCard.classList.add('not-written');
                     let tooltip = isFutureMonth ? '미도래 · 공식 집계 제외' : '회의 안건 미작성';
@@ -15147,13 +15277,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             weeks.forEach((weekInfo, index) => {
                 const w = weekInfo.weekOfMonth;
                 const weeklyKey = `${year}-${parseInt(month, 10)}-${w}`;
+                const weeklyManual = getUserManualCardStatus(weeklyKey);
                 const weeklyStatusRow = getVisibleMeetingStatusRow(weeklyKey);
                 const container = document.createElement('div');
                 container.className = 'week-card-container';
                 container.style.animation = `slideInCascade 0.5s ${0.15 + index * 0.05}s ease-out backwards`;
                 const weeklyCard = document.createElement('div');
                 weeklyCard.className = 'report-card week-card';
-                const isWeeklyManuallySkipped = skippedDateSet.has(weeklyKey);
+                const isWeeklyManuallySkipped = weeklyManual === '미작성' || skippedDateSet.has(weeklyKey);
 
                 if (isWeeklyManuallySkipped || weeklyStatusRow?.status === '미작성') {
                     weeklyCard.classList.add('not-written');
@@ -15167,7 +15298,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     let isFutureWeek = (parseInt(year) > todayYear) ||
                         (parseInt(year) === todayYear && parseInt(month) > todayMonth) ||
                         (parseInt(year) === todayYear && parseInt(month) === todayMonth && w > todayWeek);
-                    const isWeeklyWrittenInStatus = weeklyStatusRow?.status === '작성';
+                    const isWeeklyWrittenInStatus = weeklyManual === '작성' || (weeklyManual !== '미작성' && weeklyStatusRow?.status === '작성');
                     if (isLegacyWeek || (isFutureWeek && !isWeeklyWrittenInStatus)) {
                         weeklyCard.classList.add('not-written');
                         let tooltip = isFutureWeek ? '미도래 · 공식 집계 제외' : '회의 안건 미작성';
@@ -15231,9 +15362,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             checkAndActivateRemoteMeetingFiles(year, month);
         }
 
-        // 🔧 [수정] sessionStorage 기반 캐시 — 새로고침 후에도 60초 TTL 유지
-        //   기존 Map은 새로고침 시 초기화되어 HEAD 요청이 매번 누적 발생하는 버그였음
+        // 🔧 [수정] GitHub API 디렉터리 기반 원격 파일 검사 (404 네트워크 콘솔 오류 원천 차단 및 0초 지연 정합화)
         const REMOTE_CHECK_CACHE_TTL_MS = 60000;
+        const REMOTE_DIR_CACHE_TTL_MS = 300000; // 5분
         const _RMCC_SK = 'rmcc_v1';
         const remoteMeetingCheckCache = (() => {
             function _ld() { try { return JSON.parse(sessionStorage.getItem(_RMCC_SK) || '{}'); } catch { return {}; } }
@@ -15247,6 +15378,35 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             };
         })();
 
+        async function getRemoteRepoFileList(repo, year) {
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
+            const sk = `rmcc_dir_${repo}_${year}`;
+            try {
+                const cached = JSON.parse(sessionStorage.getItem(sk) || 'null');
+                if (cached && (Date.now() - cached.time < REMOTE_DIR_CACHE_TTL_MS) && Array.isArray(cached.files)) {
+                    return new Set(cached.files);
+                }
+            } catch (_) {}
+
+            try {
+                const res = await fetch(`https://api.github.com/repos/JongGunelee/${repo}/contents/${year}`, {
+                    headers: { 'Accept': 'application/vnd.github.v3+json' },
+                    cache: 'default'
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data)) {
+                        const files = data.map(item => item.name);
+                        try {
+                            sessionStorage.setItem(sk, JSON.stringify({ time: Date.now(), files }));
+                        } catch (_) {}
+                        return new Set(files);
+                    }
+                }
+            } catch (_) {}
+            return null;
+        }
+
         async function checkAndActivateRemoteMeetingFiles(year, month) {
             const targetYear = Number(year);
             const targetMonth = Number(month);
@@ -15256,115 +15416,147 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             updateMeetingProgressInsightsPeriod();
 
             const paddedMonth = String(targetMonth).padStart(2, '0');
-            const nowTime = Date.now();
-            // 🔧 [수정] cacheBuster 제거 — 타임스탬프가 브라우저 캐시를 무력화하여 새로고침마다 HEAD 요청 누적 발생
-            const cacheBuster = ''; // 비활성화 (sessionStorage TTL 캐시로 대체)
 
             // 1. 📅 월간 회의록 원격 파일 실시간 검증 및 양방향 정합화 (wyggkr)
             const monthlyCard = document.getElementById('monthly-report-card');
             let monthlyChanged = false;
             if (monthlyCard) {
                 const monthlyKey = `${targetYear}-${targetMonth}`;
-                const cachedMonthly = remoteMeetingCheckCache.get(monthlyKey);
-                const isMonthlyCacheFresh = cachedMonthly && (nowTime - cachedMonthly.time < REMOTE_CHECK_CACHE_TTL_MS);
-                if (!cardStatusSyncStates.has(monthlyKey) && !isMonthlyCacheFresh) {
+                const syncMonthly = cardStatusSyncStates.get(monthlyKey);
+                const existingMonthlyRow = meetingStatusRows.find(r => r.key === monthlyKey);
+                const userManualMonthlyStatus = syncMonthly ? syncMonthly.targetStatus : (getUserManualCardStatus(monthlyKey) || (existingMonthlyRow?.source?.includes('카드 원클릭') ? existingMonthlyRow.status : null));
+
+                // 사용자가 수동으로 '미작성' 또는 '작성'으로 토글한 경우 사용자의 의도를 100% 최우선 존중
+                if (userManualMonthlyStatus) {
+                    const monthlyToggleBtn = monthlyCard.querySelector('.card-status-toggle');
+                    if (userManualMonthlyStatus === '미작성') {
+                        if (!monthlyCard.classList.contains('not-written') || monthlyCard.dataset.href) {
+                            monthlyCard.classList.add('not-written');
+                            monthlyCard.removeAttribute('data-href');
+                            monthlyCard.dataset.tooltip = '수동으로 미작성 처리됨';
+                            if (monthlyToggleBtn) {
+                                updateCardStatusToggleUI(monthlyToggleBtn, '미작성', `${targetYear}년 ${targetMonth}월 월간 안건`);
+                            }
+                            if (!tempSkippedDates.includes(monthlyKey)) {
+                                tempSkippedDates.push(monthlyKey);
+                            }
+                            monthlyChanged = true;
+                        }
+                        if (existingMonthlyRow && existingMonthlyRow.status !== '미작성') {
+                            existingMonthlyRow.status = '미작성';
+                            monthlyChanged = true;
+                        }
+                    } else if (userManualMonthlyStatus === '작성') {
+                        if (monthlyCard.classList.contains('not-written')) {
+                            monthlyCard.classList.remove('not-written');
+                            monthlyCard.removeAttribute('data-tooltip');
+                            if (monthlyToggleBtn) {
+                                updateCardStatusToggleUI(monthlyToggleBtn, '작성', `${targetYear}년 ${targetMonth}월 월간 안건`);
+                            }
+                            tempSkippedDates = tempSkippedDates.filter(k => k !== monthlyKey);
+                            monthlyChanged = true;
+                        }
+                        if (existingMonthlyRow && existingMonthlyRow.status !== '작성') {
+                            existingMonthlyRow.status = '작성';
+                            monthlyChanged = true;
+                        }
+                    }
+                } else {
                     const monthlyToggleBtn = monthlyCard.querySelector('.card-status-toggle');
                     const monthlyCutoff = new Date(2025, 5, 1);
                     const mDate = new Date(targetYear, targetMonth - 1, 1);
                     const mExt = mDate < monthlyCutoff ? 'pdf' : 'html';
                     const expectedMonthlyFileName = `${targetYear}_${paddedMonth}_회의록.${mExt}`;
-                    const monthlyRawUrl = `https://raw.githubusercontent.com/JongGunelee/wyggkr/main/${targetYear}/${expectedMonthlyFileName}${cacheBuster}`;
                     const monthlyPagesUrl = `https://jonggunelee.github.io/wyggkr/${targetYear}/${expectedMonthlyFileName}`;
 
                     try {
-                        // 🔧 [수정] cache: 'default'로 변경 — 브라우저 HTTP ETag 캐시 활용
-                        const mRes = await fetch(monthlyRawUrl, { method: 'HEAD', cache: 'default' });
-                        remoteMeetingCheckCache.set(monthlyKey, { time: nowTime, status: mRes.status });
-                        if (mRes.ok) {
-                            // [실제 파일 확인됨: 200 OK] -> 카드 즉시 활성화 및 '작성' 승격
-                            if (monthlyCard.classList.contains('not-written') || monthlyCard.dataset.href !== monthlyPagesUrl) {
-                                monthlyCard.classList.remove('not-written');
-                                monthlyCard.dataset.href = monthlyPagesUrl;
-                                monthlyCard.removeAttribute('data-tooltip');
-                                if (monthlyToggleBtn) {
-                                    updateCardStatusToggleUI(monthlyToggleBtn, '작성', `${targetYear}년 ${targetMonth}월 월간 안건`);
-                                }
-                                tempSkippedDates = tempSkippedDates.filter(k => k !== monthlyKey);
-                                monthlyChanged = true;
-                            }
-
-                            const existingRow = meetingStatusRows.find(r => r.key === monthlyKey);
-                            if (existingRow) {
-                                if (existingRow.status !== '작성') {
-                                    existingRow.status = '작성';
-                                    existingRow.note = `실제 회의록 파일 확인: ${targetYear}/${expectedMonthlyFileName}`;
+                        const monthlyFiles = await getRemoteRepoFileList('wyggkr', targetYear);
+                        if (monthlyFiles) {
+                            const exists = monthlyFiles.has(expectedMonthlyFileName);
+                            if (exists) {
+                                // [실제 파일 확인됨] -> 카드 즉시 활성화 및 '작성' 승격
+                                if (monthlyCard.classList.contains('not-written') || monthlyCard.dataset.href !== monthlyPagesUrl) {
+                                    monthlyCard.classList.remove('not-written');
+                                    monthlyCard.dataset.href = monthlyPagesUrl;
+                                    monthlyCard.removeAttribute('data-tooltip');
+                                    if (monthlyToggleBtn) {
+                                        updateCardStatusToggleUI(monthlyToggleBtn, '작성', `${targetYear}년 ${targetMonth}월 월간 안건`);
+                                    }
+                                    tempSkippedDates = tempSkippedDates.filter(k => k !== monthlyKey);
                                     monthlyChanged = true;
                                 }
-                            } else {
-                                meetingStatusRows.push({
-                                    key: monthlyKey,
-                                    type: '월간',
-                                    year: targetYear,
-                                    month: targetMonth,
-                                    week: null,
-                                    status: '작성',
-                                    counterIncluded: 'Y',
-                                    cardVisible: 'Y',
-                                    referenceDate: `${targetYear}-${paddedMonth}-01`,
-                                    updatedAt: new Date().toISOString(),
-                                    source: 'GitHub 회의록 파일 자동 점검',
-                                    exceptionCode: '',
-                                    note: `실제 회의록 파일 확인: ${targetYear}/${expectedMonthlyFileName}`
-                                });
-                                monthlyChanged = true;
-                            }
 
-                            if (meetingStore && typeof meetingStore.setStatus === 'function') {
-                                meetingStore.setStatus(monthlyKey, '작성', { source: 'GitHub 회의록 파일 자동 점검' }).catch(() => {});
-                            }
-                        } else if (mRes.status === 404) {
-                            // [실제 파일 삭제/부재: 404 Not Found] -> 카드 즉시 비활성화 및 '미작성' 강등
-                            if (!monthlyCard.classList.contains('not-written') || monthlyCard.dataset.href) {
-                                monthlyCard.classList.add('not-written');
-                                monthlyCard.removeAttribute('data-href');
-                                monthlyCard.dataset.tooltip = '회의록 파일 없음';
-                                if (monthlyToggleBtn) {
-                                    updateCardStatusToggleUI(monthlyToggleBtn, '미작성', `${targetYear}년 ${targetMonth}월 월간 안건`);
-                                }
-                                if (!tempSkippedDates.includes(monthlyKey)) {
-                                    tempSkippedDates.push(monthlyKey);
-                                }
-                                monthlyChanged = true;
-                            }
-
-                            const existingRow = meetingStatusRows.find(r => r.key === monthlyKey);
-                            if (existingRow) {
-                                if (existingRow.status !== '미작성') {
-                                    existingRow.status = '미작성';
-                                    existingRow.note = `${new Date().toISOString().slice(0, 10)} 기준 회의록 파일 없음`;
+                                if (existingMonthlyRow) {
+                                    if (existingMonthlyRow.status !== '작성') {
+                                        existingMonthlyRow.status = '작성';
+                                        existingMonthlyRow.note = `실제 회의록 파일 확인: ${targetYear}/${expectedMonthlyFileName}`;
+                                        monthlyChanged = true;
+                                    }
+                                } else {
+                                    meetingStatusRows.push({
+                                        key: monthlyKey,
+                                        type: '월간',
+                                        year: targetYear,
+                                        month: targetMonth,
+                                        week: null,
+                                        status: '작성',
+                                        counterIncluded: 'Y',
+                                        cardVisible: 'Y',
+                                        referenceDate: `${targetYear}-${paddedMonth}-01`,
+                                        updatedAt: new Date().toISOString(),
+                                        source: 'GitHub 회의록 파일 자동 점검',
+                                        exceptionCode: '',
+                                        note: `실제 회의록 파일 확인: ${targetYear}/${expectedMonthlyFileName}`
+                                    });
                                     monthlyChanged = true;
                                 }
-                            } else {
-                                meetingStatusRows.push({
-                                    key: monthlyKey,
-                                    type: '월간',
-                                    year: targetYear,
-                                    month: targetMonth,
-                                    week: null,
-                                    status: '미작성',
-                                    counterIncluded: 'Y',
-                                    cardVisible: 'Y',
-                                    referenceDate: `${targetYear}-${paddedMonth}-01`,
-                                    updatedAt: new Date().toISOString(),
-                                    source: 'GitHub 회의록 파일 자동 점검',
-                                    exceptionCode: '',
-                                    note: `${new Date().toISOString().slice(0, 10)} 기준 회의록 파일 없음`
-                                });
-                                monthlyChanged = true;
-                            }
 
-                            if (meetingStore && typeof meetingStore.setStatus === 'function') {
-                                meetingStore.setStatus(monthlyKey, '미작성', { source: 'GitHub 회의록 파일 자동 점검' }).catch(() => {});
+                                if (meetingStore && typeof meetingStore.setStatus === 'function') {
+                                    meetingStore.setStatus(monthlyKey, '작성', { source: 'GitHub 회의록 파일 자동 점검' }).catch(() => {});
+                                }
+                            } else {
+                                // [실제 파일 미존재] -> 카드 즉시 비활성화 및 '미작성' 강등
+                                if (!monthlyCard.classList.contains('not-written') || monthlyCard.dataset.href) {
+                                    monthlyCard.classList.add('not-written');
+                                    monthlyCard.removeAttribute('data-href');
+                                    monthlyCard.dataset.tooltip = '회의록 파일 없음';
+                                    if (monthlyToggleBtn) {
+                                        updateCardStatusToggleUI(monthlyToggleBtn, '미작성', `${targetYear}년 ${targetMonth}월 월간 안건`);
+                                    }
+                                    if (!tempSkippedDates.includes(monthlyKey)) {
+                                        tempSkippedDates.push(monthlyKey);
+                                    }
+                                    monthlyChanged = true;
+                                }
+
+                                if (existingMonthlyRow) {
+                                    if (existingMonthlyRow.status !== '미작성') {
+                                        existingMonthlyRow.status = '미작성';
+                                        existingMonthlyRow.note = `${new Date().toISOString().slice(0, 10)} 기준 회의록 파일 없음`;
+                                        monthlyChanged = true;
+                                    }
+                                } else {
+                                    meetingStatusRows.push({
+                                        key: monthlyKey,
+                                        type: '월간',
+                                        year: targetYear,
+                                        month: targetMonth,
+                                        week: null,
+                                        status: '미작성',
+                                        counterIncluded: 'Y',
+                                        cardVisible: 'Y',
+                                        referenceDate: `${targetYear}-${paddedMonth}-01`,
+                                        updatedAt: new Date().toISOString(),
+                                        source: 'GitHub 회의록 파일 자동 점검',
+                                        exceptionCode: '',
+                                        note: `${new Date().toISOString().slice(0, 10)} 기준 회의록 파일 없음`
+                                    });
+                                    monthlyChanged = true;
+                                }
+
+                                if (meetingStore && typeof meetingStore.setStatus === 'function') {
+                                    meetingStore.setStatus(monthlyKey, '미작성', { source: 'GitHub 회의록 파일 자동 점검' }).catch(() => {});
+                                }
                             }
                         }
                     } catch (_) {}
@@ -15376,123 +15568,157 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             let weeklyChanged = false;
             if (weeklyContainer) {
                 const cards = [...weeklyContainer.querySelectorAll('.week-card')];
-                const checkPromises = cards.map(async (card) => {
-                    const toggleBtn = card.querySelector('.card-status-toggle');
-                    const key = toggleBtn?.dataset.statusKey;
-                    if (!key || cardStatusSyncStates.has(key)) return;
+                try {
+                    const weeklyFiles = await getRemoteRepoFileList('wyggkr03', targetYear);
+                    if (weeklyFiles) {
+                        cards.forEach((card) => {
+                            const toggleBtn = card.querySelector('.card-status-toggle');
+                            const key = toggleBtn?.dataset.statusKey;
+                            if (!key) return;
 
-                    const parts = key.split('-').map(Number);
-                    const w = parts[2];
-                    if (!w) return;
+                            const syncWeekly = cardStatusSyncStates.get(key);
+                            const existingWeeklyRow = meetingStatusRows.find(r => r.key === key);
+                            const userManualWeeklyStatus = syncWeekly ? syncWeekly.targetStatus : (getUserManualCardStatus(key) || (existingWeeklyRow?.source?.includes('카드 원클릭') ? existingWeeklyRow.status : null));
 
-                    const cachedWeekly = remoteMeetingCheckCache.get(key);
-                    if (cachedWeekly && (nowTime - cachedWeekly.time < REMOTE_CHECK_CACHE_TTL_MS)) {
-                        return;
+                            // 사용자가 수동으로 '미작성' 또는 '작성'으로 토글한 경우 사용자의 의도를 100% 최우선 존중
+                            if (userManualWeeklyStatus) {
+                                const wMatch = /-([1-5])$/.exec(key);
+                                const cardW = wMatch ? wMatch[1] : '';
+                                if (userManualWeeklyStatus === '미작성') {
+                                    if (!card.classList.contains('not-written') || card.dataset.href) {
+                                        card.classList.add('not-written');
+                                        card.removeAttribute('data-href');
+                                        card.dataset.tooltip = '수동으로 미작성 처리됨';
+                                        if (toggleBtn) {
+                                            updateCardStatusToggleUI(toggleBtn, '미작성', `${targetYear}년 ${targetMonth}월 ${cardW}주차 안건`);
+                                        }
+                                        if (!tempSkippedDates.includes(key)) {
+                                            tempSkippedDates.push(key);
+                                        }
+                                        weeklyChanged = true;
+                                    }
+                                    if (existingWeeklyRow && existingWeeklyRow.status !== '미작성') {
+                                        existingWeeklyRow.status = '미작성';
+                                        weeklyChanged = true;
+                                    }
+                                } else if (userManualWeeklyStatus === '작성') {
+                                    if (card.classList.contains('not-written')) {
+                                        card.classList.remove('not-written');
+                                        card.removeAttribute('data-tooltip');
+                                        if (toggleBtn) {
+                                            updateCardStatusToggleUI(toggleBtn, '작성', `${targetYear}년 ${targetMonth}월 ${cardW}주차 안건`);
+                                        }
+                                        tempSkippedDates = tempSkippedDates.filter(k => k !== key);
+                                        weeklyChanged = true;
+                                    }
+                                    if (existingWeeklyRow && existingWeeklyRow.status !== '작성') {
+                                        existingWeeklyRow.status = '작성';
+                                        weeklyChanged = true;
+                                    }
+                                }
+                                return;
+                            }
+
+                            const parts = key.split('-').map(Number);
+                            const w = parts[2];
+                            if (!w) return;
+
+                            const paddedWeek = String(w).padStart(2, '0');
+                            const wCutoff = new Date(2025, 5, 8);
+                            const wDate = new Date(targetYear, targetMonth - 1, w * 7);
+                            const wExt = wDate < wCutoff ? 'pdf' : 'html';
+                            const expectedFileName = `${targetYear}_${paddedMonth}_${paddedWeek}_회의록.${wExt}`;
+                            const pagesUrl = `https://jonggunelee.github.io/wyggkr03/${targetYear}/${expectedFileName}`;
+
+                            const exists = weeklyFiles.has(expectedFileName);
+                            if (exists) {
+                                // [실제 파일 확인됨] -> 카드 즉시 활성화 및 '작성' 승격
+                                if (card.classList.contains('not-written') || card.dataset.href !== pagesUrl) {
+                                    card.classList.remove('not-written');
+                                    card.dataset.href = pagesUrl;
+                                    card.removeAttribute('data-tooltip');
+                                    if (toggleBtn) {
+                                        updateCardStatusToggleUI(toggleBtn, '작성', `${targetYear}년 ${targetMonth}월 ${w}주차 안건`);
+                                    }
+                                    tempSkippedDates = tempSkippedDates.filter(k => k !== key);
+                                    weeklyChanged = true;
+                                }
+
+                                if (existingWeeklyRow) {
+                                    if (existingWeeklyRow.status !== '작성') {
+                                        existingWeeklyRow.status = '작성';
+                                        existingWeeklyRow.note = `실제 회의록 파일 확인: ${targetYear}/${expectedFileName}`;
+                                        weeklyChanged = true;
+                                    }
+                                } else {
+                                    meetingStatusRows.push({
+                                        key,
+                                        type: '주간',
+                                        year: targetYear,
+                                        month: targetMonth,
+                                        week: w,
+                                        status: '작성',
+                                        counterIncluded: 'Y',
+                                        cardVisible: 'Y',
+                                        referenceDate: `${targetYear}-${paddedMonth}-${String(Math.min(28, w * 7)).padStart(2, '0')}`,
+                                        updatedAt: new Date().toISOString(),
+                                        source: 'GitHub 회의록 파일 자동 점검',
+                                        exceptionCode: '',
+                                        note: `실제 회의록 파일 확인: ${targetYear}/${expectedFileName}`
+                                    });
+                                    weeklyChanged = true;
+                                }
+
+                                if (meetingStore && typeof meetingStore.setStatus === 'function') {
+                                    meetingStore.setStatus(key, '작성', { source: 'GitHub 회의록 파일 자동 점검' }).catch(() => {});
+                                }
+                            } else {
+                                // [실제 파일 미존재] -> 카드 즉시 비활성화 및 '미작성' 강등
+                                if (!card.classList.contains('not-written') || card.dataset.href) {
+                                    card.classList.add('not-written');
+                                    card.removeAttribute('data-href');
+                                    card.dataset.tooltip = '회의록 파일 없음';
+                                    if (toggleBtn) {
+                                        updateCardStatusToggleUI(toggleBtn, '미작성', `${targetYear}년 ${targetMonth}월 ${w}주차 안건`);
+                                    }
+                                    if (!tempSkippedDates.includes(key)) {
+                                        tempSkippedDates.push(key);
+                                    }
+                                    weeklyChanged = true;
+                                }
+
+                                if (existingWeeklyRow) {
+                                    if (existingWeeklyRow.status !== '미작성') {
+                                        existingWeeklyRow.status = '미작성';
+                                        existingWeeklyRow.note = `${new Date().toISOString().slice(0, 10)} 기준 회의록 파일 없음`;
+                                        weeklyChanged = true;
+                                    }
+                                } else {
+                                    meetingStatusRows.push({
+                                        key,
+                                        type: '주간',
+                                        year: targetYear,
+                                        month: targetMonth,
+                                        week: w,
+                                        status: '미작성',
+                                        counterIncluded: 'Y',
+                                        cardVisible: 'Y',
+                                        referenceDate: `${targetYear}-${paddedMonth}-${String(Math.min(28, w * 7)).padStart(2, '0')}`,
+                                        updatedAt: new Date().toISOString(),
+                                        source: 'GitHub 회의록 파일 자동 점검',
+                                        exceptionCode: '',
+                                        note: `${new Date().toISOString().slice(0, 10)} 기준 회의록 파일 없음`
+                                    });
+                                    weeklyChanged = true;
+                                }
+
+                                if (meetingStore && typeof meetingStore.setStatus === 'function') {
+                                    meetingStore.setStatus(key, '미작성', { source: 'GitHub 회의록 파일 자동 점검' }).catch(() => {});
+                                }
+                            }
+                        });
                     }
-
-                    const paddedWeek = String(w).padStart(2, '0');
-                    const wCutoff = new Date(2025, 5, 8);
-                    const wDate = new Date(targetYear, targetMonth - 1, w * 7);
-                    const wExt = wDate < wCutoff ? 'pdf' : 'html';
-                    const expectedFileName = `${targetYear}_${paddedMonth}_${paddedWeek}_회의록.${wExt}`;
-                    const rawUrl = `https://raw.githubusercontent.com/JongGunelee/wyggkr03/main/${targetYear}/${expectedFileName}${cacheBuster}`;
-                    const pagesUrl = `https://jonggunelee.github.io/wyggkr03/${targetYear}/${expectedFileName}`;
-
-                    try {
-                        // 🔧 [수정] cache: 'default'로 변경 — 브라우저 HTTP ETag 캐시 활용
-                        const res = await fetch(rawUrl, { method: 'HEAD', cache: 'default' });
-                        remoteMeetingCheckCache.set(key, { time: nowTime, status: res.status });
-                        if (res.ok) {
-                            // [실제 파일 확인됨: 200 OK] -> 카드 즉시 활성화 및 '작성' 승격
-                            if (card.classList.contains('not-written') || card.dataset.href !== pagesUrl) {
-                                card.classList.remove('not-written');
-                                card.dataset.href = pagesUrl;
-                                card.removeAttribute('data-tooltip');
-                                if (toggleBtn) {
-                                    updateCardStatusToggleUI(toggleBtn, '작성', `${targetYear}년 ${targetMonth}월 ${w}주차 안건`);
-                                }
-                                tempSkippedDates = tempSkippedDates.filter(k => k !== key);
-                                weeklyChanged = true;
-                            }
-
-                            const existingRow = meetingStatusRows.find(r => r.key === key);
-                            if (existingRow) {
-                                if (existingRow.status !== '작성') {
-                                    existingRow.status = '작성';
-                                    existingRow.note = `실제 회의록 파일 확인: ${targetYear}/${expectedFileName}`;
-                                    weeklyChanged = true;
-                                }
-                            } else {
-                                meetingStatusRows.push({
-                                    key,
-                                    type: '주간',
-                                    year: targetYear,
-                                    month: targetMonth,
-                                    week: w,
-                                    status: '작성',
-                                    counterIncluded: 'Y',
-                                    cardVisible: 'Y',
-                                    referenceDate: `${targetYear}-${paddedMonth}-${String(Math.min(28, w * 7)).padStart(2, '0')}`,
-                                    updatedAt: new Date().toISOString(),
-                                    source: 'GitHub 회의록 파일 자동 점검',
-                                    exceptionCode: '',
-                                    note: `실제 회의록 파일 확인: ${targetYear}/${expectedFileName}`
-                                });
-                                weeklyChanged = true;
-                            }
-
-                            if (meetingStore && typeof meetingStore.setStatus === 'function') {
-                                meetingStore.setStatus(key, '작성', { source: 'GitHub 회의록 파일 자동 점검' }).catch(() => {});
-                            }
-                        } else if (res.status === 404) {
-                            // [실제 파일 삭제/부재: 404 Not Found] -> 카드 즉시 비활성화 및 '미작성' 강등
-                            if (!card.classList.contains('not-written') || card.dataset.href) {
-                                card.classList.add('not-written');
-                                card.removeAttribute('data-href');
-                                card.dataset.tooltip = '회의록 파일 없음';
-                                if (toggleBtn) {
-                                    updateCardStatusToggleUI(toggleBtn, '미작성', `${targetYear}년 ${targetMonth}월 ${w}주차 안건`);
-                                }
-                                if (!tempSkippedDates.includes(key)) {
-                                    tempSkippedDates.push(key);
-                                }
-                                weeklyChanged = true;
-                            }
-
-                            const existingRow = meetingStatusRows.find(r => r.key === key);
-                            if (existingRow) {
-                                if (existingRow.status !== '미작성') {
-                                    existingRow.status = '미작성';
-                                    existingRow.note = `${new Date().toISOString().slice(0, 10)} 기준 회의록 파일 없음`;
-                                    weeklyChanged = true;
-                                }
-                            } else {
-                                meetingStatusRows.push({
-                                    key,
-                                    type: '주간',
-                                    year: targetYear,
-                                    month: targetMonth,
-                                    week: w,
-                                    status: '미작성',
-                                    counterIncluded: 'Y',
-                                    cardVisible: 'Y',
-                                    referenceDate: `${targetYear}-${paddedMonth}-${String(Math.min(28, w * 7)).padStart(2, '0')}`,
-                                    updatedAt: new Date().toISOString(),
-                                    source: 'GitHub 회의록 파일 자동 점검',
-                                    exceptionCode: '',
-                                    note: `${new Date().toISOString().slice(0, 10)} 기준 회의록 파일 없음`
-                                });
-                                weeklyChanged = true;
-                            }
-
-                            if (meetingStore && typeof meetingStore.setStatus === 'function') {
-                                meetingStore.setStatus(key, '미작성', { source: 'GitHub 회의록 파일 자동 점검' }).catch(() => {});
-                            }
-                        }
-                    } catch (_) {}
-                });
-
-                await Promise.all(checkPromises);
+                } catch (_) {}
             }
 
             if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -18867,6 +19093,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 try {
                     setBatchUpdateStatus(`선택한 ${keysToUpdate.length}개 항목을 로컬 이력에 기록 중…`, 'saving');
                     for (const key of keysToUpdate) {
+                        saveUserManualCardStatus(key, targetStatus);
                         const existing = meetingStatusRows.find(row => row.key === key);
                         if (existing) {
                             await meetingStore.setStatus(key, targetStatus, { source: auditSource('미작성 안건 수동 관리') });
