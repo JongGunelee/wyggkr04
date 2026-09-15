@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "628016364d69c8843aad6210e085367f5aa42c3dd199648a70ad5cfe14c18ca7",
+  "sourceSha256": "4def9cd2940ffceaf4b5d07a7de521646277f1db744041ecef651f670301abc2",
   "sourceFiles": {
     "status": {
-      "sha256": "d8c165f1518d197d27feba199ab0c93387215da009dfbb76386678e3c4b1381e",
-      "byteLength": 114542
+      "sha256": "4a12b613919ec3ab578c4c4f6cc0706d4aebf6ba0c49fba9ac1446f5e6325123",
+      "byteLength": 115078
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -5121,12 +5121,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": null,
-        "status": "미작성",
+        "status": "작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-01",
-        "updatedAt": "2026-09-15T22:02:00.000Z",
-        "source": "카드 원클릭 상태 전환 · client:64da435c-7da · session:da4afcfa · Asia/Seoul UTC+09:00",
+        "updatedAt": "2026-09-16T06:38:22.000Z",
+        "source": "카드 원클릭 상태 전환 · client:fa9a2d88-87a · session:88de01da · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": "실제 회의록 파일 확인: 2026/2026_09_회의록.html"
       },
@@ -5166,12 +5166,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": 3,
-        "status": "미작성",
+        "status": "작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-17",
-        "updatedAt": "2026-09-15T22:04:19.000Z",
-        "source": "카드 원클릭 상태 전환 · client:2fd34823-771 · session:f86bf06d · Asia/Seoul UTC+09:00",
+        "updatedAt": "2026-09-16T06:38:16.000Z",
+        "source": "카드 원클릭 상태 전환 · client:fa9a2d88-87a · session:88de01da · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": "2026-09-14 기준 회의록 파일 없음"
       }
@@ -9215,6 +9215,46 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "beforeValue": "작성",
         "afterValue": "미작성",
         "source": "카드 원클릭 상태 전환 · client:2fd34823-771 · session:f86bf06d · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "88e1d54f-384d-4c40-886a-750ba8eb7938",
+        "changedAt": "2026-09-16T06:14:58.000Z",
+        "key": "2026-9-3",
+        "type": "주간",
+        "beforeValue": "{\"source\":\"카드 원클릭 상태 전환 · client:2fd34823-771 · session:f86bf06d · Asia/Seoul UTC+09:00\"}",
+        "afterValue": "{\"source\":\"카드 원클릭 상태 전환 · client:fa9a2d88-87a · session:07503295 · Asia/Seoul UTC+09:00\"}",
+        "source": "카드 원클릭 상태 전환 · client:fa9a2d88-87a · session:07503295 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "fc8233a4-fbbf-4029-84eb-a27444b45fd4",
+        "changedAt": "2026-09-16T06:15:00.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "{\"source\":\"카드 원클릭 상태 전환 · client:64da435c-7da · session:da4afcfa · Asia/Seoul UTC+09:00\"}",
+        "afterValue": "{\"source\":\"카드 원클릭 상태 전환 · client:fa9a2d88-87a · session:07503295 · Asia/Seoul UTC+09:00\"}",
+        "source": "카드 원클릭 상태 전환 · client:fa9a2d88-87a · session:07503295 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "d07ace17-f70a-427b-b11e-b8f8e764ae31",
+        "changedAt": "2026-09-16T06:38:16.000Z",
+        "key": "2026-9-3",
+        "type": "주간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
+        "source": "카드 원클릭 상태 전환 · client:fa9a2d88-87a · session:88de01da · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "cd9bcb77-58eb-4535-ac1d-e7511cf43693",
+        "changedAt": "2026-09-16T06:38:22.000Z",
+        "key": "2026-9",
+        "type": "월간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
+        "source": "카드 원클릭 상태 전환 · client:fa9a2d88-87a · session:88de01da · Asia/Seoul UTC+09:00",
         "syncStatus": "완료"
       }
     ]
