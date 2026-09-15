@@ -11924,8 +11924,18 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             }
 
             #monthly-report-card {
-                width: calc(100% + 26px);
-                box-sizing: border-box;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                position: relative !important;
+            }
+
+            .memo-toggle-btn {
+                position: absolute !important;
+                right: 8px !important;
+                top: 50% !important;
+                transform: translateY(-50%) !important;
+                z-index: 10 !important;
             }
 
             .week-card.current,
@@ -14611,7 +14621,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             renderMeetingProgressInsights(y, m);
             updateAnalyticsTooltip();
 
-            // 5. 백그라운드에서 조용히 meetingStore 동기화 (실패해도 화면에는 절대 영향 없음)
+            // 5. ☁️ 백그라운드 GitHub 원격 XLSB 자동 커밋·동기화 (다른 컴퓨터 및 모바일 기기 실시간 공유)
             if (meetingStore && !cardStatusTogglePromises.has(key)) {
                 const op = (async () => {
                     try {
@@ -14633,6 +14643,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                                 exceptionCode: '',
                                 note: `사용자 수동 ${targetStatus} 지정`
                             }, { source: auditSource('카드 원클릭 상태 전환') });
+                        }
+
+                        // GitHub PAT 토큰이 등록되어 있으면 원격 GitHub 저장소(회의_안건_현황.xlsb)로 즉시 푸시
+                        if (dashboardConfig.dataManagement?.mode === 'api' && typeof syncPendingStatusChanges === 'function') {
+                            const syncRes = await syncPendingStatusChanges([key], targetStatus);
+                            if (syncRes && syncRes.ok) {
+                                if (typeof showToast === 'function') {
+                                    showToast(`☁️ 깃허브 원격 저장 완료! 다른 컴퓨터 및 모바일에서도 즉시 '${targetStatus}' 상태로 표시됩니다.`, 'info');
+                                }
+                            }
                         }
                     } catch (_) {}
                 })();
@@ -15659,9 +15679,11 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 const expectedMonthlyFileName = `${targetYear}_${paddedMonth}_회의록.${mExt}`;
                 const monthlyPagesUrl = `https://jonggunelee.github.io/wyggkr/${targetYear}/${expectedMonthlyFileName}`;
 
-                if (userManualMonthlyStatus) {
+                // 로컬 수동 상태 또는 원격 GitHub XLSB에 저장된 수동 지정 상태 확인
+                const effectiveMonthlyStatus = userManualMonthlyStatus || (existingMonthlyRow?.source?.includes('카드 원클릭') ? existingMonthlyRow.status : null);
+                if (effectiveMonthlyStatus) {
                     // [수동 모드]: 사용자가 수동 설정한 상태 100% 즉시 유지
-                    if (userManualMonthlyStatus === '작성') {
+                    if (effectiveMonthlyStatus === '작성') {
                         if (monthlyCard.classList.contains('not-written') || monthlyCard.dataset.href !== monthlyPagesUrl) {
                             monthlyCard.classList.remove('not-written');
                             monthlyCard.dataset.href = monthlyPagesUrl;
@@ -15746,9 +15768,11 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     const existingWeeklyRow = meetingStatusRows.find(r => r.key === key);
                     const userManualWeeklyStatus = isManualMode ? getUserManualCardStatus(key) : null;
 
-                    if (userManualWeeklyStatus) {
+                    // 로컬 수동 상태 또는 원격 GitHub XLSB에 저장된 수동 지정 상태 확인
+                    const effectiveWeeklyStatus = userManualWeeklyStatus || (existingWeeklyRow?.source?.includes('카드 원클릭') ? existingWeeklyRow.status : null);
+                    if (effectiveWeeklyStatus) {
                         // [수동 모드]: 사용자가 수동 설정한 상태 100% 즉시 유지
-                        if (userManualWeeklyStatus === '작성') {
+                        if (effectiveWeeklyStatus === '작성') {
                             if (card.classList.contains('not-written') || card.dataset.href !== pagesUrl) {
                                 card.classList.remove('not-written');
                                 card.dataset.href = pagesUrl;
