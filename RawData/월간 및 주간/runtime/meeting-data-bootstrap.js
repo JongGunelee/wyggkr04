@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "5b82722f44b5d8bd620a815d316887f7e5698473fa5613c67a891950ceb2d3d4",
+  "sourceSha256": "ae4f56ed66b1e7a6eef8d00d4a694161671b411804aacd5bedc23a62c18b2c5f",
   "sourceFiles": {
     "status": {
-      "sha256": "3393a66e5c56524bc724d08cef0918b55aa6297c6cd5cb13bb2fa7dc35d61375",
-      "byteLength": 116913
+      "sha256": "8464da47ae15abbf514cbfda99ccfbaf19890450910ac6921b34c0c681209898",
+      "byteLength": 117331
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -5151,12 +5151,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": 2,
-        "status": "작성",
+        "status": "미작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-10",
-        "updatedAt": "2026-09-07T10:44:12.000Z",
-        "source": "GitHub 회의록 파일 자동 점검",
+        "updatedAt": "2026-09-16T17:15:01.000Z",
+        "source": "카드 원클릭 상태 전환 · client:0a8168d3-9e2 · session:d3475b55 · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": "2026-09-07 기준 회의록 파일 없음"
       },
@@ -5166,12 +5166,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 9,
         "week": 3,
-        "status": "작성",
+        "status": "미작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-09-17",
-        "updatedAt": "2026-09-16T06:59:35.000Z",
-        "source": "카드 원클릭 상태 전환 · client:74a63f47-68d · session:f7ec004e · Asia/Seoul UTC+09:00",
+        "updatedAt": "2026-09-16T17:14:58.000Z",
+        "source": "카드 원클릭 상태 전환 · client:0a8168d3-9e2 · session:d3475b55 · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": "2026-09-14 기준 회의록 파일 없음"
       }
@@ -9395,6 +9395,26 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "beforeValue": "미작성",
         "afterValue": "작성",
         "source": "카드 원클릭 상태 전환 · client:74a63f47-68d · session:f7ec004e · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "26b9a6e2-bb4e-48e6-a8f0-75d730c0997d",
+        "changedAt": "2026-09-16T17:14:58.000Z",
+        "key": "2026-9-3",
+        "type": "주간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "카드 원클릭 상태 전환 · client:0a8168d3-9e2 · session:d3475b55 · Asia/Seoul UTC+09:00",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "74b7cf4c-b7f6-4d98-9449-1032350b2ea4",
+        "changedAt": "2026-09-16T17:15:01.000Z",
+        "key": "2026-9-2",
+        "type": "주간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "카드 원클릭 상태 전환 · client:0a8168d3-9e2 · session:d3475b55 · Asia/Seoul UTC+09:00",
         "syncStatus": "완료"
       }
     ]
