@@ -42214,12 +42214,17 @@
                         try { window.__refreshScheduleAccordionObservers?.(); } catch (e) { }
                         setupControlSectionToggles(clickedItem.querySelector('#controlsSection'));
                         window.__scrollToTodayOnScheduleOpen = true;
-                        requestAnimationFrame(() => {
-                            requestAnimationFrame(() => {
-                                if (typeof tryScrollToTodayIfReady === 'function' && tryScrollToTodayIfReady()) {
-                                    window.__scrollToTodayOnScheduleOpen = false;
-                                }
-                            });
+                        const autoScrollDelays = [0, 50, 150, 300, 500, 800, 1200, 1600];
+                        autoScrollDelays.forEach(d => {
+                            setTimeout(() => {
+                                requestAnimationFrame(() => {
+                                    if (clickedItem && clickedItem.classList.contains('open')) {
+                                        if (typeof scrollToToday === 'function' && scrollToToday()) {
+                                            window.__scrollToTodayOnScheduleOpen = false;
+                                        }
+                                    }
+                                });
+                            }, d);
                         });
                     }
                 });
@@ -42250,6 +42255,9 @@
                             } else {
                                 requestAnimationFrame(() => render());
                             }
+                            requestAnimationFrame(() => {
+                                if (typeof scrollToToday === 'function') scrollToToday();
+                            });
                         }
                     };
                     content.addEventListener('transitionend', handleTransitionEnd);
@@ -46213,7 +46221,14 @@
             }
 
             // \ub9c8\uc77c\uc2a4\ud1a4 \ubaa8\ub2ec\uc744 \ub80c\ub354\ub9c1\ud558\uace0 \ud45c\uc2dc\ud569\ub2c8\ub2e4.
+            // [UX-UPDATE-20260919] 마일스톤 모달 활성화 시 기본 정렬: 날짜 최신순 (내림차순, ▼)
+            if (!window.__milestoneSortState || window.__milestoneSortState.by !== 'date') {
+                window.__milestoneSortState = { by: 'date', asc: false };
+            }
             renderMilestoneModal();
+            if (typeof syncMilestoneSortButtons === 'function') {
+                syncMilestoneSortButtons();
+            }
             if (typeof applyMilestoneToolbarCollapseState === 'function') {
                 applyMilestoneToolbarCollapseState(true);
             }
@@ -65271,63 +65286,86 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
         // [REMOVED] \uae30\uc874 ensureTodayMarkers \ud568\uc218 - \uc0c8\ub85c\uc6b4 \uc2dc\uc2a4\ud15c\uc73c\ub85c \ub300\uccb4\ub428
 
-        function scrollToToday() {
+        function scrollToToday(options) {
             // [REFACTORED] Robust ScrollToToday - Auto Retry & Better Detection
-            const container = (fullscreenModal && !fullscreenModal.classList.contains('hidden')) ? fullscreenModalBody : document.getElementById('ganttViewContent');
+            const container = (typeof fullscreenModal !== 'undefined' && fullscreenModal && !fullscreenModal.classList.contains('hidden'))
+                ? (typeof fullscreenModalBody !== 'undefined' ? fullscreenModalBody : document.getElementById('ganttViewContent'))
+                : document.getElementById('ganttViewContent');
 
             if (!container) {
                 console.warn('[ScrollToToday] Container not found');
                 return false;
             }
 
-            // Marker System Force Render attempt
+            // Marker System Force Render attempt (Synchronous)
             if (window.ganttTodayMarker) {
-                if (!window.ganttTodayMarker.canRender()) {
-                    console.log('[ScrollToToday] Cannot render yet (data not ready)');
-                    return false;
+                if (typeof window.ganttTodayMarker.renderSync === 'function') {
+                    window.ganttTodayMarker.renderSync();
+                } else if (typeof window.ganttTodayMarker.forceRender === 'function') {
+                    window.ganttTodayMarker.forceRender();
                 }
-                window.ganttTodayMarker.forceRender();
             } else {
                 console.warn('[ScrollToToday] ganttTodayMarker system not initialized');
             }
 
-            const todayMarker = container.querySelector('.gantt-today-marker-final');
-            if (!todayMarker) {
-                console.debug('[ScrollToToday] Marker element not found in DOM');
-                return false;
-            }
-
             const timelineContainer = container.querySelector('.gantt-timeline-body-wrapper');
+            const headerContainer = container.querySelector('.gantt-timeline-header-wrapper');
             if (!timelineContainer) {
                 console.warn('[ScrollToToday] Timeline body wrapper not found');
                 return false;
             }
 
-            // Calculate scroll position
-            const todayPosition = todayMarker.offsetLeft;
             const containerWidth = timelineContainer.clientWidth;
-            const scrollTarget = Math.max(0, todayPosition - (containerWidth / 2));
+            if (containerWidth <= 0) {
+                return false; // Still expanding or hidden
+            }
 
-            console.log(`[ScrollToToday] Scrolling to ${scrollTarget}px (Marker at ${todayPosition}px)`);
+            let todayPosition = null;
+            const todayMarker = container.querySelector('.gantt-today-marker-final');
+            if (todayMarker && todayMarker.offsetLeft > 0) {
+                todayPosition = todayMarker.offsetLeft;
+            } else if (typeof viewMinDate !== 'undefined' && viewMinDate) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const dayWidth = (typeof DAY_WIDTH === 'number' && DAY_WIDTH > 0) ? DAY_WIDTH : 40;
+                const dayDiff = Math.round((today - viewMinDate) / (1000 * 60 * 60 * 24));
+                todayPosition = (dayDiff * dayWidth) + (dayWidth / 2);
+            }
 
-            timelineContainer.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+            if (todayPosition === null) {
+                console.debug('[ScrollToToday] Marker position could not be determined');
+                return false;
+            }
 
-            // Highlight effect for the marker line
+            // Calculate scroll position (centered in visible timeline)
+            const scrollTarget = Math.max(0, Math.round(todayPosition - (containerWidth / 2)));
+
+            console.log(`[ScrollToToday] Scrolling to ${scrollTarget}px (Marker at ${todayPosition}px, width: ${containerWidth}px)`);
+
+            const isSmooth = (options && options.smooth === true);
+            timelineContainer.scrollTo({ left: scrollTarget, behavior: isSmooth ? 'smooth' : 'auto' });
+            if (headerContainer) {
+                headerContainer.scrollTo({ left: scrollTarget, behavior: isSmooth ? 'smooth' : 'auto' });
+            }
+
+            // Highlight effect for the marker line (red dashed line)
             const todayLine = container.querySelector('.gantt-today-line-final');
             if (todayLine) {
-                todayLine.style.borderLeftColor = 'rgba(29, 78, 216, 1)'; // Solid blue
+                todayLine.style.borderLeftColor = '#ef4444';
+                todayLine.style.borderLeftWidth = '4px';
                 setTimeout(() => {
-                    todayLine.style.borderLeftColor = 'rgba(29, 78, 216, 0.4)'; // Revert to dashed/transparent
-                }, 1500);
+                    if (todayLine) todayLine.style.borderLeftWidth = '2px';
+                }, 500);
             }
 
             return true;
         }
+        window.scrollToToday = scrollToToday;
 
-        function tryScrollToTodayIfReady() {
+        function tryScrollToTodayIfReady(options) {
             const projectView = document.getElementById('projectView');
             if (!projectView || !projectView.classList.contains('open')) return false;
-            return scrollToToday();
+            return scrollToToday(options);
         }
 
         // [v27] Supreme Targeted Layout Refresh: Fixes file:// origin security error
@@ -72113,7 +72151,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             
 
                 // [UX-UPDATE] \ub9c8\uc77c\uc2a4\ud1a4 \uad00\ub9ac: \uc785\ub825 \ub0a0\uc9dc \uae30\uc900 \uc815\ub82c \ucd94\uac00
-                milestones.sort((a, b) => new Date(a.date) - new Date(b.date));}
+                milestones.sort((a, b) => new Date(b.date) - new Date(a.date));}
 
             milestoneList.innerHTML = '';
             // [FIX] \ub9c8\uc77c\uc2a4\ud1a4 \ud328\ub110\uc774 \ub3d9\uc801\uc73c\ub85c \ub9ac\ub80c\ub354\ub9c1\ub420 \ub54c \ub0a0\uc9dc \uc785\ub825 \uc774\ubca4\ud2b8\ub97c \ud56d\uc0c1 \uc7ac\ubd80\ucc29
@@ -72223,11 +72261,20 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     return true;
                 });
 
-                const sortState = window.__milestoneSortState || { by: 'date', asc: true };
+                const sortState = window.__milestoneSortState || { by: 'date', asc: false };
                 visibleMilestones.sort((a, b) => {
-                    const valA = String(sortState.by === 'status' ? a.statusText : (sortState.by === 'name' ? a.nameText : a.dateText) || '').trim();
-                    const valB = String(sortState.by === 'status' ? b.statusText : (sortState.by === 'name' ? b.nameText : b.dateText) || '').trim();
-                    const cmp = valA.localeCompare(valB, 'ko-KR', { numeric: true, sensitivity: 'base' });
+                    let cmp = 0;
+                    if (sortState.by === 'date') {
+                        const timeA = new Date(a.date || a.dateText || 0).getTime();
+                        const timeB = new Date(b.date || b.dateText || 0).getTime();
+                        cmp = (isNaN(timeA) || isNaN(timeB))
+                            ? String(a.dateText || '').localeCompare(String(b.dateText || ''), 'ko-KR', { numeric: true })
+                            : (timeA - timeB);
+                    } else {
+                        const valA = String(sortState.by === 'status' ? a.statusText : (sortState.by === 'name' ? a.nameText : a.dateText) || '').trim();
+                        const valB = String(sortState.by === 'status' ? b.statusText : (sortState.by === 'name' ? b.nameText : b.dateText) || '').trim();
+                        cmp = valA.localeCompare(valB, 'ko-KR', { numeric: true, sensitivity: 'base' });
+                    }
                     return sortState.asc ? cmp : -cmp;
                 });
                 if (typeof window !== 'undefined') window.milestones = milestones.slice();
@@ -83745,8 +83792,11 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                                 content = headers.join(',') + '\n';
                                 content += data.map(row => {
                                     return headers.map(h => {
-                                        const val = row[h] || '';
-                                        return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
+                                        const val = (row[h] !== undefined && row[h] !== null) ? row[h] : '';
+                                        const strVal = String(val);
+                                        return (strVal.includes(',') || strVal.includes('"') || strVal.includes('\n') || strVal.includes('\r'))
+                                            ? `"${strVal.replace(/"/g, '""')}"`
+                                            : strVal;
                                     }).join(',');
                                 }).join('\n');
                             }
@@ -91127,14 +91177,14 @@ function showPendingSettlementModal(periodType, projects) {
                         };
 
                         const createCustomerSheets = (custName, custProjects) => {
-                            const custStats = { costAccount: new Map(), costAllocation: new Map(), taskType: new Map(), contractor: new Map(), customer: new Map() };
+                            const custStats = { costAccount: new Map(), costAllocation: new Map(), taskType: new Map(), contractor: new Map(), customer: new Map(), siCenter: new Map() };
                             let custTotalPR = 0, custTotalPO = 0;
                             custProjects.forEach(p => {
                                 custTotalPR += p.pr; custTotalPO += p.po;
                                 [
                                     { m: custStats.costAccount, v: p.cost }, { m: custStats.costAllocation, v: p.costalloc }, 
                                     { m: custStats.taskType, v: p.type }, { m: custStats.contractor, v: p.ctr },
-                                    { m: custStats.customer, v: p.cust }
+                                    { m: custStats.customer, v: p.cust }, { m: custStats.siCenter, v: p.siCenter || '미지정' }
                                 ].forEach(item => {
                                     const e = item.m.get(item.v) || { count: 0, pr: 0, po: 0 };
                                     e.count++; e.pr += p.pr; e.po += p.po;
@@ -91142,8 +91192,21 @@ function showPendingSettlementModal(periodType, projects) {
                                 });
                             });
 
+                            function getSafeUniqueWorksheetName(wb, rawName) {
+                                const clean = String(rawName || 'Sheet').replace(/[\/:*?"<>|\[\]]/g, "_").trim();
+                                const base = clean.substring(0, 31).trim() || 'Sheet';
+                                if (!wb.getWorksheet(base)) return base;
+                                let counter = 2;
+                                while (counter < 1000) {
+                                    const suf = `~${counter}`;
+                                    const candidate = base.substring(0, 31 - suf.length).trim() + suf;
+                                    if (!wb.getWorksheet(candidate)) return candidate;
+                                    counter++;
+                                }
+                                return base;
+                            }
                             const suffix = projects.length > custProjects.length ? ` - ${custName}` : '';
-                            const dashSheet = workbook.addWorksheet(`분석-${custName}`.replace(/[\/:*?"<>|\[\]]/g, "_").substring(0, 31).trim());
+                            const dashSheet = workbook.addWorksheet(getSafeUniqueWorksheetName(workbook, `분석-${custName}`));
                             dashSheet.columns = [
                                 { header: '분류', key: 'cat', width: 25 }, { header: '항목', key: 'item', width: 30 }, { header: '건수', key: 'cnt', width: 10 },
                                 { header: 'PR금액 (A)', key: 'pr', width: 18 }, { header: 'PO금액 (B)', key: 'po', width: 18 }, { header: '차액 (B-A)', key: 'diff', width: 18 }, { header: '효율 (A/B)', key: 'eff', width: 12 }
@@ -91162,8 +91225,9 @@ function showPendingSettlementModal(periodType, projects) {
                             if (custStats.costAllocation.size > 0 && !(custStats.costAllocation.size === 1 && custStats.costAllocation.has(custName))) addSection(dashSheet, '📦 비용배분별 집계', custStats.costAllocation, 'FFD9EAD3');
                             if (custStats.taskType.size > 0 && !(custStats.taskType.size === 1 && custStats.taskType.has(custName))) addSection(dashSheet, '🏗️ 작업유형별 집계', custStats.taskType, 'FFFFF2CC');
                             if (custStats.contractor.size > 0 && !(custStats.contractor.size === 1 && custStats.contractor.has(custName))) addSection(dashSheet, '👷 시공사별 집계', custStats.contractor, 'FFFCE4D6');
+                            addSection(dashSheet, '🏢 S&I 센터별 집계', custStats.siCenter, 'FFD9EAF7');
 
-                            const detSheet = workbook.addWorksheet(`상세-${custName}`.replace(/[\/:*?"<>|\[\]]/g, "_").substring(0, 31).trim());
+                            const detSheet = workbook.addWorksheet(getSafeUniqueWorksheetName(workbook, `상세-${custName}`));
                             detSheet.columns = [
                                 { header: 'NO', key: 'no', width: 5 }, { header: '유지관리번호', key: 'mc', width: 15 }, { header: '고객사', key: 'cust', width: 15 },
                                 { header: '비용계정', key: 'cost', width: 15 }, { header: '비용배분', key: 'costalloc', width: 12 }, { header: '작업유형', key: 'type', width: 12 }, { header: '프로젝트명', key: 'title', width: 40 },
@@ -91188,20 +91252,21 @@ function showPendingSettlementModal(periodType, projects) {
 
                         const createSiCenterSheets = (centerName, centerProjects) => {
                             const safeCenter = String(centerName || '미지정').replace(/[\/:*?"<>|\[\]]/g, '_').substring(0, 20).trim() || '미지정';
-                            const stats = { customer: new Map(), costAccount: new Map(), taskType: new Map(), contractor: new Map() };
+                            const stats = { customer: new Map(), costAccount: new Map(), taskType: new Map(), contractor: new Map(), siCenter: new Map() };
                             let totalPR = 0, totalPO = 0;
                             centerProjects.forEach(p => {
                                 totalPR += p.pr; totalPO += p.po;
                                 [
                                     { m: stats.customer, v: p.cust }, { m: stats.costAccount, v: p.cost },
-                                    { m: stats.taskType, v: p.type }, { m: stats.contractor, v: p.ctr }
+                                    { m: stats.taskType, v: p.type }, { m: stats.contractor, v: p.ctr },
+                                    { m: stats.siCenter, v: p.siCenter || '미지정' }
                                 ].forEach(item => {
                                     const entry = item.m.get(item.v) || { count: 0, pr: 0, po: 0 };
                                     entry.count += 1; entry.pr += p.pr; entry.po += p.po;
                                     item.m.set(item.v, entry);
                                 });
                             });
-                            const analysisSheet = workbook.addWorksheet(`센터분석-${safeCenter}`.substring(0, 31));
+                            const analysisSheet = workbook.addWorksheet(getSafeUniqueWorksheetName(workbook, `센터분석-${safeCenter}`));
                             analysisSheet.columns = [
                                 { header: '분류', key: 'cat', width: 25 }, { header: '항목', key: 'item', width: 30 }, { header: '건수', key: 'cnt', width: 10 },
                                 { header: 'PR금액 (A)', key: 'pr', width: 18 }, { header: 'PO금액 (B)', key: 'po', width: 18 }, { header: '차액 (B-A)', key: 'diff', width: 18 }, { header: '효율 (A/B)', key: 'eff', width: 12 }
@@ -91213,9 +91278,10 @@ function showPendingSettlementModal(periodType, projects) {
                             addSection(analysisSheet, '비용계정별 집계', stats.costAccount, 'FFE2EFDA');
                             addSection(analysisSheet, '작업유형별 집계', stats.taskType, 'FFFFF2CC');
                             addSection(analysisSheet, '시공사별 집계', stats.contractor, 'FFFCE4D6');
+                            addSection(analysisSheet, '🏢 S&I 센터별 집계', stats.siCenter, 'FFD9EAF7');
                             analysisSheet.views = [{ state: 'frozen', ySplit: 1 }];
 
-                            const detailSheet = workbook.addWorksheet(`센터상세-${safeCenter}`.substring(0, 31));
+                            const detailSheet = workbook.addWorksheet(getSafeUniqueWorksheetName(workbook, `센터상세-${safeCenter}`));
                             detailSheet.columns = [
                                 { header: 'NO', key: 'no', width: 5 }, { header: '유지관리번호', key: 'mc', width: 15 }, { header: 'S&I 센터', key: 'siCenter', width: 14 },
                                 { header: '고객사', key: 'cust', width: 15 }, { header: '비용계정', key: 'cost', width: 15 }, { header: '비용배분', key: 'costalloc', width: 12 },
@@ -100257,9 +100323,47 @@ function showPendingSettlementModal(periodType, projects) {
             window.__activeSettlementAnalysisTitle = null;
         }
         window.__closeStlGroupTooltip = closeTT;
-        document.addEventListener('click', (ev) => {
-            if (window.__activeTT && !window.__activeTT.contains(ev.target)) closeTT();
-        }, true);
+
+        // [ANALYSIS-TOOLTIP-PERSISTENT-PIN-20260919]
+        // 분석 툴팁 활성화 시 빈 바탕 클릭 자동 닫힘 방지 및 바탕 화면 클릭 차단 가드
+        function isAnyAnalysisTooltipActive() {
+            const stlActive = !!(window.__activeTT && window.__activeTT.isConnected && window.__activeTT.classList.contains('visible'));
+            const sankeyActive = typeof isAnalysisTooltipOpen === 'function' && isAnalysisTooltipOpen();
+            return { stlActive, sankeyActive, active: stlActive || sankeyActive };
+        }
+
+        function isClickInsideAnalysisTooltip(target) {
+            if (!target) return false;
+            if (window.__activeTT && window.__activeTT.isConnected && window.__activeTT.contains(target)) {
+                return true;
+            }
+            const sankeyTip = document.getElementById('overviewSankeyAnalysisTooltip');
+            if (sankeyTip && !sankeyTip.classList.contains('hidden') && sankeyTip.contains(target)) {
+                return true;
+            }
+            return false;
+        }
+
+        function interceptBackgroundClicksWhenAnalysisTooltipOpen(ev) {
+            const status = isAnyAnalysisTooltipActive();
+            if (!status.active) return;
+
+            // 클릭 타겟이 분석 툴팁 내부가 아니면 (즉, 빈 바탕 화면 또는 배경 요소 클릭 시)
+            if (!isClickInsideAnalysisTooltip(ev.target)) {
+                // 1. 바탕 화면 요소가 클릭되거나 배경 제어기가 동작하지 않도록 차단
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') {
+                    ev.stopImmediatePropagation();
+                }
+                // 2. 'X' 닫기 기호를 클릭하기 전까지는 분석 툴팁이 자동으로 닫히지 않도록 고정 유지 (closeTT 미호출)
+                return false;
+            }
+        }
+
+        // 데스크탑 마우스 및 모바일 터치 이벤트 캡처링 단계에서 바탕 화면 클릭 원천 차단
+        document.addEventListener('click', interceptBackgroundClicksWhenAnalysisTooltipOpen, true);
+        document.addEventListener('pointerdown', interceptBackgroundClicksWhenAnalysisTooltipOpen, true);
 
         window.injectExcelIconToHeader = function(header, title, dataOrGrouped) {
             if (!header || !dataOrGrouped) return;
@@ -101559,6 +101663,37 @@ function showPendingSettlementModal(periodType, projects) {
           white-space: nowrap !important;
           flex-shrink: 0 !important;
         }
+      }
+    </style>
+    <!-- [SMART-SELECTION-GUARD-20260919] 빈 바탕 드래그 방지 및 직접 대상 텍스트 선택/복사 보장 CSS -->
+    <style id="smart-selection-guard-style">
+      body,
+      .modal-overlay,
+      .gantt-chart-wrapper,
+      .gantt-timeline-body-wrapper,
+      .accordion-header,
+      .toolbar-container,
+      .no-select-bg {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+      p, span, td, th, label, pre, code, b, strong, i, em, u, s, a,
+      h1, h2, h3, h4, h5, h6, li, dd, dt,
+      input, textarea, [contenteditable="true"],
+      .selectable-text, .copyable,
+      #milestoneList td, #milestoneList span, #milestoneList p {
+        -webkit-user-select: text !important;
+        -moz-user-select: text !important;
+        -ms-user-select: text !important;
+        user-select: text !important;
+      }
+      button, .btn, input[type="button"], input[type="submit"] {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
       }
     </style>
 
@@ -105065,8 +105200,16 @@ function showPendingSettlementModal(periodType, projects) {
                 this.log('\uc124\uc815 \uc5c5\ub370\uc774\ud2b8', newConfig);
             }
 
+            renderSync() {
+                if (this.renderRaf) {
+                    cancelAnimationFrame(this.renderRaf);
+                    this.renderRaf = null;
+                }
+                this.render();
+            }
+
             forceRender() {
-                this.scheduleRender(true);
+                this.renderSync();
             }
 
             destroy() {
@@ -105737,7 +105880,7 @@ function showPendingSettlementModal(periodType, projects) {
         });
 
         // --- 2. Dynamic Sort Logic & Filters ---
-        window.__milestoneSortState = window.__milestoneSortState || { by: 'date', asc: true };
+        window.__milestoneSortState = window.__milestoneSortState || { by: 'date', asc: false };
         window.__milestoneFilterState = window.__milestoneFilterState || { date: '', status: '', name: '', dateFrom: '', dateTo: '', deepQuery: '' };
         window.__milestoneToolbarUiState = window.__milestoneToolbarUiState || { collapsed: true, mobilePortraitActive: false };
         window.__milestoneFormUiState = window.__milestoneFormUiState || { collapsed: true, mobilePortraitActive: false };
@@ -105929,7 +106072,7 @@ function showPendingSettlementModal(periodType, projects) {
         }
 
         function syncMilestoneSortButtons() {
-            var state = window.__milestoneSortState || { by: 'date', asc: true };
+            var state = window.__milestoneSortState || { by: 'date', asc: false };
             var dateBtn = document.getElementById('sortMilestoneDateBtn');
             var statusBtn = document.getElementById('sortMilestoneStatusBtn');
             var nameBtn = document.getElementById('sortMilestoneNameBtn');
@@ -105952,12 +106095,13 @@ function showPendingSettlementModal(periodType, projects) {
         }
 
         function handleSortClick(by) {
-            var state = window.__milestoneSortState;
+            var state = window.__milestoneSortState || { by: 'date', asc: false };
+            window.__milestoneSortState = state;
             if (state.by === by) {
                 state.asc = !state.asc;
             } else {
                 state.by = by;
-                state.asc = true;
+                state.asc = (by === 'date' ? false : true);
             }
             syncMilestoneSortButtons();
             refreshMilestonesView();
@@ -110368,8 +110512,18 @@ function showPendingSettlementModal(periodType, projects) {
             chartWrapper.dataset.mobilePaneMode = nextMode;
         }
         applyMobileGanttPaneMode(chartWrapper);
-        setTimeout(function () { applyMobileGanttPaneMode(chartWrapper); }, 80);
-        setTimeout(function () { applyMobileGanttPaneMode(chartWrapper); }, 240);
+        setTimeout(function () {
+            applyMobileGanttPaneMode(chartWrapper);
+            if (nextMode !== MODE_RIGHT_COLLAPSED && typeof window.scrollToToday === 'function') {
+                window.scrollToToday();
+            }
+        }, 80);
+        setTimeout(function () {
+            applyMobileGanttPaneMode(chartWrapper);
+            if (nextMode !== MODE_RIGHT_COLLAPSED && typeof window.scrollToToday === 'function') {
+                window.scrollToToday();
+            }
+        }, 240);
     }
 
     function handleControlClick(event) {
@@ -140806,6 +140960,83 @@ window.openAddNewProjectModal = function(editProject) {
 })();
 </script>
 
+    <!-- [SMART-SELECTION-GUARD-20260919] 빈 바탕 드래그 시 원치 않는 객체 선택 방지 및 직접 대상 텍스트 선택/복사 100% 보장 JS -->
+    <script id="smart-selection-guard-script">
+    (function initSmartSelectionGuard() {
+      var isDragFromEmptyBg = false;
+
+      function isTextElement(target) {
+        if (!target || target === document.body || target === document.documentElement) return false;
+        if (target.isContentEditable) return true;
+        var tag = (target.tagName || '').toUpperCase();
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
+        if (target.closest && target.closest('input, textarea, [contenteditable="true"], .selectable-text, .copyable')) {
+          return true;
+        }
+        if (target.classList && (
+          target.classList.contains('modal-overlay') ||
+          target.classList.contains('backdrop-blur-sm') ||
+          target.classList.contains('gantt-chart-wrapper') ||
+          target.classList.contains('gantt-timeline-body-wrapper') ||
+          target.classList.contains('accordion-header') ||
+          target.classList.contains('accordion-content')
+        )) {
+          return false;
+        }
+        var textTags = ['P', 'SPAN', 'TD', 'TH', 'LABEL', 'PRE', 'CODE', 'B', 'STRONG', 'I', 'EM', 'U', 'S', 'A', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'DD', 'DT', 'SMALL'];
+        if (textTags.indexOf(tag) !== -1) {
+          if (target.textContent && target.textContent.trim().length > 0) {
+            return true;
+          }
+        }
+        if (target.childNodes && target.childNodes.length > 0) {
+          for (var i = 0; i < target.childNodes.length; i++) {
+            var node = target.childNodes[i];
+            if (node.nodeType === 3 && node.nodeValue && node.nodeValue.trim().length > 0) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      function onPointerDown(e) {
+        var target = e.target;
+        if (isTextElement(target)) {
+          isDragFromEmptyBg = false;
+        } else {
+          isDragFromEmptyBg = true;
+        }
+      }
+
+      function onPointerUp(e) {
+        if (isDragFromEmptyBg) {
+          var sel = window.getSelection();
+          if (sel && !sel.isCollapsed) {
+            sel.removeAllRanges();
+          }
+        }
+        isDragFromEmptyBg = false;
+      }
+
+      function onSelectStart(e) {
+        if (isDragFromEmptyBg) {
+          e.preventDefault();
+          var sel = window.getSelection();
+          if (sel && !sel.isCollapsed) {
+            sel.removeAllRanges();
+          }
+          return false;
+        }
+      }
+
+      window.addEventListener('mousedown', onPointerDown, true);
+      window.addEventListener('touchstart', onPointerDown, { capture: true, passive: true });
+      window.addEventListener('mouseup', onPointerUp, true);
+      window.addEventListener('touchend', onPointerUp, { capture: true, passive: true });
+      document.addEventListener('selectstart', onSelectStart, true);
+    })();
+    </script>
 </body>
 
 <!-- [MOBILE-DASHBOARD-PATCH-v10.0] Optimized PO text alignment + Total Integrity Audit. -->
