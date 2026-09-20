@@ -56200,6 +56200,16 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     __pmdClearWatchdog();
                     reject(err);
                 };
+                // [INTEGRITY-FIX-2026-09-20] A duplicate auxiliary pass can call
+                // processMappedData with no project rows after the real upload has
+                // already populated projectData. Treat that pass as a no-op so an
+                // empty incremental merge cannot remove the completed import.
+                if (dataRows.length === 0) {
+                    window.__coreDataLoadInProgress = false;
+                    try { console.warn('[processMappedData] Empty project payload skipped; existing data preserved.'); } catch (e) { }
+                    __pmdSafeResolve({ success: true, data: [], skipped: true, reason: 'empty-project-payload' });
+                    return;
+                }
                 const __isPmdAutomation = !!(navigator.webdriver || /HeadlessChrome/i.test(navigator.userAgent) || window.__playwright__ || window.__supremeAudit);
                 if (!__isPmdAutomation) {
                     __pmdWatchdogId = setTimeout(() => {
@@ -101697,6 +101707,41 @@ function showPendingSettlementModal(periodType, projects) {
       }
     </style>
 
+    <!-- [INTEGRITY-FIX-2026-09-20] Keep project actions usable when the schedule accordion is closed.
+         The closed accordion previously kept a zero-height, clipped panel while its action row was
+         still painted outside the panel. Chromium therefore hit-tested the parent accordion instead
+         of Proj. 추가/Proj. 관리, blocking real pointer clicks on desktop and mobile. Preserve the
+         collapsed visual state by exposing only the action row and giving the panel a real layout box. -->
+    <style id="codex-collapsed-schedule-actions-integrity-fix">
+      #projectView:not(.open) > #accordion-panel-schedule {
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+      #projectView:not(.open) #ganttViewContent {
+        height: auto !important;
+        min-height: 0 !important;
+      }
+      #projectView:not(.open) #legendSection {
+        min-height: 0 !important;
+        height: auto !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        overflow: visible !important;
+      }
+      #projectView:not(.open) #legendSection > *:not(.codex-legend-bottom-actions) {
+        display: none !important;
+      }
+      #projectView:not(.open) .codex-legend-bottom-actions {
+        display: flex !important;
+        position: relative !important;
+        z-index: 999999 !important;
+      }
+    </style>
+
 </head>
 
 
@@ -139503,10 +139548,6 @@ window.openAddNewProjectModal = function(editProject) {
                 syncViewModeUi();
                 analyzeHousehold();
                 scheduleHouseholdRefresh('modal-open', 100);
-                setTimeout(function() {
-                    var input = $('workContentSearchInput');
-                    if (input) input.focus();
-                }, 30);
             }
             function closeModal() {
                 var modal = $('workContentSearchModal');
@@ -145511,7 +145552,7 @@ window.openAddNewProjectModal = function(editProject) {
                     return;
                 }
                 var evidenceModal = modal.querySelector('#costAnalysisEvidenceModal');
-                if (target === evidenceModal || target.closest('[data-cost-evidence-close]')) { closeEvidence(); return; }
+                if (target.closest('[data-cost-evidence-close]')) { closeEvidence(); return; }
                 if (target.closest('[data-cost-evidence-export]')) { downloadEvidenceWorkbook(); return; }
                 if (target.closest('[data-cost-fullscreen-open]')) { setCostModalFullscreen(true, false); return; }
                 if (target.closest('[data-cost-fullscreen-close]')) { setCostModalFullscreen(false, true); return; }
@@ -145541,7 +145582,7 @@ window.openAddNewProjectModal = function(editProject) {
                     }
                     return;
                 }
-                if (target === modal) { if (modal.classList.contains('cost-analysis-fullscreen')) return; return close(); }
+                if (target === modal) return;
                 if (target.closest('[data-cost-close]')) { if (modal && modal.classList.contains('cost-analysis-fullscreen')) setCostModalFullscreen(false, true); return close(); }
                 var sourceButton = target.closest('[data-source-mode]');
                 if (sourceButton) {
