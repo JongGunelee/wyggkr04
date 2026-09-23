@@ -4061,7 +4061,7 @@
                     if (document.hidden) {
                         try {
                             let sweepCount = 0;
-                                                        document.querySelectorAll('.tooltip, .custom-toast, [role="alert"]').forEach(el => {
+                            document.querySelectorAll('.tooltip[data-startup-ephemeral="1"], .custom-toast, [role="alert"]').forEach(el => {
                                 if (!el.isConnected) return;
                                 if (el.style.opacity === '0' || el.classList.contains('hidden')) { el.remove(); return; }
                                 const isVisibleVerify = (e) => (e && e.offsetParent !== null);
@@ -7125,6 +7125,14 @@
 
                 window.addEventListener('error', (evt) => {
                     try {
+                        // ResizeObserver delivery timing is a browser diagnostic, not a script failure.
+                        // Layout writes in observer callbacks are deferred above; count any recurrence for audit.
+                        if (evt && /^(?:ResizeObserver loop completed with undelivered notifications|ResizeObserver loop limit exceeded)\.?$/.test(String(evt.message || ''))) {
+                            window.__codexResizeObserverLoopCount = (window.__codexResizeObserverLoopCount || 0) + 1;
+                            evt.preventDefault();
+                            evt.stopImmediatePropagation();
+                            return;
+                        }
                         const isResourceLoadError = evt && !evt.error && !evt.message && evt.target && evt.target !== window;
                         if (isResourceLoadError) {
                             try {
@@ -23035,6 +23043,13 @@
             opacity: 1;
         }
 
+        /* Group summaries use the single floating detail tooltip. Prevent the legacy name label from surfacing on sticky mobile :hover. */
+        .gantt-bar[data-group-summary="true"] > .gantt-bar-label {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+
         #ganttFloatingTooltip {
             position: fixed;
             background-color: #1f2937;
@@ -27025,8 +27040,8 @@
             <!-- Accordion 3: 일정 -->
             <div id="projectView" class="accordion-item bg-white rounded-lg shadow-sm flex flex-col flex-grow min-h-0">
                 <div class="accordion-header p-4 flex justify-between items-center border-b">
-                    <button id="scheduleHeaderToggle" class="schedule-header-toggle" aria-expanded="true"
-                        title="접기"></button>
+                    <button id="scheduleHeaderToggle" class="schedule-header-toggle" aria-expanded="false"
+                        title="펼치기"></button>
                     <div class="flex items-center flex-grow">
                         <h2 class="accordion-title-btn text-2xl font-bold transition-colors" role="button" tabindex="0"
                             aria-expanded="false" aria-controls="accordion-panel-schedule" data-accordion-id="schedule"
@@ -39200,7 +39215,7 @@
             if (!floatingTooltip || !tooltipSource || !bar) return;
             ensureFloatingLayerNode(floatingTooltip, 100005, 2000005);
             activeTooltipBar = bar;
-            floatingTooltip.innerHTML = tooltipSource.innerHTML;
+            floatingTooltip.innerHTML = typeof tooltipSource === 'string' ? tooltipSource : tooltipSource.innerHTML;
             floatingTooltip.classList.add('visible');
             requestAnimationFrame(() => {
                 positionFloatingTooltip(bar.getBoundingClientRect(), options);
@@ -48847,12 +48862,12 @@
                 return fallback || 0;
             }
 
-            function scrollGanttBarIntoViewFromTitle(container, projectId, sourceTitleItem) {
-                if (!projectId) return false;
-                const liveContainer = getActiveContainer(sourceTitleItem || container) || container;
+            function scrollGanttBarIntoViewFromTitle(container, projectId, sourceTitleItem, directBar) {
+                if (!projectId && !directBar) return false;
+                const liveContainer = getActiveContainer(sourceTitleItem || directBar || container) || container;
                 if (!liveContainer || !liveContainer.querySelector) return false;
                 buildCache(liveContainer);
-                const pair = resolvePair(liveContainer, projectId);
+                const pair = directBar ? { titleItem: sourceTitleItem, barRow: directBar.closest('.gantt-bar-row') } : resolvePair(liveContainer, projectId);
                 const titleItem = sourceTitleItem && sourceTitleItem.isConnected ? sourceTitleItem : pair.titleItem;
                 const barRow = pair.barRow;
                 if (!titleItem || !barRow) return false;
@@ -48868,31 +48883,16 @@
                 const titlesBody = ganttEl.querySelector('.gantt-titles-body-wrapper');
                 const timelineWrapper = ganttEl.querySelector('.gantt-timeline-wrapper');
                 const chartWrapper = ganttEl.closest ? ganttEl.closest('#ganttChartWrapper') : null;
-                const bar = barRow.querySelector('.gantt-bar') || barRow.querySelector('.gantt-bar-progress');
+                const bar = directBar || barRow.querySelector('.gantt-bar') || barRow.querySelector('.gantt-bar-progress');
                 if (!bar) return false;
 
                 const barLeft = getBarMetricPx(bar, 'left', 0);
                 const barWidth = Math.max(1, getBarMetricPx(bar, 'width', bar.getBoundingClientRect ? bar.getBoundingClientRect().width : 1));
-                const barRight = barLeft + barWidth;
                 const margin = Math.min(48, Math.max(20, Math.round((timelineBody.clientWidth || 320) * 0.08)));
-                const currentLeft = timelineBody.scrollLeft || 0;
-                const viewportWidth = Math.max(1, timelineBody.clientWidth || 1);
-                const visibleLeft = currentLeft + margin;
-                const visibleRight = currentLeft + viewportWidth - margin;
-                let targetLeft = currentLeft;
-
-                if (!(barLeft >= visibleLeft && barRight <= visibleRight)) {
-                    if (barWidth >= Math.max(1, viewportWidth - (margin * 2))) {
-                        targetLeft = barLeft - margin;
-                    } else {
-                        targetLeft = barLeft - Math.max(margin, (viewportWidth - barWidth) / 2);
-                    }
-                }
-
                 const maxLeft = Math.max(0, timelineBody.scrollWidth - timelineBody.clientWidth);
-                targetLeft = clampNumber(Math.round(targetLeft), 0, maxLeft);
+                let targetLeft = clampNumber(Math.round(barLeft - margin), 0, maxLeft);
                 const targetTop = titlesBody ? (titlesBody.scrollTop || 0) : (timelineBody.scrollTop || 0);
-                const behavior = 'smooth';
+                const behavior = 'auto';
 
                 try {
                     if (typeof timelineBody.scrollTo === 'function') {
@@ -48940,6 +48940,11 @@
                 } catch (e) { }
                 return true;
             }
+
+            state.scrollGanttBarStart = function (container, bar, sourceTitleItem, navigationKey) {
+                if (!bar || !bar.isConnected) return false;
+                return scrollGanttBarIntoViewFromTitle(container, navigationKey || bar.dataset.name || 'group', sourceTitleItem, bar);
+            };
 
             function beginTitleNameTap(e, container) {
                 if (!e || (typeof e.button === 'number' && e.button !== 0)) return;
@@ -66056,9 +66061,12 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                             progressFill.style.width = `${barWidth * (newProgress / 100)}px`;
                         }
                     }
-                    const tooltip = barRow.querySelector('.tooltip');
-                    if (tooltip) {
-                        tooltip.innerHTML = tooltip.innerHTML.replace(/<strong>\uc9c4\ud589:<\/strong> \d+%/, `<strong>\uc9c4\ud589:</strong> ${newProgress}%`);
+                    const bar = barRow.querySelector('.gantt-bar');
+                    if (bar && bar.dataset.tooltipHtml) {
+                        bar.dataset.tooltipHtml = bar.dataset.tooltipHtml.replace(/<strong>\uc9c4\ud589:<\/strong> \d+%/, `<strong>\uc9c4\ud589:</strong> ${newProgress}%`);
+                    } else {
+                        const tooltip = barRow.querySelector('.tooltip');
+                        if (tooltip) tooltip.innerHTML = tooltip.innerHTML.replace(/<strong>\uc9c4\ud589:<\/strong> \d+%/, `<strong>\uc9c4\ud589:</strong> ${newProgress}%`);
                     }
                 });
             });
@@ -66202,48 +66210,46 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     });
                 }
 
-                // [SANKEY-PLAN-FIX] All legend filters must land on the intended timeline date.
-                // Non-date filters such as 전체/착공전/지연/완료 use today, and retries cover post-render timing.
-                const legendScrollDate = targetDate ? new Date(targetDate) : new Date();
+                // The filter date defines membership; every legend action focuses today's marker.
+                const legendScrollDate = new Date();
                 legendScrollDate.setHours(0, 0, 0, 0);
+                const legendScrollToken = (window.__legendTodayScrollToken || 0) + 1;
+                window.__legendTodayScrollToken = legendScrollToken;
                 const runLegendScroll = () => {
+                    if (legendScrollToken !== window.__legendTodayScrollToken) return;
                     try {
                         const container = fullscreenModal.classList.contains('hidden') ? document.getElementById('ganttViewContent') : fullscreenModalBody;
-                        const timeline = container && container.querySelector ? container.querySelector('.gantt-timeline-body-wrapper') : null;
-                        const todayMarker = container && container.querySelector ? container.querySelector('.gantt-today-marker-final') : null;
-                        let scrollTarget = null;
-                        if (!targetDate && timeline && todayMarker) {
-                            scrollTarget = Math.max(0, todayMarker.offsetLeft - (timeline.clientWidth / 2));
-                            timeline.scrollTo({ left: scrollTarget, behavior: 'auto' });
-                        } else if (typeof scrollToDate === 'function') {
-                            const beforeScroll = timeline ? timeline.scrollLeft : null;
-                            scrollToDate(legendScrollDate);
-                            scrollTarget = beforeScroll === null ? null : timeline.scrollLeft;
-                        } else if (typeof window.scrollToToday === 'function') {
-                            window.scrollToToday();
-                            scrollTarget = timeline ? timeline.scrollLeft : null;
-                        }
+                        const timeline = container?.querySelector('.gantt-timeline-body-wrapper');
+                        const header = container?.querySelector('.gantt-timeline-header-wrapper');
+                        if (!timeline || timeline.clientWidth <= 0) return;
+                        window.ganttTodayMarker?.renderSync?.();
+                        const todayMarker = container.querySelector('.gantt-today-marker-final');
+                        const todayLine = container.querySelector('.gantt-today-line-final');
+                        if (!todayMarker || !todayLine) return;
+                        const markerRect = todayMarker.getBoundingClientRect();
+                        const timelineRect = timeline.getBoundingClientRect();
+                        const scrollTarget = Math.max(0, Math.min(timeline.scrollWidth - timeline.clientWidth,
+                            timeline.scrollLeft + markerRect.left + markerRect.width / 2 - timelineRect.left - timeline.clientWidth / 2));
+                        timeline.scrollLeft = scrollTarget;
+                        if (header && header !== timeline) header.scrollLeft = scrollTarget;
                         const legendScrollMeta = {
                             status,
                             date: legendScrollDate.toISOString(),
-                            scrollLeft: timeline ? timeline.scrollLeft : null,
+                            scrollLeft: timeline.scrollLeft,
                             scrollTarget,
-                            markerLeft: todayMarker ? todayMarker.offsetLeft : null,
-                            clientWidth: timeline ? timeline.clientWidth : null,
+                            markerLeft: todayMarker.getBoundingClientRect().left,
+                            clientWidth: timeline.clientWidth,
                             measuredAt: new Date().toISOString()
                         };
                         window.__lastLegendTimelineScroll = legendScrollMeta;
-                        try {
-                            localStorage.setItem('codex:legend-scroll:last', JSON.stringify(legendScrollMeta));
-                        } catch (storageError) { }
+                        try { localStorage.setItem('codex:legend-scroll:last', JSON.stringify(legendScrollMeta)); }
+                        catch (storageError) { }
                     } catch (e) {
                         console.warn('[LegendClick] timeline scroll failed:', e);
                     }
                 };
-                [0, 120, 320, 700].forEach((delay) => {
-                    setTimeout(() => {
-                        requestAnimationFrame(() => requestAnimationFrame(runLegendScroll));
-                    }, delay);
+                [0, 120, 320, 700, 1200, 2000].forEach((delay) => {
+                    setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(runLegendScroll)), delay);
                 });
             });
         }
@@ -66858,6 +66864,12 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
             // [TRAP-FIX] \uae30\uc874 header-collapsed \uc0c1\ud0dc \ubcf4\uc874 (render \uc2dc \uc0c1\ud0dc \uc720\uc9c0)
             const existingGanttEl = currentGanttContainer.querySelector('.gantt-chart-container');
+            // [STABILITY] Disconnect the previous chart observer before replacing its DOM.
+            if (currentGanttContainer.__floatingScrollbarResizeObserver) {
+                currentGanttContainer.__floatingScrollbarResizeObserver.disconnect();
+                currentGanttContainer.__floatingScrollbarResizeObserver = null;
+            }
+            if (activeTooltipBar && existingGanttEl && existingGanttEl.contains(activeTooltipBar)) hideFloatingTooltip();
             const wasHeaderCollapsed = existingGanttEl && existingGanttEl.classList.contains('header-collapsed');
             const existingToggleBtn = existingGanttEl && existingGanttEl.querySelector('.header-toggle-btn');
             const wasToggleBtnActive = existingToggleBtn && existingToggleBtn.classList.contains('active');
@@ -68012,9 +68024,6 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     bar.style.opacity = '0.7';
                 }
 
-                const tooltip = document.createElement('div');
-                tooltip.className = 'tooltip';
-
                 let customFieldsHTML = '';
                 if (project.customFields) {
                     for (const key in project.customFields) {
@@ -68024,14 +68033,12 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     }
                 }
 
-                tooltip.innerHTML = `<strong>${projectNameValue}</strong><br>
+                bar.dataset.tooltipHtml = `<strong>${projectNameValue}</strong><br>
                                    <strong>\uc9c4\ud589:</strong> ${progressClamped}%<br>
                                    <strong>\uae30\uac04:</strong> ${startDate.toLocaleDateString()} ~ ${endDate.toLocaleDateString()} (${duration}\uc77c)<br>
                                    <strong>\uc0c1\ud0dc:</strong> ${project.status}<br>
                                    <strong>\ube44\uc6a9:</strong> ${poText}<br>
                                    ${customFieldsHTML}`;
-                bar.appendChild(tooltip);
-
                 const barLabel = document.createElement('div');
                 barLabel.className = 'gantt-bar-label';
                 barLabel.textContent = `${projectNameValue} [${project.status}]`;
@@ -68417,6 +68424,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     groupBar.style.borderRadius = '2px';
                     groupBar.style.opacity = '1';
                     groupBar.dataset.name = `${taskType} (\uc694\uc57d)`;
+                    groupBar.dataset.groupSummary = 'true';
 
                     const groupStatuses = new Set(projects.map(p => p.status));
                     let groupStatus = '\ucc29\uacf5\uc804';
@@ -68431,16 +68439,11 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     }
                     groupBar.dataset.status = groupStatus;
 
-                    const groupTooltip = document.createElement('div');
-                    groupTooltip.className = 'tooltip';
-                    groupTooltip.innerHTML = `<strong>${taskType} (\uc694\uc57d)</strong><br><strong>\uae30\uac04:</strong> ${groupMinDate.toLocaleDateString()} ~ ${groupMaxDate.toLocaleDateString()} (${groupDuration}\uc77c)<br><strong>\ucd1d ${projects.length}\uac1c \ud504\ub85c\uc81d\ud2b8</strong><br><strong>\ucd1d \ube44\uc6a9:</strong> ${formatCurrency(groupPoSum)}`;
-                    groupBar.appendChild(groupTooltip);
+
+                    groupBar.dataset.tooltipHtml = `<strong>${taskType} (\uc694\uc57d)</strong><br><strong>\uae30\uac04:</strong> ${groupMinDate.toLocaleDateString()} ~ ${groupMaxDate.toLocaleDateString()} (${groupDuration}\uc77c)<br><strong>\ucd1d ${projects.length}\uac1c \ud504\ub85c\uc81d\ud2b8</strong><br><strong>\ucd1d \ube44\uc6a9:</strong> ${formatCurrency(groupPoSum)}`;
                     groupBarRow.appendChild(groupBar);
 
-                    const groupBarLabel = document.createElement('div');
-                    groupBarLabel.className = 'gantt-bar-label';
-                    groupBarLabel.textContent = `${taskType} (\uc694\uc57d) [${groupStatus}]`;
-                    groupBar.appendChild(groupBarLabel);
+                    groupBar.setAttribute('aria-label', `${taskType} (\uc694\uc57d) [${groupStatus}]`);
 
                     if (groupProgress > 0) {
                         const groupProgressFill = document.createElement('div');
@@ -68521,6 +68524,13 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                         if (progressFill) {
                             progressFill.classList.toggle('hidden', !isNowCollapsed);
                         }
+
+                        try {
+                            const navigationApi = window.__postRenderEnhancementsV1;
+                            if (navigationApi && typeof navigationApi.scrollGanttBarStart === 'function') {
+                                navigationApi.scrollGanttBarStart(container, groupBar, groupHeader, taskType);
+                            }
+                        } catch (navigationError) { }
 
                         if (isNowCollapsed) {
                             groupHeader.querySelector('.group-toggle').classList.remove('expanded'); groupHeader.querySelector('.group-toggle').textContent = '';
@@ -68869,6 +68879,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                         floatingScrollbarResizeObserver.observe(finalTimelineBodyWrapper);
                         const ganttBodyNode = finalTimelineBodyWrapper.querySelector('.gantt-body');
                         if (ganttBodyNode) floatingScrollbarResizeObserver.observe(ganttBodyNode);
+                        currentGanttContainer.__floatingScrollbarResizeObserver = floatingScrollbarResizeObserver;
                     }
                 };
                 initGanttFloatingHorizontalScrollbar();
@@ -69644,8 +69655,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     return;
                 }
 
-                const tooltip = bar.querySelector('.tooltip');
-                if (!tooltip) {
+                const tooltipSource = bar.dataset.tooltipHtml || bar.querySelector('.tooltip');
+                if (!tooltipSource) {
                     hideFloatingTooltip();
                     return;
                 }
@@ -69656,51 +69667,30 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 }
 
                 hideFloatingTooltip();
-                showFloatingTooltip(bar, tooltip, {
+                showFloatingTooltip(bar, tooltipSource, {
                     pointerX: e.clientX,
                     pointerY: e.clientY,
                 });
             });
 
             const handleBarHoverTooltip = (event) => {
-                // [OPTIMIZATION] \ud0c0\uc784\ub77c\uc778 \uce21 \ud234\ud301 \ud45c\uc2dc \ube44\ud65c\uc131\ud654 - \ub9c9\ub300 \uadf8\ub798\ud504 \uc704\uce58\uc758 \ud234\ud301\ub9cc \ud45c\uc2dc
-                hideHoverTooltip();
-                return;
-
-                const bar = event.target.closest('.gantt-bar');
-                if (!bar) {
-                    hideHoverTooltip();
+                // Group summaries show the existing detailed tooltip on hover; project bars keep click behavior.
+                if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+                const summaryBar = event.target.closest('.gantt-bar[data-group-summary="true"]');
+                if (!summaryBar || event.buttons) {
+                    if (activeTooltipBar && activeTooltipBar.dataset.groupSummary === 'true') hideFloatingTooltip();
                     return;
                 }
-
-                const tooltip = bar.querySelector('.tooltip');
-                if (!tooltip || !hoverTooltip) {
-                    hideHoverTooltip();
-                    return;
+                const summarySource = summaryBar.dataset.tooltipHtml || summaryBar.querySelector('.tooltip');
+                if (summarySource && activeTooltipBar !== summaryBar) {
+                    showFloatingTooltip(summaryBar, summarySource, { pointerX: event.clientX, pointerY: event.clientY });
                 }
-
-                const simpleText = bar.dataset.name || bar.getAttribute('aria-label') || tooltip.textContent || '';
-                if (!simpleText.trim()) {
-                    hideHoverTooltip();
-                    return;
-                }
-
-                hoverTooltip.textContent = simpleText.trim();
-                const container = getActiveTimelineContainer();
-                const containerRect = container ? container.getBoundingClientRect() : { top: 0 };
-                const top = Math.max(4, containerRect.top + 4);
-                const tooltipRect = hoverTooltip.getBoundingClientRect();
-                let left = event.clientX - tooltipRect.width / 2;
-                const margin = 8;
-                const maxLeft = window.innerWidth - tooltipRect.width - margin;
-                left = Math.max(margin, Math.min(left, maxLeft));
-                hoverTooltip.style.top = `${top}px`;
-                hoverTooltip.style.left = `${left}px`;
-                hoverTooltip.classList.add('visible');
             };
 
             ganttEl.addEventListener('mousemove', handleBarHoverTooltip);
             ganttEl.addEventListener('mouseleave', () => {
+                const hasFineHover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+                if (hasFineHover && activeTooltipBar && activeTooltipBar.dataset.groupSummary === 'true') hideFloatingTooltip();
                 hideHoverTooltip();
             });
 
@@ -69935,26 +69925,20 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
                 // \uc758\uc874\uc131 \uc720\ud615 \uc635\uc158 \ud074\ub9ad \uc774\ubca4\ud2b8 \ub9ac\uc2a4\ub108 \ucd94\uac00 (onclick \ub300\uc2e0)
                 document.querySelectorAll('.dependency-type-option').forEach(opt => {
-                    opt.removeEventListener('click', handleDependencyTypeClick);
+                    if (opt.__dependencyTypeClickHandler) opt.removeEventListener('click', opt.__dependencyTypeClickHandler);
+                    opt.__dependencyTypeClickHandler = handleDependencyTypeClick;
                     opt.addEventListener('click', handleDependencyTypeClick);
 
                     // \ub77c\ub514\uc624 \ubc84\ud2bc \ud074\ub9ad \uc774\ubca4\ud2b8\ub3c4 \ucd94\uac00
                     const radio = opt.querySelector('.dependency-type-radio');
                     if (radio) {
-                        radio.removeEventListener('click', function (e) {
+                        if (radio.__dependencyRadioClickHandler) radio.removeEventListener('click', radio.__dependencyRadioClickHandler);
+                        radio.__dependencyRadioClickHandler = function (e) {
                             e.stopPropagation();
                             const type = opt.getAttribute('data-type');
-                            if (type) {
-                                selectDependencyType(type);
-                            }
-                        });
-                        radio.addEventListener('click', function (e) {
-                            e.stopPropagation();
-                            const type = opt.getAttribute('data-type');
-                            if (type) {
-                                selectDependencyType(type);
-                            }
-                        });
+                            if (type) selectDependencyType(type);
+                        };
+                        radio.addEventListener('click', radio.__dependencyRadioClickHandler);
                     }
                 });
 
@@ -69963,27 +69947,31 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 const saveBtn = modal.querySelector('.dependency-modal-btn-primary');
                 const clearBtn = modal.querySelector('.dependency-modal-btn-danger');
                 if (cancelBtn) {
-                    cancelBtn.removeEventListener('click', closeDependencyModal);
-                    cancelBtn.addEventListener('click', closeDependencyModal);
+                    if (cancelBtn.__dependencyCancelClickHandler) cancelBtn.removeEventListener('click', cancelBtn.__dependencyCancelClickHandler);
+                    cancelBtn.__dependencyCancelClickHandler = closeDependencyModal;
+                    cancelBtn.addEventListener('click', cancelBtn.__dependencyCancelClickHandler);
                 }
                 if (saveBtn) {
-                    saveBtn.removeEventListener('click', saveDependency);
-                    saveBtn.addEventListener('click', saveDependency);
+                    if (saveBtn.__dependencySaveClickHandler) saveBtn.removeEventListener('click', saveBtn.__dependencySaveClickHandler);
+                    saveBtn.__dependencySaveClickHandler = saveDependency;
+                    saveBtn.addEventListener('click', saveBtn.__dependencySaveClickHandler);
                 }
                 if (clearBtn) {
-                    clearBtn.removeEventListener('click', clearDependency);
-                    clearBtn.addEventListener('click', clearDependency);
+                    if (clearBtn.__dependencyClearClickHandler) clearBtn.removeEventListener('click', clearBtn.__dependencyClearClickHandler);
+                    clearBtn.__dependencyClearClickHandler = clearDependency;
+                    clearBtn.addEventListener('click', clearBtn.__dependencyClearClickHandler);
                 }
 
                 // X \ubc84\ud2bc \uc774\ubca4\ud2b8 \ub9ac\uc2a4\ub108 \ucd94\uac00
                 const closeBtn = modal.querySelector('.dependency-modal-close');
                 if (closeBtn) {
-                    closeBtn.removeEventListener('click', closeDependencyModal);
-                    closeBtn.addEventListener('click', function (e) {
+                    if (closeBtn.__dependencyCloseClickHandler) closeBtn.removeEventListener('click', closeBtn.__dependencyCloseClickHandler);
+                    closeBtn.__dependencyCloseClickHandler = function (e) {
                         e.preventDefault();
                         e.stopPropagation();
                         closeDependencyModal();
-                    });
+                    };
+                    closeBtn.addEventListener('click', closeBtn.__dependencyCloseClickHandler);
                 }
 
                 console.log('\uD83D\uDD17 \ubaa8\ub2ec \ud45c\uc2dc \uc2dc\ub3c4, hidden \ud074\ub798\uc2a4 \uc81c\uac70 \uc804:', modal.classList.contains('hidden'));
@@ -70082,14 +70070,16 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             window.closeDependencyModal = closeDependencyModal;
 
             // ESC \ud0a4\ub85c \uc758\uc874\uc131 \ubaa8\ub2ec \ub2eb\uae30
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
+            if (!window.__dependencyModalEscapeBound) {
+                window.__dependencyModalEscapeBound = true;
+                document.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Escape') return;
                     const dependencyModal = document.getElementById('dependencyModal');
                     if (dependencyModal && !dependencyModal.classList.contains('hidden')) {
-                        closeDependencyModal();
+                        window.closeDependencyModal?.();
                     }
-                }
-            });
+                });
+            }
 
             function selectDependencyType(type) {
                 selectedDependencyType = type;
@@ -70132,34 +70122,31 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 if (!searchToggle || !searchContainer || !searchInput || !selectEl) return;
 
                 // \uac80\uc0c9 \ud1a0\uae00 \ubc84\ud2bc \ud074\ub9ad \uc774\ubca4\ud2b8
-                searchToggle.addEventListener('click', function (e) {
+                if (searchToggle.__dependencySearchClickHandler) searchToggle.removeEventListener('click', searchToggle.__dependencySearchClickHandler);
+                searchToggle.__dependencySearchClickHandler = function (e) {
                     e.preventDefault();
                     e.stopPropagation();
                     const isVisible = searchContainer.style.display !== 'none';
                     searchContainer.style.display = isVisible ? 'none' : 'block';
-                    if (!isVisible) {
-                        searchInput.focus();
-                    }
-                });
+                    if (!isVisible) searchInput.focus();
+                };
+                searchToggle.addEventListener('click', searchToggle.__dependencySearchClickHandler);
 
                 // \uac80\uc0c9 \uc785\ub825 \uc774\ubca4\ud2b8
-                let searchTimeout;
-                searchInput.addEventListener('input', function (e) {
-                    clearTimeout(searchTimeout);
+                if (searchInput.__dependencySearchInputHandler) searchInput.removeEventListener('input', searchInput.__dependencySearchInputHandler);
+                if (searchInput.__dependencySearchTimeout) clearTimeout(searchInput.__dependencySearchTimeout);
+                searchInput.__dependencySearchInputHandler = function (e) {
+                    clearTimeout(searchInput.__dependencySearchTimeout);
                     const searchTerm = e.target.value.toLowerCase().trim();
-
-                    searchTimeout = setTimeout(() => {
-                        const options = selectEl.querySelectorAll('option');
-                        options.forEach(option => {
-                            const text = option.textContent.toLowerCase();
-                            if (searchTerm === '' || text.includes(searchTerm)) {
-                                option.style.display = '';
-                            } else {
-                                option.style.display = 'none';
-                            }
+                    searchInput.__dependencySearchTimeout = setTimeout(() => {
+                        searchInput.__dependencySearchTimeout = null;
+                        selectEl.querySelectorAll('option').forEach(option => {
+                            const optionText = option.textContent.toLowerCase();
+                            option.style.display = searchTerm === '' || optionText.includes(searchTerm) ? '' : 'none';
                         });
                     }, 100);
-                });
+                };
+                searchInput.addEventListener('input', searchInput.__dependencySearchInputHandler);
 
                 // \uac80\uc0c9 \ucd08\uae30\ud654 (\ubaa8\ub2ec \uc5f4 \ub54c)
                 searchInput.value = '';
@@ -70178,12 +70165,14 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 if (!helpToggle || !helpContainer) return;
 
                 // \ub3c4\uc6c0\ub9d0 \ud1a0\uae00 \ubc84\ud2bc \ud074\ub9ad \uc774\ubca4\ud2b8
-                helpToggle.addEventListener('click', function (e) {
+                if (helpToggle.__dependencyHelpClickHandler) helpToggle.removeEventListener('click', helpToggle.__dependencyHelpClickHandler);
+                helpToggle.__dependencyHelpClickHandler = function (e) {
                     e.preventDefault();
                     e.stopPropagation();
                     const isVisible = helpContainer.style.display !== 'none';
                     helpContainer.style.display = isVisible ? 'none' : 'block';
-                });
+                };
+                helpToggle.addEventListener('click', helpToggle.__dependencyHelpClickHandler);
 
                 // \ub3c4\uc6c0\ub9d0 \ucd08\uae30\ud654 (\ubaa8\ub2ec \uc5f4 \ub54c)
                 helpContainer.style.display = 'none';
@@ -76260,16 +76249,31 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 } catch (e) { console.warn('[workdate] debug failed', e); }
 
                 // \ub9c8\ucee4 \ub808\uc774\uc5b4 \ud06c\uae30\ub97c ganttBody \ubcc0\ud654\uc5d0 \ub9de\ucd94\uae30 \uc704\ud55c ResizeObserver
-                if (typeof ResizeObserver !== 'undefined' && !window._workDateResizeObserver) {
+                if (typeof ResizeObserver !== 'undefined') {
                     try {
-                        window._workDateResizeObserver = new ResizeObserver(() => {
-                            const ml = ganttBody.querySelector('#workdate-markers');
-                            if (ml) {
-                                ml.style.width = `${ganttBody.scrollWidth}px`;
-                                ml.style.height = `${ganttBody.scrollHeight}px`;
-                            }
-                        });
-                        window._workDateResizeObserver.observe(ganttBody);
+                        if (!window._workDateResizeObserver) {
+                            let workDateResizeFrame = 0;
+                            window._workDateResizeObserver = new ResizeObserver(() => {
+                                if (workDateResizeFrame) return;
+                                workDateResizeFrame = requestAnimationFrame(() => {
+                                    workDateResizeFrame = 0;
+                                    const liveBody = window._workDateObservedBody;
+                                    if (!liveBody || !liveBody.isConnected) return;
+                                    const ml = liveBody.querySelector('#workdate-markers');
+                                    if (ml) {
+                                        const width = `${liveBody.scrollWidth}px`;
+                                        const height = `${liveBody.scrollHeight}px`;
+                                        if (ml.style.width !== width) ml.style.width = width;
+                                        if (ml.style.height !== height) ml.style.height = height;
+                                    }
+                                });
+                            });
+                        }
+                        if (window._workDateObservedBody !== ganttBody) {
+                            window._workDateResizeObserver.disconnect();
+                            window._workDateObservedBody = ganttBody;
+                            window._workDateResizeObserver.observe(ganttBody);
+                        }
                     } catch (e) {
                         console.warn('[workdate] ResizeObserver setup failed', e);
                     }
@@ -101707,38 +101711,15 @@ function showPendingSettlementModal(periodType, projects) {
       }
     </style>
 
-    <!-- [INTEGRITY-FIX-2026-09-20] Keep project actions usable when the schedule accordion is closed.
-         The closed accordion previously kept a zero-height, clipped panel while its action row was
-         still painted outside the panel. Chromium therefore hit-tested the parent accordion instead
-         of Proj. 추가/Proj. 관리, blocking real pointer clicks on desktop and mobile. Preserve the
-         collapsed visual state by exposing only the action row and giving the panel a real layout box. -->
+    <!-- [INTEGRITY-FIX-2026-09-20] The closed schedule must not paint its panel on any boot frame.
+         Keep the header and its controls in normal layout; the existing toggle reopens the panel. -->
     <style id="codex-collapsed-schedule-actions-integrity-fix">
+      #projectView:not(.open) {
+        flex-grow: 0 !important;
+        min-height: 0 !important;
+      }
       #projectView:not(.open) > #accordion-panel-schedule {
-        max-height: none !important;
-        height: auto !important;
-        overflow: visible !important;
-      }
-      #projectView:not(.open) #ganttViewContent {
-        height: auto !important;
-        min-height: 0 !important;
-      }
-      #projectView:not(.open) #legendSection {
-        min-height: 0 !important;
-        height: auto !important;
-        max-height: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border: 0 !important;
-        background: transparent !important;
-        overflow: visible !important;
-      }
-      #projectView:not(.open) #legendSection > *:not(.codex-legend-bottom-actions) {
         display: none !important;
-      }
-      #projectView:not(.open) .codex-legend-bottom-actions {
-        display: flex !important;
-        position: relative !important;
-        z-index: 999999 !important;
       }
     </style>
 
@@ -108937,9 +108918,14 @@ function showPendingSettlementModal(periodType, projects) {
     function observe() {
         const vp = el('overviewSankeyViewport');
         if (!vp || state.observer || typeof window.ResizeObserver !== 'function') return;
+        let fitFrame = 0;
         state.observer = new ResizeObserver(() => {
             const modal = el('overviewSankeyModal');
-            if (modal && !modal.classList.contains('hidden')) fit();
+            if (!modal || modal.classList.contains('hidden') || fitFrame) return;
+            fitFrame = requestAnimationFrame(() => {
+                fitFrame = 0;
+                if (!modal.classList.contains('hidden')) fit();
+            });
         });
         state.observer.observe(vp);
     }
@@ -109985,7 +109971,7 @@ function showPendingSettlementModal(periodType, projects) {
             function cleanupTransientWork(reason) {
                 var removed = 0;
                 try {
-                    var transient = document.querySelectorAll('#toast-container .toast, .toast[data-startup-ephemeral="1"], div[data-startup-ephemeral="1"], .custom-toast, .tooltip');
+                    var transient = document.querySelectorAll('#toast-container .toast, .toast[data-startup-ephemeral="1"], div[data-startup-ephemeral="1"], .custom-toast, .tooltip[data-startup-ephemeral="1"]');
                     transient.forEach(function (el) {
                         if (!el || !el.parentNode) return;
                         try { el.parentNode.removeChild(el); removed += 1; } catch (e) { /* ignore */ }
@@ -110450,7 +110436,7 @@ function showPendingSettlementModal(periodType, projects) {
             setControlPosition(chartWrapper, clampedStored);
             return;
         }
-        var defaultPosition = clampControlPosition(chartWrapper, Math.round(leftWidth), 6, wrapperWidth);
+        var defaultPosition = clampControlPosition(chartWrapper, Math.round(leftWidth), isMobilePortrait() ? 45 : 6, wrapperWidth);
         chartWrapper.dataset.codexPaneControlDefaultLeft = String(defaultPosition.left);
         chartWrapper.dataset.codexPaneControlDefaultTop = String(defaultPosition.top);
         setControlPosition(chartWrapper, defaultPosition);
@@ -128073,7 +128059,7 @@ window.openAddNewProjectModal = function(editProject) {
                     var title = isRemoteVault ? '원격 PAT 보관함 열기' : 'PAT 보관함 열기';
                     var guide = isRemoteVault ? 'GitHub에 올라간 encrypted-pat.json을 열 간편키를 입력하세요.' : '처음 등록한 4~12자리 간편키를 입력하세요.';
                     var resetButton = isRemoteVault ? '' : '<button type="button" id="webSavePatReset" style="padding:7px 12px;border:1px solid #fca5a5;border-radius:7px;background:#fff;color:#b91c1c;font-weight:700;">재등록</button>';
-                    panel.innerHTML = '<div style="font-weight:900;font-size:17px;color:#0f172a;margin-bottom:8px;">' + title + '</div><div style="font-size:13px;color:#475569;margin-bottom:12px;">' + guide + '</div><div style="display:flex;gap:6px;align-items:center;"><input id="webSavePinInput" type="password" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="간편키" style="flex:1;min-width:0;height:40px;border:1px solid #cbd5e1;border-radius:7px;padding:0 10px;font-size:16px;color:#0f172a;background:#f8fafc;"><button type="button" id="webSavePinToggle" aria-label="간편키 보기" style="height:40px;padding:0 10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-size:12px;font-weight:800;">보기</button></div><label style="display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12px;color:#475569;font-weight:700;"><input id="webSavePinRemember" type="checkbox" style="width:15px;height:15px;"> 이 기기에 간편키 저장</label><div id="webSavePatHelp" style="display:none;margin-top:8px;font-size:12px;color:#dc2626;font-weight:700;"></div><div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px;">' + resetButton + '<span style="flex:1"></span><button type="button" id="webSavePatCancel" style="padding:7px 12px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-weight:700;">취소</button><button type="button" id="webSavePatOk" style="padding:7px 12px;border:1px solid #0d9488;border-radius:7px;background:#0d9488;color:#fff;font-weight:800;">열기</button></div>';
+                    panel.innerHTML = '<div style="font-weight:900;font-size:17px;color:#0f172a;margin-bottom:8px;">' + title + '</div><div style="font-size:13px;color:#475569;margin-bottom:12px;">' + guide + '</div><div style="display:flex;gap:6px;align-items:center;"><input id="webSavePinInput" type="password" inputmode="text" autocomplete="off" spellcheck="false" placeholder="간편키" style="flex:1;min-width:0;height:40px;border:1px solid #cbd5e1;border-radius:7px;padding:0 10px;font-size:16px;color:#0f172a;background:#f8fafc;"><button type="button" id="webSavePinToggle" aria-label="간편키 보기" style="height:40px;padding:0 10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-size:12px;font-weight:800;">보기</button></div><label style="display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12px;color:#475569;font-weight:700;"><input id="webSavePinRemember" type="checkbox" style="width:15px;height:15px;"> 이 기기에 간편키 저장</label><div id="webSavePatHelp" style="display:none;margin-top:8px;font-size:12px;color:#dc2626;font-weight:700;"></div><div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px;">' + resetButton + '<span style="flex:1"></span><button type="button" id="webSavePatCancel" style="padding:7px 12px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-weight:700;">취소</button><button type="button" id="webSavePatOk" style="padding:7px 12px;border:1px solid #0d9488;border-radius:7px;background:#0d9488;color:#fff;font-weight:800;">열기</button></div>';
                     overlay.appendChild(panel);
                     document.body.appendChild(overlay);
                     isolateCredentialPromptPanel(panel);
@@ -128085,9 +128071,9 @@ window.openAddNewProjectModal = function(editProject) {
                     hardenVaultPinInput(input, isRemoteVault ? 'remote_pin' : 'local_pin');
                     bindPinVisibilityToggle(panel, input);
                     var rememberedPin = getRememberedVaultPin();
+                    if (rememberInput) rememberInput.checked = true;
                     if (rememberedPin) {
                         input.value = rememberedPin;
-                        if (rememberInput) rememberInput.checked = true;
                     } else {
                         guardVaultPinAutofill(input, rememberedPin);
                     }
@@ -128131,6 +128117,7 @@ window.openAddNewProjectModal = function(editProject) {
                 if (options.token) return options.token;
                 var token = getTokenFromStorage();
                 if (token) return token;
+                if (options.allowPrompt === false) return '';
                 var entered = '';
                 if (hasTokenVault()) {
                     entered = await requestTokenUnlock('local');
@@ -129909,12 +129896,15 @@ window.openAddNewProjectModal = function(editProject) {
                     btn.className = 'px-3 py-1 text-sm rounded flex-shrink-0 codex-webdown-btn';
                     btn.innerHTML = '<span class="codex-websave-progress-fill" aria-hidden="true"></span><span class="codex-websave-icon" aria-hidden="true">⇩</span><span class="codex-websave-label">웹 다운</span><span class="codex-websave-state"></span>';
                     btn.setAttribute('aria-label', '웹 다운');
+                    group.appendChild(btn);
+                }
+                if (btn.dataset.codexWebDownGuideBound !== '1') {
+                    btn.dataset.codexWebDownGuideBound = '1';
                     btn.addEventListener('click', function (event) {
                         event.preventDefault();
                         event.stopPropagation();
                         requestWebDownloadWithGuide();
                     });
-                    group.appendChild(btn);
                 }
                 updateDownloadButton();
                 return btn;
@@ -129966,6 +129956,11 @@ window.openAddNewProjectModal = function(editProject) {
             function resolveWebDownGuide(ok) {
                 var modal = document.getElementById('codexWebDownGuideModal');
                 if (modal) {
+                    if (modal.contains(document.activeElement)) {
+                        var downloadButton = document.getElementById('webDownloadServerExcelBtn');
+                        if (downloadButton) downloadButton.focus({ preventScroll: true });
+                        else document.activeElement.blur();
+                    }
                     modal.classList.add('hidden');
                     modal.setAttribute('aria-hidden', 'true');
                 }
@@ -130046,7 +130041,7 @@ window.openAddNewProjectModal = function(editProject) {
                 try {
                     var plugin = window.WebSavePlugin;
                     if (plugin && typeof plugin.ensureToken === 'function') {
-                        return await plugin.ensureToken({ allowPrompt: true });
+                        return await plugin.ensureToken({ allowPrompt: false });
                     }
                     var config = plugin && plugin.config ? plugin.config : {};
                     var key = config.patKey || 'github_pat';
@@ -130096,7 +130091,10 @@ window.openAddNewProjectModal = function(editProject) {
                     try {
                         return await plugin.fetchRemoteFileInfo(token || '', targetPath());
                     } catch (pluginError) {
-                        if (!token) throw pluginError;
+                        if (!token) {
+                            try { console.warn('[webdown] public metadata unavailable; falling back to raw Pages download', pluginError); } catch (e0) { }
+                            return { name: targetPath().split('/').pop(), size: 0, sha: '', download_url: rawPagesUrl(targetPath()), __codexPublicRawFallback: true };
+                        }
                         try { console.warn('[webdown] authenticated metadata check failed; retrying public metadata', pluginError); } catch (e0) { }
                     }
                 }
@@ -130180,8 +130178,13 @@ window.openAddNewProjectModal = function(editProject) {
                     setDownloadProgress(32, '다운로드');
                     var plugin = window.WebSavePlugin;
                     var blob = null;
-                    if (plugin && typeof plugin.fetchRemoteContentBase64 === 'function') {
-                        blob = base64ToDownloadBlob(await plugin.fetchRemoteContentBase64(info, token || ''));
+                    if (plugin && typeof plugin.fetchRemoteContentBase64 === 'function' && !(info && info.__codexPublicRawFallback)) {
+                        try {
+                            blob = base64ToDownloadBlob(await plugin.fetchRemoteContentBase64(info, token || ''));
+                        } catch (contentError) {
+                            try { console.warn('[webdown] API content unavailable; falling back to public raw download', contentError); } catch (e2) { }
+                            blob = null;
+                        }
                     }
                     if (!blob) blob = await fetchBlobWithProgress(downloadUrl, '');
                     if (!blob || blob.size < 1024) throw new Error('다운로드 파일 크기가 비정상입니다.');
@@ -149060,6 +149063,227 @@ window.openAddNewProjectModal = function(editProject) {
         else init();
     })();
     </script>
+
+
+    <style id="codex-mobile-schedule-boot-collapsed-20260920-style">
+        @media (max-width: 768px) and (orientation: portrait) {
+            #projectView.codex-mobile-schedule-boot-collapsed > #accordion-panel-schedule,
+            #projectView.codex-mobile-schedule-boot-collapsed #ganttViewContent,
+            #projectView.codex-mobile-schedule-boot-collapsed #legendSection,
+            #projectView.codex-mobile-schedule-boot-collapsed #ganttChartWrapper {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                max-height: 0 !important;
+                height: 0 !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
+                pointer-events: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+    <script id="codex-mobile-schedule-boot-collapsed-20260920">
+    (function codexMobileScheduleBootCollapsed20260920() {
+        'use strict';
+        var query = '(max-width: 768px) and (orientation: portrait)';
+        var userInteracted = false;
+        function isMobilePortrait() {
+            try { return !!window.matchMedia && window.matchMedia(query).matches; }
+            catch (e) { return (window.innerWidth || 0) <= 768 && (window.innerHeight || 0) >= (window.innerWidth || 0); }
+        }
+        function elements() {
+            var item = document.getElementById('projectView');
+            var panel = document.getElementById('accordion-panel-schedule');
+            var title = item && item.querySelector('.accordion-title-btn');
+            var pill = item && item.querySelector('.accordion-state-pill');
+            var toggle = document.getElementById('scheduleHeaderToggle');
+            return { item: item, panel: panel, title: title, pill: pill, toggle: toggle };
+        }
+        function collapseForBoot() {
+            if (!isMobilePortrait() || userInteracted) return;
+            var el = elements();
+            if (!el.item || !el.panel || !el.title) return;
+            el.item.classList.remove('open', 'is-focused', 'schedule-header-collapsed', 'codex-schedule-closing-instant');
+            el.item.classList.add('codex-mobile-schedule-boot-collapsed');
+            el.panel.style.display = 'none';
+            el.panel.style.visibility = 'hidden';
+            el.panel.style.opacity = '0';
+            el.panel.style.maxHeight = '0px';
+            el.panel.style.height = '0px';
+            el.panel.style.minHeight = '0px';
+            el.panel.style.overflow = 'hidden';
+            el.panel.style.pointerEvents = 'none';
+            el.title.setAttribute('aria-expanded', 'false');
+            if (el.pill) { el.pill.setAttribute('data-state', 'closed'); el.pill.textContent = '접힘'; }
+            if (el.toggle) { el.toggle.setAttribute('aria-expanded', 'false'); el.toggle.title = '펼치기'; }
+        }
+        function releaseForUser(e) {
+            if (!isMobilePortrait()) return;
+            var target = e && e.target;
+            if (!target || !target.closest || !target.closest('#scheduleHeaderToggle, #projectView .accordion-title-btn')) return;
+            userInteracted = true;
+            var el = elements();
+            if (!el.item || !el.panel) return;
+            el.item.classList.remove('codex-mobile-schedule-boot-collapsed');
+            ['display','visibility','opacity','maxHeight','height','minHeight','overflow','pointerEvents'].forEach(function (key) { el.panel.style[key] = ''; });
+        }
+        function scheduleBootCollapse() {
+            [0, 40, 160, 420, 900, 1600].forEach(function (delay) { window.setTimeout(collapseForBoot, delay); });
+        }
+        function bind() {
+            document.addEventListener('pointerdown', releaseForUser, true);
+            document.addEventListener('click', releaseForUser, true);
+            scheduleBootCollapse();
+            window.addEventListener('orientationchange', function () { userInteracted = false; scheduleBootCollapse(); }, { passive: true });
+            window.addEventListener('resize', function () { if (isMobilePortrait() && !userInteracted) collapseForBoot(); }, { passive: true });
+            window.__codexMobileScheduleBootCollapse20260920 = { apply: collapseForBoot, release: releaseForUser };
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
+        else bind();
+    }());
+    </script>
+
+    <script id="codex-mobile-schedule-toggle-sync-20260920">
+    (function codexMobileScheduleToggleSync20260920() {
+        'use strict';
+        var query = '(max-width: 768px) and (orientation: portrait)';
+        function mobilePortrait() { try { return !!window.matchMedia && window.matchMedia(query).matches; } catch (e) { return false; } }
+        function sync() {
+            if (!mobilePortrait()) return;
+            var item = document.getElementById('projectView');
+            var toggle = document.getElementById('scheduleHeaderToggle');
+            if (!item || !toggle) return;
+            var open = item.classList.contains('open') && !item.classList.contains('schedule-header-collapsed');
+            toggle.setAttribute('aria-expanded', String(open));
+            toggle.title = open ? '접기' : '펼치기';
+        }
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.closest && e.target.closest('#projectView .accordion-header')) {
+                window.setTimeout(sync, 0);
+                window.requestAnimationFrame(sync);
+            }
+        }, true);
+        window.__codexMobileScheduleToggleSync20260920 = sync;
+    }());
+    </script>
+
+<style id="codex-desktop-schedule-boot-collapsed-20260920-style">
+@media (min-width: 769px) {
+  #projectView.codex-desktop-schedule-boot-collapsed > #accordion-panel-schedule,
+  #projectView.codex-desktop-schedule-boot-collapsed #ganttViewContent,
+  #projectView.codex-desktop-schedule-boot-collapsed #legendSection,
+  #projectView.codex-desktop-schedule-boot-collapsed #ganttChartWrapper {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    max-height: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    transition: none !important;
+  }
+}
+</style>
+<script id="codex-desktop-schedule-boot-collapsed-20260920">
+(function () {
+  'use strict';
+  if (window.__codexDesktopScheduleBootCollapsed20260920) return;
+  window.__codexDesktopScheduleBootCollapsed20260920 = true;
+  var interacted = false;
+  var released = false;
+  function desktop() { return window.matchMedia && window.matchMedia('(min-width: 769px)').matches; }
+  function elements() {
+    var item = document.getElementById('projectView');
+    var panel = document.getElementById('accordion-panel-schedule');
+    var title = document.querySelector('[aria-controls="accordion-panel-schedule"]');
+    var toggle = document.getElementById('scheduleHeaderToggle');
+    return { item: item, panel: panel, title: title, toggle: toggle };
+  }
+  function clearPanel(panel) {
+    if (!panel) return;
+    ['display','visibility','opacity','maxHeight','height','minHeight','overflow','pointerEvents','transition'].forEach(function (key) {
+      panel.style[key] = '';
+    });
+  }
+  function release() {
+    var e = elements();
+    released = true;
+    if (e.item) e.item.classList.remove('codex-desktop-schedule-boot-collapsed');
+    clearPanel(e.panel);
+  }
+  function collapse() {
+    if (!desktop() || interacted || released) return;
+    var e = elements();
+    if (!e.item || !e.panel) return;
+    e.item.classList.remove('open', 'is-focused', 'schedule-header-collapsed', 'codex-schedule-closing-instant');
+    e.item.classList.add('codex-desktop-schedule-boot-collapsed');
+    e.panel.style.display = 'none';
+    e.panel.style.visibility = 'hidden';
+    e.panel.style.opacity = '0';
+    e.panel.style.maxHeight = '0px';
+    e.panel.style.height = '0px';
+    e.panel.style.minHeight = '0px';
+    e.panel.style.overflow = 'hidden';
+    e.panel.style.pointerEvents = 'none';
+    e.panel.style.transition = 'none';
+    if (e.title) e.title.setAttribute('aria-expanded', 'false');
+    if (e.toggle) {
+      e.toggle.setAttribute('aria-expanded', 'false');
+      e.toggle.setAttribute('title', '펼치기');
+      e.toggle.setAttribute('aria-label', '일정 펼치기');
+    }
+    var pill = e.item.querySelector('.accordion-state-pill');
+    if (pill) pill.textContent = '접힘';
+  }
+  function markInteraction(ev) {
+    if (!desktop() || interacted || released) return;
+    var target = ev && ev.target;
+    if (!target || !target.closest) return;
+    if (target.closest('#scheduleHeaderToggle, #projectView .accordion-title-btn, [aria-controls="accordion-panel-schedule"]')) {
+      interacted = true;
+      release();
+    }
+  }
+  function install() {
+    document.addEventListener('pointerdown', markInteraction, true);
+    document.addEventListener('click', markInteraction, true);
+    [0, 40, 160, 420, 900, 1600].forEach(function (delay) { window.setTimeout(collapse, delay); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
+  else install();
+}());
+</script>
+<script id="codex-desktop-schedule-toggle-sync-20260920">
+(function () {
+  'use strict';
+  if (window.__codexDesktopScheduleToggleSync20260920) return;
+  window.__codexDesktopScheduleToggleSync20260920 = true;
+  function sync() {
+    if (!window.matchMedia || !window.matchMedia('(min-width: 769px)').matches) return;
+    var item = document.getElementById('projectView');
+    var toggle = document.getElementById('scheduleHeaderToggle');
+    if (!item || !toggle) return;
+    var open = item.classList.contains('open') && !item.classList.contains('schedule-header-collapsed');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.setAttribute('title', open ? '접기' : '펼치기');
+    toggle.setAttribute('aria-label', open ? '일정 접기' : '일정 펼치기');
+  }
+  function install() {
+    document.addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (t && t.closest && t.closest('#scheduleHeaderToggle, #projectView .accordion-title-btn, [aria-controls="accordion-panel-schedule"]')) {
+        window.setTimeout(sync, 0);
+        window.setTimeout(sync, 80);
+      }
+    }, true);
+    [0, 80, 300, 900, 1600].forEach(function (delay) { window.setTimeout(sync, delay); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
+  else install();
+}());
+</script>
 
 </html>
 
