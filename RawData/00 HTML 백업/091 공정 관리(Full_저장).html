@@ -24412,6 +24412,38 @@
             font-weight: 600;
         }
 
+        /* [DATE-SETTING-ACTIVE-20260924] Match the existing 1.5s active-menu alert cadence. */
+        @keyframes date-setting-menu-pulse {
+            0%, 100% {
+                outline-color: #ef4444;
+                outline-width: 2px;
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.42);
+            }
+            50% {
+                outline-color: #dc2626;
+                outline-width: 3px;
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+        }
+
+        .date-setting-pulse-active {
+            outline: 2px solid #ef4444;
+            outline-offset: -2px;
+            animation: date-setting-menu-pulse 1.5s ease-in-out infinite;
+        }
+
+        .date-setting-pulse-active:hover {
+            outline-width: 3px;
+            animation: none;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .date-setting-pulse-active {
+                animation: none;
+                box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.28);
+            }
+        }
+
         /* [PRD-2025-WD-OPT-01] Revision History Filter Toggle Styles */
         .filter-toggle {
             transition: all 0.2s ease;
@@ -39233,6 +39265,12 @@
                 hideFloatingTooltip();
                 hideHoverTooltip();
             });
+            document.addEventListener('pointerdown', (event) => {
+                if (!event.target?.closest?.('.gantt-bar')) {
+                    hideFloatingTooltip();
+                    hideHoverTooltip();
+                }
+            }, true);
         }
 
         function initializeAccordionHints() {
@@ -44185,7 +44223,7 @@
         function updateZoomButtonState() {
             // \uac1c\uc120 \uc0ac\ud56d: \ubaa8\ub4e0 zoomBtn \uc778\uc2a4\ud134\uc2a4\ub97c \ucc3e\uc544\uc11c \uc5c5\ub370\uc774\ud2b8 (\ucee8\ud2b8\ub864 \ud328\ub110\uacfc \ubc14\ub85c\uac00\uae30 \uba54\ub274 \ubaa8\ub450)
             // \uc6d0\ubcf8 \ubc84\ud2bc
-            let allZoomBtns = Array.from(document.querySelectorAll('#zoomBtn'));
+            let allZoomBtns = Array.from(document.querySelectorAll('#zoomBtn, #legendZoomBtn'));
             // \ubc14\ub85c\uac00\uae30 \uba54\ub274\uc758 \ubcf5\uc81c\ub41c \ubc84\ud2bc\ub3c4 \ud3ec\ud568
             const shortcutZoomBtns = Array.from(document.querySelectorAll('[data-shortcut-clone-id="zoomBtn"], #shortcut-zoomBtn, .js-zoom-btn'));
             shortcutZoomBtns.forEach(btn => {
@@ -44205,11 +44243,16 @@
 
             allZoomBtns.forEach(btn => {
                 btn.classList.toggle('filter-toggle-active', isCustomZoomActive);
+                btn.classList.toggle('date-setting-pulse-active', isCustomZoomActive);
+                btn.setAttribute('aria-pressed', isCustomZoomActive ? 'true' : 'false');
 
                 // \uac1c\uc120 \uc0ac\ud56d: \uc120\ud0dd\ub41c \uc635\uc158\uc774 \uc788\uc73c\uba74 \ubc84\ud2bc \ud14d\uc2a4\ud2b8\uc5d0 \ud45c\uc2dc
-                if (isCustomZoomActive && currentZoomOptionName) {
+                if (isCustomZoomActive && currentZoomOptionName && btn.id !== 'legendZoomBtn') {
                     btn.textContent = currentZoomOptionName;
                     btn.title = currentZoomOptionName; // \ud234\ud301\uc73c\ub85c \uc804\uccb4 \ud14d\uc2a4\ud2b8 \ud45c\uc2dc
+                } else if (isCustomZoomActive && currentZoomOptionName) {
+                    btn.textContent = '\ub0a0\uc9dc \uc124\uc815';
+                    btn.title = `\ub0a0\uc9dc \uc124\uc815: ${currentZoomOptionName}`;
                 } else {
                     btn.textContent = '\ub0a0\uc9dc \uc124\uc815';
                     btn.title = '\ub0a0\uc9dc \uc124\uc815';
@@ -49501,6 +49544,7 @@
                             }
 
                             const containerAfterRender = getContainer();
+                            try { ensureSettlementAfterHierarchyChange(); } catch (e) { }
                             try {
                                 // [FIX] Only update header visibility, don't call applyHierarchyOrder again
                                 // The DOM order should already be correct from the initial call
@@ -49538,21 +49582,21 @@
             // \ubc14\ub85c\uac00\uae30 \uba54\ub274\uc758 \ud65c\uc131\ud654 \uc0c1\ud0dc \uc5c5\ub370\uc774\ud2b8 (\uae5c\ube61\uc784 \ubc0f \ud14c\ub450\ub9ac \ud45c\uc2dc)
             updateShortcutActiveStates();
 
-            // [INTEGRITY-FIX] \uacc4\uce35\uc21c\uc11c \uc804\ud658 \ud6c4 \uae30\uc131 \uc5f4 \uc140 \uc7ac\uc0dd\uc131 \ubcf4\uc7a5 (\ub2e4\uc911 \uc7ac\uc2dc\ub3c4)
-            const ensureSettlementAfterHierarchyChange = (attempt = 0) => {
+            // [INTEGRITY/PERF] The completed render owns one settlement repair pass.
+            // A single guarded fallback covers a missed lifecycle event without leaving
+            // five delayed full-DOM scans running into the user's next interaction.
+            let settlementIntegritySynced = false;
+            const ensureSettlementAfterHierarchyChange = () => {
+                if (settlementIntegritySynced || window.__lastHierarchyApplyId !== hierarchyApplyId) return;
+                settlementIntegritySynced = true;
                 if (typeof window.ensureSettlementColumnAllPlaces === 'function') {
                     window.ensureSettlementColumnAllPlaces();
                 }
                 if (typeof window.syncSettlementCheckboxesFromData === 'function') {
                     window.syncSettlementCheckboxesFromData();
                 }
-                // 5\ud68c\uae4c\uc9c0 \uc7ac\uc2dc\ub3c4 (100ms, 300ms, 500ms, 700ms, 1000ms)
-                if (attempt < 5) {
-                    const delays = [100, 300, 500, 700, 1000];
-                    setTimeout(() => ensureSettlementAfterHierarchyChange(attempt + 1), delays[attempt] || 300);
-                }
             };
-            setTimeout(() => ensureSettlementAfterHierarchyChange(0), 100);
+            setTimeout(ensureSettlementAfterHierarchyChange, 900);
 
             showToastUnique('hierarchyOrder', `\uacc4\uce35 \uc21c\uc11c\uac00 ${hierarchyOrder === 'top' ? '\uc0c1\uc704\u2192\ud558\uc704' : '\ud558\uc704\u2192\uc0c1\uc704'}\ub85c \ubcc0\uacbd\ub418\uc5c8\uc2b5\ub2c8\ub2e4.`, 'info', 1000);
         }
@@ -75509,7 +75553,10 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 const nextContent = (window.__DayOfWeekUtil && typeof window.__DayOfWeekUtil.replaceYMDWithDay === 'function')
                     ? window.__DayOfWeekUtil.replaceYMDWithDay(content)
                     : content;
-                tooltip.innerHTML = nextContent;
+                if (tooltip.__workdateContent !== nextContent) {
+                    tooltip.innerHTML = nextContent;
+                    tooltip.__workdateContent = nextContent;
+                }
                 tooltip.style.display = 'block';
                 const offset = 10;
                 tooltip.style.left = `${x + offset}px`;
@@ -75526,7 +75573,11 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             const hideTooltip = () => {
                 const tooltip = document.getElementById('workdate-tooltip');
                 if (tooltip) tooltip.style.display = 'none';
+                document.querySelectorAll('.workdate-marker[data-active="true"]').forEach(marker => {
+                    marker.dataset.active = 'false';
+                });
             };
+            window.__hideWorkdateTooltip = hideTooltip;
 
             const escapeWorkdateTooltipText = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({
                 '&': '&amp;',
@@ -75590,6 +75641,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 window.__workdateMarkerTooltipDelegated = true;
                 let activeMarker = null;
                 let touchHideTimer = 0;
+                let pointerMoveRaf = 0;
+                let pendingPointerMove = null;
                 const findMarker = (target) => target && target.closest ? target.closest('.workdate-marker') : null;
                 const showForMarker = (marker, eventLike) => {
                     if (!marker || marker.dataset?.syncHidden === '1') return;
@@ -75606,6 +75659,15 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 const clearActive = (marker) => {
                     if (marker && marker.dataset) marker.dataset.active = 'false';
                     if (!marker || marker === activeMarker) activeMarker = null;
+                    pendingPointerMove = null;
+                    if (pointerMoveRaf) {
+                        cancelAnimationFrame(pointerMoveRaf);
+                        pointerMoveRaf = 0;
+                    }
+                    if (touchHideTimer) {
+                        clearTimeout(touchHideTimer);
+                        touchHideTimer = 0;
+                    }
                     hideTooltip();
                 };
                 document.addEventListener('pointerover', event => {
@@ -75615,8 +75677,18 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 }, true);
                 document.addEventListener('pointermove', event => {
                     const marker = findMarker(event.target);
-                    if (!marker) return;
-                    showForMarker(marker, event);
+                    if (!marker) {
+                        if (activeMarker) clearActive(activeMarker);
+                        return;
+                    }
+                    pendingPointerMove = { marker, clientX: event.clientX, clientY: event.clientY };
+                    if (pointerMoveRaf) return;
+                    pointerMoveRaf = requestAnimationFrame(() => {
+                        pointerMoveRaf = 0;
+                        const pending = pendingPointerMove;
+                        pendingPointerMove = null;
+                        if (pending && pending.marker && pending.marker.isConnected) showForMarker(pending.marker, pending);
+                    });
                 }, true);
                 document.addEventListener('pointerout', event => {
                     const marker = findMarker(event.target);
@@ -75627,10 +75699,17 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 }, true);
                 document.addEventListener('pointerdown', event => {
                     const marker = findMarker(event.target);
-                    if (!marker || event.pointerType !== 'touch') return;
+                    if (!marker) {
+                        clearActive(activeMarker);
+                        return;
+                    }
+                    if (event.pointerType !== 'touch') return;
                     showForMarker(marker, event);
                     if (touchHideTimer) clearTimeout(touchHideTimer);
                     touchHideTimer = setTimeout(() => clearActive(marker), 2600);
+                }, true);
+                document.addEventListener('click', event => {
+                    if (!findMarker(event.target)) clearActive(activeMarker);
                 }, true);
                 document.addEventListener('focusin', event => {
                     const marker = findMarker(event.target);
@@ -75641,6 +75720,13 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     const marker = findMarker(event.target);
                     if (marker) clearActive(marker);
                 }, true);
+                document.addEventListener('scroll', () => clearActive(activeMarker), { capture: true, passive: true });
+                ['gantt-rendered', 'render:complete'].forEach(eventName => {
+                    document.addEventListener(eventName, () => clearActive(activeMarker), { passive: true });
+                });
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) clearActive(activeMarker);
+                }, { passive: true });
             };
             ensureDelegatedWorkdateMarkerTooltip();
 
@@ -75860,6 +75946,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             window.updateWorkdateOutOfPlanNotice = updateWorkdateOutOfPlanNotice;
 
             const updateGanttWithWorkDates = () => {
+                hideTooltip();
                 const container = getActiveGanttViewportContainer();
                 const perfDebug = !!(window.__PERF_DEBUG__ || window.__UPLOAD_DEBUG__);
                 if (perfDebug) {
@@ -76199,17 +76286,6 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     `;
                         // store tooltip content on dataset so external sync/scroll handlers can re-show it
                         try { marker.dataset.tooltip = encodeURIComponent(tooltipHtml); } catch (e) { /* ignore */ }
-                        marker.addEventListener('mouseenter', (e) => {
-                            marker.dataset.active = 'true';
-                            showTooltip(tooltipHtml, e.clientX, e.clientY);
-                        });
-                        marker.addEventListener('mousemove', (e) => {
-                            showTooltip(tooltipHtml, e.clientX, e.clientY);
-                        });
-                        marker.addEventListener('mouseleave', () => {
-                            marker.dataset.active = 'false';
-                            hideTooltip();
-                        });
                     });
                 });
 
@@ -76481,19 +76557,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                             <div><strong>프로젝트:</strong> ${project.name || ''}</div>
                             ${outOfPlanNotice}
                         </div>
-                    `;
+                        `;
                         try { marker.dataset.tooltip = encodeURIComponent(tooltipHtml); } catch (e) { }
-                        marker.addEventListener('mouseenter', (e) => {
-                            marker.dataset.active = 'true';
-                            showTooltip(tooltipHtml, e.clientX, e.clientY);
-                        });
-                        marker.addEventListener('mousemove', (e) => {
-                            showTooltip(tooltipHtml, e.clientX, e.clientY);
-                        });
-                        marker.addEventListener('mouseleave', () => {
-                            marker.dataset.active = 'false';
-                            hideTooltip();
-                        });
                         fragment.appendChild(marker);
                     });
                 });
@@ -76511,11 +76576,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
             const scheduleReliableWorkdateMarkerRefresh = (() => {
                 let rafId = 0;
-                let timers = [];
-                const clearTimers = () => {
-                    timers.forEach(id => clearTimeout(id));
-                    timers = [];
-                };
+                let mutationTimer = 0;
+                let needsRebuild = false;
                 const rebuild = () => {
                     try {
                         updateGanttWithWorkDates();
@@ -76533,16 +76595,37 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     }
                 };
                 return (reason) => {
-                    clearTimers();
-                    if (rafId) cancelAnimationFrame(rafId);
+                    hideTooltip();
+                    if (reason === 'visible-row-mutation' || reason === 'workdate-issue-button') {
+                        needsRebuild = true;
+                    }
+                    if (reason === 'visible-row-mutation') {
+                        if (mutationTimer) clearTimeout(mutationTimer);
+                        mutationTimer = setTimeout(() => {
+                            mutationTimer = 0;
+                            needsRebuild = true;
+                            if (!rafId) {
+                                rafId = requestAnimationFrame(() => {
+                                    rafId = 0;
+                                    const shouldRebuild = needsRebuild;
+                                    needsRebuild = false;
+                                    if (shouldRebuild) rebuild();
+                                    else sync();
+                                });
+                            }
+                        }, 80);
+                        return;
+                    }
+                    if (rafId) return;
                     rafId = requestAnimationFrame(() => {
                         rafId = 0;
-                        rebuild();
-                        sync();
-                        requestAnimationFrame(sync);
+                        const container = getActiveGanttViewportContainer();
+                        const markerLayer = container?.querySelector('.gantt-body #workdate-markers');
+                        const shouldRebuild = needsRebuild || !markerLayer;
+                        needsRebuild = false;
+                        if (shouldRebuild) rebuild();
+                        else sync();
                     });
-                    timers.push(setTimeout(rebuild, 140));
-                    timers.push(setTimeout(sync, 280));
                 };
             })();
             window.scheduleReliableWorkdateMarkerRefresh = scheduleReliableWorkdateMarkerRefresh;
@@ -76564,8 +76647,6 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
             // ===== workdate marker sync utilities =====
             (function () {
-                // last mouse position for tooltip repositioning
-                if (!window._lastWorkdateMouse) window._lastWorkdateMouse = { x: 0, y: 0 };
                 // rAF handle
                 if (!window._workdateSyncRaf) window._workdateSyncRaf = null;
 
@@ -76575,18 +76656,6 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                         try { syncWorkdateMarkers(); } catch (e) { console.warn('syncWorkdateMarkers failed', e); }
                         window._workdateSyncRaf = null;
                     });
-                };
-
-                // Re-show tooltip for active marker using stored dataset tooltip and last mouse pos
-                const refreshWorkdateTooltip = () => {
-                    try {
-                        const active = document.querySelector('.workdate-marker[data-active="true"]');
-                        if (!active) return;
-                        const enc = active.dataset && active.dataset.tooltip;
-                        if (!enc) return;
-                        const html = decodeURIComponent(enc);
-                        showTooltip(html, window._lastWorkdateMouse.x || 0, window._lastWorkdateMouse.y || 0);
-                    } catch (e) { /* ignore */ }
                 };
 
                 // Core sync function: align markers to current bar row position and date columns
@@ -76632,6 +76701,19 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                                         // [PERF-OPT][v4.80] \uc131\ub215 \ucd5c\uc801\ud654: \ub8e8\ud504 \uc804 \ubaa8\ub4e0 \ubc14 \ub85c\uc6b0\ub97c Map\uc5d0 \uce90\uc2f1
                      // [FIX] Duplicated block removed
                     
+                    // Batch layout reads before any marker style writes. The previous read/write
+                    // interleave forced a layout for nearly every marker during each interaction.
+                    const rowRectMap = new Map();
+                    rowMap.forEach((row, projectId) => {
+                        if (!row.classList.contains('hidden') && row.style.display !== 'none') {
+                            rowRectMap.set(String(projectId), row.getBoundingClientRect());
+                        }
+                    });
+                    const firstWorkdateMarker = markerLayer.querySelector('.workdate-marker');
+                    const cachedMarkerHeight = firstWorkdateMarker
+                        ? (firstWorkdateMarker.offsetHeight || Math.max(12, parseFloat(window.getComputedStyle(firstWorkdateMarker).fontSize) || 14))
+                        : 14;
+
                     Array.from(markerLayer.querySelectorAll('.workdate-marker')).forEach(marker => {
                         try {
                             const projectId = marker.dataset && marker.dataset.projectId;
@@ -76677,8 +76759,15 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                             }
 
                             // compute top relative to markerLayer using bounding rects (handles transforms/scroll)
-                            const rowRect = row.getBoundingClientRect();
-                            const markerHeight = marker.offsetHeight || Math.max(12, parseFloat(window.getComputedStyle(marker).fontSize) || 14);
+                            const rowRect = rowRectMap.get(String(projectId));
+                            if (!rowRect) {
+                                if (marker.dataset) marker.dataset.syncHidden = '1';
+                                marker.style.display = 'none';
+                                marker.style.opacity = '0';
+                                marker.style.pointerEvents = 'none';
+                                return;
+                            }
+                            const markerHeight = cachedMarkerHeight;
                             let top = rowRect.top - layerRect.top + Math.max(0, (rowRect.height - markerHeight) / 2);
 
                             // remove or hide if overlapping the timeline header
@@ -76789,6 +76878,12 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                                 const mutation = mutations[i];
                                 if (mutation.target && isMarkerNode(mutation.target)) continue;
                                 if (mutation.type === 'attributes') {
+                                    if (mutation.attributeName === 'class'
+                                        && mutation.target.matches?.('.title-item[data-project-id], .gantt-bar-row[data-project-id]')) {
+                                        const wasHidden = String(mutation.oldValue || '').split(/\s+/).includes('hidden');
+                                        const isHidden = mutation.target.classList.contains('hidden');
+                                        if (wasHidden === isHidden) continue;
+                                    }
                                     if (isVisibleRowMutationTarget(mutation.target)) {
                                         collectProjectIdsFromNode(mutation.target, affectedProjectIds);
                                         needsRebuild = true;
@@ -76818,11 +76913,9 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                                     }
                                 }
                                 window.scheduleReliableWorkdateMarkerRefresh('visible-row-mutation');
-                            } else {
-                                scheduleWorkdateSync();
                             }
                         });
-                        window._workdateMarkerObserver.observe(target, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'style', 'data-project-id'] });
+                        window._workdateMarkerObserver.observe(target, { subtree: true, childList: true, attributes: true, attributeOldValue: true, attributeFilter: ['class', 'style', 'data-project-id'] });
                     } catch (e) { console.warn('attachMutationObserver failed', e); }
                 };
 
@@ -76836,8 +76929,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                             ganttBody._workdateScrollAttached = true;
                             ganttBody.addEventListener('scroll', () => {
                                 scheduleWorkdateSync();
-                                // reposition visible tooltip if any
-                                refreshWorkdateTooltip();
+                                hideTooltip();
                             }, { passive: true });
                         }
 
@@ -76847,7 +76939,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                             if (resizeTimer) clearTimeout(resizeTimer);
                             resizeTimer = setTimeout(() => {
                                 scheduleWorkdateSync();
-                                refreshWorkdateTooltip();
+                                hideTooltip();
                             }, 120);
                         });
 
@@ -76859,12 +76951,6 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                         }
                     } catch (e) { console.warn('attachScrollResizeHandlers failed', e); }
                 };
-
-                // track last mouse position to keep tooltip in place after scroll/resize
-                document.addEventListener('mousemove', (e) => {
-                    window._lastWorkdateMouse.x = e.clientX;
-                    window._lastWorkdateMouse.y = e.clientY;
-                }, { passive: true });
 
                 // initial attach (call after DOM ready as safe fallback)
                 try { attachMutationObserver(); } catch (e) { }
@@ -85756,12 +85842,15 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
                 // Persist width after resize interactions
                 try {
-                    titlesPane.addEventListener('mouseup', () => {
-                        try {
-                            const w = getComputedStyle(titlesPane).getPropertyValue('--settlement-col-width');
-                            if (w && String(w).trim()) saveSettings({ settlementColWidth: String(w).trim() });
-                        } catch (e) { }
-                    }, { passive: true });
+                    if (titlesPane.dataset.settlementWidthPersistBound !== '1') {
+                        titlesPane.dataset.settlementWidthPersistBound = '1';
+                        titlesPane.addEventListener('mouseup', () => {
+                            try {
+                                const w = getComputedStyle(titlesPane).getPropertyValue('--settlement-col-width');
+                                if (w && String(w).trim()) saveSettings({ settlementColWidth: String(w).trim() });
+                            } catch (e) { }
+                        }, { passive: true });
+                    }
                 } catch (e) { }
             }
 
