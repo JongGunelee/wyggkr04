@@ -652,20 +652,65 @@ body{font-family:'Segoe UI','Malgun Gothic',sans-serif;background:var(--bg);colo
 /* 4배 확대 팝업 상단 헤더 바 */
 .chart-zoom-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
   margin-bottom: 16px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  min-width: 0;
 }
 .chart-zoom-title {
   font-size: 19px;
   font-weight: 800;
   color: #ffffff;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  align-content: flex-start;
+  flex: 1 1 360px;
+  flex-wrap: wrap;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.chart-zoom-title > .title-text-group {
+  display: flex;
+  align-items: flex-start;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+}
+.chart-zoom-title-text {
+  flex: 1 1 300px;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.chart-zoom-mode-label {
+  flex: 0 0 auto;
+  font-size: 11px;
+  background: rgba(108,142,245,0.18);
+  color: var(--accent1);
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chart-zoom-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 .chart-zoom-close {
   background: rgba(255, 77, 109, 0.2);
@@ -6543,17 +6588,71 @@ function defaultChartTooltipLabel(canvasId, ctx) {
   return `• ${label}: ${formatChartTooltipValue(value)}${unit && !hasUnit ? unit : ''}`;
 }
 
+function emphasizeChartHoverColor(color){
+  if (typeof color !== 'string') return null;
+  const value = color.trim();
+  const rgb = value.match(/^rgba?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)(?:\s*,\s*([\d.]+))?\s*\)$/i);
+  let channels = null;
+  if (rgb) {
+    channels = rgb.slice(1, 4).map(Number);
+  } else {
+    const hex = value.match(/^#([\da-f]{3}|[\da-f]{6})$/i);
+    if (hex) {
+      const normalized = hex[1].length === 3
+        ? hex[1].split('').map(part => part + part).join('')
+        : hex[1];
+      channels = [0, 2, 4].map(index => parseInt(normalized.slice(index, index + 2), 16));
+    }
+  }
+  if (!channels) return value;
+  const darker = channels.map(channel => Math.max(0, Math.min(255, Math.round(channel * 0.72))));
+  return `rgb(${darker.join(', ')})`;
+}
+
+function mapChartHoverColor(source){
+  if (Array.isArray(source)) {
+    const mapped = source.map(emphasizeChartHoverColor);
+    return mapped.every(color => color !== null) ? mapped : null;
+  }
+  return emphasizeChartHoverColor(source);
+}
+
 function applyChartTooltipContract(config, canvasId){
   const chartConfig = config || {};
   const options = chartConfig.options || (chartConfig.options = {});
   const type = String(chartConfig.type || '').toLowerCase();
+  const isBar = type === 'bar';
   const isCircular = ['doughnut', 'pie', 'polararea'].includes(type);
-  // Chart.js 레이더 요소는 `r` 축 nearest 검색에서 실제 점을 찾지 못한다.
-  // 모든 그래프를 화면 좌표(xy)에서 판정하고, 원형 차트만 교차 영역 안에서 반응시킨다.
-  const interaction = { ...(options.interaction || {}), mode: 'nearest', intersect: isCircular, axis: 'xy' };
+  // 막대는 실제 도형을 가리킬 때만 활성화해 가장 가까운 다른 막대를 잘못 고르는 일을 막는다.
+  // 선·레이더 등은 기존처럼 가까운 데이터 점을 탐색하고, 원형 차트는 조각 안에서 반응한다.
+  const interaction = {
+    ...(options.interaction || {}),
+    mode: options.interaction?.mode || 'nearest',
+    intersect: isBar || isCircular ? true : (options.interaction?.intersect ?? false),
+    axis: options.interaction?.axis || 'xy'
+  };
   const plugins = options.plugins || {};
   const tooltip = { ...(plugins.tooltip || {}) };
   const callbacks = { ...(tooltip.callbacks || {}) };
+
+  if (isBar) {
+    (chartConfig.data?.datasets || []).forEach(dataset => {
+      const fill = dataset.backgroundColor ?? dataset.borderColor;
+      const edge = dataset.borderColor ?? fill;
+      if (dataset.hoverBackgroundColor === undefined && fill !== undefined) {
+        const hoverFill = mapChartHoverColor(fill);
+        if (hoverFill !== null) dataset.hoverBackgroundColor = hoverFill;
+      }
+      if (dataset.hoverBorderColor === undefined && edge !== undefined) {
+        const hoverEdge = mapChartHoverColor(edge);
+        if (hoverEdge !== null) dataset.hoverBorderColor = hoverEdge;
+      }
+      if (dataset.hoverBorderWidth === undefined) {
+        const borderWidth = Number(dataset.borderWidth);
+        dataset.hoverBorderWidth = Math.max(2, Number.isFinite(borderWidth) ? borderWidth + 1 : 2);
+      }
+    });
+  }
 
   // 모든 차트가 같은 외부 표시 경로와 현재 캔버스 기준 interaction을 사용한다.
   // 개별 차트의 callbacks는 보존해 각 그래프의 지표 문구가 섞이지 않게 한다.
@@ -6561,6 +6660,9 @@ function applyChartTooltipContract(config, canvasId){
     callbacks.label = ctx => defaultChartTooltipLabel(canvasId, ctx);
   }
   tooltip.callbacks = callbacks;
+  tooltip.mode = interaction.mode;
+  tooltip.intersect = interaction.intersect;
+  tooltip.axis = interaction.axis;
   tooltip.enabled = false;
   tooltip.external = context => dashboardTooltipManager.showChart(context);
   options.interaction = interaction;
@@ -6720,58 +6822,80 @@ function toggleZoom(target){
   el.parentNode.insertBefore(placeholder, el);
   el._placeholder = placeholder;
 
-  // 제목 가져오기
+  // 차트에는 차트 자체의 바로 위 제목을 우선 사용하고, 액션 버튼 문구는 제목에서 제외한다.
   let titleText = '정밀 분석';
-  const cardTitleEl = el.querySelector('.pt-ic-title') || el.querySelector('.card-title') || el.closest('.card')?.querySelector('.card-title') || el.querySelector('strong');
-  if(cardTitleEl){
-    titleText = cardTitleEl.innerText.split('\n').join(' ').trim();
+  const localChartHeader = el.matches?.('.chart-wrap') ? el.previousElementSibling : null;
+  const titleSource = localChartHeader?.classList?.contains('has-header-actions')
+    ? localChartHeader
+    : (el.querySelector('.pt-ic-title, .card-title') || el.closest('.card')?.querySelector('.card-title') || el.querySelector('strong'));
+  if(titleSource){
+    const titleClone = titleSource.cloneNode(true);
+    titleClone.querySelectorAll('button, .card-header-actions, .kpi-heading-actions, .section-xls-btn, .card-xls-btn, .chart-wrap-xls-btn, .chart-zoom-btn, .card-zoom-btn, .cost-zoom-btn, .chart-zoom-header').forEach(node => node.remove());
+    titleText = String(titleClone.textContent || '').replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() || titleText;
   }
 
-  // 4배 확대 팝업 헤더 바 생성
+  // 4배 확대 헤더는 텍스트 노드로 조립해 제목 문자열이 HTML로 해석되지 않게 한다.
   let header = el.querySelector('.chart-zoom-header');
   if(!header){
     const zoomModeLabel = el.classList.contains('pt-insight-card') ? '개별 카드 확대' : '4배 정밀 확대';
     header = document.createElement('div');
     header.className = 'chart-zoom-header';
-    header.innerHTML = `
-      <div class="chart-zoom-title">
-        <span style="color:var(--accent1);font-size:20px;">🔍</span>
-        <span>${titleText}</span>
-        <span style="font-size:11px;background:rgba(108,142,245,0.18);color:var(--accent1);padding:3px 10px;border-radius:12px;font-weight:700;">${zoomModeLabel}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:12px;color:var(--text2);">💡 ESC 키 또는 우측 닫기 클릭 시 복귀</span>
-        <button type="button" class="chart-zoom-xls-btn" title="현재 확대된 차트/데이터의 엑셀(.xlsx) 다운로드">📊 xls 다운로드</button>
-        <button class="chart-zoom-close" onclick="closeAllZoom()">✕ 닫기 (ESC)</button>
-      </div>
-    `;
-    const zXls = header.querySelector('.chart-zoom-xls-btn');
-    if(zXls){
-      zXls.addEventListener('click', function(e){
-        e.stopPropagation();
-        if(!window.dashboardExcelExporter) return;
-        const cv = el.querySelector('canvas');
-        if(cv && cv.id){
-          window.dashboardExcelExporter.exportChart(cv.id);
-        } else if(el.querySelector('#heatmap') || el.id === 'heatmap'){
-          window.dashboardExcelExporter.exportCard('heatmap');
-        } else if(el.querySelector('#risk-meters') || el.id === 'risk-meters'){
-          window.dashboardExcelExporter.exportCard('risk-meters');
-        } else if(el.querySelector('#cost-calc-basis-box') || el.id === 'cost-calc-basis-box'){
-          window.dashboardExcelExporter.exportCard('cost-basis');
-        } else if(el.querySelector('.roadmap-table') || el.innerText.includes('로드맵')){
-          window.dashboardExcelExporter.exportCard('roadmap');
-        } else if(el.querySelector('#bldg-table')){
-          window.dashboardExcelExporter.exportCard('bldg-table');
-        } else if(el.querySelector('#repair-table-body')){
-          window.dashboardExcelExporter.exportCard('repair-table');
-        } else if(el.innerText.includes('전년 대비 증감 편차')){
-          window.dashboardExcelExporter.exportCard('yoy');
-        } else {
-          window.dashboardExcelExporter.exportCard('kpi');
-        }
-      });
-    }
+    const titleGroup = document.createElement('div');
+    titleGroup.className = 'chart-zoom-title';
+    const titleIcon = document.createElement('span');
+    titleIcon.setAttribute('aria-hidden', 'true');
+    titleIcon.style.cssText = 'color:var(--accent1);font-size:20px;flex:0 0 auto;';
+    titleIcon.textContent = '🔍';
+    const titleNode = document.createElement('span');
+    titleNode.className = 'chart-zoom-title-text';
+    titleNode.textContent = titleText;
+    const modeNode = document.createElement('span');
+    modeNode.className = 'chart-zoom-mode-label';
+    modeNode.textContent = zoomModeLabel;
+    titleGroup.append(titleIcon, titleNode, modeNode);
+
+    const actions = document.createElement('div');
+    actions.className = 'chart-zoom-actions';
+    const hint = document.createElement('span');
+    hint.style.cssText = 'font-size:12px;color:var(--text2);';
+    hint.textContent = '💡 ESC 키 또는 우측 닫기 클릭 시 복귀';
+    const xlsButton = document.createElement('button');
+    xlsButton.type = 'button';
+    xlsButton.className = 'chart-zoom-xls-btn';
+    xlsButton.title = '현재 확대된 차트/데이터의 엑셀(.xlsx) 다운로드';
+    xlsButton.textContent = '📊 xls 다운로드';
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'chart-zoom-close';
+    closeButton.textContent = '✕ 닫기 (ESC)';
+    closeButton.addEventListener('click', closeAllZoom);
+    actions.append(hint, xlsButton, closeButton);
+    header.append(titleGroup, actions);
+
+    xlsButton.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(!window.dashboardExcelExporter) return;
+      const cv = el.querySelector('canvas');
+      if(cv && cv.id){
+        window.dashboardExcelExporter.exportChart(cv.id);
+      } else if(el.querySelector('#heatmap') || el.id === 'heatmap'){
+        window.dashboardExcelExporter.exportCard('heatmap');
+      } else if(el.querySelector('#risk-meters') || el.id === 'risk-meters'){
+        window.dashboardExcelExporter.exportCard('risk-meters');
+      } else if(el.querySelector('#cost-calc-basis-box') || el.id === 'cost-calc-basis-box'){
+        window.dashboardExcelExporter.exportCard('cost-basis');
+      } else if(el.querySelector('.roadmap-table') || el.innerText.includes('로드맵')){
+        window.dashboardExcelExporter.exportCard('roadmap');
+      } else if(el.querySelector('#bldg-table')){
+        window.dashboardExcelExporter.exportCard('bldg-table');
+      } else if(el.querySelector('#repair-table-body')){
+        window.dashboardExcelExporter.exportCard('repair-table');
+      } else if(el.innerText.includes('전년 대비 증감 편차')){
+        window.dashboardExcelExporter.exportCard('yoy');
+      } else {
+        window.dashboardExcelExporter.exportCard('kpi');
+      }
+    });
     el.insertBefore(header, el.firstChild);
   }
 

@@ -2672,6 +2672,11 @@
             border-bottom: 0 !important;
             border-top: 10px solid #2563eb !important;
         }
+        /* Outer accordion closed: header-only control has no visible content to fold. */
+        #projectView:not(.open) > .accordion-header .schedule-header-toggle {
+            display: none !important;
+        }
+
         #projectView .schedule-header-toggle::before,
         #projectView .schedule-header-toggle::after {
             content: none !important;
@@ -42599,9 +42604,10 @@
             if (!trigger) return;
             const label = trigger.querySelector('.codex-legend-select-label');
             const text = codexLegendSelectLabel20260729(select);
-            if (label) label.textContent = text;
-            trigger.disabled = !!select.disabled;
-            trigger.title = text;
+            // Preserve the result without invalidating style/layout for unchanged proxy state.
+            if (label && label.textContent !== text) label.textContent = text;
+            if (trigger.disabled !== !!select.disabled) trigger.disabled = !!select.disabled;
+            if (trigger.title !== text) trigger.title = text;
             codexLegendSelectTypography20260729(select, trigger);
         }
 
