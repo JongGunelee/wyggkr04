@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사택 공용 계단 도장 보수 견적 보고서</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        
+        :root {
+            --primary: #0f172a; /* Slate 900 */
+            --primary-light: #334155;
+            --secondary: #2563eb; /* Blue 600 */
+            --secondary-light: #eff6ff;
+            --accent: #ef4444; /* Red 500 */
+            --accent-light: #fef2f2;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --success: #059669;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 2rem;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: auto;
+        }
+
+        /* 보고서의 금액·라벨·작업 범위는 의미 단위가 끊기지 않도록 항상 한 줄로 표시 */
+        .container, .container * { white-space: nowrap; }
+        /* 유의사항 영역은 설명 가독성을 위해 화면 폭에 맞춰 자동 줄바꿈 */
+        .info-panel,
+        .info-panel * {
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: keep-all;
+        }
+        .info-panel { overflow-x: visible; }
+        .container section > div[style*="display: flex"] { flex-wrap: nowrap !important; overflow-x: auto; }
+        .info-panel li { display: block; }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 3rem 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::after {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 50%;
+            height: 200%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.05));
+            transform: rotate(15deg);
+            pointer-events: none;
+        }
+
+        .header-info h1 {
+            font-size: 2.4rem;
+            font-weight: 800;
+            margin-bottom: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .total-box {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: right;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            color: var(--text-main);
+            z-index: 10;
+        }
+
+        .total-box-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .total-amount {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--secondary);
+            line-height: 1;
+            letter-spacing: -1px;
+            margin-bottom: 1rem;
+        }
+
+        .total-amount span {
+            font-size: 1.5rem;
+            color: var(--text-main);
+            margin-left: 4px;
+        }
+
+        .badge-group {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .badge-warning {
+            background: var(--accent-light);
+            color: var(--accent);
+            border: 1px solid #fca5a5;
+        }
+
+        .badge-info {
+            background: var(--bg-color);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+
+        .content-wrapper {
+            padding: 3rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 요청 순서: 작업 범위·비용 분배와 유의사항을 콘텐츠 최상단에 표시 */
+        .content-wrapper > section:nth-of-type(3) { order: -2; }
+        .content-wrapper > section:nth-of-type(4) { order: -1; }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title::before {
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 24px;
+            background-color: var(--secondary);
+            border-radius: 4px;
+        }
+
+        .financial-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .summary-card {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .summary-card.highlight {
+            background: var(--secondary-light);
+            border-color: #bfdbfe;
+        }
+
+        .sc-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .sc-amount {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-align: right;
+        }
+        
+        .sc-amount.blue { color: var(--secondary); }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1.9fr 1.1fr; 
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .data-table-wrap {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .table-header {
+            background: #f1f5f9;
+            padding: 1rem 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th, .data-table td {
+            padding: 0.8rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .data-table th {
+            text-align: left;
+            color: var(--text-muted);
+            font-weight: 600;
+            background: #f8fafc;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .text-right { text-align: right !important; }
+        .text-center { text-align: center !important; }
+        
+        .sum-row {
+            background: #f8fafc;
+            font-weight: 700;
+        }
+        .sum-row td { color: var(--primary); }
+
+        /* 접미사(부연설명/수식) 축소 스타일 */
+        .suffix {
+            font-size: 0.82em;
+            color: var(--text-muted);
+            letter-spacing: -0.5px;
+            margin-left: 4px;
+        }
+
+        .info-panel {
+            background: var(--bg-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .alert-box {
+            background: var(--accent-light);
+            border-left: 4px solid var(--accent);
+            padding: 1.2rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+            color: #991b1b;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .building-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            min-width: 0;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px -5px rgba(0,0,0,0.1);
+            border-color: var(--secondary);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 0;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .badge-blue {
+            flex: 0 0 auto;
+            background: var(--secondary-light);
+            color: var(--secondary);
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .manpower {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .manpower-line { display: inline-block; margin-right: 1.25rem; }
+        .manpower-line.ladder { display: block; margin-right: 0; }
+
+        .scope-list {
+            list-style: none;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .scope-list li {
+            background: var(--bg-color);
+            padding: 0.7rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        .scope-list li > span:first-child {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .scope-list li span.workers {
+            flex: 0 0 auto;
+            font-weight: 700;
+            color: var(--primary);
+            background: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .card-cost-footer {
+            margin-top: 1.5rem;
+            padding-top: 1.2rem;
+            border-top: 2px dashed var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            background: var(--bg-color);
+            margin: 1.5rem -1.5rem -1.5rem -1.5rem;
+            padding: 1.2rem 1.5rem;
+            border-radius: 0 0 12px 12px;
+        }
+        
+        .cost-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.2rem;
+        }
+        
+        .cost-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--secondary);
+        }
+        
+        .cost-value span {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-left: 4px;
+        }
+
+        @media (max-width: 992px) {
+            header { flex-direction: column; align-items: stretch; gap: 2rem; }
+            .total-box { text-align: left; }
+            .badge-group { justify-content: flex-start; }
+            .details-grid { grid-template-columns: 1fr; }
+            .financial-summary { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="header-info">
+                <h1>사택 공용 계단내 훼손 도장 보수 비용</h1>
+            </div>
+            
+            <div class="total-box">
+                <div class="total-box-title">총 견적 금액 (단수조정)</div>
+                <div class="total-amount">6,560,000<span>원</span></div>
+                <div class="badge-group">
+                    <div class="badge badge-warning">🚨 Fee(7.5%) 제외</div>
+                    <div class="badge badge-info">VAT 별도</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+            
+            <section>
+                <h2 class="section-title">견적 총괄 (갑지 요약)</h2>
+                <div class="financial-summary">
+                    <div class="summary-card">
+                        <div class="sc-title">재료비 소계</div>
+                        <div class="sc-amount">849,004</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="sc-title">노무비 소계</div>
+                        <div class="sc-amount">4,647,180</div>
+                    </div>
+                    <div class="summary-card highlight">
+                        <div class="sc-title">직접비 합계</div>
+                        <div class="sc-amount blue">5,496,184</div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="section-title">비용 산출 세부 내역</h2>
+                
+                <div class="details-grid">
+                    <!-- Left Column: Direct Costs (Materials & Labor) -->
+                    <div class="direct-costs">
+                        
+                        <!-- 재료비 Table -->
+                        <div class="data-table-wrap">
+                            <div class="table-header">
+                                <span>재료비 상세</span>
+                                <span>849,004 원</span>
+                            </div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>품명 <span class="suffix">(규격)</span></th>
+                                        <th class="text-right">조정 단가(원)</th>
+                                        <th class="text-center">수량</th>
+                                        <th class="text-right">금액(원)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>HB마크 친환경 수성도료 <span class="suffix">(18L)</span></td>
+                                        <td class="text-right">150,000</td>
+                                        <td class="text-center">4</td>
+                                        <td class="text-right">501,000</td>
+                                    </tr>
+                                    <tr>
+                                        <td>광택스 내부용 백색 <span class="suffix">(4L - 걸레받이/조색)</span></td>
+                                        <td class="text-right">29,000</td>
+                                        <td class="text-center">10</td>
+                                        <td class="text-right">242,150</td>
+                                    </tr>
+                                    <tr>
+                                        <td>수성도료용 하도 바인더 <span class="suffix">(18L)</span></td>
+                                        <td class="text-right">89,200</td>
+                                        <td class="text-center">1</td>
+                                        <td class="text-right">74,482</td>
+                                    </tr>
+                                    <tr>
+                                        <td>건축 내부용 퍼티 <span class="suffix">(18L)</span></td>
+                                        <td class="text-right">37,571</td>
+                                        <td class="text-center">1</td>
+                                        <td class="text-right">31,372</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- 노무비 Table -->
+                        <div class="data-table-wrap">
+                            <div class="table-header">
+                                <span>노무비 상세</span>
+                                <span>4,647,180 원</span>
+                            </div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>공종/품명</th>
+                                        <th class="text-right">조정 단가(원)</th>
+                                        <th class="text-center">수량(m²/인)</th>
+                                        <th class="text-right">금액(원)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>콘크리트·모르터면 바탕만들기</td>
+                                        <td class="text-right">2,754</td>
+                                        <td class="text-center">150</td>
+                                        <td class="text-right">344,939</td>
+                                    </tr>
+                                    <tr>
+                                        <td>걸레받이용 페인트칠</td>
+                                        <td class="text-right">19,191</td>
+                                        <td class="text-center">70</td>
+                                        <td class="text-right">1,121,714</td>
+                                    </tr>
+                                    <tr>
+                                        <td>수성페인트 붓칠 <span class="suffix">(1회)</span></td>
+                                        <td class="text-right">6,368</td>
+                                        <td class="text-center">60</td>
+                                        <td class="text-right">319,037</td>
+                                    </tr>
+                                    <tr>
+                                        <td>낙서방지용 페인트칠</td>
+                                        <td class="text-right">9,206</td>
+                                        <td class="text-center">350</td>
+                                        <td class="text-right">2,690,454</td>
+                                    </tr>
+                                    <tr>
+                                        <td>사다리 보조자 <span class="suffix">(보통인부)</span></td>
+                                        <td class="text-right">171,037</td>
+                                        <td class="text-center">1</td>
+                                        <td class="text-right">171,037</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Indirect Costs -->
+                    <div class="indirect-costs">
+                        <div class="data-table-wrap">
+                            <div class="table-header">
+                                <span>간접비 상세</span>
+                                <span>1,064,746 원</span>
+                            </div>
+                            <table class="data-table">
+                                <tbody>
+                                    <tr>
+                                        <td>국민연금 <span class="suffix">(노무비*4.75%)</span></td>
+                                        <td class="text-right">220,741</td>
+                                    </tr>
+                                    <tr>
+                                        <td>건강보험료 <span class="suffix">(노무비*3.595%)</span></td>
+                                        <td class="text-right">167,066</td>
+                                    </tr>
+                                    <tr>
+                                        <td>장기요양보험료 <span class="suffix">(건강보험료*12.95%)</span></td>
+                                        <td class="text-right">21,635</td>
+                                    </tr>
+                                    <tr>
+                                        <td>고용보험료 <span class="suffix">(노무비*1.01%)</span></td>
+                                        <td class="text-right">46,937</td>
+                                    </tr>
+                                    <tr>
+                                        <td>산재보험료 <span class="suffix">(노무비*3.56%)</span></td>
+                                        <td class="text-right">165,440</td>
+                                    </tr>
+                                    <tr>
+                                        <td>산업안전보건비 <span class="suffix">((재료+노무)*3.11%)</span></td>
+                                        <td class="text-right">170,931</td>
+                                    </tr>
+                                    <tr>
+                                        <td>일반관리비/이윤 <span class="suffix">((노무비+기타 간접비)*5%)</span></td>
+                                        <td class="text-right">271,996</td>
+                                    </tr>
+                                    <tr class="sum-row">
+                                        <td>소계</td>
+                                        <td class="text-right">1,064,746</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <h2 class="section-title" style="margin-bottom: 0;">동별 작업 범위 및 비용 분배 (총 17 공량)</h2>
+                    <span style="font-size: 0.95rem; color: var(--text-muted); font-weight: 600;">※ 예산에 따른 동별 선택 발주 가능 (총액 공량비율 분배)</span>
+                </div>
+                
+                <div class="building-grid">
+                    
+                    <!-- 2동 카드 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">사택 2동</div>
+                            <div class="badge-blue">1~8라인 4개소</div>
+                        </div>
+                        <div class="manpower">
+                            <span class="manpower-line">👷 도장공 5 공량</span>
+                            <span class="manpower-line ladder">🪜 사다리보조 1 공량 (1일)</span>
+                        </div>
+                        <ul class="scope-list">
+                            <li><span>1~2라인 (1,2,3층)</span> <span class="workers">2.0 공량</span></li>
+                            <li><span>3~4라인 (지하,2,3층)</span> <span class="workers">1.0 공량</span></li>
+                            <li><span>5~6라인 (1,2,3층)</span> <span class="workers">1.0 공량</span></li>
+                            <li><span>7~8라인 (1,2,3,4층)</span> <span class="workers">1.0 공량</span></li>
+                        </ul>
+                        <div class="card-cost-footer">
+                            <span class="cost-label">동별 배정 예산 (5/17)</span>
+                            <span class="cost-value">1,929,412<span>원</span></span>
+                        </div>
+                    </div>
+
+                    <!-- 5동 카드 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">사택 5동</div>
+                            <div class="badge-blue">1~6라인 3개소</div>
+                        </div>
+                        <div class="manpower">
+                            👷 도장공 2 공량
+                        </div>
+                        <ul class="scope-list">
+                            <li><span>1~2라인 (지하,2층)</span> <span class="workers">0.5 공량</span></li>
+                            <li><span>3~4라인 (지하,2,3층)</span> <span class="workers">0.5 공량</span></li>
+                            <li><span>5~6라인 (2,3층)</span> <span class="workers">1.0 공량</span></li>
+                        </ul>
+                        <div class="card-cost-footer">
+                            <span class="cost-label">동별 배정 예산 (2/17)</span>
+                            <span class="cost-value">771,765<span>원</span></span>
+                        </div>
+                    </div>
+
+                    <!-- 8동 카드 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">사택 8동</div>
+                            <div class="badge-blue">1~10라인 5개소</div>
+                        </div>
+                        <div class="manpower">
+                            👷 도장공 8 공량
+                        </div>
+                        <ul class="scope-list">
+                            <li><span>1~10라인 (지하~5층)</span> <span class="workers">라인별 1.5 공량</span></li>
+                        </ul>
+                        <div class="card-cost-footer">
+                            <span class="cost-label">동별 배정 예산 (8/17, 단수 잔여 조정)</span>
+                            <span class="cost-value">3,087,058<span>원</span></span>
+                        </div>
+                    </div>
+
+                    <!-- 9동 카드 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">사택 9동</div>
+                            <div class="badge-blue">1~6라인 3개소</div>
+                        </div>
+                        <div class="manpower">
+                            👷 도장공 2 공량
+                        </div>
+                        <ul class="scope-list">
+                            <li><span>1~2라인 (1,2층)</span> <span class="workers">0.5 공량</span></li>
+                            <li><span>3~4라인 (3,4층)</span> <span class="workers">0.5 공량</span></li>
+                            <li><span>5~6라인 (2,4층)</span> <span class="workers">1.0 공량</span></li>
+                        </ul>
+                        <div class="card-cost-footer">
+                            <span class="cost-label">동별 배정 예산 (2/17)</span>
+                            <span class="cost-value">771,765<span>원</span></span>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+            
+            <section style="margin-top: 3rem;">
+                <h2 class="section-title">견적 참고 및 유의사항</h2>
+                <div class="info-panel">
+                    <ul style="list-style-position: inside; color: var(--text-muted); line-height: 1.8;">
+                        <li><strong>실투입 품셈(공량) 책정 기준:</strong> 계단 도장 보수는 계단 전체 면적이 아닌 <strong>구간별 훼손 최소 면적</strong>을 기준으로 도장공 실투입 공량(총 17 공량)을 산출하였습니다.</li>
+                        <li><strong>동별 부분 시공:</strong> 고객사 예산 한도에 맞추어 <strong>동별 분리 발주가 가능하도록 총 금액을 공량 비율(N공량/17공량)로 분할</strong>하여 표기하였습니다.</li>
+                        <li><strong>17공량 산출 근거:</strong> 전체 작업 공량은 사택 2동 5공량, 사택 5동 2공량, 사택 8동 8공량, 사택 9동 2공량을 합산한 <strong>5 + 2 + 8 + 2 = 17공량</strong>입니다. 여기서 N은 각 동에 배정된 공량이며, 동별 배정 금액은 총 견적금액 × (해당 동 공량/전체 17공량)으로 산출합니다.</li>
+                        <li><strong>걸레받이 도장:</strong> 각 동별 걸레받이 색상이 상이하므로 조색 페인트(내부용 백색 베이스)가 별도로 반영되었습니다.</li>
+                        <li>본 견적 내역서의 조정 단가 및 금액은 기준금액에 낙찰율(83.5%)을 적용한 값입니다. 직접비 5,496,184원과 간접비 1,064,746원의 합계 6,560,930원에서 단수조정 930원을 차감하여 총 견적금액을 6,560,000원으로 확정했습니다. 상세 노무비 행은 원 단위 반올림 표시로 요약 노무비와 1원 차이가 날 수 있습니다.</li>
+                    </ul>
+                    
+                    <div class="alert-box">
+                        <span style="font-size: 1.2rem;">⚠️</span>
+                        <div>
+                            <strong>A/S 제외 대상:</strong> 계단창 주변의 <b>외부 누수로 인한 도장 탈락</b>은 본 시공의 A/S 대상이 아닙니다. (내역서 표기 조건)
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+</body>
+</html>
