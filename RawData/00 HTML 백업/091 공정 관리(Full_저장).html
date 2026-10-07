@@ -75756,7 +75756,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 return raw === undefined || raw === null ? '' : String(raw).trim();
             };
 
-            const getWorkdateAuditEntries = (project) => {
+            const getWorkdateAuditEntries = (project, indexedWorkItems = undefined) => {
                 const entries = [];
                 const seen = new Set();
                 const pid = getWorkdateAuditProjectId(project);
@@ -75779,7 +75779,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
                 try {
                     if (pid && Array.isArray(window.workItems)) {
-                        window.workItems.forEach(item => {
+                        const items = Array.isArray(indexedWorkItems) ? indexedWorkItems : window.workItems;
+                        items.forEach(item => {
                             if (!item || String(item.projectId).trim() !== pid) return;
                             pushEntry(item.workDate, item.workDetail, 'workItems');
                         });
@@ -75820,7 +75821,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 return entries;
             };
 
-            const getWorkdatePlanPinIssue = (project) => {
+            const getWorkdatePlanPinIssue = (project, indexedWorkItems = undefined) => {
                 const pid = getWorkdateAuditProjectId(project);
                 if (!project || !pid) return null;
                 const planStart = normalizeDate(project.startDate || project.startDateStr);
@@ -75828,7 +75829,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 if (!planStart || !planEnd || isNaN(planStart.getTime()) || isNaN(planEnd.getTime())) return null;
                 const minPlan = planStart <= planEnd ? planStart : planEnd;
                 const maxPlan = planStart <= planEnd ? planEnd : planStart;
-                const entries = getWorkdateAuditEntries(project);
+                const entries = getWorkdateAuditEntries(project, indexedWorkItems);
                 const outOfPlanEntries = entries.filter(item => {
                     const parsed = normalizeDate(item.date);
                     return parsed && !isNaN(parsed.getTime()) && (parsed < minPlan || parsed > maxPlan);
@@ -75866,9 +75867,26 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 const issues = [];
                 let outOfPlanPins = 0;
                 let missingPinProjects = 0;
+                // One synchronous collection owns this index; rebuild after every edit/import.
+                let workItemsByProject = null;
+                try {
+                    if (source.length > 1 && Array.isArray(window.workItems)) {
+                        const index = new Map();
+                        window.workItems.forEach(item => {
+                            if (!item) return;
+                            const pid = String(item.projectId).trim();
+                            if (!index.has(pid)) index.set(pid, []);
+                            index.get(pid).push(item);
+                        });
+                        workItemsByProject = index;
+                    }
+                } catch (e) { /* Keep the original per-project scan if indexing fails. */ }
                 try {
                     source.forEach(project => {
-                        const issue = getWorkdatePlanPinIssue(project);
+                        const indexedWorkItems = workItemsByProject
+                            ? (workItemsByProject.get(getWorkdateAuditProjectId(project)) || [])
+                            : undefined;
+                        const issue = getWorkdatePlanPinIssue(project, indexedWorkItems);
                         if (!issue) return;
                         issues.push(issue);
                         outOfPlanPins += issue.outOfPlanEntries ? issue.outOfPlanEntries.length : 0;
