@@ -65784,8 +65784,14 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             const isMobilePortraitResize = !!(isPortraitNameResize || (chartWrapper && chartWrapper.classList.contains('gantt-mobile-portrait')));
             const maxPaneWidth = startWrapperWidth > 0 ? Math.max(420, startWrapperWidth - 44) : 1320;
             const minPaneWidth = Math.max(360, startPaneWidth - 420);
+            const isNameResize = leftColName === 'name' || rightColName === 'name';
+            const paneMode = chartWrapper ? (chartWrapper.dataset.mobilePaneMode || 'normal') : 'normal';
+            const normalStartWidth = paneMode === 'normal' ? startPaneWidth : Number(chartWrapper && (chartWrapper.dataset.userTitleWidth || chartWrapper.dataset.codexPanePreviousTitleWidth)) || startPaneWidth;
+            const namePaneMax = startWrapperWidth > 0 ? Math.max(160, startWrapperWidth - 44) : 1320;
+            const namePaneMin = Math.min(namePaneMax, isMobilePortraitResize ? 160 : 250);
             if (chartWrapper && (leftColName === 'name' || rightColName === 'name')) {
                 chartWrapper.dataset.codexManualNameWidth = '1';
+                chartWrapper.dataset.codexTitleResizeActive = '1';
             }
             let pendingLeftWidth = startLeftWidth;
             let pendingPaneWidth = startPaneWidth;
@@ -65816,23 +65822,28 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     titlesPane.style.setProperty('--name-col-width', `${startRightWidth}px`);
                     if (chartWrapper) chartWrapper.dataset.userNameColumnWidth = String(Math.round(startRightWidth));
                 }
-                if (!isMobilePortraitResize && chartWrapper && Number.isFinite(pendingPaneWidth) && pendingPaneWidth > 0) {
+                if (adjustedNameWidth !== null) {
+                    titlesPane.style.setProperty('--codex-summary-name-width', `${adjustedNameWidth}px`);
+                    const nameHeader = header && header.querySelector('.gantt-name-header-col');
+                    if (nameHeader) ['flex', 'width', 'min-width', 'max-width'].forEach(prop => nameHeader.style.removeProperty(prop));
+                }
+                if ((!isMobilePortraitResize || isNameResize) && chartWrapper && Number.isFinite(pendingPaneWidth) && pendingPaneWidth > 0) {
                     const widthValue = `${Math.round(pendingPaneWidth)}px`;
-                    titlesPane.style.setProperty('flex', `0 0 ${widthValue}`, 'important');
-                    titlesPane.style.setProperty('width', widthValue, 'important');
-                    titlesPane.style.setProperty('min-width', widthValue, 'important');
-                    titlesPane.style.setProperty('max-width', widthValue, 'important');
+                    if (!isNameResize || paneMode === 'normal') {
+                        titlesPane.style.setProperty('flex', `0 0 ${widthValue}`, 'important');
+                        titlesPane.style.setProperty('width', widthValue, 'important');
+                        titlesPane.style.setProperty('min-width', widthValue, 'important');
+                        titlesPane.style.setProperty('max-width', widthValue, 'important');
+                    }
                     chartWrapper.dataset.codexManualTitleWidth = '1';
                     chartWrapper.dataset.userTitleWidth = String(Math.round(pendingPaneWidth));
+                    chartWrapper.dataset.codexPanePreviousTitleWidth = String(Math.round(pendingPaneWidth));
                     if (window.__codexMobileGanttPaneToggle && typeof window.__codexMobileGanttPaneToggle.refreshPosition === 'function') {
                         window.__codexMobileGanttPaneToggle.refreshPosition('column-resize');
                     }
                 }
-                if (chartWrapper && chartWrapper.classList.contains('gantt-mobile-portrait')) {
-                    const mobileContentWidth = Math.max(
-                        parseFloat(titlesPane.style.getPropertyValue('--mobile-title-content-width')) || 0,
-                        estimateMobileContentWidth(adjustedNameWidth)
-                    );
+                if (chartWrapper && (isPortraitNameResize || chartWrapper.dataset.codexMobilePortraitViewportApplied === '1')) {
+                    const mobileContentWidth = estimateMobileContentWidth(adjustedNameWidth);
                     titlesPane.style.setProperty('--mobile-title-content-width', `${mobileContentWidth}px`);
                     const body = titlesPane.querySelector('.gantt-titles-body');
                     if (body) {
@@ -65846,6 +65857,13 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 const clientX = getClientX(moveEvent);
                 if (!isFinite(clientX)) return;
                 const diffX = clientX - startX;
+                if (isNameResize) {
+                    pendingLeftWidth = Math.max(leftMinWidth, startLeftWidth + diffX);
+                    pendingPaneWidth = Math.max(namePaneMin, Math.min(namePaneMax, normalStartWidth + pendingLeftWidth - startLeftWidth));
+                    if (!resizeRafId) resizeRafId = requestAnimationFrame(flushPendingColumnWidths);
+                    if (moveEvent.cancelable) moveEvent.preventDefault();
+                    return;
+                }
                 const maxLeftByPane = isMobilePortraitResize
                     ? Math.max(leftMinWidth, startLeftWidth + 560)
                     : Math.max(leftMinWidth, startLeftWidth + Math.max(0, maxPaneWidth - startPaneWidth));
@@ -65869,6 +65887,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     cancelAnimationFrame(resizeRafId);
                     flushPendingColumnWidths();
                 }
+                if (isNameResize && chartWrapper) delete chartWrapper.dataset.codexTitleResizeActive;
                 document.documentElement.removeEventListener('mousemove', doDrag);
                 document.documentElement.removeEventListener('mouseup', stopDrag);
                 document.documentElement.removeEventListener('touchmove', doDrag);
@@ -66758,7 +66777,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             const measuredNameWidth = measureMobileNameAutoWidth();
             const mobileAutoNameMax = Math.min(320, mobilePaneMaxWidth);
             const projectNameWidth = Number.isFinite(requestedNameWidth) && requestedNameWidth > 0
-                ? Math.max(180, Math.min(760, Math.round(requestedNameWidth)))
+                ? Math.max(180, Math.round(requestedNameWidth))
                 : Math.max(240, Math.min(mobileAutoNameMax, measuredNameWidth));
             if (!titleWidth) {
                 const autoTitleWidth = Math.ceil(projectNameWidth + 92);
@@ -66885,6 +66904,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             if (typeof window.applyMobileGanttPaneMode === 'function') {
                 window.applyMobileGanttPaneMode(chartWrapper, { isPortraitMobile, isStatFullView });
             }
+            const nameFitApi = window.__codexDesktopGanttDetailMilestoneFit20260508Api;
+            if (nameFitApi && typeof nameFitApi.forceGanttTitleWidth === 'function') nameFitApi.forceGanttTitleWidth('mobile-viewport');
         }
 
         function renderGanttChart(data) {
@@ -110657,6 +110678,10 @@ function showPendingSettlementModal(periodType, projects) {
             chartWrapper.dataset.mobilePaneMode = nextMode;
         }
         applyMobileGanttPaneMode(chartWrapper);
+        if (nextMode === MODE_NORMAL) {
+            var nameFitApi = window.__codexDesktopGanttDetailMilestoneFit20260508Api;
+            if (nameFitApi && typeof nameFitApi.forceGanttTitleWidth === 'function') nameFitApi.forceGanttTitleWidth('pane-restore');
+        }
         setTimeout(function () {
             applyMobileGanttPaneMode(chartWrapper);
             if (nextMode !== MODE_RIGHT_COLLAPSED && typeof window.scrollToToday === 'function') {
@@ -112510,24 +112535,11 @@ function showPendingSettlementModal(periodType, projects) {
 
         function pushText(texts, value) {
             var text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
-            if (text && text.length <= 220) texts.push(text);
+            if (text) texts.push(text);
         }
 
         function collectGanttTitleTexts(pane) {
             var texts = [];
-            var data = Array.isArray(window.projectData) ? window.projectData : [];
-            data.forEach(function(row) {
-                if (!row || typeof row !== 'object') return;
-                pushText(texts, row.name);
-                pushText(texts, row.projectName);
-                pushText(texts, row.ProjectName);
-                pushText(texts, row.taskName);
-                pushText(texts, row.title);
-                pushText(texts, row['유지관리명']);
-                pushText(texts, row['공정명']);
-                pushText(texts, row['작업명']);
-            });
-
             pane.querySelectorAll('.title-item .project-name, .group-header > div:first-child').forEach(function(node) {
                 pushText(texts, node.textContent || '');
             });
@@ -112548,7 +112560,8 @@ function showPendingSettlementModal(periodType, projects) {
 
         function getGanttMaxTitleTextWidth(pane, context, font) {
             var data = Array.isArray(window.projectData) ? window.projectData : [];
-            var domKey = getGanttDomTextKey(pane);
+            var texts = collectGanttTitleTexts(pane);
+            var domKey = texts.join('\u0000');
             if (
                 ganttTextMeasureCache.dataRef === data &&
                 ganttTextMeasureCache.length === data.length &&
@@ -112560,7 +112573,7 @@ function showPendingSettlementModal(periodType, projects) {
             }
 
             var maxTextWidth = 0;
-            collectGanttTitleTexts(pane).forEach(function(text) {
+            texts.forEach(function(text) {
                 maxTextWidth = Math.max(maxTextWidth, context.measureText(text).width);
             });
 
@@ -112575,6 +112588,7 @@ function showPendingSettlementModal(periodType, projects) {
         }
 
         function getGanttFixedColumnWidth(pane, paneStyle) {
+            paneStyle = paneStyle || window.getComputedStyle(pane);
             var sourceRow = pane.querySelector('.title-item');
             var selectors = [
                 ['.project-po', '--po-col-width', 120],
@@ -112700,7 +112714,7 @@ function showPendingSettlementModal(periodType, projects) {
                 var scrollWidth = title.scrollWidth || 0;
                 maxTitleWidth = Math.max(maxTitleWidth, rectWidth, Math.min(scrollWidth, maxBaseWidth));
             });
-            var summaryNameWidth = Math.ceil(Math.max(220, Math.min(560, maxBaseWidth, maxTitleWidth || maxBaseWidth)));
+            var summaryNameWidth = Math.ceil(Math.max(220, maxBaseWidth));
             pane.dataset.codexDesktopSummaryCompact = '1';
             pane.style.setProperty('--codex-summary-name-width', summaryNameWidth + 'px');
             return true;
@@ -112751,8 +112765,6 @@ function showPendingSettlementModal(periodType, projects) {
         }
 
         function applyDesktopGanttAutoTitleWidth(reason) {
-            if (!isDesktop()) return;
-
             var projectView = document.getElementById('projectView');
             if (projectView && !projectView.classList.contains('open')) return;
 
@@ -112762,11 +112774,16 @@ function showPendingSettlementModal(periodType, projects) {
 
             var pane = wrapper.querySelector('.gantt-titles');
             if (!pane) return;
+            if (!isDesktop()) {
+                if (wrapper.dataset.codexMobilePortraitViewportApplied !== '1' || wrapper.dataset.codexTitleResizeActive === '1') return;
+                applyGanttNameAutoFitFromPane(pane, reason);
+                return;
+            }
 
             syncDesktopGanttSummaryCompact(pane);
             syncDesktopGanttEmptyPoWidth(pane, wrapper);
             var automaticReflow = /gantt-rendered|render:complete|project-open|group-toggle|column-toggle|mobile-portrait-exit|data:loaded/i.test(String(reason || ''));
-            if (automaticReflow && wrapper.dataset.codexTitleResizeActive !== '1') {
+            if (automaticReflow && wrapper.dataset.codexTitleResizeActive !== '1' && wrapper.dataset.codexManualNameWidth !== '1') {
                 delete wrapper.dataset.codexManualTitleWidth;
                 delete wrapper.dataset.codexManualNameWidth;
                 delete wrapper.dataset.userTitleWidth;
@@ -112799,12 +112816,15 @@ function showPendingSettlementModal(periodType, projects) {
                 : Math.max(720, Math.min(1180, Math.round(viewportWidthForCap * 0.82)));
             var currentNameWidth = readCssPixels(paneStyle, '--name-col-width', 360);
             var maxNameForViewport = Math.max(220, viewportCap - fixedWidth - resizerAllowance - 28);
-            var desiredNameWidth = Math.ceil(maxTextWidth + 72);
-            desiredNameWidth = Math.max(260, Math.min(560, maxNameForViewport, desiredNameWidth));
+            var desiredNameWidth = Math.max(260, Math.ceil(maxTextWidth + 108));
             var nameWidth = wrapper.dataset.codexManualNameWidth === '1' ? currentNameWidth : desiredNameWidth;
             if (wrapper.dataset.codexManualNameWidth !== '1') {
                 pane.style.setProperty('--name-col-width', nameWidth + 'px');
+                pane.style.setProperty('--codex-summary-name-width', nameWidth + 'px');
             }
+            var contentWidth = Math.ceil(nameWidth + fixedWidth + resizerAllowance + 28);
+            var titleBody = pane.querySelector('.gantt-titles-body');
+            if (titleBody) titleBody.style.setProperty('min-width', contentWidth + 'px');
             var targetWidth = Math.ceil(nameWidth + fixedWidth + resizerAllowance + 28);
             targetWidth = Math.max(400, Math.min(viewportCap, targetWidth));
             var summaryLiveWidth = getDesktopGanttSummaryLiveWidth(pane);
@@ -112832,14 +112852,20 @@ function showPendingSettlementModal(periodType, projects) {
                 emptyPoBaselineWidth = targetWidth;
                 wrapper.dataset.codexDesktopEmptyPoBaselineWidth = String(Math.round(emptyPoBaselineWidth));
             }
-            if (!hasVisiblePoValue && emptyPoBaselineWidth > 0 && targetWidth > emptyPoBaselineWidth) {
+            if (!hasVisiblePoValue && emptyPoBaselineWidth > 0 && targetWidth > emptyPoBaselineWidth && wrapper.dataset.codexManualNameWidth === '1') {
                 var emptyPoExpansion = targetWidth - emptyPoBaselineWidth;
                 nameWidth = Math.max(260, nameWidth - emptyPoExpansion);
                 pane.style.setProperty('--name-col-width', nameWidth + 'px');
                 targetWidth = emptyPoBaselineWidth;
             }
 
+            if (_paneMode === 'right-min') {
+                wrapper.dataset.codexPanePreviousTitleWidth = String(targetWidth);
+                if (typeof window.applyMobileGanttPaneMode === 'function') window.applyMobileGanttPaneMode(wrapper);
+                return;
+            }
             var key = [
+                _paneMode,
                 nameWidth,
                 targetWidth,
                 Math.round(summaryLiveWidth || 0),
@@ -112878,29 +112904,40 @@ function showPendingSettlementModal(periodType, projects) {
             if (!pane) return false;
             var wrapper = pane.closest('#ganttChartWrapper');
             var ctx = getTextMeasureContext(pane);
-            var maxTextWidth = getGanttMaxTitleTextWidth(pane, ctx);
+            var sample = pane.querySelector('.group-header > div:first-child, .title-item .project-name') || pane;
+            var sampleStyle = window.getComputedStyle(sample);
+            ctx.font = [sampleStyle.fontStyle, sampleStyle.fontVariant, '700', sampleStyle.fontSize, sampleStyle.fontFamily].join(' ');
+            var maxTextWidth = getGanttMaxTitleTextWidth(pane, ctx, ctx.font);
             if (!maxTextWidth) return false;
-            var isMobilePortrait = !!(wrapper && wrapper.classList && wrapper.classList.contains('gantt-mobile-portrait'));
-            var maxNameWidth = isMobilePortrait ? 680 : 560;
-            var nameWidth = Math.max(isMobilePortrait ? 260 : 260, Math.min(maxNameWidth, Math.ceil(maxTextWidth + (isMobilePortrait ? 108 : 90))));
+            var isMobilePortrait = !!(wrapper && wrapper.dataset.codexMobilePortraitViewportApplied === '1');
+            var manual = wrapper && wrapper.dataset.codexManualNameWidth === '1' && reason !== 'double-click';
+            var nameWidth = manual ? readCssPixels(window.getComputedStyle(pane), '--name-col-width', 260) : Math.max(260, Math.ceil(maxTextWidth + 108));
             pane.style.setProperty('--name-col-width', nameWidth + 'px');
+            pane.style.setProperty('--codex-summary-name-width', nameWidth + 'px');
+            var nameHeader = pane.querySelector('.gantt-name-header-col');
+            if (nameHeader) ['flex', 'width', 'min-width', 'max-width'].forEach(function(prop) { nameHeader.style.removeProperty(prop); });
             if (isMobilePortrait) {
                 pane.style.setProperty('--mobile-project-name-width', nameWidth + 'px');
             }
             if (wrapper) {
                 wrapper.dataset.userNameColumnWidth = String(Math.round(nameWidth));
-                wrapper.dataset.codexManualNameWidth = '1';
+                if (reason === 'double-click') wrapper.dataset.codexManualNameWidth = '1';
             }
 
             var body = pane.querySelector('.gantt-titles-body');
             if (isMobilePortrait) {
-                var mobileContentWidth = Math.max(parseFloat(pane.style.getPropertyValue('--mobile-title-content-width')) || 0, nameWidth + 470);
+                var mobileContentWidth = Math.ceil(nameWidth + getGanttFixedColumnWidth(pane) + 88);
                 pane.style.setProperty('--mobile-title-content-width', mobileContentWidth + 'px');
                 if (body) {
                     body.style.setProperty('width', mobileContentWidth + 'px', 'important');
                     body.style.setProperty('min-width', mobileContentWidth + 'px', 'important');
                 }
                 if (window.__codexMobileGanttPaneToggle && typeof window.__codexMobileGanttPaneToggle.apply === 'function') {
+                    if (!manual) {
+                        var wrapperWidth = wrapper.clientWidth || window.innerWidth;
+                        wrapper.dataset.userTitleWidth = String(Math.max(160, Math.min(wrapperWidth - 44, mobileContentWidth)));
+                        wrapper.dataset.codexPanePreviousTitleWidth = wrapper.dataset.userTitleWidth;
+                    }
                     try { window.__codexMobileGanttPaneToggle.apply(); } catch (_) {}
                 }
                 return true;
@@ -112956,7 +112993,7 @@ function showPendingSettlementModal(periodType, projects) {
         ['gantt-rendered', 'instant-response:gantt-rendered'].forEach(function(type) {
             document.addEventListener(type, function() {
                 var wrapper = document.getElementById('ganttChartWrapper');
-                if (wrapper && wrapper.dataset.codexTitleResizeActive !== '1') {
+                if (wrapper && wrapper.dataset.codexTitleResizeActive !== '1' && wrapper.dataset.codexManualNameWidth !== '1') {
                     delete wrapper.dataset.codexManualTitleWidth;
                     delete wrapper.dataset.codexManualNameWidth;
                     delete wrapper.dataset.userTitleWidth;
@@ -112989,7 +113026,7 @@ function showPendingSettlementModal(periodType, projects) {
         }, true);
 
         document.addEventListener('click', function(event) {
-            if (event.target && event.target.closest && event.target.closest('#toggleHierarchyOrderBtn, #expandAllBtn, #collapseAllBtn, #ganttChartWrapper .group-header, #ganttChartWrapper .group-toggle')) {
+            if (event.target && event.target.closest && event.target.closest('#toggleHierarchyOrderBtn, #expandAllBtn, #collapseAllBtn, #ganttChartWrapper .group-header, #ganttChartWrapper .group-toggle, #legendSection [data-status-filter], #legendGroupProgress')) {
                 var wrapper = document.getElementById('ganttChartWrapper');
                 if (wrapper && wrapper.dataset.codexTitleResizeActive !== '1') {
                     delete wrapper.dataset.codexManualTitleWidth;
@@ -125253,6 +125290,18 @@ window.openAddNewProjectModal = function(editProject) {
                 var touched = collectWorkTouchedKeysForWebSave(rows || []);
                 var touchedKeys = Object.keys(touched);
                 if (!touchedKeys.length) return true;
+                // Workbook cloning intentionally shares untouched sheets. Work must detach
+                // before coordinate writes so the 3-way base remains immutable on failure/retry.
+                sheet = cloneSheetForWebSave(sheet);
+                workbook.Sheets[name] = sheet;
+                var workMaxC = keyOrder.length - 1;
+                var workLastRow = lockedHeaderRows - 1;
+                Object.keys(sheet).forEach(function(addr) {
+                    if (addr.charAt(0) === '!') return;
+                    var position = utils.decode_cell(addr), cell = sheet[addr];
+                    if (position.c <= workMaxC && cell && (cell.f || cell.F || cell.l || cell.c ||
+                        (cell.v != null && String(cell.v).trim() !== ''))) workLastRow = Math.max(workLastRow, position.r);
+                });
 
                 function rowObjectAt(rowIndex) {
                     var out = {};
@@ -125264,9 +125313,10 @@ window.openAddNewProjectModal = function(editProject) {
                     return out;
                 }
                 function rowIsBlank(rowIndex) {
-                    for (var c = range.s.c; c <= range.e.c; c += 1) {
+                    for (var c = range.s.c; c <= workMaxC; c += 1) {
                         var cell = sheet[utils.encode_cell({ r: rowIndex, c: c })];
-                        if (cell && cell.v != null && String(cell.v).trim() !== '') return false;
+                        if (cell && (cell.f || cell.F || cell.l || cell.c ||
+                            (cell.v != null && String(cell.v).trim() !== ''))) return false;
                     }
                     return true;
                 }
@@ -125286,7 +125336,7 @@ window.openAddNewProjectModal = function(editProject) {
 
                 var existingSlots = [];
                 var blankSlots = [];
-                for (var r = Math.max(lockedHeaderRows, range.s.r); r <= range.e.r; r += 1) {
+                for (var r = Math.max(lockedHeaderRows, range.s.r); r <= workLastRow; r += 1) {
                     var existingRow = rowObjectAt(r);
                     if (workRowInTouchedScopeForWebSave(existingRow, touched)) existingSlots.push(r);
                     else if (rowIsBlank(r)) blankSlots.push(r);
@@ -125294,9 +125344,45 @@ window.openAddNewProjectModal = function(editProject) {
                 var targetRows = (rows || []).filter(function(row) {
                     return workRowInTouchedScopeForWebSave(row, touched);
                 });
+                // Physical row deletion is supported for the flat Work data table.
+                // Never silently shift formula/table/drawing references that SheetJS cannot repair.
+                if (existingSlots.length > targetRows.length || blankSlots.length) {
+                    var unsafeStructure = Object.keys(sheet).some(function(addr) {
+                        var cell = addr.charAt(0) !== '!' && sheet[addr];
+                        if (!cell) return false;
+                        var position = utils.decode_cell(addr);
+                        var unknownDeletedValue = existingSlots.length > targetRows.length &&
+                            existingSlots.indexOf(position.r) !== -1 && position.c <= workMaxC && !keyOrder[position.c] &&
+                            (cell.l || cell.c || (cell.v != null && String(cell.v).trim() !== ''));
+                        return !!(cell.f || cell.F || unknownDeletedValue ||
+                            position.r < range.s.r || position.r > range.e.r);
+                    });
+                    ['!merges', '!tables', '!images', '!comments', '!dataValidations', '!conditionalFormatting'].forEach(function(key) {
+                        if (sheet[key] && Object.keys(sheet[key]).length) unsafeStructure = true;
+                    });
+                    var workReference = new RegExp("(?:'" + String(name).replace(/'/g, "''").replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + "'|" + String(name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ")!", 'i');
+                    (workbook.SheetNames || []).forEach(function(otherName) {
+                        if (otherName === name) return;
+                        var other = workbook.Sheets[otherName] || {};
+                        Object.keys(other).forEach(function(addr) {
+                            var cell = addr.charAt(0) !== '!' && other[addr];
+                            if (cell && cell.f && workReference.test(String(cell.f))) unsafeStructure = true;
+                        });
+                    });
+                    var definedNames = workbook.Workbook && workbook.Workbook.Names || [];
+                    definedNames.forEach(function(item) {
+                        if (item && workReference.test(String(item.Ref || '')) && !/_FilterDatabase$/i.test(String(item.Name || ''))) unsafeStructure = true;
+                    });
+                    if (unsafeStructure) {
+                        var structureError = new Error('Work 행 삭제 중 수식·표·연결 범위를 안전하게 이동할 수 없어 저장을 중단했습니다. Excel에서 해당 구조를 확인하세요.');
+                        structureError.code = 'WORK_ROW_DELETE_UNSUPPORTED_STRUCTURE';
+                        structureError.isWebSaveIntegrityBlock = true;
+                        throw structureError;
+                    }
+                }
                 var destinations = existingSlots.slice();
                 while (destinations.length < targetRows.length && blankSlots.length) destinations.push(blankSlots.shift());
-                var appendRow = range.e.r + 1;
+                var appendRow = workLastRow + 1;
                 while (destinations.length < targetRows.length) destinations.push(appendRow++);
                 var modifiedRows = {};
                 destinations.concat(existingSlots).forEach(function(rowIndex) { modifiedRows[rowIndex] = true; });
@@ -125320,12 +125406,13 @@ window.openAddNewProjectModal = function(editProject) {
                     });
                 });
                 existingSlots.slice(targetRows.length).forEach(function(rowIndex) {
-                    for (var c = range.s.c; c <= range.e.c; c += 1) {
+                    for (var c = range.s.c; c <= workMaxC; c += 1) {
                         writeProjectDataCellForWebSave(sheet, rowIndex, c, null, templateByColumn[c], true);
                     }
                 });
                 if (destinations.length) {
                     var maxDestination = Math.max.apply(Math, destinations);
+                    workLastRow = Math.max(workLastRow, maxDestination);
                     if (maxDestination > range.e.r) {
                         range.e.r = maxDestination;
                         sheet['!ref'] = utils.encode_range(range);
@@ -125338,6 +125425,76 @@ window.openAddNewProjectModal = function(editProject) {
                     integrityError.isWebSaveIntegrityBlock = true;
                     throw integrityError;
                 }
+                // Compact the primary Work table only. Far-right VBA dropdown helpers are
+                // independent data: preserve their original coordinates, including blank-row peers.
+                var removedRows = [], rowShift = [], shift = 0;
+                for (var compactRow = range.s.r; compactRow <= workLastRow; compactRow += 1) {
+                    if (compactRow >= lockedHeaderRows && rowIsBlank(compactRow)) {
+                        removedRows.push(compactRow);
+                        shift += 1;
+                    } else rowShift[compactRow] = compactRow - shift;
+                }
+                if (removedRows.length) {
+                    var compactSheet = {}, protectedMovedBefore = [], protectedMovedAfter = [], auxiliaryLastRow = 0;
+                    Object.keys(sheet).sort().forEach(function(addr) {
+                        if (addr.charAt(0) === '!') {
+                            compactSheet[addr] = cloneWorkbookMetaForWebSave(sheet[addr]);
+                            return;
+                        }
+                        var decoded = utils.decode_cell(addr);
+                        if (decoded.c > workMaxC) {
+                            compactSheet[addr] = cloneCellForWebSave(sheet[addr]);
+                            auxiliaryLastRow = Math.max(auxiliaryLastRow, decoded.r);
+                            protectedMovedBefore.push([addr, sheet[addr]]);
+                            protectedMovedAfter.push([addr, compactSheet[addr]]);
+                            return;
+                        }
+                        var newRow = rowShift[decoded.r];
+                        if (newRow == null) return;
+                        var newAddr = utils.encode_cell({ r: newRow, c: decoded.c });
+                        compactSheet[newAddr] = cloneCellForWebSave(sheet[addr]);
+                        if (!modifiedRows[decoded.r]) {
+                            protectedMovedBefore.push([newAddr, sheet[addr]]);
+                            protectedMovedAfter.push([newAddr, compactSheet[newAddr]]);
+                        }
+                    });
+                    if (stableIntegrityStringForWebSave(protectedMovedBefore) !== stableIntegrityStringForWebSave(protectedMovedAfter)) {
+                        var moveError = new Error('Work 행 이동 중 비대상 데이터·서식 보호 검증에 실패했습니다.');
+                        moveError.code = 'WORK_ROW_MOVE_INTEGRITY_FAILED';
+                        moveError.isWebSaveIntegrityBlock = true;
+                        throw moveError;
+                    }
+                    var compactTableLastRow = Math.max(lockedHeaderRows - 1, workLastRow - removedRows.length);
+                    // Row visibility and height belong to the Work record, while auxiliary
+                    // cell coordinates remain fixed. Never leave flags at the deleted slots.
+                    if (Array.isArray(sheet['!rows'])) {
+                        var compactRows = [];
+                        sheet['!rows'].forEach(function(rowMeta, oldRow) {
+                            if (rowMeta == null) return;
+                            var metadataRow = oldRow <= workLastRow ? rowShift[oldRow] : oldRow;
+                            if (metadataRow == null) return;
+                            var movedMeta = cloneWorkbookMetaForWebSave(rowMeta);
+                            if (Object.prototype.hasOwnProperty.call(movedMeta, 'r')) movedMeta.r = metadataRow;
+                            compactRows[metadataRow] = movedMeta;
+                        });
+                        compactSheet['!rows'] = compactRows;
+                    }
+                    if (compactSheet['!autofilter'] && compactSheet['!autofilter'].ref) {
+                        var compactFilter = utils.decode_range(compactSheet['!autofilter'].ref);
+                        compactFilter.e.r = compactTableLastRow;
+                        compactSheet['!autofilter'].ref = utils.encode_range(compactFilter);
+                    }
+                    range.e.r = Math.max(compactTableLastRow, auxiliaryLastRow);
+                    compactSheet['!ref'] = utils.encode_range(range);
+                    trimSheetMetadataForWebSave(compactSheet, range.e.r, range.e.c);
+                    var filterNames = workbook.Workbook && workbook.Workbook.Names || [];
+                    filterNames.forEach(function(item) {
+                        if (item && /_FilterDatabase$/i.test(String(item.Name || '')) && workReference.test(String(item.Ref || '')) && compactSheet['!autofilter']) {
+                            item.Ref = "'" + String(name).replace(/'/g, "''") + "'!" + compactSheet['!autofilter'].ref;
+                        }
+                    });
+                    workbook.Sheets[name] = compactSheet;
+                }
                 try {
                     window.__codexWebSaveWorkCoordinateAudit = {
                         at: new Date().toISOString(),
@@ -125347,6 +125504,12 @@ window.openAddNewProjectModal = function(editProject) {
                         destinationRows: destinations.slice(),
                         writtenRows: targetRows.length,
                         clearedRows: Math.max(0, existingSlots.length - targetRows.length),
+                        removedRows: removedRows.slice(),
+                        removedRowCount: removedRows.length,
+                        protectedRowRelocationVerified: true,
+                        rowMetadataRelocated: true,
+                        primaryTableColumns: workMaxC + 1,
+                        auxiliaryCoordinatesPreserved: true,
                         protectedRowsUnchanged: true
                     };
                 } catch (auditError) { }
@@ -127682,6 +127845,12 @@ window.openAddNewProjectModal = function(editProject) {
             }
 
             function persistLocalBackup(reason) {
+                // A delayed idle backup may finish after a remote save/conflict.
+                // Session persistence must not replace the authoritative remote outcome.
+                if (!state.dirty && !state.remoteDirty && state.status === 'remote-saved') {
+                    return { ok: true, skipped: 'remote-already-saved' };
+                }
+                var retainRemoteStatus = state.busy || /^(conflict|remote-saved|error|token-required)$/.test(String(state.status || ''));
                 try {
                     var snapshot = buildLocalSnapshot(reason);
                     var json = JSON.stringify(snapshot);
@@ -127703,19 +127872,24 @@ window.openAddNewProjectModal = function(editProject) {
                     removeLegacyPersistentBackup();
                     state.lastLocalBackupAt = Date.now();
                     state.lastLocalBackupBytes = json.length;
-                    state.status = 'local-saved';
-                    state.dirty = false;
+                    if (!retainRemoteStatus) {
+                        state.status = 'local-saved';
+                        state.dirty = false;
+                    }
                     updateButton();
                     return { ok: true, meta: meta };
                 } catch (error) {
-                    state.lastError = error && error.message ? error.message : String(error);
-                    state.status = 'local-backup-failed';
+                    var localBackupError = error && error.message ? error.message : String(error);
+                    if (!retainRemoteStatus) {
+                        state.lastError = localBackupError;
+                        state.status = 'local-backup-failed';
+                    }
                     try {
                         writeSessionBackup(CONFIG.backupMetaKey, JSON.stringify({
                             savedAt: new Date().toISOString(),
                             reason: reason || 'data:changed',
                             failed: true,
-                            error: state.lastError,
+                            error: localBackupError,
                             projects: getProjects().length,
                             targetPath: CONFIG.targetPath,
                             sessionOnly: true
@@ -127723,7 +127897,7 @@ window.openAddNewProjectModal = function(editProject) {
                     } catch (e) { }
                     updateButton();
                     try { console.warn(LOG, 'local backup failed', error); } catch (e2) { }
-                    return { ok: false, error: state.lastError };
+                    return { ok: false, error: localBackupError };
                 }
             }
 
@@ -142669,6 +142843,38 @@ window.openAddNewProjectModal = function(editProject) {
                 overflow: hidden !important;
             }
         }
+        /* Name width owns group/detail content; pane modes retain the viewport split. */
+        #ganttChartWrapper .gantt-titles .header > .col-resizer.col-resizer-name-po[data-col-left="name"] {
+            display: block !important;
+            position: sticky !important;
+            right: 0 !important;
+            flex: 0 0 12px !important;
+            width: 12px !important;
+            min-width: 12px !important;
+            height: 100% !important;
+            padding: 0 !important;
+            z-index: 40 !important;
+            touch-action: none;
+            background: rgba(148, 163, 184, 0.18) !important;
+            border-right: 1px solid #94a3b8 !important;
+        }
+        #ganttChartWrapper .gantt-titles:not([data-codex-desktop-summary-compact="1"]) .group-header > div:first-child,
+        #ganttChartWrapper .gantt-titles[data-codex-desktop-summary-compact="1"] .group-header > div:first-child {
+            flex: 0 0 var(--name-col-width, 360px) !important;
+            width: var(--name-col-width, 360px) !important;
+            max-width: var(--name-col-width, 360px) !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            text-overflow: clip !important;
+        }
+        #ganttChartWrapper .gantt-titles .title-item .project-name {
+            text-overflow: clip !important;
+            white-space: nowrap !important;
+        }
+        #ganttChartWrapper .gantt-titles-body-wrapper,
+        #ganttChartWrapper .gantt-titles > .header {
+            overflow-x: auto !important;
+        }
     </style>
     <script id="codex-desktop-gantt-post-render-tight-width-20260711">
     (function() {
@@ -142765,7 +142971,8 @@ window.openAddNewProjectModal = function(editProject) {
             if (projectView && !projectView.classList.contains('open')) return false;
             var wrapper = document.getElementById('ganttChartWrapper');
             if (!wrapper || wrapper.dataset.codexTitleResizeActive === '1') return false;
-            var _paneMode = (wrapper.dataset || {}).mobilePaneMode || ''; if (_paneMode === 'left-collapsed' || _paneMode === 'right-collapsed') return false; /* v37-MODE-GUARD */
+            var _paneMode = (wrapper.dataset || {}).mobilePaneMode || ''; if (_paneMode === 'left-collapsed' || _paneMode === 'right-collapsed' || _paneMode === 'right-min') return false; /* v37-MODE-GUARD */
+            if (wrapper.dataset.codexManualNameWidth === '1') return false;
             if (/startup|gantt-rendered|render:complete|project|group|column|pane-replaced|resize-drift/i.test(String(reason || ''))) {
                 delete wrapper.dataset.codexManualTitleWidth;
                 delete wrapper.dataset.codexManualNameWidth;
@@ -142837,14 +143044,14 @@ window.openAddNewProjectModal = function(editProject) {
         ['gantt-rendered', 'instant-response:gantt-rendered', 'render:complete'].forEach(function(type) {
             document.addEventListener(type, function() {
                 var wrapper = document.getElementById('ganttChartWrapper');
-                if (wrapper && wrapper.dataset.codexTitleResizeActive !== '1') {
+                if (wrapper && wrapper.dataset.codexTitleResizeActive !== '1' && wrapper.dataset.codexManualNameWidth !== '1') {
                     delete wrapper.dataset.codexManualTitleWidth;
                     delete wrapper.dataset.codexManualNameWidth;
                     delete wrapper.dataset.userTitleWidth;
                     delete wrapper.dataset.userNameColumnWidth;
                     var pane = wrapper.querySelector('.gantt-titles');
                     if (pane) optimizeEmptyFixedColumns(pane, wrapper);
-                    var _pm = (wrapper.dataset || {}).mobilePaneMode || ''; if (_pm === 'left-collapsed' || _pm === 'right-collapsed') { /* v37-MODE-GUARD: skip direct width reset in collapsed mode */ } else {
+                    var _pm = (wrapper.dataset || {}).mobilePaneMode || ''; if (_pm === 'left-collapsed' || _pm === 'right-collapsed' || _pm === 'right-min') { /* v37-MODE-GUARD: skip direct width reset in collapsed mode */ } else {
                     var knownWidth = Number(wrapper.dataset.codexAutoTitleWidth || wrapper.dataset.codexDesktopPostTightWidth || 0);
                     var actualWidth = pane && pane.getBoundingClientRect ? pane.getBoundingClientRect().width : 0;
                     if (pane && knownWidth > 0 && actualWidth > knownWidth + 2) {
@@ -142899,7 +143106,7 @@ window.openAddNewProjectModal = function(editProject) {
 
         function enforceEmptyPoBaseline(wrapper, pane, reason) {
             if (!wrapper || !pane || !isDesktop()) return false;
-            var _paneMode = (wrapper.dataset || {}).mobilePaneMode || ''; if (_paneMode === 'left-collapsed' || _paneMode === 'right-collapsed') return false; /* v37-MODE-GUARD */
+            var _paneMode = (wrapper.dataset || {}).mobilePaneMode || ''; if (_paneMode === 'left-collapsed' || _paneMode === 'right-collapsed' || _paneMode === 'right-min') return false; /* v37-MODE-GUARD */
             if (wrapper.dataset.codexTitleResizeActive === '1' || wrapper.dataset.codexManualTitleWidth === '1') return false;
             if (wrapper.dataset.codexDesktopPoHasValue === '1') return false;
             var baseline = Number(wrapper.dataset.codexDesktopEmptyPoBaselineWidth || 0);
