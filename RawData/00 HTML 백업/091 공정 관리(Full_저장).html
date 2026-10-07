@@ -91285,6 +91285,20 @@ function showPendingSettlementModal(periodType, projects) {
                             sheet.addRow([]);
                         };
 
+                        function getSafeUniqueWorksheetName(wb, rawName) {
+                            const clean = String(rawName || 'Sheet').replace(/[\/:*?"<>|\[\]]/g, "_").trim();
+                            const base = clean.substring(0, 31).trim() || 'Sheet';
+                            if (!wb.getWorksheet(base)) return base;
+                            let counter = 2;
+                            while (counter < 1000) {
+                                const suf = `~${counter}`;
+                                const candidate = base.substring(0, 31 - suf.length).trim() + suf;
+                                if (!wb.getWorksheet(candidate)) return candidate;
+                                counter++;
+                            }
+                            return base;
+                        }
+
                         const createCustomerSheets = (custName, custProjects) => {
                             const custStats = { costAccount: new Map(), costAllocation: new Map(), taskType: new Map(), contractor: new Map(), customer: new Map(), siCenter: new Map() };
                             let custTotalPR = 0, custTotalPO = 0;
@@ -91301,19 +91315,6 @@ function showPendingSettlementModal(periodType, projects) {
                                 });
                             });
 
-                            function getSafeUniqueWorksheetName(wb, rawName) {
-                                const clean = String(rawName || 'Sheet').replace(/[\/:*?"<>|\[\]]/g, "_").trim();
-                                const base = clean.substring(0, 31).trim() || 'Sheet';
-                                if (!wb.getWorksheet(base)) return base;
-                                let counter = 2;
-                                while (counter < 1000) {
-                                    const suf = `~${counter}`;
-                                    const candidate = base.substring(0, 31 - suf.length).trim() + suf;
-                                    if (!wb.getWorksheet(candidate)) return candidate;
-                                    counter++;
-                                }
-                                return base;
-                            }
                             const suffix = projects.length > custProjects.length ? ` - ${custName}` : '';
                             const dashSheet = workbook.addWorksheet(getSafeUniqueWorksheetName(workbook, `분석-${custName}`));
                             dashSheet.columns = [
