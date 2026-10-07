@@ -24449,6 +24449,19 @@
             }
         }
 
+        /* [GANTT-COMPACT-RESET-20261008] Reuse Proj. manager pending animation. */
+        .codex-active-view-reset {
+            animation: codexProjApplyPendingPulse 1.15s ease-in-out infinite !important;
+            border-color: #dc2626 !important;
+            color: #fff !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .codex-active-view-reset {
+                animation: codexPendingReducedColorPulse 1.8s ease-in-out infinite !important;
+                box-shadow: none !important;
+            }
+        }
+
         /* [PRD-2025-WD-OPT-01] Revision History Filter Toggle Styles */
         .filter-toggle {
             transition: all 0.2s ease;
@@ -38592,6 +38605,7 @@
         // [PERF-CRITICAL][v1.5] \uc911\uc559 \uc9d1\uc911\ud654 - \ub450\ub354\uc9c0 \ud328\ud134 \uc81c\uac70
         function debouncedRender(options) {
             options = options || {};
+            syncActiveViewResetReminder20261008();
             if (window.FilterRenderManager) {
                 window.FilterRenderManager.scheduleRender({
                     source: 'search',
@@ -38607,6 +38621,7 @@
 
         // [PERF-CRITICAL][v1.5] \uc911\uc559 \uc9d1\uc911\ud654 - \ub450\ub354\uc9c0 \ud328\ud134 \uc81c\uac70
         function immediateFilterRender() {
+            syncActiveViewResetReminder20261008();
             if (window.FilterRenderManager) {
                 window.FilterRenderManager.scheduleRender({ source: 'filter-immediate' });
             } else {
@@ -42878,7 +42893,7 @@
             const controlContainer = document.getElementById('controlsPanel');
             if (!controlContainer) return;
 
-            pinnedShortcuts.forEach(id => {
+            new Set([...pinnedShortcuts, 'clear-all-filters-btn']).forEach(id => {
                 // Search input is now placed next to the Legend title; do not render it as a shortcut.
                 if (id === 'searchInput') return;
                 // [UI-FIX] \uc0c1\ub2e8 \ubc94\ub840\uc5d0 \uace0\uc815\ub41c \uba54\ub274 \ubc84\ud2bc\ub4e4\uc740 \uc911\ubcf5 \ub80c\ub354\ub9c1 \ubc29\uc9c0 (\ubcc0\uacbd \ubc84\ud2bc\uc740 \ud30c\uce58\uae30 \uc55e \ubc30\uce58\ub97c \uc704\ud574 \ud5c8\uc6a9)
@@ -43954,10 +43969,35 @@
                     const original = document.getElementById(controlId);
                     const isActive = isControlActive(controlId, original);
                     wrapper.classList.toggle('active-shortcut', !!isActive);
+                    const clone = wrapper.querySelector('[data-shortcut-clone-id]');
+                    if (original && clone && clone.tagName === 'SELECT') clone.value = original.value;
                 });
             }
             refreshShortcutTooltips();
             updateHeaderShortcutHighlight();
+            syncActiveViewResetReminder20261008();
+        }
+
+        function syncActiveViewResetReminder20261008() {
+            // Read filter state, never scan or change business data. "All" is neutral.
+            const controls = ['customer-filter', 'contractor-filter', 'cost-account-filter', 'taskTypeFilter', 'progressFilter', 'sortBy'];
+            const active = !!(legendStatusFilter && legendStatusFilter !== '전체') ||
+                showOnlyChanged || isCustomZoomActive || hierarchyOrder === 'bottom' || shortcutState.collapseAll || !!window._viewFilterActive ||
+                !!(window.CodexWorkContentSearch && window.CodexWorkContentSearch.isApplied()) ||
+                !!(window.GanttDisplayOptions && Object.values(window.GanttDisplayOptions).some(value => value === false)) ||
+                !!(searchInput && searchInput.value.trim()) ||
+                controls.some(id => {
+                    const el = document.getElementById(id);
+                    return el && el.value !== (el.dataset.defaultValue || (id === 'sortBy' ? 'default' : 'all'));
+                }) ||
+                Array.from(document.querySelectorAll('#customFilterContainer select')).some(el => el.value !== 'all') ||
+                !!(window.customFilters && Object.values(window.customFilters).some(value => value != null && value !== '' && value !== 'all')) ||
+                !!(window.WebLinkFilter && window.WebLinkFilter.isEnabled());
+            document.querySelectorAll('#clear-all-filters-btn, [data-shortcut-clone-id="clear-all-filters-btn"]').forEach(button => {
+                if (button.classList.contains('codex-active-view-reset') !== active) button.classList.toggle('codex-active-view-reset', active);
+                const value = active ? '1' : '0';
+                if (button.dataset.activeViewReset !== value) button.dataset.activeViewReset = value;
+            });
         }
 
         function refreshShortcutTooltips() {
@@ -62081,6 +62121,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         }
 
         function render(forceInvalidateCache = false) {
+            syncActiveViewResetReminder20261008();
             // [\uc131\ub2a5 \ucd5c\uc801\ud654] \uba54\ubaa8\ub9ac \ucd5c\uc801\ud654 - \ub80c\ub354\ub9c1 \ub514\ubc14\uc6b4\uc2f1 \ubc0f \uc4f0\ub85c\ud2c0\ub9c1\uc73c\ub85c \ubd88\ud544\uc694\ud55c \ub80c\ub354\ub9c1 \ubc29\uc9c0
             const now = Date.now();
             const timeSinceLastRender = now - lastRenderTime;
@@ -72823,7 +72864,9 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             // [\uac1c\uc120 \uc0ac\ud56d #1] \ud574\uc81c \ubc84\ud2bc \ud074\ub9ad \ud578\ub4e4\ub7ec - \uc989\uc2dc \ud53c\ub4dc\ubc31 + \ube44\ub3d9\uae30 \ub80c\ub354\ub9c1 \ubd84\ub9ac
             // [\uc131\ub2a5 \ucd5c\uc801\ud654] \ub2e8\uc77c \ub9ac\uc2a4\ub108 \ubcf4\uc7a5 - \uc911\ubcf5 \ud578\ub4e4\ub7ec \ubc29\uc9c0
             const clearAllFiltersBtn = document.getElementById('clear-all-filters-btn');
-            if (clearAllFiltersBtn && !clearAllFiltersBtn.dataset.listenerAttached) {
+            // Runtime-only guard: HTML can preserve the data flag, but not its event listener.
+            if (clearAllFiltersBtn && !clearAllFiltersBtn.__codexClearFilterListenerAttached20261008) {
+                clearAllFiltersBtn.__codexClearFilterListenerAttached20261008 = true;
                 clearAllFiltersBtn.dataset.listenerAttached = 'true';
                 clearAllFiltersBtn.addEventListener('click', function (e) {
                     e.stopPropagation();
@@ -72930,6 +72973,37 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     if (sortBy) sortBy.value = 'default';
                     if (searchInput) searchInput.value = '';
 
+                    // Reset the other data/range filters before the existing single render.
+                    showOnlyChanged = false;
+                    shortcutState.expandAll = false;
+                    shortcutState.collapseAll = false;
+                    hierarchyOrder = 'top';
+                    legendHierarchyRestoreOrder = null;
+                    syncHierarchyOrderButtonPresentation();
+                    updateGroupToggleButtons();
+                    if (window.CodexWorkContentSearch && window.CodexWorkContentSearch.isApplied()) {
+                        window.CodexWorkContentSearch.clear({ deferRender: true, quiet: true });
+                    }
+                    if (isCustomZoomActive) {
+                        clearZoomPresetSelection20260510();
+                        if (minDate && maxDate) {
+                            viewMinDate = new Date(minDate);
+                            viewMaxDate = new Date(maxDate);
+                        }
+                        isCustomZoomActive = false;
+                        currentZoomOptionName = null;
+                        shouldScrollToLeftOnResize = false;
+                        window.__codexActiveZoomWorkdateSummaryFilter20260613 = null;
+                        if (zoomStartDate) zoomStartDate.value = '';
+                        if (zoomEndDate) zoomEndDate.value = '';
+                        ['zoomStartDatePreview', 'zoomEndDatePreview'].forEach(id => {
+                            const preview = document.getElementById(id);
+                            if (preview) preview.textContent = '';
+                        });
+                        removeZoomRangeVisual20260612();
+                    }
+                    if (window.WebLinkFilter && window.WebLinkFilter.isEnabled()) window.WebLinkFilter.setFilter(false);
+
                     // 5. \ucee4\uc2a4\ud140 \ud544\ud130 \ucd08\uae30\ud654
                     if (window.customFilters) {
                         Object.keys(window.customFilters).forEach(key => {
@@ -72956,6 +73030,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     }
 
                     const phase2Time = performance.now();
+                    updateShowChangesButtonState();
+                    updateZoomButtonState();
                     console.log('[clearAllFilters] Phase 2 \uc644\ub8cc (\ud544\ud130 UI \ucd08\uae30\ud654):', (phase2Time - clickStartTime).toFixed(2), 'ms');
 
                     // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
@@ -92589,6 +92665,7 @@ function showPendingSettlementModal(periodType, projects) {
             // [PERF] Coalesce rapid checkbox toggles into a single DOM pass + render
             let _applyGanttDisplayOptionsScheduled = false;
             function scheduleApplyGanttDisplayOptions() {
+                if (typeof window.syncActiveViewResetReminder20261008 === 'function') window.syncActiveViewResetReminder20261008();
                 if (_applyGanttDisplayOptionsScheduled) return;
                 _applyGanttDisplayOptionsScheduled = true;
                 requestAnimationFrame(() => {
@@ -92716,6 +92793,7 @@ function showPendingSettlementModal(periodType, projects) {
                 } catch (e) {
                     console.warn('[SelectViewModule] applyGanttDisplayOptions error:', e);
                 }
+                if (typeof window.syncActiveViewResetReminder20261008 === 'function') window.syncActiveViewResetReminder20261008();
             }
 
             // ============================================================
@@ -112540,7 +112618,9 @@ function showPendingSettlementModal(periodType, projects) {
 
         function collectGanttTitleTexts(pane) {
             var texts = [];
+            var desktop = isDesktop();
             pane.querySelectorAll('.title-item .project-name, .group-header > div:first-child').forEach(function(node) {
+                if (desktop && !isVisibleGanttMeasureNode(node)) return;
                 pushText(texts, node.textContent || '');
             });
             return texts;
@@ -112561,7 +112641,8 @@ function showPendingSettlementModal(periodType, projects) {
         function getGanttMaxTitleTextWidth(pane, context, font) {
             var data = Array.isArray(window.projectData) ? window.projectData : [];
             var texts = collectGanttTitleTexts(pane);
-            var domKey = texts.join('\u0000');
+            var desktop = isDesktop();
+            var domKey = (desktop ? 'desktop-content:' + JSON.stringify(window.GanttDisplayOptions || {}) : 'mobile-text:') + texts.join('\u0000');
             if (
                 ganttTextMeasureCache.dataRef === data &&
                 ganttTextMeasureCache.length === data.length &&
@@ -112573,9 +112654,29 @@ function showPendingSettlementModal(periodType, projects) {
             }
 
             var maxTextWidth = 0;
-            texts.forEach(function(text) {
-                maxTextWidth = Math.max(maxTextWidth, context.measureText(text).width);
-            });
+            if (desktop) {
+                // Measure visible content with its actual font and inline controls.
+                // Absolute calendar/link controls are already reserved by cell padding.
+                pane.querySelectorAll('.title-item .project-name, .group-header > div:first-child').forEach(function(node) {
+                    if (!isVisibleGanttMeasureNode(node)) return;
+                    var style = window.getComputedStyle(node);
+                    context.font = [style.fontStyle, style.fontVariant, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
+                    var ownText = Array.from(node.childNodes).filter(function(child) { return child.nodeType === 3; })
+                        .map(function(child) { return child.textContent; }).join(' ').replace(/\s+/g, ' ').trim();
+                    var width = context.measureText(ownText).width;
+                    Array.from(node.children).forEach(function(child) {
+                        var childStyle = window.getComputedStyle(child);
+                        if (childStyle.display === 'none' || childStyle.position === 'absolute' || childStyle.position === 'fixed') return;
+                        width += child.getBoundingClientRect().width + (parseFloat(childStyle.marginLeft) || 0) + (parseFloat(childStyle.marginRight) || 0);
+                    });
+                    width += (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0) + 12;
+                    maxTextWidth = Math.max(maxTextWidth, width);
+                });
+            } else {
+                texts.forEach(function(text) {
+                    maxTextWidth = Math.max(maxTextWidth, context.measureText(text).width);
+                });
+            }
 
             ganttTextMeasureCache = {
                 dataRef: data,
@@ -112816,7 +112917,7 @@ function showPendingSettlementModal(periodType, projects) {
                 : Math.max(720, Math.min(1180, Math.round(viewportWidthForCap * 0.82)));
             var currentNameWidth = readCssPixels(paneStyle, '--name-col-width', 360);
             var maxNameForViewport = Math.max(220, viewportCap - fixedWidth - resizerAllowance - 28);
-            var desiredNameWidth = Math.max(260, Math.ceil(maxTextWidth + 108));
+            var desiredNameWidth = Math.max(260, Math.ceil(maxTextWidth));
             var nameWidth = wrapper.dataset.codexManualNameWidth === '1' ? currentNameWidth : desiredNameWidth;
             if (wrapper.dataset.codexManualNameWidth !== '1') {
                 pane.style.setProperty('--name-col-width', nameWidth + 'px');
@@ -112911,7 +113012,7 @@ function showPendingSettlementModal(periodType, projects) {
             if (!maxTextWidth) return false;
             var isMobilePortrait = !!(wrapper && wrapper.dataset.codexMobilePortraitViewportApplied === '1');
             var manual = wrapper && wrapper.dataset.codexManualNameWidth === '1' && reason !== 'double-click';
-            var nameWidth = manual ? readCssPixels(window.getComputedStyle(pane), '--name-col-width', 260) : Math.max(260, Math.ceil(maxTextWidth + 108));
+            var nameWidth = manual ? readCssPixels(window.getComputedStyle(pane), '--name-col-width', 260) : Math.max(260, Math.ceil(maxTextWidth + (isDesktop() ? 0 : 108)));
             pane.style.setProperty('--name-col-width', nameWidth + 'px');
             pane.style.setProperty('--codex-summary-name-width', nameWidth + 'px');
             var nameHeader = pane.querySelector('.gantt-name-header-col');
@@ -139898,13 +139999,14 @@ window.openAddNewProjectModal = function(editProject) {
                 if (typeof window.showToast === 'function') window.showToast(isSequenceViewMode() ? (state.viewMode === 'partialSequence' ? '4공정 부분 시퀀스 분석 결과가 간트 차트에 적용되었습니다.' : '공정 순서 분석 결과가 간트 차트에 적용되었습니다.') : (state.viewMode === 'household' ? '세대내 작업 분석 결과가 간트 차트에 적용되었습니다.' : '작업 내용 필터가 간트 차트에 적용되었습니다.'), 'success', 2200);
                 closeModal();
             }
-            function clearApplied() {
+            function clearApplied(options) {
+                options = options || {};
                 state.applied = null;
                 syncButtonState();
                 try { if (typeof window.invalidateFilteredDataCache === 'function') window.invalidateFilteredDataCache(); } catch (e) { }
-                try { if (typeof window.render === 'function') window.render(true); } catch (err) { }
+                try { if (!options.deferRender && typeof window.render === 'function') window.render(true); } catch (err) { }
                 renderAnalysis();
-                if (typeof window.showToast === 'function') window.showToast('작업 내용 필터가 해제되었습니다.', 'info', 1800);
+                if (!options.quiet && typeof window.showToast === 'function') window.showToast('작업 내용 필터가 해제되었습니다.', 'info', 1800);
             }
             function resetDraft() {
                 state.draft = { query: '', mode: 'contains', start: '', end: '' };
