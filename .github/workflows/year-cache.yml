@@ -1,0 +1,48 @@
+name: Verified annual read cache
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'RawData/공정관리/26년 잔여 공사 공정관리_(입력).xlsb'
+  workflow_dispatch:
+  schedule:
+    # UTC 12/31 15:00 = Asia/Seoul 1/1 00:00. GitHub may delay the run;
+    # the application rejects a cache generated for an earlier operating year.
+    - cron: '0 15 31 12 *'
+permissions:
+  contents: write
+concurrency:
+  group: verified-annual-cache
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare browser mapping runtime
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.59.1
+          npx playwright install --with-deps chromium
+          mkdir -p bak/Script_Patch/txt
+      - name: Read immutable application and source identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node bak/Script_Patch/js/multiyear_ci_prepare_20261009.cjs
+      - name: Generate read caches with the approved application mapper
+        env:
+          CI: 'true'
+          PLAYWRIGHT_MODULE: playwright
+          YEAR_INPUT: 'RawData/공정관리/26년 잔여 공사 공정관리_(입력).xlsb'
+          YEAR_HTML: 'bak/Script_Patch/tmp/year-cache-application.html'
+          YEAR_OUTPUT: '${{ runner.temp }}/verified-year-cache'
+        run: node bak/Script_Patch/js/multiyear_generate_cache_20261009.cjs
+      - name: Publish only the derived read cache in one commit
+        env:
+          YEAR_OUTPUT: '${{ runner.temp }}/verified-year-cache'
+        run: node bak/Script_Patch/js/multiyear_ci_publish_20261009.cjs
