@@ -80,11 +80,13 @@
         if(Array.isArray(project.workDetail))copy.workDetail=indices.map(i=>project.workDetail[i]);
         return copy;
     }
-    function getViewState(){const year=ensure(),now=currentYear();return {year,currentYear:now,readonly:!!root.YearBootCoordinator?.isCurrentLoading?.()||year==='all'||(year<now&&!editUnlocked),editUnlocked,includeOpen,generation};}
+    const partialYearReadOnly = year => root.YearBootCoordinator?.canEditYear?.(year) === false;
+    const isYearReady = year => root.YearBootCoordinator?.isYearReady?.(year) !== false;
+    function getViewState(){const year=ensure(),now=currentYear();return {year,currentYear:now,readonly:!!root.YearBootCoordinator?.isCurrentLoading?.()||partialYearReadOnly(year)||year==='all'||(year<now&&!editUnlocked),editUnlocked,includeOpen,generation};}
     function getState(){
         const now=currentYear(),source=canonical(),partial=financialMetadata&&root.YearBootCoordinator&&!root.YearBootCoordinator.getState().complete;
         const open=partial?financialMetadata.open:source.reduce((a,p)=>{const c=memo(p).classification;if(c.kind==='open'){a.count++;a.po+=Number(p.poAmount)||0;if(c.completed)a.completed++;}return a;},{count:0,po:0,completed:0});
-        return {version:VERSION,year:ensure(),currentYear:now,years:[...new Set([...metadataYears,...canonicalYears()])].sort((a,b)=>b-a),explicit,readonly:!!root.YearBootCoordinator?.isCurrentLoading?.()||selected==='all'||(selected<now&&!editUnlocked),editUnlocked,includeOpen,openCount:open?.count||0,open:open||{count:0,po:0,completed:0},generation,bootStatus};
+        return {version:VERSION,year:ensure(),currentYear:now,years:[...new Set([...metadataYears,...canonicalYears()])].sort((a,b)=>b-a),explicit,readonly:!!root.YearBootCoordinator?.isCurrentLoading?.()||partialYearReadOnly(selected)||selected==='all'||(selected<now&&!editUnlocked),editUnlocked,includeOpen,openCount:open?.count||0,open:open||{count:0,po:0,completed:0},generation,bootStatus};
     }
     function beforeChange() {
         if(root.CodexWorkContentSearch?.canChangeYear?.()===false||root.CodexProjectManager?.canChangeYear?.()===false)throw new Error('편집 중인 작업일·프로젝트를 먼저 적용하거나 취소해 주세요. 입력은 그대로 보존됩니다.');
@@ -102,11 +104,12 @@
     function select(year,options={}) {
         const next=year==='all'?'all':Number(year);
         if(next!=='all'&&(!Number.isInteger(next)||next<2000||next>2199))throw new Error('잘못된 운영 연도');
+        if(next!==selected&&!isYearReady(next))throw new Error((next==='all'?'전체 기간':'선택한 '+next+'년')+' 자료가 아직 준비 중입니다. 준비된 연도의 조회·편집은 계속할 수 있습니다.');
         if(next!==selected)beforeChange();
         selected=next;explicit=options.explicit!==false;editUnlocked=false;generation++;return notify();
     }
     function setOptions(options={}){if(typeof options.includeOpen==='boolean'&&options.includeOpen!==includeOpen){beforeChange();includeOpen=options.includeOpen;generation++;notify();}return getState();}
-    function toggleEdit(){editUnlocked=!editUnlocked;updateUI();return getState();}
+    function toggleEdit(){if(!editUnlocked&&partialYearReadOnly(ensure())){root.showToast?.('전체 원본 확인이 완료되면 선택한 연도를 수정할 수 있습니다. 현재 준비 연도의 편집은 유지됩니다.','warning');return getState();}editUnlocked=!editUnlocked;updateUI();return getState();}
     function assertEditable(){if(root.YearBootCoordinator?.isCurrentLoading?.())throw new Error('최신 연도 데이터 준비 완료 후 편집해 주세요.');if(getViewState().readonly)throw new Error('이전 연도는 조회 모드입니다. 이전 연도 수정 버튼으로 수정 모드를 선택해 주세요.');}
     const fmt=n=>Number(n||0).toLocaleString('ko-KR');
     function updateUI(){
@@ -115,13 +118,13 @@
         if(picker){
             const years=state.years.includes(state.currentYear)?state.years:[state.currentYear,...state.years];
             const values=[...new Set(years)].sort((a,b)=>b-a);
-            const signature=values.join(',');
-            if(picker.dataset.years!==signature){picker.replaceChildren(...values.map(y=>{const o=doc.createElement('option');o.value=String(y);o.textContent=y+'년'+(y>state.currentYear?' (예정)':y===state.currentYear?' (현재)':' (이전)');return o;}));const all=doc.createElement('option');all.value='all';all.textContent='전체 기간 (비교·조회)';picker.append(all);picker.dataset.years=signature;}
+            const signature=values.join(',')+'|'+values.map(isYearReady).join(',')+'|'+isYearReady('all');
+            if(picker.dataset.years!==signature){picker.replaceChildren(...values.map(y=>{const o=doc.createElement('option');o.value=String(y);o.disabled=!isYearReady(y);o.textContent=y+'년'+(o.disabled?' (준비 중)':y>state.currentYear?' (예정)':y===state.currentYear?' (현재)':' (이전)');return o;}));const all=doc.createElement('option');all.value='all';all.disabled=!isYearReady('all');all.textContent='전체 기간 '+(all.disabled?'(준비 중)':'(비교·조회)');picker.append(all);picker.dataset.years=signature;}
             picker.value=String(state.year);
         }
         const label=doc.getElementById('operation-year-basis');
         if(label)label.textContent=(state.year==='all'?'전체 기간':state.year+'년')+(state.year>state.currentYear?' · PO: 정산 지정·예정 예산 (예정은 정산 카드에서 제외)':' · PO: 최종 정산월·최신 진행 대기')+' / 일정: 해당 연도 작업'+(state.readonly?' · 조회 모드':'');
-        const edit=doc.getElementById('operation-year-edit');if(edit){edit.hidden=!(state.year<state.currentYear);edit.textContent=state.editUnlocked?'이전 연도 수정 종료':'이전 연도 수정';edit.setAttribute('aria-pressed',String(state.editUnlocked));}
+        const edit=doc.getElementById('operation-year-edit');if(edit){edit.hidden=!(state.year<state.currentYear);edit.disabled=partialYearReadOnly(state.year);edit.title=edit.disabled?'전체 원본 확인 후 수정할 수 있습니다.':'';edit.textContent=state.editUnlocked?'이전 연도 수정 종료':'이전 연도 수정';edit.setAttribute('aria-pressed',String(state.editUnlocked));}
         const pending=scope(canonical(),'unassigned'),unassigned=doc.getElementById('operation-year-unassigned');
         const partial=financialMetadata&&root.YearBootCoordinator&&!root.YearBootCoordinator.getState().complete;
         const count=partial?(financialMetadata.unknown?.count||0):pending.length,amount=partial?(financialMetadata.unknown?.po||0):pending.reduce((n,p)=>n+(Number(p.poAmount)||0),0);
