@@ -1,0 +1,12 @@
+const fs=require('fs'),path=require('path'),assert=require('assert'),{execFileSync}=require('child_process');
+const source='RawData/공정관리/26년 잔여 공사 공정관리_(입력).xlsb';
+const sourceCommit=execFileSync('git',['log','-1','--format=%H','--',source],{encoding:'utf8'}).trim();assert(/^[a-f0-9]{40}$/.test(sourceCommit));
+const appPath='07 잔여 공정관리_(기숙사 및 사택)_2025-06-00.html';
+(async()=>{const headers={Accept:'application/vnd.github+json'};if(process.env.GH_TOKEN)headers.Authorization='Bearer '+process.env.GH_TOKEN;
+const metadata=await fetch('https://api.github.com/repos/jonggunelee/wyggkr/commits?path='+encodeURIComponent(appPath)+'&sha=main&per_page=1',{headers,signal:AbortSignal.timeout(30000)});assert(metadata.ok,'application source commit lookup failed');
+const commits=await metadata.json(),appCommit=commits[0]?.sha;assert(/^[a-f0-9]{40}$/.test(appCommit));
+const response=await fetch('https://raw.githubusercontent.com/jonggunelee/wyggkr/'+appCommit+'/'+encodeURIComponent(appPath),{signal:AbortSignal.timeout(60000)});assert(response.ok,'immutable application download failed');const bytes=Buffer.from(await response.arrayBuffer());
+assert(bytes.toString('utf8').includes('id="codex-year-context-20261009"'),'approved year mapper is not deployed');fs.mkdirSync('bak/Script_Patch/tmp',{recursive:true});fs.writeFileSync('bak/Script_Patch/tmp/year-cache-application.html',bytes);
+fs.appendFileSync(process.env.GITHUB_ENV,'YEAR_SOURCE_COMMIT='+sourceCommit+'\nYEAR_APPLICATION_COMMIT='+appCommit+'\n');
+console.log(JSON.stringify({sourceCommit,appCommit,applicationBytes:bytes.length}));
+})().catch(e=>{console.error(e.message);process.exitCode=1;});
