@@ -8,7 +8,7 @@ const input=fs.readFileSync(inputPath),sha=b=>crypto.createHash('sha256').update
 fs.mkdirSync(out,{recursive:true});
 const generationStatus={phase:'browser-launch',startedAt:new Date().toISOString(),inputPath,htmlPath,out,sourceSha256:sha(input),sourceBytes:input.length};
 (async()=>{
- const browser=await chromium.launch({channel:process.env.CI?'chromium':'chrome',headless:true,chromiumSandbox:true});let data;
+ const browser=await chromium.launch({channel:'chrome',headless:true,chromiumSandbox:true});let data;
  try{
   const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(String(e)));await page.addInitScript(()=>{window.__codexYearCacheDisabled=true;});
