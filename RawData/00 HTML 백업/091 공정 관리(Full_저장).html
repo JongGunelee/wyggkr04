@@ -2,6 +2,545 @@
 <html lang="ko" class="codex-startup-no-transition">
 
 <head>
+    <script id="codex-year-context-20261009">
+(function(root) {
+    'use strict';
+    const VERSION = 'year-context-20261009-v2';
+    const yearFormatter=new Intl.DateTimeFormat('en',{timeZone:'Asia/Seoul',year:'numeric'});
+    let clockMinute=-1,clockYear=null;
+    const currentYear = () => {const minute=Math.floor(Date.now()/60000);if(minute!==clockMinute){clockMinute=minute;clockYear=Number(yearFormatter.format(new Date()));}return clockYear;};
+    const asYear = value => {
+        if (value instanceof Date) return Number.isFinite(value.getTime()) ? Number(yearFormatter.format(value)) : null;
+        if (typeof value === 'number') {
+            if (value >= 1900 && value <= 2200 && Number.isInteger(value)) return value;
+            const parsed = root.XLSX?.SSF?.parse_date_code?.(value);
+            return parsed && parsed.y >= 1900 && parsed.y <= 2200 ? parsed.y : null;
+        }
+        const m=String(value??'').trim().match(/^(20\d{2})(?:[-./년]|$)/);
+        return m ? Number(m[1]) : null;
+    };
+    const settlementYear = p => {
+        const value=p?.manualSettlementDate;
+        if(value instanceof Date)return asYear(value);
+        if(typeof value==='number')return root.XLSX?.SSF?.parse_date_code?.(value)?.y||null;
+        const m=String(value??'').trim().match(/^(20\d{2})[-./](\d{1,2})(?:[-./](\d{1,2}))?$/);
+        if(!m||Number(m[2])<1||Number(m[2])>12)return null;
+        if(m[3]&&(Number(m[3])<1||Number(m[3])>new Date(Number(m[1]),Number(m[2]),0).getDate()))return null;
+        return Number(m[1]);
+    };
+    const scheduleYears = p => {
+        const years=new Set(),a=asYear(p?.startDateStr||p?.startDate),b=asYear(p?.endDateStr||p?.endDate);
+        if(a&&b&&b>=a&&b-a<=100) for(let y=a;y<=b;y++) years.add(y);
+        else {if(a) years.add(a);if(b) years.add(b);}
+        const dates=Array.isArray(p?.workDate)?p.workDate:[p?.workDate];
+        for(const d of dates){const y=asYear(d&&typeof d==='object'&&!(d instanceof Date)?d.date:d);if(y) years.add(y);}
+        return years;
+    };
+    function classification(p,now=currentYear()) {
+        const year=settlementYear(p),completed=Number(p?.progress)>=100;
+        if(year)return {kind:'settled',year,completed};
+        const value=String(p?.manualSettlementDate??'').trim();
+        if(value&&!/^(작업중|작업 중|미정산|정산 대기|정산대기)$/.test(value))return {kind:'unknown',year:null,completed};
+        const years=[...scheduleYears(p)];
+        if(years.length&&years.every(y=>y>now))return {kind:'planned',year:Math.min(...years),completed};
+        return {kind:'open',year:now,completed};
+    }
+    const accountingYear=(p,now=currentYear())=>classification(p,now).year;
+    const membership = (p,now=currentYear()) => {const s=scheduleYears(p),y=accountingYear(p,now);if(y)s.add(y);return s;};
+    const availableYears = projects => [...new Set((projects||[]).flatMap(p=>[...membership(p)]))].sort((a,b)=>b-a);
+    const chooseDefault = (years,now=currentYear()) => years.includes(now)?now:(years.filter(y=>y<=now).sort((a,b)=>b-a)[0]||now);
+    let selected=null,explicit=false,editUnlocked=false,includeOpen=true,generation=0,metadataYears=[],financialMetadata=null,bootStatus='원본 연결 중',lastSource=null,lastLength=-1,cachedYears=[],yearMemo=new WeakMap();
+    const canonical=()=>Array.isArray(root.projectData)?root.projectData:[];
+    const canonicalYears=()=>{const source=canonical();if(source!==lastSource||source.length!==lastLength){lastSource=source;lastLength=source.length;cachedYears=availableYears(source);}return cachedYears;};
+    function invalidate(){lastSource=null;yearMemo=new WeakMap();}
+    function memo(p){let m=yearMemo.get(p);const signature=[p.startDateStr||p.startDate,p.endDateStr||p.endDate,p.manualSettlementDate,p.progress,p.workDate?.length,currentYear()].join('|');if(!m||m.signature!==signature||m.workDates!==p.workDate){m={signature,workDates:p.workDate,years:scheduleYears(p),classification:classification(p)};yearMemo.set(p,m);}return m;}
+    function ensure(projects=canonical()) {
+        if(selected===null)selected=chooseDefault(metadataYears.length?metadataYears:canonicalYears());
+        if(!explicit&&projects.length&&!metadataYears.length)selected=chooseDefault(canonicalYears());
+        return selected;
+    }
+    function scope(projects,basis='union',year=ensure()) {
+        const list=Array.isArray(projects)?projects:[];
+        if(year==='all'&&basis!=='unassigned'&&basis!=='open')return basis==='financial'?list.filter(p=>memo(p).classification.kind!=='unknown'):list;
+        return list.filter(p=>{
+            const m=memo(p),c=m.classification;
+            if(basis==='unassigned')return c.kind==='unknown';
+            if(basis==='open')return c.kind==='open'&&c.year===year;
+            const financial=c.year===year&&c.kind!=='unknown'&&(c.kind!=='open'||includeOpen);
+            if(basis==='financial')return financial;
+            const schedule=m.years.has(year)||(c.kind==='open'&&c.year===year&&includeOpen);
+            if(c.kind==='open'&&c.year===year&&!includeOpen)return false;
+            return basis==='schedule'?schedule:financial||schedule;
+        });
+    }
+    function financialWithUnassigned(projects) {
+        // Future plans have no settled month and must not become a historical/current "working" settlement card.
+        return scope(projects,'financial').filter(p=>memo(p).classification.kind!=='planned');
+    }
+    function scopeWork(project) {
+        const year=ensure();if(!project||year==='all'||!Array.isArray(project.workDate))return project;
+        const indices=[];project.workDate.forEach((entry,index)=>{if(asYear(entry&&typeof entry==='object'&&!(entry instanceof Date)?entry.date:entry)===year)indices.push(index);});
+        if(indices.length===project.workDate.length)return project;
+        const copy={...project,workDate:indices.map(i=>project.workDate[i])};
+        if(Array.isArray(project.workDetail))copy.workDetail=indices.map(i=>project.workDetail[i]);
+        return copy;
+    }
+    const partialYearReadOnly = year => root.YearBootCoordinator?.canEditYear?.(year) === false;
+    const isYearReady = year => root.YearBootCoordinator?.isYearReady?.(year) !== false;
+    function getViewState(){const year=ensure(),now=currentYear();return {year,currentYear:now,readonly:!!root.YearBootCoordinator?.isCurrentLoading?.()||partialYearReadOnly(year)||year==='all'||(year<now&&!editUnlocked),editUnlocked,includeOpen,generation};}
+    function getState(){
+        const now=currentYear(),source=canonical(),partial=financialMetadata&&root.YearBootCoordinator&&!root.YearBootCoordinator.getState().complete;
+        const open=partial?financialMetadata.open:source.reduce((a,p)=>{const c=memo(p).classification;if(c.kind==='open'){a.count++;a.po+=Number(p.poAmount)||0;if(c.completed)a.completed++;}return a;},{count:0,po:0,completed:0});
+        return {version:VERSION,year:ensure(),currentYear:now,years:[...new Set([...metadataYears,...canonicalYears()])].sort((a,b)=>b-a),explicit,readonly:!!root.YearBootCoordinator?.isCurrentLoading?.()||partialYearReadOnly(selected)||selected==='all'||(selected<now&&!editUnlocked),editUnlocked,includeOpen,openCount:open?.count||0,open:open||{count:0,po:0,completed:0},generation,bootStatus};
+    }
+    function beforeChange() {
+        if(root.CodexWorkContentSearch?.canChangeYear?.()===false||root.CodexProjectManager?.canChangeYear?.()===false)throw new Error('편집 중인 작업일·프로젝트를 먼저 적용하거나 취소해 주세요. 입력은 그대로 보존됩니다.');
+        const add=root.document?.getElementById('codexAddNewProjectModal');
+        if(add&&!add.classList.contains('hidden')&&add.getAttribute('aria-hidden')!=='true')throw new Error('새 프로젝트 입력을 먼저 적용하거나 닫아 주세요. 입력은 그대로 보존됩니다.');
+        for(const input of root.document?.querySelectorAll('.settlement-individual-month')||[]){
+            if(!input.getClientRects().length)continue;
+            const project=canonical().find(p=>String(p.id)===String(input.dataset.projectId));
+            if(input.value!==String(project?.manualSettlementDate||''))throw new Error('정산월 입력을 먼저 저장하거나 취소해 주세요. 입력은 그대로 보존됩니다.');
+        }
+        const event=typeof root.CustomEvent==='function'?new root.CustomEvent('operation-year:beforechange',{cancelable:true}):null;
+        if(event&&root.document&&!root.document.dispatchEvent(event))throw new Error('편집 중인 내용을 먼저 적용하거나 취소해 주세요.');
+    }
+    function notify(){root.document?.dispatchEvent(new CustomEvent('operation-year:changed',{detail:getState()}));updateUI();return getState();}
+    function select(year,options={}) {
+        const next=year==='all'?'all':Number(year);
+        if(next!=='all'&&(!Number.isInteger(next)||next<2000||next>2199))throw new Error('잘못된 운영 연도');
+        if(next!==selected&&!isYearReady(next))throw new Error((next==='all'?'전체 기간':'선택한 '+next+'년')+' 자료가 아직 준비 중입니다. 준비된 연도의 조회·편집은 계속할 수 있습니다.');
+        if(next!==selected)beforeChange();
+        selected=next;explicit=options.explicit!==false;editUnlocked=false;generation++;return notify();
+    }
+    function setOptions(options={}){if(typeof options.includeOpen==='boolean'&&options.includeOpen!==includeOpen){beforeChange();includeOpen=options.includeOpen;generation++;notify();}return getState();}
+    function toggleEdit(){if(!editUnlocked&&partialYearReadOnly(ensure())){root.showToast?.('전체 원본 확인이 완료되면 선택한 연도를 수정할 수 있습니다. 현재 준비 연도의 편집은 유지됩니다.','warning');return getState();}editUnlocked=!editUnlocked;updateUI();return getState();}
+    function assertEditable(){if(root.YearBootCoordinator?.isCurrentLoading?.())throw new Error('최신 연도 데이터 준비 완료 후 편집해 주세요.');if(getViewState().readonly)throw new Error('이전 연도는 조회 모드입니다. 이전 연도 수정 버튼으로 수정 모드를 선택해 주세요.');}
+    const fmt=n=>Number(n||0).toLocaleString('ko-KR');
+    function updateUI(){
+        const doc=root.document;if(!doc)return;
+        const state=getState(),picker=doc.getElementById('operation-year-select');
+        if(picker){
+            const years=state.years.includes(state.currentYear)?state.years:[state.currentYear,...state.years];
+            const values=[...new Set(years)].sort((a,b)=>b-a);
+            const signature=values.join(',')+'|'+values.map(isYearReady).join(',')+'|'+isYearReady('all');
+            if(picker.dataset.years!==signature){picker.replaceChildren(...values.map(y=>{const o=doc.createElement('option');o.value=String(y);o.disabled=!isYearReady(y);o.textContent=y+'년'+(o.disabled?' (준비 중)':y>state.currentYear?' (예정)':y===state.currentYear?' (현재)':' (이전)');return o;}));const all=doc.createElement('option');all.value='all';all.disabled=!isYearReady('all');all.textContent='전체 기간 '+(all.disabled?'(준비 중)':'(비교·조회)');picker.append(all);picker.dataset.years=signature;}
+            picker.value=String(state.year);
+        }
+        const label=doc.getElementById('operation-year-basis');
+        if(label)label.textContent=(state.year==='all'?'전체 기간':state.year+'년')+(state.year>state.currentYear?' · PO: 정산 지정·예정 예산 (예정은 정산 카드에서 제외)':' · PO: 최종 정산월·최신 진행 대기')+' / 일정: 해당 연도 작업'+(state.readonly?' · 조회 모드':'');
+        const edit=doc.getElementById('operation-year-edit');if(edit){edit.hidden=!(state.year<state.currentYear);edit.disabled=partialYearReadOnly(state.year);edit.title=edit.disabled?'전체 원본 확인 후 수정할 수 있습니다.':'';edit.textContent=state.editUnlocked?'이전 연도 수정 종료':'이전 연도 수정';edit.setAttribute('aria-pressed',String(state.editUnlocked));}
+        const pending=scope(canonical(),'unassigned'),unassigned=doc.getElementById('operation-year-unassigned');
+        const partial=financialMetadata&&root.YearBootCoordinator&&!root.YearBootCoordinator.getState().complete;
+        const count=partial?(financialMetadata.unknown?.count||0):pending.length,amount=partial?(financialMetadata.unknown?.po||0):pending.reduce((n,p)=>n+(Number(p.poAmount)||0),0);
+        if(unassigned)unassigned.textContent=count?'정산월 확인 필요 (원본 보존): '+fmt(count)+'건 / '+fmt(amount)+'원':'정산월 오류·연도 미확정 0건';
+        const progress=doc.getElementById('operation-year-progress');if(progress)progress.textContent=bootStatus;
+        const retry=doc.getElementById('operation-year-retry');if(retry)retry.hidden=root.YearBootCoordinator?.getState().phase!=='blocked';
+        for(const id of ['overview-header-summaries','settlement-header-summaries']){const el=doc.getElementById(id);if(el){el.dataset.operationYear=String(state.year);el.dataset.amountBasis='final-settlement-current-open';}}
+        root.YearBubbleUI?.update(state);
+    }
+    function mount(){root.YearBubbleUI?.mount();updateUI();}
+    function setMetadata(years,financial){metadataYears=(years||[]).map(Number).filter(y=>Number.isInteger(y)&&y>=2000&&y<=2199);financialMetadata=financial||null;if(!explicit)selected=chooseDefault(metadataYears);updateUI();}
+    function setBootStatus(text){bootStatus=String(text);updateUI();}
+    function clearPreview(){for(const id of ['overview-header-summaries','settlement-header-summaries']){const el=root.document?.getElementById(id);if(el?.hasAttribute('data-fast-header-preview')){el.replaceChildren();el.removeAttribute('data-fast-header-preview');}}}
+    const api={VERSION,currentYear,asYear,settlementYear,classification,accountingYear,scheduleYears,membership,availableYears,chooseDefault,scope,scopeWork,financialWithUnassigned,ensure,select,setOptions,toggleEdit,getState,getViewState,assertEditable,updateUI,setMetadata,setBootStatus,clearPreview,mount};
+    root.YearContext=api;
+    if(typeof module==='object'&&module.exports)module.exports=api;
+    if(root.document){
+        root.document.addEventListener('DOMContentLoaded',()=>{const saved=root.embeddedSettings?.operationYear;if(saved==='all'||(Number.isInteger(saved)&&saved>=2000&&saved<=2199)){selected=saved;explicit=true;}if(typeof root.embeddedSettings?.yearOptions?.includeOpen==='boolean')includeOpen=root.embeddedSettings.yearOptions.includeOpen;mount();clearPreview();}, {once:true});
+        root.document.addEventListener('data:loaded',()=>{invalidate();ensure();updateUI();});
+        root.document.addEventListener('data:changed',()=>{invalidate();ensure();updateUI();});
+        root.document.addEventListener('workdate-data-updated',event=>{if(event.detail?.source==='auto-upload-work-sheet')return;invalidate();ensure();updateUI();});
+        // Existing mutation dialogs retain their read/export controls in history mode.
+        root.document.addEventListener('click',e=>{
+            if(!getViewState().readonly)return;
+            const button=e.target.closest?.('button');if(!button||button.closest('#operation-year-modal')||button.id==='applyMappingBtn')return;
+            const dialog=button.closest('[role="dialog"],.modal,[id$="Modal"],[id$="modal"]');
+            if(!dialog)return;
+            const title=String(button.textContent||'').trim();
+            if(/^(추가|수정|삭제|저장|적용|일괄 삭제|작업일 삭제|작업일 추가|확인 후 저장)(?:\s|$)/.test(title)&&!/(필터|검색|날짜|정렬|Excel|엑셀|다운)/.test(title)){
+                e.preventDefault();e.stopImmediatePropagation();root.showToast?.(root.YearBootCoordinator?.isCurrentLoading?.()?'최신 연도 데이터 준비 완료 후 편집해 주세요.':'이전 연도 수정 모드를 먼저 선택해 주세요.','warning');
+            }
+        },true);
+    }
+})(typeof window==='object'?window:globalThis);
+    </script>
+<script id="codex-year-bubble-20261009">
+(function(root) {
+    'use strict';
+    const VERSION = 'year-bubble-20261010-v2';
+    const POSITION_KEY = 'codex.operation-year-bubble.position.v1';
+    const EDGE = 8, DRAG_THRESHOLD = 6;
+    const IDS = ['operation-year-bubble','operation-year-lock','operation-year-modal','operation-year-toolbar'];
+    let button = null, lockButton = null, backdrop = null, panel = null, mounted = false, locked = false;
+    let position = null, drag = null, suppressClickUntil = 0, opened = false;
+    let opener = null, previousOverflow = null, draftYear = null, globalListeners = false;
+
+    function report(error) {
+        const message = error?.message || String(error);
+        if (typeof root.showToast === 'function') root.showToast(message, 'error');
+        else { const status = root.document?.getElementById('operation-year-progress'); if (status) status.textContent = message; }
+    }
+    function safeState() { return root.YearContext?.getState?.() || {year: new Date().getFullYear(), currentYear: new Date().getFullYear(), years: [], includeOpen: true}; }
+    function viewport() {
+        const doc = root.document;
+        return {width: Math.max(1, root.innerWidth || doc?.documentElement.clientWidth || 390), height: Math.max(1, root.innerHeight || doc?.documentElement.clientHeight || 844)};
+    }
+    function bubbleSize() { const area = viewport(); return area.width <= 768 && area.height >= area.width ? 64 : 80; }
+    function clamp(value) {
+        const area = viewport(), SIZE = bubbleSize();
+        const minX = Math.min(EDGE, Math.max(0, area.width - SIZE)), minY = Math.min(EDGE, Math.max(0, area.height - SIZE - 16));
+        return {x: Math.max(minX, Math.min(Number(value.x), Math.max(minX, area.width - SIZE - EDGE))), y: Math.max(minY, Math.min(Number(value.y), Math.max(minY, area.height - SIZE - EDGE - 16))), width: area.width, height: area.height};
+    }
+    function defaultPosition() {
+        const area = viewport(); if (bubbleSize() === 80) return clamp({x: EDGE, y: EDGE});
+        const badge = root.document?.getElementById('network-status')?.getBoundingClientRect();
+        return clamp({x: area.width - bubbleSize() - EDGE, y: badge?.width > 0 && badge.bottom > 0 ? badge.bottom + EDGE : 64});
+    }
+    function validPosition(value) { return value && Number.isFinite(Number(value.x)) && Number.isFinite(Number(value.y)); }
+    function adaptedPosition(value) {
+        const area = viewport(), SIZE = bubbleSize(), oldSize = Number(value.size) || 80;
+        let x = Number(value.x), y = Number(value.y);
+        if (Number(value.width) > SIZE && Number(value.height) > SIZE && (Number(value.width) !== area.width || Number(value.height) !== area.height)) {
+            x = x / (Number(value.width) - oldSize) * Math.max(0, area.width - SIZE);
+            y = y / (Number(value.height) - oldSize) * Math.max(0, area.height - SIZE);
+        }
+        return clamp({x, y});
+    }
+    function paintPosition() {
+        if (button && position) { button.style.left = position.x + 'px'; button.style.top = position.y + 'px'; }
+        if (lockButton && position) { lockButton.style.left = position.x + 'px'; lockButton.style.top = (position.y + bubbleSize() - 16) + 'px'; }
+    }
+    function paintLock() {
+        if (!button || !lockButton) return;
+        button.dataset.locked = String(locked); lockButton.setAttribute('aria-pressed', String(locked));
+        const label = locked ? '물방울 위치 잠금 해제' : '물방울 위치 잠금'; lockButton.title = label; lockButton.setAttribute('aria-label', label);
+        lockButton.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="' + (locked ? 'M7 11V7a5 5 0 0 1 10 0v4' : 'M7 11V7a5 5 0 0 1 9-3') + '"/><rect x="4" y="11" width="16" height="11" rx="3"/><path d="M12 15v3"/></svg>';
+        lockButton.dataset.locked = String(locked);
+    }
+    function setLocked(value) {
+        locked = value === true;
+        if (locked && drag) { const id = drag.id; drag = null; button?.removeAttribute('data-dragging'); suppressClickUntil = Date.now() + 700; try { if (button?.hasPointerCapture(id)) button.releasePointerCapture(id); } catch (_) { /* A cancelled gesture must not move a locked bubble. */ } }
+        paintLock(); storePosition(); update(safeState()); return serializePosition();
+    }
+    function storePosition() { try { root.localStorage?.setItem(POSITION_KEY, JSON.stringify(serializePosition())); } catch (_) { /* A storage restriction must not disable movement. */ } }
+    function serializePosition() { const value = position || defaultPosition(); return {version: VERSION, x: value.x, y: value.y, width: value.width, height: value.height, size: bubbleSize(), locked}; }
+    function restorePosition(value, persist = false) {
+        position = validPosition(value) ? adaptedPosition(value) : defaultPosition();
+        locked = value?.locked === true; paintPosition(); paintLock(); if (persist) storePosition(); return serializePosition();
+    }
+    function initialPosition() {
+        if (root.embeddedSettings?.yearBubblePosition?.version === VERSION && validPosition(root.embeddedSettings.yearBubblePosition)) return restorePosition(root.embeddedSettings.yearBubblePosition);
+        let saved = null; try { saved = JSON.parse(root.localStorage?.getItem(POSITION_KEY) || 'null'); } catch (_) { /* Invalid local UI settings fall back to the visible default. */ }
+        return restorePosition(saved?.version === VERSION ? saved : null);
+    }
+    function getPosition() { return serializePosition(); }
+    function resetPosition() { locked = false; position = defaultPosition(); paintPosition(); paintLock(); storePosition(); update(safeState()); return serializePosition(); }
+
+    function style() {
+        const doc = root.document; if (!doc) return;
+        const node = doc.getElementById('operation-year-bubble-style') || doc.createElement('style'); node.id = 'operation-year-bubble-style';
+        node.textContent = `
+#operation-year-bubble{position:fixed;width:80px;height:80px;min-width:80px;max-width:80px;padding:8px;box-sizing:border-box;z-index:100600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:2px solid #0284c7;border-radius:50% 50% 50% 18%;background:linear-gradient(145deg,#e0f2fe 3%,#7dd3fc 52%,#38bdf8 100%);color:#075985;box-shadow:0 4px 12px #0f172a30,inset 0 3px 5px #ffffffc0;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;line-height:1.05}
+#operation-year-bubble strong{font-size:26px;font-weight:800;white-space:nowrap;letter-spacing:-1px;pointer-events:none}
+#operation-year-bubble small{font-size:11px;font-weight:700;pointer-events:none}
+#operation-year-bubble:focus-visible{outline:3px solid #7c3aed;outline-offset:3px}
+#operation-year-bubble[data-dragging="true"]{cursor:grabbing;box-shadow:0 6px 15px #0f172a40}
+#operation-year-bubble[data-readonly="true"]{border-color:#64748b;color:#334155}
+#operation-year-bubble[data-locked="true"]{cursor:pointer}
+#operation-year-lock{position:fixed;width:32px;height:32px;min-width:32px;padding:0;z-index:100601;border:1px solid #0284c7;border-radius:50%;background:#f0f9ff;color:#075985;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 5px #0f172a30}
+#operation-year-lock[data-locked="true"]{background:#075985;color:#fff}
+#operation-year-lock:focus-visible{outline:3px solid #7c3aed;outline-offset:2px}
+@media(max-width:768px) and (orientation:portrait){#operation-year-bubble{width:64px;height:64px;min-width:64px;max-width:64px;padding:6px}#operation-year-bubble strong{font-size:21px}#operation-year-bubble small{font-size:9px}}
+#operation-year-modal{position:fixed;inset:0;z-index:100610;display:flex;align-items:center;justify-content:center;background:#0f172a73;padding:12px;box-sizing:border-box;overscroll-behavior:contain}
+#operation-year-modal[hidden]{display:none!important}
+#operation-year-modal *{box-sizing:border-box}
+#operation-year-toolbar{width:100%;max-width:390px;max-height:calc(100dvh - 24px);overflow:auto;border-radius:18px;border:1px solid #bae6fd;background:#fff;color:#0f172a;padding:18px;box-shadow:0 12px 36px #0003;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+#operation-year-toolbar .year-modal-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+#operation-year-toolbar h2{margin:0;font-size:20px;font-weight:800}
+#operation-year-toolbar button,#operation-year-toolbar select{font:inherit;min-height:40px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#0f172a;padding:7px 10px;max-width:100%}
+#operation-year-toolbar button{cursor:pointer}
+#operation-year-toolbar button:focus-visible,#operation-year-toolbar select:focus-visible,#operation-year-toolbar input:focus-visible{outline:3px solid #7c3aed;outline-offset:2px}
+#operation-year-toolbar button:disabled{opacity:.55;cursor:default}
+#operation-year-toolbar select{width:100%;background:#fff}
+#operation-year-toolbar .year-modal-row{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;align-items:center}
+#operation-year-toolbar .year-modal-info{display:block;margin:10px 0;padding:9px 10px;border-radius:8px;background:#f1f5f9;font-size:13px}
+#operation-year-toolbar .year-modal-note{margin:10px 0;color:#475569;font-size:12px}
+#operation-year-toolbar .year-modal-option{display:flex;align-items:flex-start;gap:8px;margin:14px 0}
+#operation-year-toolbar .year-modal-option input{width:18px;height:18px;margin:2px 0 0;flex:none}
+#operation-year-toolbar .year-modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+#operation-year-toolbar #operation-year-apply{background:#0369a1;border-color:#0369a1;color:#fff;font-weight:700}
+#operation-year-toolbar [hidden]{display:none!important}
+#operation-year-unassigned{color:#92400e}
+#operation-year-progress{color:#475569}
+@media(max-width:420px){#operation-year-modal{padding:8px}#operation-year-toolbar{padding:14px;max-height:calc(100dvh - 16px)}}
+`;
+        if (!node.isConnected) (doc.head || doc.documentElement).append(node);
+    }
+    function focusable() { return panel ? [...panel.querySelectorAll('button:not([disabled]),select:not([disabled]),input:not([disabled]),[tabindex="0"]')].filter(node => !node.hidden && !node.closest('[hidden]') && node.getClientRects().length) : []; }
+    function ownsModalFocus() {
+        if (!opened) return false;
+        // Existing credential/source dialogs have deliberately higher stacking levels.
+        // Their own keyboard and focus handling must remain in control when they appear.
+        const higher = root.document.querySelectorAll('#webSavePatPrompt,#codexXlsbUploadModal,.codex-webdown-guide-modal');
+        for (const node of higher) {
+            if (node.hidden || node.closest('[hidden]') || !node.getClientRects().length) continue;
+            const css = root.getComputedStyle(node);
+            if (css.visibility !== 'hidden' && Number(css.zIndex) > 100610) return false;
+        }
+        return true;
+    }
+    function close() {
+        if (!opened) return;
+        opened = false; draftYear = null; if (backdrop) backdrop.hidden = true;
+        if (button) button.setAttribute('aria-expanded', 'false');
+        if (root.document?.body && previousOverflow !== null && root.document.body.style.overflow === 'hidden') root.document.body.style.overflow = previousOverflow;
+        previousOverflow = null;
+        const target = opener?.isConnected ? opener : button; target?.focus({preventScroll: true}); opener = null;
+    }
+    function open() {
+        mount(); if (!backdrop || opened) return;
+        opener = root.document.activeElement; draftYear = String(safeState().year); opened = true;
+        backdrop.hidden = false; button.setAttribute('aria-expanded', 'true');
+        previousOverflow = root.document.body.style.overflow; backdrop.dataset.bodyOverflowBefore = previousOverflow; root.document.body.style.overflow = 'hidden';
+        update(safeState()); root.document.getElementById('operation-year-select')?.focus({preventScroll: true});
+    }
+    function keyboard(event) {
+        if (!ownsModalFocus()) return;
+        if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(); return; }
+        if (event.key !== 'Tab') return;
+        const nodes = focusable(); if (!nodes.length) { event.preventDefault(); panel?.focus(); return; }
+        const active = root.document.activeElement, first = nodes[0], last = nodes[nodes.length - 1];
+        if (event.shiftKey && (active === first || !panel.contains(active))) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && (active === last || !panel.contains(active))) { event.preventDefault(); first.focus(); }
+        event.stopImmediatePropagation();
+    }
+    function focusGuard(event) { if (ownsModalFocus() && panel && !panel.contains(event.target)) focusable()[0]?.focus({preventScroll: true}); }
+    function resize() { if (position) { position = clamp(position); paintPosition(); } }
+    function pointerDown(event) {
+        if (locked || drag || opened || (event.pointerType === 'mouse' && event.button !== 0)) return;
+        drag = {id: event.pointerId, x: event.clientX, y: event.clientY, start: {...position}, moved: false};
+        try { button.setPointerCapture(event.pointerId); } catch (_) { /* A cancelled pointer retains the last clamped position. */ }
+    }
+    function pointerMove(event) {
+        if (locked || !drag || drag.id !== event.pointerId) return;
+        const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
+        if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+        drag.moved = true; event.preventDefault(); button.dataset.dragging = 'true';
+        position = clamp({x: drag.start.x + dx, y: drag.start.y + dy}); paintPosition();
+    }
+    function pointerEnd(event) {
+        if (!drag || drag.id !== event.pointerId) return;
+        const moved = drag.moved; drag = null; button?.removeAttribute('data-dragging');
+        if (moved) { suppressClickUntil = Date.now() + 700; storePosition(); }
+        try { if (button?.hasPointerCapture(event.pointerId)) button.releasePointerCapture(event.pointerId); } catch (_) { /* Releasing an already cancelled pointer is optional. */ }
+    }
+    function moveWithKeyboard(event) {
+        const steps = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]};
+        if (locked || !event.altKey || !steps[event.key]) return;
+        event.preventDefault(); event.stopPropagation(); const [x, y] = steps[event.key], step = event.shiftKey ? 30 : 10;
+        position = clamp({x: position.x + x * step, y: position.y + y * step}); paintPosition(); storePosition();
+    }
+    function rebuildPicker(state) {
+        const picker = root.document.getElementById('operation-year-select'); if (!picker) return;
+        const years = [...new Set([state.currentYear, ...(state.years || [])].map(Number).filter(y => Number.isInteger(y) && y >= 2000 && y <= 2199))].sort((a, b) => b - a);
+        const ready = year => root.YearBootCoordinator?.isYearReady?.(year) !== false;
+        const signature = years.join(',') + '|' + years.map(ready).join(',') + '|' + ready('all');
+        if (picker.dataset.years !== signature) {
+            picker.replaceChildren(...years.map(year => { const option = root.document.createElement('option'); option.value = String(year); option.disabled = !ready(year); option.textContent = year + '년' + (option.disabled ? ' (준비 중)' : year > state.currentYear ? ' (예정)' : year === state.currentYear ? ' (현재)' : ' (이전)'); return option; }));
+            const all = root.document.createElement('option'); all.value = 'all'; all.disabled = !ready('all'); all.textContent = '전체 기간 ' + (all.disabled ? '(준비 중)' : '(비교·조회)'); picker.append(all); picker.dataset.years = signature;
+        }
+        const value = opened && draftYear !== null ? draftYear : String(state.year);
+        picker.value = [...picker.options].some(option => option.value === value) ? value : String(state.year);
+    }
+    function update(state = safeState()) {
+        if (!mounted || !button?.isConnected) return;
+        const label = state.year === 'all' ? '전체' : String(state.year).slice(-2) + '년';
+        button.querySelector('strong').textContent = label;
+        button.dataset.readonly = String(Boolean(state.readonly));
+        button.setAttribute('aria-label', '운영 연도 ' + (state.year === 'all' ? '전체 기간' : state.year + '년') + (locked ? '. 위치 잠김. 눌러 연도 선택합니다.' : '. 눌러 선택하거나 끌어서 이동합니다.'));
+        button.title = locked ? '운영 연도 선택 · 위치 잠김' : '운영 연도 선택 · 끌어서 이동 · Alt+방향키로 이동';
+        rebuildPicker(state);
+        const include = root.document.getElementById('operation-year-include-open'); if (include) include.checked = state.includeOpen !== false;
+        const edit = root.document.getElementById('operation-year-edit');
+        const partialReadOnly = root.YearBootCoordinator?.canEditYear?.(state.year) === false;
+        if (edit) { edit.hidden = !(Number(state.year) < Number(state.currentYear)); edit.disabled = partialReadOnly || typeof root.YearContext?.toggleEdit !== 'function'; edit.title = partialReadOnly ? '전체 원본 확인 후 수정할 수 있습니다.' : ''; edit.textContent = state.editUnlocked ? '이전 연도 수정 종료' : '이전 연도 수정'; edit.setAttribute('aria-pressed', String(Boolean(state.editUnlocked))); }
+        const readonly = root.document.getElementById('operation-year-readonly');
+        if (readonly) { readonly.hidden = !state.readonly; readonly.textContent = state.year === 'all' ? '전체 기간은 비교·조회 모드입니다. 수정할 연도를 먼저 선택해 주세요.' : partialReadOnly ? '선택한 연도는 조회할 수 있습니다. 전체 원본 확인이 완료되면 수정할 수 있습니다.' : '이전 연도는 조회 모드입니다. 수정이 필요하면 이전 연도 수정 모드를 선택해 주세요.'; }
+        const count = state.openCount ?? state.open?.count ?? state.ongoingCount;
+        if (count !== undefined) root.document.getElementById('operation-year-open-count').textContent = '진행·정산 대기 (전체 원본·조회): ' + Number(count || 0).toLocaleString('ko-KR') + '건 · 최신 운영 연도 관리';
+        const retry = root.document.getElementById('operation-year-retry'); if (retry) retry.hidden = root.YearBootCoordinator?.getState?.().phase !== 'blocked';
+    }
+    function modalClick(event) {
+        if (event.target === backdrop) { close(); return; }
+        const action = event.target.closest?.('button')?.id;
+        try {
+            if (action === 'operation-year-close' || action === 'operation-year-cancel') close();
+            else if (action === 'operation-year-apply') { root.YearContext?.select(root.document.getElementById('operation-year-select').value); close(); }
+            else if (action === 'operation-year-current') { root.YearContext?.select(safeState().currentYear); close(); }
+            else if (action === 'operation-year-edit') { root.YearContext?.toggleEdit?.(); update(safeState()); }
+            else if (action === 'operation-year-position-reset') resetPosition();
+            else if (action === 'operation-year-retry') Promise.resolve(root.YearBootCoordinator?.retry?.()).catch(report);
+        } catch (error) { report(error); }
+    }
+    function modalChange(event) {
+        if (event.target.id === 'operation-year-select') draftYear = event.target.value;
+        if (event.target.id === 'operation-year-include-open') {
+            try { root.YearContext?.setOptions?.({includeOpen: event.target.checked}); update(safeState()); }
+            catch (error) { update(safeState()); report(error); }
+        }
+    }
+    function normalizeSnapshot(snapshotRoot) {
+        if (!snapshotRoot?.querySelectorAll) return;
+        const body = snapshotRoot.tagName === 'BODY' ? snapshotRoot : snapshotRoot.querySelector('body');
+        for (const modal of snapshotRoot.querySelectorAll('#operation-year-modal')) {
+            if (!modal.hidden && body?.style.overflow === 'hidden' && modal.hasAttribute('data-body-overflow-before')) body.style.overflow = modal.dataset.bodyOverflowBefore;
+            modal.hidden = true;
+        }
+        for (const bubble of snapshotRoot.querySelectorAll('#operation-year-bubble')) { bubble.setAttribute('aria-expanded', 'false'); bubble.removeAttribute('data-dragging'); }
+    }
+    function mount() {
+        const doc = root.document; if (!doc?.body) return false;
+        if (mounted && button?.isConnected && lockButton?.isConnected && backdrop?.isConnected) { update(safeState()); return true; }
+        if (opened) close();
+        normalizeSnapshot(doc);
+        // Saved standalone DOM has no live listener registrations. Recreate only this module's UI.
+        for (const id of IDS) for (const old of doc.querySelectorAll('[id="' + id + '"]')) old.remove();
+        mounted = false; button = null; lockButton = null; backdrop = null; panel = null; drag = null;
+        style();
+        button = doc.createElement('button'); button.id = 'operation-year-bubble'; button.type = 'button'; button.setAttribute('aria-haspopup', 'dialog'); button.setAttribute('aria-controls', 'operation-year-modal'); button.setAttribute('aria-expanded', 'false');
+        button.innerHTML = '<strong>--년</strong><small>운영 연도</small>';
+        lockButton = doc.createElement('button'); lockButton.id = 'operation-year-lock'; lockButton.type = 'button';
+        backdrop = doc.createElement('div'); backdrop.id = 'operation-year-modal'; backdrop.hidden = true;
+        backdrop.innerHTML = '<section id="operation-year-toolbar" role="dialog" aria-modal="true" aria-labelledby="operation-year-modal-title" tabindex="-1"><div class="year-modal-heading"><h2 id="operation-year-modal-title">운영 연도 선택</h2><button type="button" id="operation-year-close" aria-label="운영 연도 선택 닫기">×</button></div><label for="operation-year-select">조회할 연도</label><select id="operation-year-select"></select><div class="year-modal-row"><button type="button" id="operation-year-current">올해 보기</button><button type="button" id="operation-year-edit" hidden>이전 연도 수정</button></div><label class="year-modal-option"><input type="checkbox" id="operation-year-include-open" checked><span>진행·정산 대기 포함<br><small>최신 운영 연도에서 계속 관리합니다.</small></span></label><span id="operation-year-open-count" class="year-modal-info">진행·정산 대기 확인 중</span><span id="operation-year-basis" class="year-modal-info"></span><span id="operation-year-unassigned" class="year-modal-info"></span><p id="operation-year-readonly" class="year-modal-note" hidden></p><p class="year-modal-note">미완료 작업과 완료 후 정산 대기는 최신 운영 연도로 이어집니다. 이전 연도에 시작한 작업도 정산이 끝난 연도에 비용이 귀속됩니다. 날짜 정보 자체가 확인되지 않은 기록은 별도로 표시합니다.</p><span id="operation-year-progress" class="year-modal-info" role="status" aria-live="polite"></span><div class="year-modal-row"><button type="button" id="operation-year-retry" hidden>전체 확인 재시도</button><button type="button" id="operation-year-position-reset">물방울 위치 초기화</button></div><div class="year-modal-footer"><button type="button" id="operation-year-cancel">닫기</button><button type="button" id="operation-year-apply">적용</button></div></section>';
+        panel = backdrop.querySelector('#operation-year-toolbar'); doc.body.append(button, lockButton, backdrop);
+        initialPosition();
+        button.addEventListener('pointerdown', pointerDown); button.addEventListener('pointermove', pointerMove); button.addEventListener('pointerup', pointerEnd); button.addEventListener('pointercancel', pointerEnd); button.addEventListener('lostpointercapture', pointerEnd);
+        button.addEventListener('keydown', moveWithKeyboard);
+        lockButton.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); setLocked(!locked); });
+        button.addEventListener('click', event => { if (Date.now() < suppressClickUntil && event.detail !== 0) { event.preventDefault(); event.stopPropagation(); return; } open(); });
+        backdrop.addEventListener('click', modalClick); backdrop.addEventListener('change', modalChange);
+        if (!globalListeners) { root.addEventListener('resize', resize); doc.addEventListener('keydown', keyboard, true); doc.addEventListener('focusin', focusGuard); globalListeners = true; }
+        mounted = true; update(safeState()); return true;
+    }
+    const api = {VERSION, mount, update, getPosition, resetPosition, serializePosition, restorePosition, normalizeSnapshot, setLocked, open, close};
+    root.YearBubbleUI = api;
+    if (typeof module === 'object' && module.exports) module.exports = api;
+    if (root.document) {
+        if (root.document.readyState === 'loading') root.document.addEventListener('DOMContentLoaded', () => { mount(); root.YearContext?.updateUI?.(); }, {once: true});
+        else { mount(); root.YearContext?.updateUI?.(); }
+    }
+})(typeof window === 'object' ? window : globalThis);
+</script>
+<script id="codex-year-boot-20261009">
+(function(root){
+    'use strict';
+    const SCHEMA=1,VERSION='year-context-20261009-v2',PENDING_KEY='codex.multiyear.pending.v1';
+    const state={phase:'idle',complete:true,source:null,usingCache:false,loadedYears:[],loadedSourceIds:new Set(),marks:{},error:null};
+    let completion=null,background=null,bridge=null,manifest=null,cacheBase=null,sourceBase=null,initialBase=null,legacyResolve=null,legacyId=0;
+    const sourceSets={projects:new Set(),work:new Set(),milestones:new Set(),dependencies:new Set(),webLinks:new Set()};
+    function recordSourceModel(model){for(const p of model.projects){sourceSets.projects.add(String(p.id));for(const dep of p.dependsOn||[])sourceSets.dependencies.add(JSON.stringify([String(p.id),dep]));}for(const w of model.works)sourceSets.work.add(JSON.stringify([String(w.projectId),w.workDate,w.workDetail||'']));for(const m of model.milestones)sourceSets.milestones.add(JSON.stringify(m));for(const [id,url]of Object.entries(model.links||{}))if(url)sourceSets.webLinks.add(JSON.stringify([id,url]));}
+    function verifySourceCounts(){for(const [key,set]of Object.entries(sourceSets))if(set.size!==manifest.counts[key])throw new Error('전체 연도 '+key+' 원본 집합이 명세와 다릅니다.');}
+    const status=text=>root.YearContext?.setBootStatus(text);
+    const mark=name=>{state.marks[name]=performance.now();root.performance?.mark?.('codex:year-boot:'+name);};
+    const clone=value=>JSON.parse(JSON.stringify(value));
+    const revive=value=>{for(const p of value.projects||[])for(const k of ['startDate','endDate'])if(typeof p[k]==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(p[k]))p[k]=new Date(p[k]);return value;};
+    async function digest(bytes){if(!root.crypto?.subtle)throw new Error('원본 검증용 SHA-256을 사용할 수 없습니다.');return [...new Uint8Array(await root.crypto.subtle.digest('SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('');}
+    async function fetchBytes(url,limit){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);try{const response=await fetch(url,{cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error('데이터 HTTP '+response.status);if(Number(response.headers.get('content-length'))>limit)throw new Error('파생 데이터 크기 제한 초과');const b=await response.arrayBuffer();if(b.byteLength>limit)throw new Error('파생 데이터 크기 제한 초과');return b;}finally{clearTimeout(timer);}}
+    async function readJson(url,limit=200000){return JSON.parse(new TextDecoder().decode(await fetchBytes(url,limit)));}
+    const defaultBase='https://raw.githubusercontent.com/jonggunelee/wyggkr04/main/RawData/%EA%B3%B5%EC%A0%95%EA%B4%80%EB%A6%AC/YearCache/';
+    function cacheIsWorthPartitioning(candidate){const current=root.YearContext.chooseDefault(candidate.years),file=candidate.files?.[String(current)],keys=['projects','work','milestones','dependencies','webLinks'];if(!file)return false;const total=keys.reduce((n,k)=>n+(Number(candidate.counts?.[k])||0),0),first=keys.reduce((n,k)=>n+(Number(file[k])||0),0);return total>0&&first/total<=0.6;}
+    // Start the small metadata request while the existing application is still parsing.
+    const probe=(root.location?.hostname==='jonggunelee.github.io'&&!root.__codexYearCacheDisabled)?readJson(defaultBase+'manifest.json').catch(()=>null):Promise.resolve(null);
+    const validProbe=probe.then(async candidate=>{
+        if(!candidate||candidate.schemaVersion!==SCHEMA||candidate.mappingVersion!==VERSION||candidate.generatedForOperatingYear!==root.YearContext?.currentYear?.()||candidate.sourcePath!=='RawData/공정관리/26년 잔여 공사 공정관리_(입력).xlsb'||!/^[a-f0-9]{40}$/.test(candidate.sourceCommit||'')||!/^[a-f0-9]{64}$/.test(candidate.sourceSha256||'')||!Array.isArray(candidate.years))return null;
+        // A mostly current-year source would be mapped, then decoded a second time
+        // for saving. Preserve the legacy single-source boot when this cost cannot
+        // be offset by a substantial history partition (measured 2026-10-09).
+        if(!cacheIsWorthPartitioning(candidate))return null;
+        try{const commits=await readJson('https://api.github.com/repos/jonggunelee/wyggkr04/commits?path='+encodeURIComponent(candidate.sourcePath)+'&sha=main&per_page=1');return Array.isArray(commits)&&commits[0]?.sha===candidate.sourceCommit?candidate:null;}catch(e){return null;}
+    });
+    async function readModel(year){
+        const file=manifest.files[String(year)];if(!file||!/^[a-f0-9]{64}\/(?:20\d{2}|unassigned)\.json$/.test(file.path)||!/^[a-f0-9]{64}$/.test(file.sha256)||file.bytes>50000000)throw new Error('연도 캐시 명세 오류');
+        const bytes=await fetchBytes(cacheBase+file.path,50000000);if(bytes.byteLength!==file.bytes||await digest(bytes)!==file.sha256)throw new Error('연도 캐시 SHA-256 불일치');
+        const model=JSON.parse(new TextDecoder().decode(bytes));if(model.schemaVersion!==SCHEMA||model.sourceSha256!==manifest.sourceSha256||String(model.year)!==String(year)||!Array.isArray(model.projects)||!Array.isArray(model.works)||!Array.isArray(model.milestones)||!model.raw)throw new Error('연도 캐시 데이터 계약 불일치');
+        if(model.projects.length!==file.projects||new Set(model.projects.map(p=>String(p.id))).size!==model.projects.length)throw new Error('연도 캐시 프로젝트 중복 또는 누락');
+        const ids=new Set(model.projects.map(p=>String(p.id)));
+        if(model.works.length!==file.work||model.milestones.length!==file.milestones||model.projects.reduce((n,p)=>n+(p.dependsOn?.length||0),0)!==file.dependencies||Object.values(model.links||{}).filter(Boolean).length!==file.webLinks||model.works.some(w=>!ids.has(String(w.projectId)))||Object.keys(model.links||{}).some(id=>!ids.has(id)))throw new Error('연도 캐시 하위 데이터 건수 또는 소유 프로젝트 불일치');
+        return revive(model);
+    }
+    function sourceDescriptor(url){try{const u=new URL(url);let parts=u.pathname.split('/').filter(Boolean).map(decodeURIComponent),sourcePath=null;
+        if(u.hostname==='jonggunelee.github.io'&&parts[0]==='wyggkr04')sourcePath=parts.slice(1).join('/');
+        else if(u.hostname==='raw.githubusercontent.com'&&parts[0].toLowerCase()==='jonggunelee'&&parts[1]==='wyggkr04'&&parts[2]==='main')sourcePath=parts.slice(3).join('/');
+        if(sourcePath!=='RawData/공정관리/26년 잔여 공사 공정관리_(입력).xlsb')return null;
+        return {owner:'jonggunelee',repo:'wyggkr04',path:sourcePath};}catch(e){return null;}}
+    function getState(){return {...state,loadedSourceIds:[...state.loadedSourceIds],marks:{...state.marks}};}
+    function assertComplete(){if(!state.complete)throw new Error('전체 연도와 원본 XLSB 확인이 완료되어야 저장할 수 있습니다. '+(state.error||''));}
+    function assertSourceReplacementReady(){if(state.usingCache&&!state.complete)throw new Error('전체 연도와 원본 XLSB 확인 중에는 원본·정산 Excel 업로드를 할 수 없습니다. 현재 편집은 계속할 수 있으며, 전체 확인 완료 후 다시 업로드해 주세요.');return true;}
+    async function ensureComplete(){while(!state.complete){if(state.phase==='blocked')assertComplete();if(!completion)throw new Error('전체 원본 확인이 진행되지 않았습니다.');status('전체 원본 확인 후 저장합니다. 편집 내용은 유지됩니다.');await completion;}assertComplete();}
+    function snapshot(){return bridge?bridge.snapshot():null;}
+    function persistPending(){if(state.complete||!state.usingCache||!initialBase)return {ok:false,reason:'not-partial'};if(!state.marks.currentDataReady)return {ok:false,reason:'recovery-incomplete'};try{const value={schemaVersion:SCHEMA,sourceSha256:manifest.sourceSha256,base:initialBase,local:snapshot(),savedAt:new Date().toISOString()};sessionStorage.setItem(PENDING_KEY,JSON.stringify(value));return {ok:true,pending:true};}catch(e){state.error='편집 대기 기록을 저장하지 못했습니다.';status(state.error);return {ok:false,error:String(e)};}}
+    function restorePending(){const saved=sessionStorage.getItem(PENDING_KEY);if(!saved)return;const pending=JSON.parse(saved);if(pending.schemaVersion!==SCHEMA||pending.sourceSha256!==manifest.sourceSha256)throw new Error('대기 중인 편집 기록의 원본 버전이 다릅니다. 기록을 보존했으며 전체 원본과 충돌 검사가 필요합니다.');bridge.restorePending(pending);root.showToast?.('중단 전에 편집한 내용을 복구했습니다.','info');}
+    async function loadRemaining(){
+        const requested=root.YearContext.getViewState().year;
+        const years=manifest.years.filter(y=>!state.loadedYears.includes(y)).sort((a,b)=>(a===requested?-1:b===requested?1:(a>root.YearContext.currentYear())-(b>root.YearContext.currentYear())||b-a));
+        for(const y of [...years,'unassigned']){if(state.loadedYears.includes(y))continue;await new Promise(resolve=>setTimeout(resolve,0));const model=await readModel(y);await bridge.append(model,state.loadedSourceIds);recordSourceModel(model);for(const p of model.projects)state.loadedSourceIds.add(String(p.id));state.loadedYears.push(y);status('조회 가능 · 이전 연도 '+(typeof y==='number'?y+'년':'미확정 항목')+' 확인');if(root.YearContext.getViewState().year===y)bridge.refresh();}
+        if(state.loadedSourceIds.size!==manifest.counts.projects)throw new Error('전체 연도 프로젝트 ID 집합이 명세와 다릅니다.');
+        verifySourceCounts();
+        status('조회 가능 · 원본 XLSB·저장 기준 확인 중');mark('sourceDownloadStart');
+        const encoded=manifest.sourcePath.split('/').map(encodeURIComponent).join('/'),sourceUrl=sourceBase+manifest.sourceCommit+'/'+encoded;
+        const bytes=await fetchBytes(sourceUrl,50000000);if(bytes.byteLength!==manifest.sourceBytes||await digest(bytes)!==manifest.sourceSha256)throw new Error('전체 XLSB 원본 SHA-256 불일치');mark('sourceDownloaded');
+        await bridge.completeSource(bytes,manifest);mark('allDataReady');
+        state.phase='complete';state.complete=true;state.error=null;mark('saveReady');status('전체 연도 확인 완료 · 저장 가능');
+        // Persist the recovered/early edits in the existing complete-data backup before removing their waiting journal.
+        const pending=sessionStorage.getItem(PENDING_KEY);if(pending){const saved=root.WebSavePlugin?.persistLocalBackup?.('year-boot-complete');if(!saved?.ok)throw new Error('전체 편집 백업 확인 실패: 대기 기록을 유지합니다.');sessionStorage.removeItem(PENDING_KEY);}
+        bridge.refresh();
+    }
+    async function tryBoot(url,options,adapter){
+        const source=sourceDescriptor(url);if(!source||root.isStandalone||root.__codexYearCacheDisabled||root.location?.protocol==='file:')return false;
+        // A recovery request joins the already applied partial source. Returning false
+        // here would let the legacy import replace current-year edits during history loading.
+        if(state.usingCache&&!state.complete)return true;
+        if((root.projectData||[]).length || root.WebSavePlugin?.state?.dirty || root.WebSavePlugin?.state?.remoteDirty)return false;
+        if(state.usingCache)return true;
+        const candidate=await validProbe;if(!candidate)return false;
+        if(candidate.schemaVersion!==SCHEMA||candidate.mappingVersion!==VERSION||candidate.generatedForOperatingYear!==root.YearContext.currentYear()||candidate.sourcePath!==source.path||!candidate.sourceCommit||!/^[a-f0-9]{40}$/.test(candidate.sourceCommit)||!/^[a-f0-9]{64}$/.test(candidate.sourceSha256)||!Array.isArray(candidate.years))return false;
+        manifest=candidate;cacheBase=defaultBase;sourceBase='https://raw.githubusercontent.com/'+source.owner+'/'+source.repo+'/';
+        const current=root.YearContext.chooseDefault(manifest.years),model=await readModel(current).catch(()=>null);if(!model)return false;
+        // Two recovery callers can await the same first model concurrently. The
+        // caller that already began applying it owns the bridge and background load.
+        if(state.usingCache)return true;
+        bridge=adapter;
+        state.complete=false;state.usingCache=true;state.source=manifest.sourceSha256;state.phase='current-loading';root.YearContext.setMetadata(manifest.years,manifest.classificationChecks);if(root.WebSavePlugin)root.WebSavePlugin.state.baselineValueSnapshot=null;status(current+'년 먼저 준비 중');mark('currentStart');
+        try{recordSourceModel(model);await bridge.initial(model);for(const p of model.projects)state.loadedSourceIds.add(String(p.id));state.loadedYears.push(current);initialBase=clone(snapshot());restorePending();state.phase='current-ready';mark('currentDataReady');bridge.refresh();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));mark('currentInteractive');status(current+'년 조회·편집 가능 · 이전 연도 확인 중');
+            background=loadRemaining;completion=loadRemaining().catch(error=>{state.phase='blocked';state.complete=false;state.error=String(error.message||error);persistPending();status('편집 내용 보존 · 전체 확인 중단: '+state.error);throw error;});completion.catch(()=>{});return true;
+        }catch(error){state.phase='blocked';state.error=String(error.message||error);state.complete=false;status(state.error);throw error;}
+    }
+    function legacyBegin(){
+        assertSourceReplacementReady();
+        let pending=null;try{pending=sessionStorage.getItem(PENDING_KEY);}catch(_){}
+        if(pending){state.complete=false;state.phase='blocked';state.error='중단 편집 기록이 남아 있습니다. 검증된 연도 캐시가 준비된 뒤 다시 열어 복구해 주세요. 원본 버전이 다르면 기록을 보존하고 비교 복구해야 합니다.';status(state.error);throw new Error(state.error);}
+        legacyResolve?.();legacyId++;state.usingCache=false;state.source=null;state.loadedYears=[];state.loadedSourceIds.clear();state.error=null;root.YearContext?.setMetadata([]);state.complete=false;state.phase='legacy-loading';completion=new Promise(resolve=>{legacyResolve=resolve;});mark('legacyStart');status('원본 XLSB 전체 확인 중');return legacyId;
+    }
+    function legacyFailure(id,error){if(id!==legacyId)return;state.complete=false;state.phase='blocked';state.error=String(error?.message||error||'원본 업로드 실패');legacyResolve?.();legacyResolve=null;status('전체 원본 확인 실패 · 저장 대기: '+state.error);}
+    function legacyComplete(id){if(state.usingCache||id!==legacyId)return;state.complete=true;state.phase='complete';mark('allDataReady');mark('saveReady');legacyResolve?.();legacyResolve=null;status('전체 연도 확인 완료 · 저장 가능');root.YearContext?.updateUI();}
+    async function retry(){if(!background)return;if(state.phase!=='blocked')return completion;state.error=null;state.phase='background';completion=background().catch(e=>{state.phase='blocked';state.complete=false;state.error=String(e.message||e);persistPending();status(state.error);throw e;});completion.catch(()=>{});return completion;}
+    function reserveNextId(proposed,projects){if(!state.usingCache||state.complete)return proposed;let floor=Number(manifest.sourceInternalIdMax)||0;for(const p of projects||[])if(/^\d+$/.test(String(p.id)))floor=Math.max(floor,Number(p.id));return String(Math.max(Number(proposed)||0,floor+1));}
+    function containsSourceCode(code){return state.usingCache&&!state.complete&&(manifest.sourceMaintenanceCodes||[]).includes(String(code));}
+    root.YearBootCoordinator={VERSION,tryBoot,getState,assertComplete,assertSourceReplacementReady,ensureComplete,persistPending,legacyBegin,legacyComplete,legacyFailure,retry,prefetchDecision:()=>validProbe.then(Boolean),reserveNextId,containsSourceCode,isCurrentLoading:()=>state.usingCache&&state.phase==='current-loading',isYearReady:year=>!state.usingCache||state.complete||(year!=='all'&&state.loadedYears.includes(year)),canEditYear:year=>!state.usingCache||state.complete||(!!state.marks.currentDataReady&&year===state.loadedYears[0])};
+    if(root.document){
+        const sourceUploadIds=new Set(['fileInput','revisionHistoryFileInput','uploadSettlementExcel','settlementExcelFileInput','codexXlsbUploadFile']);
+        root.document.addEventListener('change',event=>{
+            const input=event.target;if(!sourceUploadIds.has(input?.id)||input.type!=='file')return;
+            try{assertSourceReplacementReady();}catch(error){
+                event.preventDefault();event.stopImmediatePropagation();try{input.value='';}catch(_){}
+                if(typeof root.showToast==='function')root.showToast(error.message,'warning');else status(error.message);
+            }
+        },true);
+    }
+    if(typeof module==='object'&&module.exports)module.exports=root.YearBootCoordinator;
+})(typeof window==='object'?window:globalThis);
+    </script>
     <script>
             // ==========================================
             // [SUPREME INTEGRITY INTERCEPTOR SHIELD]
@@ -354,6 +893,9 @@
         }, { once: true, passive: true });
     })();
     (function prefetchDefaultWorkbookDuringHtmlParse() {
+        if (window.YearBootCoordinator) window.YearBootCoordinator.prefetchDecision().then(function(defer) { if (!defer) startOriginalWorkbookPrefetch20261009(); });
+        else startOriginalWorkbookPrefetch20261009();
+        function startOriginalWorkbookPrefetch20261009() {
         try {
             if (window.__codexEarlyWorkbookFetch || typeof fetch !== 'function') return;
             var url = 'https://jonggunelee.github.io/wyggkr04/RawData/%EA%B3%B5%EC%A0%95%EA%B4%80%EB%A6%AC/26%EB%85%84%20%EC%9E%94%EC%97%AC%20%EA%B3%B5%EC%82%AC%20%EA%B3%B5%EC%A0%95%EA%B4%80%EB%A6%AC_(%EC%9E%85%EB%A0%A5).xlsb';
@@ -392,6 +934,7 @@
                 })
             };
         } catch (e) { }
+        }
     })();
     window.resolveCustomerText = function(p) {
         if (!p) return "";
@@ -26909,6 +27452,7 @@
                         (function () {
                             try {
                                 var el = document.getElementById('overview-header-summaries');
+                                if (window.YearContext) return;
                                 if (!el || String(el.textContent || '').trim()) return;
                                 var html = localStorage.getItem('codex.settlementHeader.previewHtml.v1') || '';
                                 if (!html || html.length > 20000 || html.indexOf('\uac74') < 0) return;
@@ -28454,6 +28998,7 @@
                     e.stopPropagation();
                     try {
                         var y = this.getAttribute('data-year');
+                        if (window.YearContext && window.YearContext.getViewState().year !== Number(y)) window.YearContext.select(Number(y));
                         var sInput = document.getElementById('zoomStartDate');
                         var eInput = document.getElementById('zoomEndDate');
                         
@@ -42286,6 +42831,10 @@
                     if (clickedItem.id === 'projectView') {
                         try { window.__refreshScheduleAccordionObservers?.(); } catch (e) { }
                         setupControlSectionToggles(clickedItem.querySelector('#controlsSection'));
+                        if (window.matchMedia('(min-width: 769px)').matches && projectData.length > 0 &&
+                            !clickedItem.querySelector('#ganttViewContent .gantt-chart-container')) {
+                            requestCoalescedMainRender('desktop-first-schedule-open');
+                        }
                         window.__scrollToTodayOnScheduleOpen = true;
                         const autoScrollDelays = [0, 50, 150, 300, 500, 800, 1200, 1600];
                         autoScrollDelays.forEach(d => {
@@ -60393,7 +60942,154 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             return result;
         }
 
+        function createYearBootAdapter20261009() {
+            const sync = () => {
+                if (window.DataManager && typeof window.DataManager.set === 'function') projectData = window.DataManager.set(projectData, { silent: true, source: 'year-cache' });
+                window.projectData = projectData;
+                window.milestones = milestones;
+                if (window.AppStore) window.AppStore.projectData = projectData;
+                if (window.AppState) { window.AppState.allData = projectData; window.AppState.__filtersDirty = true; }
+            };
+            const snapshot = () => ({ projects: projectData, works: window.workItems || [], milestones: milestones,
+                links: window.projectLinkStore && window.projectLinkStore.loadProjectLinkMap ? window.projectLinkStore.loadProjectLinkMap() : {} });
+            const refresh = () => { invalidateFilteredDataCache(); latestFilteredData = null; render(true); scheduleSettlementHeaderSummariesFast('year-cache'); window.YearContext.updateUI(); };
+            const applyWork = (model, projects) => {
+                for (const name of Object.keys(model.raw || {})) {
+                    if (isAutoUploadWorkSheetName(name)) applyAutoUploadWorkSheetData(model.raw[name], { projectDataSource: projects, clearBeforeApply: true });
+                }
+            };
+            const applyLinks = (model, projects) => {
+                if (window.projectLinkStore && typeof window.projectLinkStore.setProjectLink === 'function') {
+                    for (const project of projects) {
+                        const id = String(project.id);
+                        if (Object.prototype.hasOwnProperty.call(model.links || {}, id)) window.projectLinkStore.setProjectLink(id, model.links[id]);
+                    }
+                }
+            };
+            return {
+                snapshot,
+                refresh,
+                initial: async model => {
+                    await ensureAutoUploadXlsxReady();
+                    const primary = Object.keys(model.raw)[0], rows = model.raw[primary];
+                    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+                    window.__lastProjectSheetContext = { sheetName: primary, worksheet, startRow: 0, startCol: 0, date1904: false };
+                    window.__lastAutoUploadSourceWorkbook = null;
+                    await autoMapAndImport(rows);
+                    projectData = model.projects;
+                    milestones = model.milestones.slice();
+                    sync(); applyWork(model, projectData); applyLinks(model, projectData);
+                    // Establish the upload baseline after the authoritative Work store
+                    // is ready, before current-ready allows user edits.
+                    resetRevisionHistoryForUploadBaseline();
+                    resetOriginalDatesForProjects(projectData);
+                    window.__lastAutoUploadAuxiliaryApplyResult = { source: 'year-cache', work: { applied: model.works.length }, deps: null };
+                    document.dispatchEvent(new CustomEvent('data:loaded', { detail: { source: 'year-cache-current', partial: true } }));
+                },
+                append: async (model, loadedIds) => {
+                    const currentById = new Map(projectData.map(p => [String(p.id), p]));
+                    const incoming = model.projects.filter(p => !loadedIds.has(String(p.id)));
+                    for (const p of incoming) {
+                        const existing = currentById.get(String(p.id));
+                        if (existing && String(existing.maintenanceCode) !== String(p.maintenanceCode)) throw new Error('새 프로젝트 ID가 이전 연도 원본과 충돌합니다. 편집을 보존하고 저장을 중단합니다.');
+                        if (!existing) projectData.push(p);
+                    }
+                    const newProjects = incoming.filter(p => !currentById.has(String(p.id)));
+                    sync(); applyWork(model, newProjects); applyLinks(model, newProjects);
+                    resetOriginalDatesForProjects(newProjects);
+                    // Historical source rows are loaded data, not a new user upload.
+                    // Extend source baselines without resetting revisions made after current-ready.
+                    if (newProjects.length) {
+                        const newIds = new Set(newProjects.map(p => String(p.id)));
+                        const addedSnapshots = createProjectSnapshot().filter(p => newIds.has(String(p.id)));
+                        const visited = new WeakSet();
+                        const extendSnapshot = snapshot => {
+                            if (!snapshot || typeof snapshot !== 'object' || visited.has(snapshot)) return;
+                            visited.add(snapshot);
+                            if (Array.isArray(snapshot)) {
+                                const ids = new Set(snapshot.map(p => String(p.id)));
+                                for (const p of addedSnapshots) if (!ids.has(String(p.id))) snapshot.push(JSON.parse(JSON.stringify(p)));
+                            } else if (snapshot.type === 'delta') extendSnapshot(snapshot.baseSnapshot);
+                        };
+                        extendSnapshot(baselineProjectDataSnapshot);
+                        for (const revision of revisionHistory) extendSnapshot(revision.snapshot);
+                    }
+                    milestones.push(...model.milestones); window.milestones = milestones;
+                },
+                restorePending: pending => {
+                    const local = pending.local, baseById = new Map(pending.base.projects.map(p => [String(p.id), p]));
+                    projectData = local.projects.map(p => { for (const k of ['startDate', 'endDate']) if (typeof p[k] === 'string') p[k] = new Date(p[k]); return p; });
+                    window.workItems = local.works; milestones = local.milestones;
+                    sync();
+                    // Restore every Work store, including explicit empty lists and deleted
+                    // projects. A cached original must not revive a user's removed work day.
+                    const localById = new Map(projectData.map(p => [String(p.id), p]));
+                    for (const id of new Set([...baseById.keys(), ...localById.keys()])) {
+                        const p = localById.get(id), base = baseById.get(id);
+                        const dates = (Array.isArray(p && p.workDate) ? p.workDate : []).map((date, i) => ({ date, detail: p.workDetail?.[i] || '' }));
+                        const before = (Array.isArray(base && base.workDate) ? base.workDate : []).map((date, i) => ({ date, detail: base.workDetail?.[i] || '' }));
+                        window.workDate.saveWorkDate(id, dates, { createRevision: false, trigger: 'year-pending-restore' });
+                        if (JSON.stringify(dates) !== JSON.stringify(before)) {
+                            window.__codexWebSaveRecentWorkDateTouchedIds = window.__codexWebSaveRecentWorkDateTouchedIds || {};
+                            window.__codexWebSaveRecentWorkDateTouchedIds[id] = Date.now();
+                            const code = String((p || base)?.maintenanceCode || '');
+                            if (code) window.__codexWebSaveRecentWorkDateTouchedIds[code] = Date.now();
+                        }
+                    }
+                    const plugin = window.WebSavePlugin;
+                    if (plugin) {
+                        for (const p of projectData) {
+                            const base = baseById.get(String(p.id)), changedFields = Object.keys(p).filter(k => JSON.stringify(p[k]) !== JSON.stringify(base && base[k]));
+                            if (changedFields.length) plugin.recordModifiedProject(p, 'year-pending-recovered', { changedFields, created: !base });
+                            baseById.delete(String(p.id));
+                        }
+                        for (const p of baseById.values()) plugin.recordDeletedProject(p, 'year-pending-recovered');
+                        plugin.state.dirty = true; plugin.state.remoteDirty = true;
+                        plugin.state.dirtyReasons['year-pending-recovered'] = Date.now();
+                    }
+                    for (const [id, value] of Object.entries(local.links || {})) window.projectLinkStore.setProjectLink(id, value);
+                },
+                completeSource: async (bytes, manifest) => {
+                    // Reading the complete source establishes the save baseline only. It must
+                    // not schedule the legacy XLSX Work hook over edits made after current-ready.
+                    // Yield only between complete source stages; keep the existing parser,
+                    // formatted-date row conversion and atomic save baseline unchanged.
+                    const yieldToInput = () => typeof window.scheduler?.yield === 'function'
+                        ? window.scheduler.yield() : new Promise(resolve => setTimeout(resolve, 0));
+                    await yieldToInput();
+                    const wasReadingForSave = window.__codexWebSaveWorkbookReadInProgress;
+                    let workbook;
+                    try {
+                        window.__codexWebSaveWorkbookReadInProgress = true;
+                        workbook = ExcelParserUnified.readXlsx(bytes, { type: 'array', cellDates: false, cellNF: true, cellStyles: true, bookVBA: true, sheetStubs: false, dense: false });
+                    } finally { window.__codexWebSaveWorkbookReadInProgress = wasReadingForSave; }
+                    if (!workbook.Sheets || !workbook.SheetNames.length) throw new Error('전체 XLSB 원본 해독 실패');
+                    window.__lastAutoUploadSourceWorkbook = workbook;
+                    window.__lastAutoUploadSourceWorkbookMeta = { requestedUrl: manifest.sourcePath, sourceByteLength: bytes.byteLength, sheetNames: workbook.SheetNames.slice(), loadedAt: new Date().toISOString(), sourceSha256: manifest.sourceSha256, sourceCommit: manifest.sourceCommit };
+                    const primary = workbook.SheetNames[0], worksheet = workbook.Sheets[primary];
+                    window.__lastProjectSheetContext = { sheetName: primary, worksheet, startRow: 0, startCol: 0, date1904: !!workbook.Workbook?.WBProps?.date1904 };
+                    for (const name of workbook.SheetNames) {
+                        await yieldToInput();
+                        const rows = await parseAutoUploadSheetRows(workbook.Sheets[name], '전체 연도 저장 원본 확인');
+                        if (name === primary) rememberAutoUploadRawSheet('project', rows);
+                        else if (isAutoUploadWorkSheetName(name)) rememberAutoUploadRawSheet('work', rows);
+                        else if (isAutoUploadDependencySheetName(name)) rememberAutoUploadRawSheet('dependency', rows);
+                        else if (isAutoUploadWebLinksSheetName(name)) rememberAutoUploadRawSheet('link', rows);
+                        else if (/milestone|마일스톤/i.test(name)) rememberAutoUploadRawSheet('milestone', rows);
+                    }
+                    await yieldToInput();
+                    if (window.WebSavePlugin) {
+                        window.WebSavePlugin.rememberCurrentBaseSha(manifest.sourceBlobSha, 'year-cache-source-verified');
+                        window.WebSavePlugin.captureValueBaseline('year-cache-source-verified');
+                    }
+                    sync();
+                }
+            };
+        }
+
         async function fetchAndImportFromUrl(url, options = {}) {
+            if (window.YearBootCoordinator && await window.YearBootCoordinator.tryBoot(normalizeAutoUploadUrl(url), options, createYearBootAdapter20261009())) return;
+            const yearLegacyTicket20261009 = window.YearBootCoordinator ? window.YearBootCoordinator.legacyBegin() : null;
             // Ensure settlement mapping/parsing is ready even during early auto-upload.
             ensureSettlementImportBootstrap();
 
@@ -60712,10 +61408,12 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     window.__codexStartupAutoUploadToastSilent = Math.max(0, (Number(window.__codexStartupAutoUploadToastSilent) || 1) - 1);
                 }
             }
+                if (window.YearBootCoordinator) window.YearBootCoordinator.legacyComplete(yearLegacyTicket20261009);
             }); // end deferred fast-path task
             if (!silentStartupFeedback) showToast('\uc790\ub3d9 \uc5c5\ub85c\ub529\uc774 \uc644\ub8cc\ub418\uc5c8\uc2b5\ub2c8\ub2e4.', 'success');
             } catch (err) {
                 if (window.CodexDataContinuityGuard && !options.recoveryAttempt && !(err && err.code === 'AUTO_UPLOAD_XLSX_NOT_READY')) {
+                    window.YearBootCoordinator?.legacyFailure(yearLegacyTicket20261009, err);
                     window.CodexDataContinuityGuard.request('auto-upload-import-failed', normalizedUrl, { forceNotify: true });
                 }
                 if (err && err.code === 'AUTO_UPLOAD_XLSX_NOT_READY') {
@@ -61514,6 +62212,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             let data = (typeof window.getFilteredProjectData === 'function')
                 ? window.getFilteredProjectData()
                 : (window._viewFilterActive && window._viewFilteredData ? window._viewFilteredData : (window.projectData || []));
+            if (window.YearContext) data = window.YearContext.scope(data, 'union');
 
             // [DEBUG] \ub370\uc774\ud130 \uc18c\uc2a4 \ud655\uc778
             if (window.__GANTT_FILTER_DEBUG__) {
@@ -61539,7 +62238,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
             // skipFilters\uac00 true\uc774\uba74 \ud544\ud130\ub9c1 \uc5c6\uc774 \uc6d0\ubcf8 \ub370\uc774\ud130\ub9cc \uc815\ub82c\ud558\uc5ec \ubc18\ud658 (\ub370\uc774\ud130 \ubcf4\uc874)
             if (skipFilters) {
-                let data = [...projectData];
+                let data = window.YearContext ? window.YearContext.scope(projectData, 'union').slice() : [...projectData];
     
             // [NEW] Date Range Filter (Annual/Quarter Zoom Linkage)
             const zoomRangeContext20260612 = getZoomFilterRangeContext20260612();
@@ -61578,6 +62277,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
             // \uce90\uc2dc \ud0a4 \uc0dd\uc131 (\ud544\ud130 \uc870\uac74\uc758 \ud574\uc2dc)
             const cacheKey = JSON.stringify({
+                operationYear: window.YearContext ? window.YearContext.getViewState().year : null,
                 searchTerm,
                 taskType: cacheKeyTaskTypeFilter?.value || taskTypeFilter?.value,
                 progress: cacheKeyProgressFilter?.value || progressFilter?.value,
@@ -61953,6 +62653,12 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         // \ub2e8, \ub370\uc774\ud130 \ucc38\uc870 \ub2e8\uc808\uc744 \ubc29\uc9c0\ud558\uc5ec \uc548\uc815\uc801\uc778 \ub370\uc774\ud130 \ubc18\ud658 \ubcf4\uc7a5
         // [FIX-S22] \uce90\uc2dc \ubb34\ud6a8\ud654 \ud6c4 \ud544\ud130\ub9c1 - \ud56d\uc0c1 \ucd5c\uc2e0 \ud544\ud130 \uc0c1\ud0dc \ubc18\uc601 \ubcf4\uc7a5
         function getSettlementDataset() {
+            // Empty selected-year results are valid. They must never fall back to
+            // amounts from another year. Ongoing/unsettled belongs to the current year.
+            if (window.YearContext) {
+                const fresh = typeof getFilteredAndSortedData === 'function' ? getFilteredAndSortedData() : projectData;
+                return window.YearContext.financialWithUnassigned(fresh);
+            }
             // [DEBUG-S25] \ud638\ucd9c \ucd94\uc801
             console.log('[getSettlementDataset] \ud638\ucd9c\ub428');
 
@@ -62084,6 +62790,27 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             }
         }
 
+        document.addEventListener('operation-year:changed', function () {
+            const state = window.YearContext.getState();
+            const year = state.year;
+            if (typeof year === 'number') { viewMinDate = new Date(year, 0, 1); viewMaxDate = new Date(year, 11, 31); }
+            invalidateFilteredDataCache();
+            latestFilteredData = null;
+            if (window.AppState) { window.AppState.filteredData = null; window.AppState.__filtersDirty = true; }
+            if (window.SettlementCardsState) window.SettlementCardsState.lastRenderKey = null;
+            if (window.__invalidateSettlementCache) window.__invalidateSettlementCache('operation-year');
+            if (typeof SettlementCardsState !== 'undefined') SettlementCardsState.lastRenderKey = null;
+            if (window.SettlementMigration && window.SettlementMigration.renderMonthlyCards) window.SettlementMigration.renderMonthlyCards(true);
+            render(true);
+            scheduleSettlementHeaderSummariesFast('operation-year');
+            if (window.CodexWorkContentSearch) window.CodexWorkContentSearch.refreshYearScope();
+            if (window.CodexProjectManager && window.CodexProjectManager.state.opened) window.CodexProjectManager.renderTable();
+            if (window.CodexSummaryReport && typeof window.CodexSummaryReport.refresh === 'function') window.CodexSummaryReport.refresh();
+            Promise.resolve(window.CostEstimationAnalysis?.refreshYearScope?.()).then(function () {
+                if (window.YearContext.getViewState().generation === state.generation) window.CostYearCompare?.refresh?.();
+            }).catch(function (error) { console.error('[YearContext] analysis refresh failed', error); });
+        });
+
         function renderSettlement(data) {
             // [PERF-OPT] console.log('[renderSettlement] Called with data length:', data ? data.length : 'null');
             const list = Array.isArray(data) ? data : [];
@@ -62105,9 +62832,17 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
             renderFilterOptions();
             try { if (typeof updateSummary === 'function') updateSummary(list); } catch (e) { }
-            try { if (typeof renderPoSummary === 'function') renderPoSummary(list); } catch (e) { }
-            renderSettlement(list);
-            try { if (typeof renderGanttChart === 'function') renderGanttChart(list); } catch (e) { }
+            const financialList = window.YearContext ? window.YearContext.scope(list, 'financial') : list;
+            try { if (typeof renderPoSummary === 'function') renderPoSummary(financialList); } catch (e) { }
+            renderSettlement(financialList);
+            // Desktop's initially closed schedule has no visible chart to paint.
+            // Existing accordion open/fullscreen paths render the latest filtered data.
+            const scheduleShell = document.getElementById('projectView');
+            const deferFirstDesktopChart = window.matchMedia('(min-width: 769px)').matches &&
+                scheduleShell && !scheduleShell.classList.contains('open') &&
+                (!fullscreenModal || fullscreenModal.classList.contains('hidden')) &&
+                !document.querySelector('#ganttViewContent .gantt-chart-container');
+            try { if (!deferFirstDesktopChart && typeof renderGanttChart === 'function') renderGanttChart(list); } catch (e) { }
         }
 
         // Compatibility aliases for the refactored render pipeline
@@ -62232,7 +62967,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                         const _todayForRange = new Date();
                         _todayForRange.setHours(0, 0, 0, 0);
 
-                        if (!isCustomZoomActive && typeof viewMinDate !== 'undefined' && typeof viewMaxDate !== 'undefined') {
+                        if (!isCustomZoomActive && (!window.YearContext || window.YearContext.getViewState().year === window.YearContext.currentYear() || window.YearContext.getViewState().year === 'all') && typeof viewMinDate !== 'undefined' && typeof viewMaxDate !== 'undefined') {
                             if (_todayForRange > viewMaxDate) {
                                 // \uc624\ub298\uc774 \ubc94\uc704\ubcf4\ub2e4 \ubbf8\ub798 -> Max\ub97c \uc624\ub298 + 14\uc77c\ub85c \ud655\uc7a5
                                 const _extended = new Date(_todayForRange);
@@ -63018,6 +63753,9 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
 
         function getStableProjectDatasetForSummary() {
+            if (window.YearContext && typeof getFilterAwareDataset === 'function') {
+                return window.YearContext.scope(getFilterAwareDataset(), 'financial');
+            }
             const candidates = [];
             const pushCandidate = (name, data) => {
                 if (Array.isArray(data) && data.length > 0) candidates.push({ name, data });
@@ -63041,6 +63779,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         const OVERVIEW_HEADER_PREVIEW_CACHE_KEY = 'codex.overviewHeader.siCenter.previewHtml.v1';
 
         function applyCachedSettlementHeaderPreview(container, reason) {
+            if (window.YearContext) return false;
             try {
                 if (!container || String(container.textContent || '').trim()) return false;
                 const cached = localStorage.getItem(SETTLEMENT_HEADER_PREVIEW_CACHE_KEY);
@@ -63065,6 +63804,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         }
 
         function applyCachedOverviewHeaderPreview(container, reason) {
+            if (window.YearContext) return false;
             try {
                 if (!container || String(container.textContent || '').trim()) return false;
                 const cached = localStorage.getItem(OVERVIEW_HEADER_PREVIEW_CACHE_KEY);
@@ -63086,8 +63826,10 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         }
 
         function renderOverviewHeaderSummariesFast(fullData, container) {
+            if (window.YearContext) fullData = window.YearContext.scope(fullData, 'financial');
             try {
-                if (!container || !Array.isArray(fullData) || fullData.length === 0) return false;
+                if (!container || !Array.isArray(fullData)) return false;
+                if (fullData.length === 0) { container.textContent = '정산월 기준 0원 / 0건'; return true; }
                 const grouped = Object.create(null);
                 fullData.forEach(project => {
                     const resolved = (typeof window.resolveSiCenterText === 'function')
@@ -63120,8 +63862,10 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         }
 
         function renderSettlementHeaderSummariesFast(fullData, container) {
+            if (window.YearContext) fullData = window.YearContext.scope(fullData, 'financial');
             try {
-                if (!container || !Array.isArray(fullData) || fullData.length === 0) return false;
+                if (!container || !Array.isArray(fullData)) return false;
+                if (fullData.length === 0) { container.textContent = '정산월 기준 0원 / 0건'; return true; }
                 const grouped = Object.create(null);
                 fullData.forEach(p => {
                     let groupValue = '';
@@ -63181,8 +63925,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 try {
                     data = getStableProjectDatasetForSummary();
                 } catch (e) { }
-                const settlementRendered = !!(container && data.length && renderOverviewHeaderSummariesFast(data, container));
-                const overviewRendered = !!(overviewHeaderContainer && data.length && renderSettlementHeaderSummariesFast(data, overviewHeaderContainer));
+                const settlementRendered = !!(container && renderOverviewHeaderSummariesFast(data, container));
+                const overviewRendered = !!(overviewHeaderContainer && renderSettlementHeaderSummariesFast(data, overviewHeaderContainer));
                 if (settlementRendered && overviewRendered) {
                     __settlementHeaderFastAttempts = 0;
                     try { container.setAttribute('data-fast-header-reason', String(reason || 'scheduled')); } catch (e2) { }
@@ -63241,7 +63985,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             const settlementGroupContainer = document.getElementById('settlement-group-summaries');
             if (!overviewContainer || !overviewHeaderContainer || !settlementHeaderContainer || !settlementGroupContainer) return;
 
-            const workingData = Array.isArray(fullData) ? fullData : getFilterAwareDataset();
+            const groupSource = Array.isArray(fullData) ? fullData : getFilterAwareDataset();
+            const workingData = window.YearContext ? window.YearContext.scope(groupSource, 'financial') : groupSource;
             if (!Array.isArray(workingData)) return;
 
             // [DEBUG-FIX-VERIFY] Check if this code is running and what data it sees
@@ -66950,6 +67695,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         }
 
         function renderGanttChart(data) {
+            if (window.YearContext) data = window.YearContext.scope(data, 'schedule');
             const container = getActiveGanttViewportContainer();
             if (!container) return; // Exit if container not found
             const currentGanttContainer = container.querySelector('#ganttChart'); // Find chart within the current container
@@ -69548,6 +70294,11 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 });
                 ganttEl.addEventListener('change', (e) => {
                     if (e.target.classList.contains('settlement-gantt-month-input')) {
+                        if (window.YearContext && window.YearContext.getViewState().readonly) {
+                            const original = window.projectData?.find(p => String(p.id) === String(e.target.dataset.projectId));
+                            e.target.value = original?.manualSettlementDate || '';
+                            e.preventDefault(); e.stopImmediatePropagation(); showToast('이전 연도 수정 모드를 먼저 선택해 주세요.', 'warning'); return;
+                        }
                         const pid = e.target.dataset.projectId;
                         const parseMonthForGantt = (value) => {
                             try {
@@ -69742,15 +70493,37 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             }
             headerToggleBtn.title = '\ud5e4\ub354 \uc811\uae30/\ud3b4\uae30';
 
-            headerToggleBtn.addEventListener('click', (e) => {
+            let headerTouchHandledAt = -Infinity;
+            const toggleGanttHeader = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation(); // [TRAP-FIX] \ub2e4\ub978 \ud578\ub4e4\ub7ec\ub85c \uc804\ud30c \ubc29\uc9c0
-                const ganttContainer = document.querySelector('.gantt-chart-container');
+                const ganttContainer = headerToggleBtn.closest('.gantt-chart-container');
                 if (ganttContainer) {
                     ganttContainer.classList.toggle('header-collapsed');
                     headerToggleBtn.classList.toggle('active');
+                    headerToggleBtn.setAttribute('aria-expanded', String(!ganttContainer.classList.contains('header-collapsed')));
                 }
+            };
+            headerToggleBtn.setAttribute('role', 'button');
+            headerToggleBtn.setAttribute('aria-label', headerToggleBtn.title);
+            headerToggleBtn.setAttribute('aria-expanded', String(!wasHeaderCollapsed));
+            headerToggleBtn.tabIndex = 0;
+            const onHeaderTouch = (e) => {
+                if (!window.matchMedia('(max-width: 768px) and (orientation: portrait)').matches) return;
+                if (e.type === 'pointerdown' && e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+                headerTouchHandledAt = performance.now();
+                toggleGanttHeader(e);
+            };
+            headerToggleBtn.addEventListener(window.PointerEvent ? 'pointerdown' : 'touchstart', onHeaderTouch, {passive: false});
+            headerToggleBtn.addEventListener('click', (e) => {
+                if (performance.now() - headerTouchHandledAt < 700) {
+                    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); return;
+                }
+                toggleGanttHeader(e);
+            });
+            headerToggleBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') toggleGanttHeader(e);
             });
 
             headerToggleContainer.appendChild(headerToggleBtn);
@@ -71825,6 +72598,10 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
          * @returns {void}
          */
         function saveAsStandaloneHTML() {
+            if (window.YearBootCoordinator && !window.YearBootCoordinator.getState().complete) {
+                window.YearBootCoordinator.ensureComplete().then(() => saveAsStandaloneHTML()).catch(error => showToast(error.message, 'error'));
+                return;
+            }
             // [UNIFIED] Use DataManager.get() as the ONLY data source
             const projectDataSource = (window.DataManager && typeof window.DataManager.get === 'function')
                 ? window.DataManager.get()
@@ -71834,7 +72611,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             // \ub9c8\uc9c0\ub9c9 \uc800\uc7a5\ub41c \uc2a4\ub0c5\uc0f7\uacfc \ube44\uad50\ud558\uc5ec \ubcc0\uacbd\uc774 \uc5c6\uc73c\uba74 \uc800\uc7a5 \uac74\ub108\ub6f0\uae30
             if (window.SafetyRules && typeof window.SafetyRules.isDirty === 'function') {
                 const lastSnapshot = window._lastSavedProjectSnapshot || null;
-                if (lastSnapshot && !projectDataSource.some((p, i) => {
+                const yearUiSnapshot = JSON.stringify({year:window.YearContext?.getViewState().year,includeOpen:window.YearContext?.getViewState().includeOpen,position:window.YearBubbleUI?.serializePosition()});
+                if (lastSnapshot && lastSnapshot.length === projectDataSource.length && window._lastSavedYearUiSnapshot === yearUiSnapshot && !projectDataSource.some((p, i) => {
                     const snap = lastSnapshot[i];
                     return snap ? window.SafetyRules.isDirty(p, snap) : true;
                 })) {
@@ -71961,6 +72739,9 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 timelineScrollTop: document.querySelector('.gantt-timeline-body-wrapper')?.scrollTop || 0
                 , // \uc815\uc0b0 \uc544\ucf54\ub514\uc5b8 \uc0c1\ud0dc \uc800\uc7a5
                 hierarchyOrder: legendHierarchyRestoreOrder || hierarchyOrder, // 범례 자동 하→상은 비영구 상태로 저장에서 제외
+                operationYear: window.YearContext ? window.YearContext.getViewState().year : null,
+                yearOptions: {includeOpen:window.YearContext?.getViewState().includeOpen !== false},
+                yearBubblePosition: window.YearBubbleUI?.serializePosition() || null,
                 // **\uac1c\uc120 \uc0ac\ud56d 2**: \ud604\uc7ac \uc5f4\ub824\uc788\ub294 \ud234\ud301 \uc815\ubcf4 \uc800\uc7a5
                 activeTooltip: (() => {
                     if (!floatingTooltip || !floatingTooltip.classList.contains('visible') || !activeTooltipBar) return null;
@@ -72104,6 +72885,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
+            window._lastSavedYearUiSnapshot = JSON.stringify({year:settings.operationYear,includeOpen:settings.yearOptions.includeOpen,position:settings.yearBubblePosition});
             showToast("HTML \ud30c\uc77c\uc774 \uc131\uacf5\uc801\uc73c\ub85c \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4.", 'success');
         }
 
@@ -72114,7 +72896,9 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
          * \uc62c\ubc14\ub974\uac8c \uc720\uc9c0\ud558\uc5ec \ud30c\uc77c\uc774 \uc190\uc0c1\ub418\uc9c0 \uc54a\ub3c4\ub85d \ud569\ub2c8\ub2e4.
          */
         function generateStandaloneHTML(data, milestonesToEmbed, settings) {
-            let html = document.documentElement.outerHTML;
+            const exportRoot = document.documentElement.cloneNode(true);
+            window.YearBubbleUI?.normalizeSnapshot(exportRoot);
+            let html = exportRoot.outerHTML;
 
             // Standalone HTML must not depend on adjacent vendor files.
             // Heavy libraries remain lazy-loaded through CodexOfflineLibraries' embedded gzip bundle.
@@ -72353,6 +73137,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 milestoneList.style.maxHeight = '400px'; // \uc801\uc808\ud55c \ucd5c\ub300 \ub192\uc774 \uc124\uc815
 
                 const visibleMilestones = mappedMilestones.filter((entry) => {
+                    if (window.YearContext && window.YearContext.getViewState().year !== 'all' && window.YearContext.asYear(entry.raw.date) !== window.YearContext.getViewState().year) return false;
                     if (normalizedDateFilter && !entry.dateText.toLowerCase().includes(normalizedDateFilter)) return false;
                     if ((normalizedDateFromFilter || normalizedDateToFilter) && !entry.dateText) return false;
                     if (normalizedDateFromFilter && entry.dateText < normalizedDateFromFilter) return false;
@@ -74259,6 +75044,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             try {
                 const panel = document.getElementById('accordion-panel-overview');
                 if (!panel) return;
+                const item = panel.closest('.accordion-item');
+                if (!item || !item.classList.contains('open')) return;
                 // Keep original grid layout intact; only limit height and enable vertical scroll
                 const rect = panel.getBoundingClientRect();
                 // Reserve small margin at bottom (24px)
@@ -74911,6 +75698,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             }
 
             ns.saveWorkDate = (projectId, dates, opts = {}) => {
+                if (window.YearContext && opts.createRevision !== false && !/upload|sync|restore|bootstrap|load|init/i.test(String(opts.trigger || ''))) window.YearContext.assertEditable();
                 // [FIX] Normalize projectId to string for consistent storage
                 const normalizedId = String(projectId || '');
                 if (!normalizedId) {
@@ -85654,6 +86442,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             }
 
             function resetSelectedSettlementAssignment() {
+                if (window.YearContext && window.YearContext.getViewState().readonly) { safeToast('이전 연도 수정 모드를 먼저 선택해 주세요.', 'warning', 2000); return; }
                 const checkedBoxes = document.querySelectorAll('.settlement-indiv-checkbox:checked');
                 if (!checkedBoxes || checkedBoxes.length === 0) {
                     safeToast('\ucd08\uae30\ud654\ud560 \ud56d\ubaa9\uc744 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.', 'warning', 2000);
@@ -85693,6 +86482,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             }
 
             function saveSettlementAssignment() {
+                if (window.YearContext && window.YearContext.getViewState().readonly) { safeToast('이전 연도 수정 모드를 먼저 선택해 주세요.', 'warning', 2000); return; }
                 // [INTEGRITY-FIX] 간트 차트 선택 상태가 아닌 모달 내부 체크박스 상태 기준 저장
                 let ids = window.__modalPrecheckedIds ? Array.from(window.__modalPrecheckedIds) : [];
                 if(ids.length === 0) {
@@ -86054,6 +86844,12 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             function handleSettlementCheckboxChange(e) {
                 const cb = e.target;
                 if (!cb || !cb.classList || !cb.classList.contains('settlement-checkbox')) return;
+                if (window.YearContext && window.YearContext.getViewState().readonly) {
+                    e.preventDefault(); e.stopImmediatePropagation();
+                    syncSettlementCheckboxesFromData();
+                    safeToast('이전 연도 수정 모드를 먼저 선택해 주세요.', 'warning', 2000);
+                    return;
+                }
                 const pid = cb.dataset.projectId;
                 if (!pid) return;
 
@@ -86141,6 +86937,12 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             function handleGroupCheckboxChange(e) {
                 const cb = e.target;
                 if (!cb || !cb.classList || !cb.classList.contains('group-header-checkbox')) return;
+                if (window.YearContext && window.YearContext.getViewState().readonly) {
+                    e.preventDefault(); e.stopImmediatePropagation();
+                    syncSettlementCheckboxesFromData();
+                    safeToast('이전 연도 수정 모드를 먼저 선택해 주세요.', 'warning', 2000);
+                    return;
+                }
                 e.stopPropagation();
 
                 const groupHeader = cb.closest('.group-header');
@@ -86173,7 +86975,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     // Data-driven state determination (Stage 1)
                     // Find all projects belonging to this group in projectData
                     const projectsInGroup = (typeof projectData !== 'undefined' && Array.isArray(projectData))
-                        ? projectData.filter(p => p.taskType === taskType)
+                        ? (typeof window.getFilteredAndSortedData === 'function' ? window.getFilteredAndSortedData() : projectData).filter(p => p.taskType === taskType)
                         : [];
 
                     if (projectsInGroup.length === 0) return;
@@ -86446,6 +87248,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             }
 
             function groupProjectsByMonthOnlyManual(data) {
+                if (window.YearContext) data = window.YearContext.financialWithUnassigned(data);
                 const grouped = {};
                 const unassigned = [];
                 data.forEach(project => {
@@ -86466,6 +87269,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             }
 
             function groupProjectsByQuarter(data) {
+                if (window.YearContext) data = window.YearContext.financialWithUnassigned(data);
                 const grouped = {};
                 const unassigned = [];
                 data.forEach(project => {
@@ -86489,6 +87293,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             }
 
             function groupProjectsByYear(data) {
+                if (window.YearContext) data = window.YearContext.financialWithUnassigned(data);
                 const grouped = {};
                 const unassigned = [];
                 data.forEach(project => {
@@ -87390,6 +88195,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             // [NEW] Pending Settlement Modal - \ubc30\uc815\uc911 \uce74\ub4dc \ud074\ub9ad \uc2dc \ud45c\uc2dc\ub418\ub294 \ubaa8\ub2ec
             // ============================================================================================
             function getSettlementDataSource() {
+                if (window.YearContext && Array.isArray(window.projectData)) return window.YearContext.financialWithUnassigned(window.projectData);
                 // [PERF-CRITICAL] window.projectData \ud638\ucd9c \uc81c\uac70 - window.projectData \uc9c1\uc811 \ucc38\uc870 (300ms \u2192 1ms)
                 // DataManager\ub294 window.projectData\ub97c \ub798\ud551\ud558\ubbc0\ub85c \uc9c1\uc811 \ucc38\uc870\ub85c \ucda9\ubd84
                 if (Array.isArray(window.projectData) && window.projectData.length > 0) {
@@ -92821,7 +93627,7 @@ function showPendingSettlementModal(periodType, projects) {
                     // reflect the complete project data, not just the filtered view.
                     if (typeof window.updateSummary === 'function') {
                         requestAnimationFrame(() => {
-                            try { window.updateSummary(window.projectData || []); } catch (e) { }
+                            try { window.updateSummary(window.YearContext ? window.YearContext.scope(window.projectData || [], 'schedule') : (window.projectData || [])); } catch (e) { }
                         });
                     }
 
@@ -99740,6 +100546,19 @@ function showPendingSettlementModal(periodType, projects) {
         #ganttChartWrapper .header-toggle-btn::after {
             display: none !important;
             content: none !important;
+        }
+        @media (max-width: 768px) and (orientation: portrait) {
+            #ganttChartWrapper .header-toggle-btn { touch-action: manipulation; }
+            #ganttChartWrapper .header-toggle-btn::after {
+                content: '' !important;
+                display: block !important;
+                position: absolute;
+                width: 44px;
+                height: 44px;
+                left: -22px;
+                top: -17px;
+                background: transparent;
+            }
         }
         #ganttChartWrapper .gantt-timeline-wrapper {
             flex: 1 1 0 !important;
@@ -119214,7 +120033,8 @@ function showPendingSettlementModal(periodType, projects) {
                     scan(row && row.id, row && row.maintenanceCode);
                 });
                 var fallback = Math.max((projects || []).length, (rows || []).length) + 1;
-                return String(maxId ? (maxId + 1) : fallback);
+                var proposed = String(maxId ? (maxId + 1) : fallback);
+                return window.YearBootCoordinator ? window.YearBootCoordinator.reserveNextId(proposed, projects) : proposed;
             }
             function migrateProjectIdReferences(oldId, newId) {
                 oldId = normalizeText(oldId);
@@ -119394,6 +120214,7 @@ function showPendingSettlementModal(periodType, projects) {
             function filteredRows(duplicateCodes) {
                 var q = normalizeText(state.search).toLowerCase();
                 var rows = (state.rows || []).filter(rowMatchesFilters);
+                if (window.YearContext) rows = rows.filter(function(row) { return row.__isNew || row.__sessionNew || window.YearContext.scope([row], 'union').length > 0; });
                 if (state.duplicateOnly) {
                     duplicateCodes = duplicateCodes || collectDuplicateMaintenanceCodes();
                     rows = rows.filter(function(row) { return isDuplicateMaintenanceRow(row, duplicateCodes); });
@@ -120065,6 +120886,7 @@ function showPendingSettlementModal(periodType, projects) {
                 try { if (typeof window.render === 'function') window.render(true); } catch (e5) { }
             }
             function applyChanges() {
+                if (window.YearContext && window.YearContext.getViewState().readonly) { notify('이전 연도 수정 모드를 먼저 선택해 주세요.', 'warning', 2600); return; }
                 harvestProjectManagerInputs(document.getElementById(MODAL_ID));
                 var validation = validateRows();
                 if (!validation.ok) {
@@ -120205,6 +121027,10 @@ function showPendingSettlementModal(periodType, projects) {
                 var pending = (state.rows || []).filter(function(row) { return !!row.__delete; });
                 var deletedProjectsForWebSave = pending.map(function(row) { return makeProject(row); });
                 if (!pending.length) return 0;
+                if (window.YearContext && window.YearContext.getViewState().readonly) {
+                    notify('이전 연도 수정 모드를 먼저 선택해 주세요. 삭제 예정 항목을 그대로 보존했습니다.', 'warning', 2600);
+                    return -1;
+                }
                 var stores = collectStores();
                 var deleted = 0;
                 pending.forEach(function(row) {
@@ -120846,6 +121672,7 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                 var modal = document.getElementById(MODAL_ID);
                 if (!modal) return;
                 var deleted = commitPendingDeletesOnClose();
+                if (deleted < 0) return;
                 setProjectManagerFullscreen(modal, false);
                 modal.classList.add('hidden');
                 modal.setAttribute('aria-hidden', 'true');
@@ -121011,6 +121838,11 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                 document.addEventListener('click', function(event) {
                     var btn = document.getElementById(BTN_ID);
                     if (!btn || !btn.isConnected) return;
+                    // Native controls own their clicks. Coordinate recovery is for
+                    // uncovered areas, so avoid a forced layout before these actions.
+                    var directControl = event.target && event.target.closest &&
+                        event.target.closest('button, a, input, select, textarea, [role="button"]');
+                    if (directControl) return;
                     
                     // [가드 1] 버튼이 보이지 않거나 크기가 없는 상태(display: none, hidden 등)라면 프록시 작동 안함
                     if (btn.offsetParent === null) return;
@@ -121236,6 +122068,7 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                 __installed20260618: true,
                 ensureButton: ensureButton,
                 open: openModal,
+                canChangeYear: function() { return !state.opened || (!state.dirty && changedCount() === 0); },
                 applyChanges: applyChanges,
                 closeModal: closeModal,
                 snapshotRows: snapshotRows,
@@ -121690,11 +122523,14 @@ window.openAddNewProjectModal = function(editProject) {
                     function hasMaintenanceCodeConflict(candidate, ignoredIndex) {
                         candidate = String(candidate || '').trim();
                         if (!candidate) return false;
+                        const sameCurrent = ignoredIndex >= 0 && projectMaintenanceValue(projects[ignoredIndex]) === candidate;
+                        if (!sameCurrent && window.YearBootCoordinator && window.YearBootCoordinator.containsSourceCode(candidate)) return true;
                         return projects.some(function(p, index) {
                             return index !== ignoredIndex && projectMaintenanceValue(p) === candidate;
                         });
                     }
                     function nextInternalProjectIdForAdd() {
+                        if (window.YearBootCoordinator && !window.YearBootCoordinator.getState().complete) return window.YearBootCoordinator.reserveNextId('0', projects);
                         try {
                             if (window.CodexProjectIdIntegrity && typeof window.CodexProjectIdIntegrity.next === 'function') {
                                 return window.CodexProjectIdIntegrity.next(projects, []);
@@ -126351,6 +127187,7 @@ window.openAddNewProjectModal = function(editProject) {
             }
 
             function buildWorkbookForSync(options) {
+                if (window.YearBootCoordinator) window.YearBootCoordinator.assertComplete();
                 options = options || {};
                 if (window.CodexRemarksIntegrityGuard && typeof window.CodexRemarksIntegrityGuard.assert === 'function') {
                     window.CodexRemarksIntegrityGuard.assert();
@@ -127946,6 +128783,7 @@ window.openAddNewProjectModal = function(editProject) {
             }
 
             function persistLocalBackup(reason) {
+                if (window.YearBootCoordinator && !window.YearBootCoordinator.getState().complete && window.YearBootCoordinator.getState().usingCache) return window.YearBootCoordinator.persistPending();
                 // A delayed idle backup may finish after a remote save/conflict.
                 // Session persistence must not replace the authoritative remote outcome.
                 if (!state.dirty && !state.remoteDirty && state.status === 'remote-saved') {
@@ -128809,6 +129647,7 @@ window.openAddNewProjectModal = function(editProject) {
             }
 
             function captureWebSaveValueBaseline(reason) {
+                if (window.YearBootCoordinator && !window.YearBootCoordinator.getState().complete && !window.__lastAutoUploadSourceWorkbook) return null;
                 try {
                     if ((state.dirty || state.remoteDirty || Object.keys(state.dirtyReasons || {}).length) && state.baselineValueSnapshot) {
                         try { window.__codexWebSaveValueBaselineSkipped = { reason: reason || 'dirty-state', at: new Date().toISOString() }; } catch (skipError) { }
@@ -129045,6 +129884,7 @@ window.openAddNewProjectModal = function(editProject) {
             }
 
             async function executeRemoteSync(options) {
+                if (window.YearBootCoordinator) await window.YearBootCoordinator.ensureComplete();
                 options = options || {};
                 if (state.busy && state._busyStartedAt && (Date.now() - state._busyStartedAt > 300000)) {
                     state.busy = false;
@@ -129667,6 +130507,7 @@ window.openAddNewProjectModal = function(editProject) {
                 bindLocalAutoSave: bindLocalAutoSave,
                 scheduleLocalAutoSave: scheduleLocalAutoSave,
                 persistLocalBackup: persistLocalBackup,
+                captureValueBaseline: captureWebSaveValueBaseline,
                 clearLocalBackup: clearLocalBackup,
                 buildWorkbookForSync: buildWorkbookForSync,
                 buildSaveIntegrityIssues: buildSaveIntegrityIssues,
@@ -132316,6 +133157,7 @@ window.openAddNewProjectModal = function(editProject) {
             }
 
             async function executeXlsbUpload() {
+                try { window.YearBootCoordinator?.assertSourceReplacementReady(); } catch (error) { notify(error.message, 'warning', 4200); return; }
                 if (state.busy) return;
                 var modal = ensureModal();
                 var input = modal.querySelector('#codexXlsbUploadFile');
@@ -135575,7 +136417,9 @@ window.openAddNewProjectModal = function(editProject) {
                 window.__collectEntriesCache = null;
             }
             function getAllWorkProjects() {
-                return Array.isArray(state.parentProjects) ? state.parentProjects : rawWorkProjects();
+                var source = Array.isArray(state.parentProjects) ? state.parentProjects : rawWorkProjects();
+                if (!window.YearContext || window.YearContext.getViewState().year === 'all') return source;
+                return window.YearContext.scope(source, 'union').map(function(project) { return window.YearContext.scopeWork(project); });
             }
             function parentProjectScopeLabel() {
                 var context = state.parentFilterContext;
@@ -135771,6 +136615,10 @@ window.openAddNewProjectModal = function(editProject) {
                 var detail = String(detailValue == null ? '' : detailValue).trim();
                 if (!detail) return;
                 var date = normalizeDateKey(dateValue);
+                if (window.YearContext) {
+                    var operationYear = window.YearContext.getViewState().year;
+                    if (operationYear !== 'all' && date && window.YearContext.asYear(date) !== operationYear) return;
+                }
                 var identity = meta.projectId || meta.maintenanceCode || meta.projectName || '';
                 var key = identity + '\u0001' + date + '\u0001' + detail;
                 if (seen[key]) return;
@@ -141224,6 +142072,29 @@ window.openAddNewProjectModal = function(editProject) {
                 isApplied: function() { return !!state.applied; },
                 getCacheKey: function() { return state.applied ? state.applied.token : 'inactive'; },
                 analyzeHousehold: analyzeHousehold,
+                canChangeYear: function() { return !state.scheduleEdit; },
+                refreshYearScope: function() {
+                    if (state.scheduleEdit) return false;
+                    clearTimeout(householdRefreshTimer);
+                    clearTimeout(householdLoadRetryTimer);
+                    window.__collectEntriesCache = null;
+                    var modal = $('workContentSearchModal');
+                    var opened = !!(modal && !modal.classList.contains('hidden') && modal.getAttribute('aria-hidden') !== 'true');
+                    if (!opened && !state.parentProjects) return true;
+                    captureParentProjectScope();
+                    state.lastAnalysis = null;
+                    state.lastSequence = null;
+                    state.lastPartialSequence = null;
+                    state.lastHousehold = null;
+                    if (opened) {
+                        if (isSequenceViewMode()) analyzeSequence();
+                        else if (state.viewMode === 'household') analyzeHousehold();
+                        else analyze();
+                        refreshOpenWorkContentDetail();
+                        refreshOpenWorkContentFullscreen();
+                    }
+                    return true;
+                },
                 analyzeHouseholdCanonical: function() {
                     var previousOverride = state.activePeriodFilterOverride;
                     var previousHousehold = state.lastHousehold;
@@ -141763,6 +142634,7 @@ window.openAddNewProjectModal = function(editProject) {
                 } else if (!hasFilterAwareList && Array.isArray(window.projectData)) {
                     list = window.projectData;
                 }
+                if (window.YearContext) list = window.YearContext.scope(list, 'schedule').map(function(project) { return window.YearContext.scopeWork(project); });
                 return list;
             }
 
@@ -141774,6 +142646,7 @@ window.openAddNewProjectModal = function(editProject) {
                 list.forEach(function (p) {
                     try {
                         if (!p) return;
+                        if (window.YearContext) p = window.YearContext.scopeWork(p);
                         var workDates = [];
                         if (activeWorkdateFilter) {
                             workDates = getFilteredWorkEntries(p, activeWorkdateFilter);
@@ -146265,6 +147138,7 @@ window.openAddNewProjectModal = function(editProject) {
             return state.startupPromise;
         }
         async function refreshOpenAnalysisAfterDataChange() {
+            var yearGeneration = window.YearContext?.getViewState().generation;
             state.analysis = null;
             state.householdCache = null;
             state.householdCacheSignature = '';
@@ -146272,9 +147146,11 @@ window.openAddNewProjectModal = function(editProject) {
             if (!modal || modal.classList.contains('hidden')) return;
             var token = state.lifecycleToken;
             await waitForProjectDataReady(8000);
+            if (yearGeneration !== window.YearContext?.getViewState().generation) return;
             if (token !== state.lifecycleToken || modal.classList.contains('hidden')) return;
             captureCostParentScope();
             if (!state.rows.length) await loadDefault();
+            if (yearGeneration !== window.YearContext?.getViewState().generation) return;
             if (token !== state.lifecycleToken || modal.classList.contains('hidden')) return;
             state.analysis = null;
             render();
@@ -146446,6 +147322,7 @@ window.openAddNewProjectModal = function(editProject) {
         }
         window.CostEstimationAnalysis = {
             version: '2026.08.04.1', open: open, close: close, loadDefault: loadDefault,
+            refreshYearScope: refreshOpenAnalysisAfterDataChange,
             analyze: buildAnalysis, getComparisonSource: function() { captureCostParentScope(); return buildAnalysis({ ignorePeriodFilter: true, commit: false }); }, prepareComparisonSource: prepareComparisonSource, releaseComparisonSource: releaseCostParentScope, ensureModal: ensureModal, remoteSave: remoteSave, getRemotePath: getRemotePath,
             openEvidence: openEvidence, downloadAnalysisWorkbook: downloadAnalysisWorkbook, downloadEvidenceWorkbook: downloadEvidenceWorkbook,
             getState: function() { return { sourceMode: state.sourceMode, source: state.source, rows: state.rows.slice(), rowsByYear: Object.keys(state.rowsByYear).reduce(function(out, year) { out[year] = (state.rowsByYear[year] || []).slice(); return out; }, {}), sourceByYear: Object.assign({}, state.sourceByYear), errorByYear: Object.assign({}, state.errorByYear), remoteCatalog: state.remoteCatalog.map(function(entry) { return Object.assign({}, entry); }), activeRateYear: state.activeRateYear, rateYearPreference: state.rateYearOverride || 'auto', targetRateYear: getTargetRateYear(), availableRateYears: availableRateYears(), sourceWarnings: state.sourceWarnings.slice(), sourceNotices: state.sourceNotices.slice(), verifiedMetaByYear: Object.assign({}, state.verifiedMetaByYear), startupStarted: state.startupStarted, startupPending: !!state.startupPromise, remotePath: state.remotePath, remoteSha: state.remoteSha, analysis: state.analysis, evidence: state.evidence, parentFilterContext: state.parentFilterContext ? Object.assign({}, state.parentFilterContext) : null, scopedRateBuildings: Object.keys(state.parentRateBuildings).sort(function(a, b) { return String(a).localeCompare(String(b), 'ko-KR', { numeric:true }); }), filterYear: state.filterYear, filterYears: state.filterYears.slice(), filterType: state.filterType, filterValue: state.filterValue, filterValues: state.filterValues.slice(), periodBasis: state.periodBasis, analysisPage: state.analysisPage, evidencePage: state.evidencePage, otherPage: state.otherPage, lastError: state.lastError }; }
