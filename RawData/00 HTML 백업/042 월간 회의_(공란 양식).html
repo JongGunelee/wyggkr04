@@ -5643,6 +5643,7 @@
     position: relative !important;
     max-width: 100% !important;
     height: auto !important;
+    overflow: visible !important;
     background-color: #ffffff !important;
     padding: 2px !important;
     min-width: 30px !important;
@@ -6951,6 +6952,43 @@
                 });
 
                 targetDoc.querySelectorAll(removableRuntimeSelector).forEach((el) => el.remove());
+
+                // (12-0) [무결성 보증] 이미지 임시 리사이즈 핸들 및 런타임 오버레이 완전 정화
+                targetDoc.querySelectorAll('.resize-handle-img, .ghost-image, .image-crop-overlay, .crop-dim-overlay').forEach(el => el.remove());
+
+                // (12-0-1) [무결성 보증] 이미지 래퍼 런타임 상태 클래스 및 속성 완전 정화 (N차 저장 누적 0건 보장)
+                targetDoc.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
+                    wrapper.classList.remove('active', 'selected', 'is-dragging', 'multi-zoom-selected', 'controls-active');
+                    wrapper.removeAttribute('data-draggable-initialized');
+                    wrapper.setAttribute('contenteditable', 'false');
+                    wrapper.dataset.editableType = 'image-wrapper';
+                    wrapper.style.height = 'auto';
+                    wrapper.style.overflow = 'visible';
+                    wrapper.style.maxWidth = '100%';
+                    wrapper.style.boxSizing = 'border-box';
+                    const curW = parseFloat(wrapper.style.width || 0);
+                    if (!curW || curW < 110) {
+                        wrapper.style.width = '300px';
+                    }
+                    wrapper.querySelectorAll('img').forEach(function(img) {
+                        const src = img.getAttribute('src') || img.src || img.dataset.imageSrc || '';
+                        if (src) {
+                            img.setAttribute('src', src);
+                            img.setAttribute('data-image-src', src);
+                            wrapper.setAttribute('data-image-src', src);
+                        }
+                        img.style.height = 'auto';
+                        img.style.width = '100%';
+                        img.style.maxWidth = '100%';
+                        img.style.objectFit = 'contain';
+                        img.style.display = 'block';
+                        img.removeAttribute('height');
+                        if (img.naturalWidth && img.naturalHeight) {
+                            img.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+                        }
+                    });
+                });
+
                 return targetDoc;
             }
 
@@ -7713,8 +7751,9 @@ function ensureImageWrapperStructure(wrapper) {
             // contenteditable 속성 설정으로 편집 영역 내 안정성 보장
             wrapper.setAttribute('contenteditable', 'false');
 
-            // [무결성 보증] 높이 고정으로 인한 왜곡 및 0px 한 줄 붕괴 원천 차단
+            // [개선 ##1] 높이 고정으로 인한 왜곡 원천 차단 및 반응형 자동 비례 보장
             wrapper.style.height = 'auto';
+            wrapper.style.overflow = 'visible';
             if (img) {
                 img.style.maxWidth = '100%';
                 img.style.width = '100%';
@@ -7722,6 +7761,9 @@ function ensureImageWrapperStructure(wrapper) {
                 img.style.objectFit = 'contain';
                 img.style.display = 'block';
                 img.removeAttribute('height');
+                if (img.naturalWidth && img.naturalHeight) {
+                    img.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+                }
             }
 
             return true;
@@ -8555,6 +8597,66 @@ let currentZoomingImageElement = null;
             }
         }
 
+        // ==========================================================================
+        // [무결성 보증 복원 엔진] 문서 로드 시 모든 .resizable-image-wrapper에 대해 ensureImageWrapperStructure와
+        // makeImageDraggable을 즉시 실행하여 4모서리 핸들, 고유 식별자, 드래그 엔진 완전 재구성
+        // ==========================================================================
+        function reconstructAllImageWrappersIntegrity() {
+            document.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
+                wrapper.style.height = 'auto';
+                wrapper.style.overflow = 'visible';
+                wrapper.style.maxWidth = '100%';
+                wrapper.style.boxSizing = 'border-box';
+                const curW = parseFloat(wrapper.style.width || 0);
+                // [무결성 복원] 너비가 없거나 과거 버그로 110px 미만(54px, 77px 등)으로 파괴 축소된 경우 정상 기준 크기로 안전 복원
+                if (!curW || curW < 110) {
+                    wrapper.style.width = '300px';
+                }
+                const img = wrapper.querySelector('img');
+                if (img) {
+                    img.style.maxWidth = '100%';
+                    img.style.width = '100%';
+                    img.style.height = 'auto';
+                    img.style.objectFit = 'contain';
+                    img.style.display = 'block';
+                    img.removeAttribute('height');
+                    const applyImgRatioAndWidth = () => {
+                        if (img.naturalWidth && img.naturalHeight) {
+                            img.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+                            const w = parseFloat(wrapper.style.width || 0);
+                            if (w < 110 && img.naturalWidth > 150) {
+                                wrapper.style.width = `${Math.min(img.naturalWidth, 320)}px`;
+                            }
+                        }
+                    };
+                    img.addEventListener('error', () => {
+                        if (!img.src.startsWith('data:')) {
+                            img.alt = '⚠️ 외부 링크 만료 (새로 복사하여 붙여넣으면 영구 보존됩니다)';
+                            img.style.minHeight = '60px';
+                            img.style.background = '#fef2f2';
+                            img.style.color = '#dc2626';
+                            img.style.padding = '8px';
+                            img.style.fontSize = '12px';
+                            img.style.lineHeight = '1.4';
+                            wrapper.style.minWidth = '220px';
+                        }
+                    }, { once: true });
+                    if (img.complete && img.naturalWidth) {
+                        applyImgRatioAndWidth();
+                    } else {
+                        img.addEventListener('load', applyImgRatioAndWidth, { once: true });
+                    }
+                }
+                ensureImageWrapperStructure(wrapper);
+                makeImageDraggable(wrapper);
+            });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', reconstructAllImageWrappersIntegrity);
+        } else {
+            reconstructAllImageWrappersIntegrity();
+        }
+
 function processPastedImages(scope) {
             if (!scope) return;
             const imgs = scope.querySelectorAll('img');
@@ -8754,343 +8856,345 @@ function compressImage(file) {
 
 
 // --- START: 무결성 보증 통합 복사/잘라내기/붙여넣기 글로벌 엔진 ---
-        async function handleUnifiedPaste(e, targetContainer) {
+        async function handleUniversalPaste(e, targetContainer) {
             if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
                 return; // 기본 input/textarea 입력 보호
             }
 
-            // 대상 컨테이너(일반 화면 vs 확대 편집 화면) 자동 감지 및 결정
+            // 현재 활성 편집 영역 결정: 확대 편집기가 열려 있으면 surface 우선
             const focusedOverlay = document.getElementById('focusedEditorOverlay');
-            const isFocusedOpen = focusedOverlay && (focusedOverlay.classList.contains('active') || (focusedOverlay.style.display !== 'none' && focusedOverlay.style.display !== ''));
             const focusedSurface = document.getElementById('focusedEditorSurface');
-
-            let activeContainer = targetContainer;
-            if (isFocusedOpen && focusedSurface) {
-                activeContainer = focusedSurface;
-            } else if (!activeContainer) {
-                activeContainer = document.getElementById('content') || document.getElementById('contentArea') || document.body;
+            if (!targetContainer) {
+                if (focusedOverlay && (focusedOverlay.classList.contains('active') || (focusedOverlay.style.display !== 'none' && focusedOverlay.style.display !== '')) && focusedSurface) {
+                    targetContainer = focusedSurface;
+                } else {
+                    targetContainer = (typeof contentArea !== 'undefined' && contentArea) ? contentArea : (document.getElementById('content') || document.body);
+                }
             }
 
-            const clipboardData = e.clipboardData || window.clipboardData;
+            const clipboardData = e.clipboardData || window.clipboardData || e.originalEvent?.clipboardData;
             if (!clipboardData) return;
 
+            // 1. 클립보드 바이너리 이미지 파일 우선 추출
             const items = clipboardData.items;
-
-            // 1. 바이너리 이미지 파일(스크린샷, 이미지 파일 직접 복사 등) 처리
-            let hasRawImageFile = false;
-            const imageFiles = [];
+            let imageFiles = [];
             if (items) {
                 for (let i = 0; i < items.length; i++) {
-                    const item = items[i];
-                    if (item.type && item.type.indexOf('image/') !== -1) {
-                        const file = item.getAsFile();
-                        if (file) {
-                            hasRawImageFile = true;
-                            imageFiles.push(file);
-                        }
+                    if (items[i].type && items[i].type.indexOf('image') !== -1) {
+                        const file = items[i].getAsFile();
+                        if (file) imageFiles.push(file);
                     }
                 }
             }
 
-            if (hasRawImageFile && imageFiles.length > 0) {
-                e.preventDefault();
-                e.stopPropagation();
-                showMessage(`${imageFiles.length}개 이미지 처리 중...`, 'info', 3000);
+            const htmlData = (clipboardData.getData('text/html') || '').trim();
+            const textData = clipboardData.getData('text/plain') || clipboardData.getData('text') || '';
 
-                const processingPromises = imageFiles.map(file => {
-                    return new Promise(async (resolve) => {
-                        if (typeof COMPRESSION_THRESHOLD !== 'undefined' && file.size > COMPRESSION_THRESHOLD && typeof compressImage === 'function') {
-                            try {
-                                resolve(await compressImage(file));
-                            } catch (error) {
-                                console.error('Clipboard image compression failed:', error);
-                                const reader = new FileReader();
-                                reader.onload = (ev) => resolve(ev.target.result);
-                                reader.readAsDataURL(file);
-                            }
-                        } else {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => resolve(ev.target.result);
-                            reader.readAsDataURL(file);
-                        }
-                    });
-                });
-
-                const base64Images = await Promise.all(processingPromises);
-
-                const selection = window.getSelection();
-                let range = null;
-                if (selection && selection.rangeCount > 0) {
-                    const selRange = selection.getRangeAt(0);
-                    if (activeContainer.contains(selRange.commonAncestorContainer) || activeContainer.contains(selection.anchorNode)) {
-                        range = selRange;
-                    }
-                }
-                if (!range) {
-                    activeContainer.focus();
-                    range = document.createRange();
-                    range.selectNodeContents(activeContainer);
-                    range.collapse(false);
-                    if (selection) {
-                        selection.removeAllRanges();
-                        selection.addRange(range);
-                    }
-                }
-
-                const requestedImageWidth = 300;
-                const containerWidth = Math.max(80, (activeContainer.clientWidth || window.innerWidth) - 16);
-                const imageWidth = Math.min(requestedImageWidth, containerWidth);
-
-                base64Images.forEach(imageSrc => {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'resizable-image-wrapper';
-                    wrapper.setAttribute('contenteditable', 'false');
-                    wrapper.dataset.editableType = 'image-wrapper';
-                    wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                    wrapper.dataset.imageSrc = imageSrc;
-                    wrapper.style.width = `${imageWidth}px`;
-                    wrapper.innerHTML = `
-                        <img src="${imageSrc}" data-image-src="${imageSrc}" alt="사용자 붙여넣기 이미지">
-                        <div class="resize-handle-img rh-top-left"></div>
-                        <div class="resize-handle-img rh-top-right"></div>
-                        <div class="resize-handle-img rh-bottom-left"></div>
-                        <div class="resize-handle-img rh-bottom-right"></div>
-                    `;
-
-                    range.insertNode(wrapper);
-                    range.setStartAfter(wrapper);
-                    range.collapse(true);
-
-                    setTimeout(() => {
-                        if (typeof ensureImageWrapperStructure === 'function') ensureImageWrapperStructure(wrapper);
-                        if (typeof makeImageDraggable === 'function') makeImageDraggable(wrapper);
-                        if (typeof generateItemControls === 'function') generateItemControls(wrapper);
-                        wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
-                        const active = activeContainer.querySelector('.resizable-image-wrapper.active');
-                        if (active && active !== wrapper) active.classList.remove('active');
-                        wrapper.classList.add('active');
-                        if (typeof currentlyActiveItemControlsElement !== 'undefined') {
-                            currentlyActiveItemControlsElement = wrapper;
-                        }
-                        if (typeof normalizeMonthlyEditingLayout === 'function') {
-                            normalizeMonthlyEditingLayout(activeContainer);
-                        }
-                        if (typeof clampImagesToContainers === 'function') {
-                            clampImagesToContainers(activeContainer);
-                        }
-                    }, 0);
-                });
-
-                activeContainer.dispatchEvent(new Event('input', { bubbles: true }));
-                showMessage(`${base64Images.length}개 이미지가 붙여넣기 되었습니다.`, 'success', 2000);
-                return;
-            }
-
-            // 2. HTML 클립보드 데이터 처리 (이미지, 문장, 서식 스타일, 기호, 이모지, 링크 다중 혼합 붙여넣기)
-            const html = clipboardData.getData('text/html');
-            if (html && html.trim().length > 0) {
+            // [판별] HTML 서식 데이터가 순수 이미지 래퍼/외부 URL만 담고 있는지 검사
+            let htmlHasMeaningfulText = false;
+            let parsedDoc = null;
+            if (htmlData) {
                 try {
                     const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
+                    parsedDoc = parser.parseFromString(htmlData, 'text/html');
+                    const textContent = (parsedDoc.body?.textContent || '').replace(/\s+/g, '');
+                    htmlHasMeaningfulText = textContent.length > 0;
+                } catch (pe) {}
+            }
 
-                    // 위험 및 불필요한 메타/스타일 태그 제거
-                    doc.querySelectorAll('script, style, meta, link, noscript, title').forEach(el => el.remove());
-                    // HTML 주석 노드 정리
-                    const commentIterator = doc.createNodeIterator(doc.body, NodeFilter.SHOW_COMMENT);
-                    let cNode;
-                    const commentsToRemove = [];
-                    while (cNode = commentIterator.nextNode()) commentsToRemove.push(cNode);
-                    commentsToRemove.forEach(c => c.remove());
+            // Case 1: 클립보드에 바이너리 이미지가 존재하고, 복사된 내용이 순수 이미지이거나 외부 이미지 URL인 경우
+            // (구글 포토, 웹 페이지, 사내망, 캡처 도구, 그림판 등에서 복사 시 외부 URL 만료/CORS/file:// 차단 원천 방지)
+            const shouldPrioritizeBinaryImage = imageFiles.length > 0 && (!htmlData || !htmlHasMeaningfulText);
 
-                    // 복사된 임시 UI 컨트롤 제거 (리사이즈 핸들, 툴바 등)
-                    doc.querySelectorAll('.resize-handle-img, .item-controls, .insert-area-toggle-btn, .box-toggle-btn, .annotation-delete-btn, .zoom-text-input-wrapper').forEach(el => el.remove());
+            if (shouldPrioritizeBinaryImage) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.__handledByUniversalPaste = true;
 
-                    const containerWidth = Math.max(80, (activeContainer.clientWidth || window.innerWidth) - 16);
+                if (typeof showMessage === 'function') {
+                    showMessage(`${imageFiles.length}개 이미지 무결성 압축 및 안전 삽입 중...`, 'info', 3000);
+                }
 
-                    // [무결성 핵심 1] 기존 .resizable-image-wrapper 무결성 정밀 검증 및 빈 박스 절대 방어
-                    const wrappersInDoc = Array.from(doc.body.querySelectorAll('.resizable-image-wrapper'));
-                    wrappersInDoc.forEach(wrapper => {
-                        let img = wrapper.querySelector('img');
-                        let src = (img && (img.getAttribute('src') || img.src)) || wrapper.getAttribute('data-image-src') || (img && img.getAttribute('data-image-src')) || '';
+                for (const file of imageFiles) {
+                    try {
+                        let compressedDataUrl;
+                        if (typeof COMPRESSION_THRESHOLD !== 'undefined' && file.size > COMPRESSION_THRESHOLD && typeof compressImage === 'function') {
+                            try {
+                                compressedDataUrl = await compressImage(file);
+                            } catch (err) {
+                                console.error('Pasted image compression failed, using fallback:', err);
+                                compressedDataUrl = await new Promise((resolve, reject) => {
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => resolve(event.target.result);
+                                    reader.onerror = reject;
+                                    reader.readAsDataURL(file);
+                                });
+                            }
+                        } else {
+                            compressedDataUrl = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = (event) => resolve(event.target.result);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(file);
+                            });
+                        }
 
-                        // 만약 src가 비어있다면 wrapper 하위의 모든 data-* 속성에서 이미지 데이터 탐색
-                        if (!src || src === 'about:blank' || src === 'data:,') {
-                            for (const attr of wrapper.attributes) {
-                                if (attr.value && (attr.value.startsWith('data:image/') || attr.value.startsWith('blob:') || attr.value.startsWith('http://') || attr.value.startsWith('https://'))) {
-                                    src = attr.value;
-                                    break;
-                                }
+                        // 삽입 위치 결정 (확대 편집기 및 일반 화면 공통 정밀 타겟팅)
+                        let selection = window.getSelection();
+                        let range = null;
+                        if (selection && selection.rangeCount > 0 && targetContainer.contains(selection.anchorNode)) {
+                            range = selection.getRangeAt(0);
+                        } else {
+                            targetContainer.focus();
+                            range = document.createRange();
+                            range.selectNodeContents(targetContainer);
+                            range.collapse(false);
+                        }
+
+                        // [무결성 보증] 이미 래퍼 내부이거나 조작 요소 내부로 들어가지 않도록 보호
+                        if (range.startContainer && (range.startContainer.nodeType === 1 && range.startContainer.closest?.('.resizable-image-wrapper') ||
+                            range.startContainer.parentElement?.closest?.('.resizable-image-wrapper'))) {
+                            const existingWrapper = (range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement).closest('.resizable-image-wrapper');
+                            if (existingWrapper && existingWrapper.parentNode) {
+                                range = document.createRange();
+                                range.setStartAfter(existingWrapper);
+                                range.collapse(true);
                             }
                         }
-
-                        // 이미지 소스가 전혀 복원되지 않는 래퍼는 [빈 박스 발생 원천 차단]으로 즉시 제거
-                        if (!src || src === 'about:blank' || src === 'data:,') {
-                            wrapper.remove();
-                            return;
-                        }
-
-                        // 이미지가 존재하면 누락된 <img> 태그 복원 또는 src/data-image-src 완벽 동기화
-                        if (!img) {
-                            img = document.createElement('img');
-                            img.alt = '복원된 이미지';
-                            wrapper.prepend(img);
-                        }
-                        img.setAttribute('src', src);
-                        img.setAttribute('data-image-src', src);
-                        wrapper.setAttribute('data-image-src', src);
-
-                        wrapper.setAttribute('contenteditable', 'false');
-                        wrapper.dataset.editableType = 'image-wrapper';
-                        wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                        delete wrapper.dataset.draggableInitialized;
-                        wrapper.removeAttribute('data-draggable-initialized');
-
-                        const curW = parseFloat(wrapper.style.width) || containerWidth;
-                        if (curW > containerWidth) {
-                            wrapper.style.width = `${containerWidth}px`;
-                        }
-                        wrapper.classList.remove('active', 'selected', 'multi-zoom-selected', 'is-dragging', 'controls-active');
-                    });
-
-                    // [무결성 핵심 2] .resizable-image-wrapper 외부에 존재하는 순수 <img> 태그 정규 래퍼로 캡슐화
-                    const standaloneImages = Array.from(doc.body.querySelectorAll('img')).filter(img => !img.closest('.resizable-image-wrapper'));
-                    standaloneImages.forEach(img => {
-                        const src = img.getAttribute('src') || img.src || img.getAttribute('data-image-src') || '';
-                        if (!src || src === 'about:blank' || src === 'data:,') {
-                            img.remove();
-                            return;
-                        }
-                        img.setAttribute('src', src);
-                        img.setAttribute('data-image-src', src);
 
                         const wrapper = document.createElement('div');
                         wrapper.className = 'resizable-image-wrapper';
                         wrapper.setAttribute('contenteditable', 'false');
                         wrapper.dataset.editableType = 'image-wrapper';
                         wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                        wrapper.dataset.imageSrc = src;
+                        wrapper.dataset.imageSrc = compressedDataUrl;
 
-                        const imgW = img.width || img.naturalWidth || 300;
-                        wrapper.style.width = `${Math.min(imgW, containerWidth)}px`;
+                        const containerWidth = (targetContainer.clientWidth || window.innerWidth) - 24;
+                        const defaultWidth = Math.min(320, Math.max(180, containerWidth > 100 ? containerWidth : 320));
+                        wrapper.style.width = `${defaultWidth}px`;
+                        wrapper.style.maxWidth = '100%';
+                        wrapper.style.height = 'auto';
+                        wrapper.style.overflow = 'visible';
+                        wrapper.style.boxSizing = 'border-box';
 
-                        img.parentNode.insertBefore(wrapper, img);
-                        wrapper.appendChild(img);
-                    });
+                        wrapper.innerHTML = `
+                            <img src="${compressedDataUrl}" data-image-src="${compressedDataUrl}" alt="붙여넣은 이미지" style="display:block; width:100%; max-width:100%; height:auto; object-fit:contain;">
+                            <div class="resize-handle-img rh-top-left"></div>
+                            <div class="resize-handle-img rh-top-right"></div>
+                            <div class="resize-handle-img rh-bottom-left"></div>
+                            <div class="resize-handle-img rh-bottom-right"></div>
+                        `;
 
-                    // 클립보드 문서 내부가 비어있지 않은지 검사
-                    const hasContent = doc.body.children.length > 0 || (doc.body.textContent && doc.body.textContent.trim().length > 0);
+                        let container = range.endContainer;
+                        if (container && container.nodeType === 3) container = container.parentNode;
+                        const editableAncestor = container ? container.closest('[contenteditable="true"]') : null;
 
-                    if (hasContent) {
-                        e.preventDefault();
-                        e.stopPropagation();
-
-                        const wrappersToBind = Array.from(doc.body.querySelectorAll('.resizable-image-wrapper'));
-
-                        const selection = window.getSelection();
-                        let range = null;
-                        if (selection && selection.rangeCount > 0) {
-                            const selRange = selection.getRangeAt(0);
-                            if (activeContainer.contains(selRange.commonAncestorContainer) || activeContainer.contains(selection.anchorNode)) {
-                                range = selRange;
-                            }
-                        }
-                        if (!range) {
-                            activeContainer.focus();
-                            range = document.createRange();
-                            range.selectNodeContents(activeContainer);
-                            range.collapse(false);
-                            if (selection) {
-                                selection.removeAllRanges();
-                                selection.addRange(range);
-                            }
-                        }
-
-                        range.deleteContents();
-
-                        const fragment = document.createDocumentFragment();
-                        while (doc.body.firstChild) {
-                            fragment.appendChild(doc.body.firstChild);
-                        }
-
-                        range.insertNode(fragment);
-
-                        // 삽입된 이미지 래퍼 핸들 및 드래그 바인딩 (일반 화면 및 확대 편집 화면 공통)
-                        wrappersToBind.forEach(wrapper => {
-                            if (typeof ensureImageWrapperStructure === 'function') ensureImageWrapperStructure(wrapper);
-                            if (typeof makeImageDraggable === 'function') makeImageDraggable(wrapper);
-                            if (typeof generateItemControls === 'function') generateItemControls(wrapper);
-                            wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
-                        });
-
-                        if (wrappersToBind.length > 0) {
-                            const last = wrappersToBind[wrappersToBind.length - 1];
-                            range.setStartAfter(last);
+                        if (editableAncestor) {
+                            range.insertNode(wrapper);
+                            range.setStartAfter(wrapper);
                             range.collapse(true);
-                            if (selection) {
-                                selection.removeAllRanges();
-                                selection.addRange(range);
-                            }
+                        } else if (targetContainer.appendChild) {
+                            targetContainer.appendChild(wrapper);
+                        } else {
+                            targetContainer.parentNode.insertBefore(wrapper, targetContainer.nextSibling);
                         }
 
-                        if (typeof clampImagesToContainers === 'function') clampImagesToContainers(activeContainer);
-                        if (typeof normalizeMonthlyEditingLayout === 'function') normalizeMonthlyEditingLayout(activeContainer);
-                        activeContainer.dispatchEvent(new Event('input', { bubbles: true }));
+                        ensureImageWrapperStructure(wrapper);
+                        makeImageDraggable(wrapper);
+                        if (typeof generateItemControls === 'function') generateItemControls(wrapper);
 
-                        const msg = wrappersToBind.length > 0
-                            ? `${wrappersToBind.length}개 이미지를 포함한 대상이 붙여넣기 되었습니다.`
-                            : '복사한 내용(문장/서식/기호/링크)이 붙여넣기 되었습니다.';
-                        showMessage(msg, 'success', 2000);
-                        return;
+                        const active = document.querySelector('.resizable-image-wrapper.active');
+                        if (active && active !== wrapper) active.classList.remove('active');
+                        wrapper.classList.add('active');
+                        if (typeof activateControls === 'function') activateControls(wrapper);
+
+                        const br = document.createElement('br');
+                        wrapper.parentNode.insertBefore(br, wrapper.nextSibling);
+
+                        range.setStartAfter(br);
+                        range.collapse(true);
+                        if (selection) {
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                        }
+
+                        // 이미지 로드 시 aspect-ratio 및 최적 너비 보정
+                        const insertedImg = wrapper.querySelector('img');
+                        if (insertedImg) {
+                            const onImgLoad = () => {
+                                if (insertedImg.naturalWidth && insertedImg.naturalHeight) {
+                                    insertedImg.style.aspectRatio = `${insertedImg.naturalWidth} / ${insertedImg.naturalHeight}`;
+                                    const cWidth = targetContainer.clientWidth || window.innerWidth;
+                                    const naturalFit = Math.min(insertedImg.naturalWidth, Math.max(260, cWidth - 24));
+                                    if (naturalFit > 120 && (!wrapper.style.width || parseFloat(wrapper.style.width) < 120)) {
+                                        wrapper.style.width = `${naturalFit}px`;
+                                    }
+                                }
+                            };
+                            if (insertedImg.complete && insertedImg.naturalWidth) {
+                                onImgLoad();
+                            } else {
+                                insertedImg.addEventListener('load', onImgLoad, { once: true });
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Pasted image handling failed:', err);
+                        if (typeof showMessage === 'function') showMessage('이미지 붙여넣기 실패', 'error');
                     }
-                } catch (err) {
-                    console.error('HTML 클립보드 붙여넣기 처리 중 오류 발생:', err);
                 }
+                if (typeof normalizeMonthlyEditingLayout === 'function') normalizeMonthlyEditingLayout(targetContainer);
+                if (typeof clampImagesToContainers === 'function') clampImagesToContainers(targetContainer);
+                targetContainer.dispatchEvent(new Event('input', { bubbles: true }));
+                if (typeof showMessage === 'function') showMessage('이미지가 안전하게 압축 임베딩되었습니다.', 'success');
+                return;
             }
 
-            // 3. 순수 텍스트, 기호, 이모지 붙여넣기 (UTF-8 100% 무손실 보존 fallback)
-            const text = clipboardData.getData('text/plain') || clipboardData.getData('text');
-            if (text) {
+            // Case 2: HTML 복합 서식 데이터가 있는 경우 (문장+서식+기호+링크+이미지 혼합 본문 복사)
+            if (htmlData) {
                 e.preventDefault();
                 e.stopPropagation();
+                e.__handledByUniversalPaste = true;
 
-                const selection = window.getSelection();
+                const doc = parsedDoc || (new DOMParser()).parseFromString(htmlData, 'text/html');
+
+                // 스크립트, 스타일, 불필요 컨트롤 요소 정제
+                doc.querySelectorAll('script, style, meta, link, title, noscript, .item-controls, .image-crop-overlay, .crop-dim-overlay').forEach(el => el.remove());
+
+                // 붙여넣을 모든 이미지 검사 및 래퍼/핸들/스타일 무결성 정규화
+                const docImgs = doc.querySelectorAll('img');
+                let fileIdx = 0;
+                docImgs.forEach(img => {
+                    const src = img.getAttribute('src') || img.src || '';
+                    if ((!src || src.startsWith('file:') || src.startsWith('blob:') || src === 'about:blank') && fileIdx < imageFiles.length) {
+                        try {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                                img.setAttribute('src', ev.target.result);
+                                img.setAttribute('data-image-src', ev.target.result);
+                                const wr = img.closest('.resizable-image-wrapper');
+                                if (wr) wr.setAttribute('data-image-src', ev.target.result);
+                            };
+                            reader.readAsDataURL(imageFiles[fileIdx++]);
+                        } catch (e) {}
+                    }
+
+                    let wrapper = img.closest('.resizable-image-wrapper');
+                    if (!wrapper) {
+                        wrapper = doc.createElement('div');
+                        wrapper.className = 'resizable-image-wrapper';
+                        wrapper.setAttribute('contenteditable', 'false');
+                        img.parentNode.insertBefore(wrapper, img);
+                        wrapper.appendChild(img);
+                    }
+                    wrapper.classList.remove('active', 'selected', 'is-dragging', 'multi-zoom-selected', 'controls-active');
+                    wrapper.removeAttribute('data-draggable-initialized');
+                    wrapper.dataset.editableType = 'image-wrapper';
+                    wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    wrapper.setAttribute('contenteditable', 'false');
+
+                    // 4개 코너 리사이즈 핸들 부착
+                    wrapper.querySelectorAll('.resize-handle-img').forEach(h => h.remove());
+                    ['rh-top-left', 'rh-top-right', 'rh-bottom-left', 'rh-bottom-right'].forEach(cls => {
+                        const h = doc.createElement('div');
+                        h.className = `resize-handle-img ${cls}`;
+                        wrapper.appendChild(h);
+                    });
+
+                    // [무결성 보증] 높이 붕괴 방지 및 유연한 너비 설정
+                    wrapper.style.height = 'auto';
+                    wrapper.style.overflow = 'visible';
+                    const curW = parseFloat(wrapper.style.width || 0);
+                    if (!curW || curW < 120) {
+                        const naturalW = img.naturalWidth || parseInt(img.getAttribute('width'), 10) || 300;
+                        wrapper.style.width = `${Math.min(Math.max(naturalW, 200), 500)}px`;
+                    }
+                    wrapper.style.maxWidth = '100%';
+                    wrapper.style.boxSizing = 'border-box';
+                    img.style.maxWidth = '100%';
+                    img.style.width = '100%';
+                    img.style.height = 'auto';
+                    img.style.objectFit = 'contain';
+                    img.style.display = 'block';
+                    img.removeAttribute('height');
+                });
+
+                let selection = window.getSelection();
                 let range = null;
-                if (selection && selection.rangeCount > 0 && (activeContainer.contains(selection.anchorNode) || activeContainer.contains(selection.getRangeAt(0).commonAncestorContainer))) {
+                if (selection && selection.rangeCount > 0 && targetContainer.contains(selection.anchorNode)) {
                     range = selection.getRangeAt(0);
-                }
-                if (!range) {
-                    activeContainer.focus();
+                } else {
+                    targetContainer.focus();
                     range = document.createRange();
-                    range.selectNodeContents(activeContainer);
+                    range.selectNodeContents(targetContainer);
                     range.collapse(false);
-                    if (selection) {
+                }
+                range.deleteContents();
+
+                const fragment = document.createDocumentFragment();
+                const childNodes = Array.from(doc.body.childNodes);
+
+                if (childNodes.length > 0) {
+                    let lastNode = null;
+                    childNodes.forEach(node => {
+                        lastNode = fragment.appendChild(node);
+                    });
+                    range.insertNode(fragment);
+                    if (lastNode && selection) {
+                        range.setStartAfter(lastNode);
+                        range.collapse(true);
                         selection.removeAllRanges();
                         selection.addRange(range);
                     }
                 }
+
+                // 붙여넣어진 모든 이미지 자동 래핑 및 핸들/드래그 무결성 즉시 보장
+                processPastedImages(targetContainer);
+                if (typeof normalizeMonthlyEditingLayout === 'function') normalizeMonthlyEditingLayout(targetContainer);
+                if (typeof clampImagesToContainers === 'function') clampImagesToContainers(targetContainer);
+                targetContainer.dispatchEvent(new Event('input', { bubbles: true }));
+
+                requestAnimationFrame(() => {
+                    processPastedImages(targetContainer);
+                    if (typeof normalizeMonthlyEditingLayout === 'function') normalizeMonthlyEditingLayout(targetContainer);
+                });
+
+                if (typeof showMessage === 'function') showMessage('클립보드 내용이 성공적으로 붙여넣어졌습니다.', 'success');
+                return;
+            }
+
+            // Case 3: 순수 텍스트 데이터만 있는 경우
+            if (textData !== undefined) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.__handledByUniversalPaste = true;
 
                 if (document.queryCommandSupported && document.queryCommandSupported('insertText')) {
-                    document.execCommand('insertText', false, text);
+                    document.execCommand('insertText', false, textData);
                 } else {
-                    range.deleteContents();
-                    const textNode = document.createTextNode(text);
-                    range.insertNode(textNode);
-                    range.setStartAfter(textNode);
-                    range.collapse(true);
-                    if (selection) {
+                    const selection = window.getSelection();
+                    if (selection && selection.rangeCount > 0 && targetContainer.contains(selection.anchorNode)) {
+                        const range = selection.getRangeAt(0);
+                        range.deleteContents();
+                        const textNode = document.createTextNode(textData);
+                        range.insertNode(textNode);
+                        range.setStartAfter(textNode);
+                        range.collapse(true);
                         selection.removeAllRanges();
                         selection.addRange(range);
                     }
                 }
-                if (typeof normalizeMonthlyEditingLayout === 'function') {
-                    normalizeMonthlyEditingLayout(activeContainer);
-                }
-                activeContainer.dispatchEvent(new Event('input', { bubbles: true }));
+                processPastedImages(targetContainer);
+                if (typeof normalizeMonthlyEditingLayout === 'function') normalizeMonthlyEditingLayout(targetContainer);
+                targetContainer.dispatchEvent(new Event('input', { bubbles: true }));
+                requestAnimationFrame(() => {
+                    processPastedImages(targetContainer);
+                });
             }
         }
 
-        // 전역 호환성 보장
-        const handleClipboardPaste = handleUnifiedPaste;
+        // 전역 호환성 보장 aliases
+        const handleUnifiedPaste = handleUniversalPaste;
+        const handleClipboardPaste = handleUniversalPaste;
 
         // 전역 복사(Ctrl+C / Cmd+C / 모바일 복사) 무결성 보증 리스너
         function handleGlobalCopy(e) {
@@ -9141,81 +9245,33 @@ function compressImage(file) {
                     showMessage(`${countMsg} 클립보드에 복사되었습니다.`, 'info', 1800);
                     return;
                 }
-                return;
             }
 
-            // 2. 시프트 클릭 / 컨트롤 클릭 다중 선택(Multi-selection) 복사
-            let multiTargets = [];
-            if (typeof getLiveMultiZoomTargets === 'function') {
-                try { multiTargets = getLiveMultiZoomTargets(); } catch (err) {}
-            }
-            if (!multiTargets || multiTargets.length === 0) {
-                const queryTargets = document.querySelectorAll(
-                    '.resizable-image-wrapper.multi-zoom-selected, .resizable-image-wrapper.selected, .resizable-image-wrapper.active, ' +
-                    '.flow-chip-selected, .modal-chip-active, .is-selected, .multi-zoom-selected'
-                );
-                multiTargets = Array.from(queryTargets).filter(el => el && el.isConnected);
-            }
-
-            if (multiTargets && multiTargets.length > 0 && isSelectionEmptyOrCollapsed) {
+            // 2. 단일 또는 다중 선택된 이미지(.resizable-image-wrapper) 복사
+            const activeWrappers = Array.from(document.querySelectorAll('.resizable-image-wrapper.active, .resizable-image-wrapper.selected, .resizable-image-wrapper.multi-zoom-selected, .resizable-image-wrapper.controls-active'));
+            if (activeWrappers.length > 0 && isSelectionEmptyOrCollapsed) {
                 e.preventDefault();
                 const container = document.createElement('div');
-                let totalImages = 0;
+                activeWrappers.forEach(wrapper => {
+                    const clonedWrapper = wrapper.cloneNode(true);
+                    clonedWrapper.querySelectorAll('.resize-handle-img, .item-controls, .insert-area-toggle-btn, .annotation-delete-btn').forEach(el => el.remove());
+                    clonedWrapper.classList.remove('active', 'selected', 'multi-zoom-selected', 'is-dragging', 'controls-active');
+                    delete clonedWrapper.dataset.draggableInitialized;
+                    clonedWrapper.removeAttribute('data-draggable-initialized');
 
-                multiTargets.forEach(target => {
-                    const clone = target.cloneNode(true);
-                    clone.querySelectorAll('.resize-handle-img, .item-controls, .insert-area-toggle-btn, .box-toggle-btn, .annotation-delete-btn, .zoom-text-input-wrapper').forEach(el => el.remove());
-                    clone.classList.remove('active', 'selected', 'multi-zoom-selected', 'is-dragging', 'controls-active', 'flow-chip-selected', 'modal-chip-active', 'is-selected');
-                    delete clone.dataset.draggableInitialized;
-                    clone.removeAttribute('data-draggable-initialized');
-
-                    const imgs = clone.querySelectorAll('img');
-                    imgs.forEach(img => {
-                        totalImages++;
-                        const src = img.getAttribute('src') || img.src || img.dataset.imageSrc || '';
-                        if (src) {
-                            img.setAttribute('src', src);
-                            img.setAttribute('data-image-src', src);
-                        }
-                    });
-                    if (clone.matches?.('.resizable-image-wrapper')) {
-                        const img = clone.querySelector('img');
-                        const src = img ? (img.getAttribute('src') || img.src || img.dataset.imageSrc || '') : (clone.dataset.imageSrc || '');
-                        if (src) clone.setAttribute('data-image-src', src);
-                        clone.setAttribute('contenteditable', 'false');
+                    const img = clonedWrapper.querySelector('img');
+                    const origImg = wrapper.querySelector('img');
+                    const src = (origImg && (origImg.getAttribute('src') || origImg.src || origImg.dataset.imageSrc)) || wrapper.getAttribute('data-image-src') || '';
+                    if (img && src) {
+                        img.setAttribute('src', src);
+                        img.setAttribute('data-image-src', src);
                     }
-                    container.appendChild(clone);
+                    if (src) clonedWrapper.setAttribute('data-image-src', src);
+                    container.appendChild(clonedWrapper);
                 });
-
                 e.clipboardData.setData('text/html', container.innerHTML);
-                e.clipboardData.setData('text/plain', `[다중 선택 복사 항목 ${multiTargets.length}개]`);
-                showMessage(`${multiTargets.length}개 항목(이미지 ${totalImages}개 포함)이 클립보드에 복사되었습니다.`, 'info', 1800);
-                return;
-            }
-
-            // 3. 단일 이미지 클릭 활성화 상태 복사
-            const activeWrapper = document.querySelector('.resizable-image-wrapper.active');
-            if (activeWrapper && isSelectionEmptyOrCollapsed) {
-                e.preventDefault();
-                const clone = activeWrapper.cloneNode(true);
-                clone.querySelectorAll('.resize-handle-img, .item-controls, .annotation-delete-btn').forEach(el => el.remove());
-                clone.classList.remove('active', 'selected', 'multi-zoom-selected', 'is-dragging', 'controls-active');
-                delete clone.dataset.draggableInitialized;
-                clone.removeAttribute('data-draggable-initialized');
-
-                const img = clone.querySelector('img');
-                const src = img ? (img.getAttribute('src') || img.src || img.dataset.imageSrc || '') : (activeWrapper.dataset.imageSrc || '');
-                if (src && img) {
-                    img.setAttribute('src', src);
-                    img.setAttribute('data-image-src', src);
-                }
-                if (src) clone.setAttribute('data-image-src', src);
-                clone.setAttribute('contenteditable', 'false');
-
-                const cleanHtml = clone.outerHTML;
-                e.clipboardData.setData('text/html', cleanHtml);
-                e.clipboardData.setData('text/plain', '[이미지]');
-                showMessage('선택한 이미지가 클립보드에 복사되었습니다.', 'info', 1800);
+                e.clipboardData.setData('text/plain', `[이미지 ${activeWrappers.length}개]`);
+                showMessage(`선택한 이미지 ${activeWrappers.length}개가 클립보드에 복사되었습니다.`, 'info', 1800);
                 return;
             }
         }
@@ -9223,171 +9279,29 @@ function compressImage(file) {
         // 전역 잘라내기(Ctrl+X / Cmd+X / 모바일 잘라내기) 무결성 보증 리스너
         function handleGlobalCut(e) {
             if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
-                return; // 기본 input/textarea 잘라내기 보호
+                return;
             }
+            handleGlobalCopy(e);
+
             const selection = window.getSelection();
-            const isSelectionEmptyOrCollapsed = !selection || selection.isCollapsed || selection.rangeCount === 0;
-
-            // 1. 범위 선택 잘라내기
             if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0);
-                const clonedContents = range.cloneContents();
-                const images = clonedContents.querySelectorAll('img');
-                const wrappers = clonedContents.querySelectorAll('.resizable-image-wrapper');
-
-                clonedContents.querySelectorAll('.resize-handle-img, .item-controls, .insert-area-toggle-btn, .box-toggle-btn, .annotation-delete-btn, .zoom-text-input-wrapper').forEach(el => el.remove());
-                clonedContents.querySelectorAll('.active, .selected, .multi-zoom-selected, .is-dragging, .controls-active').forEach(el => {
-                    el.classList.remove('active', 'selected', 'multi-zoom-selected', 'is-dragging', 'controls-active');
-                });
-
-                images.forEach(img => {
-                    const src = img.getAttribute('src') || img.src || img.dataset.imageSrc || '';
-                    if (src) {
-                        img.setAttribute('src', src);
-                        img.setAttribute('data-image-src', src);
-                    }
-                    const wrapper = img.closest('.resizable-image-wrapper');
-                    if (wrapper && src) {
-                        wrapper.setAttribute('data-image-src', src);
-                        wrapper.setAttribute('contenteditable', 'false');
-                        delete wrapper.dataset.draggableInitialized;
-                        wrapper.removeAttribute('data-draggable-initialized');
-                    }
-                });
-
-                const hasHtmlElements = clonedContents.querySelector('*');
-                if (images.length > 0 || wrappers.length > 0 || hasHtmlElements) {
-                    e.preventDefault();
-                    const container = document.createElement('div');
-                    container.appendChild(clonedContents);
-                    e.clipboardData.setData('text/html', container.innerHTML);
-                    e.clipboardData.setData('text/plain', selection.toString() || '[잘라낸 콘텐츠]');
-
-                    const commonAncestor = range.commonAncestorContainer;
-                    range.deleteContents();
-                    const target = commonAncestor.nodeType === Node.ELEMENT_NODE ? commonAncestor : commonAncestor.parentElement;
-                    if (target) {
-                        target.dispatchEvent(new Event('input', { bubbles: true }));
-                        if (typeof normalizeMonthlyEditingLayout === 'function') normalizeMonthlyEditingLayout(target);
-                    }
-                    const countMsg = images.length > 0 ? `${images.length}개 이미지를 포함한 대상이` : '선택한 대상이';
-                    showMessage(`${countMsg} 잘라내기 되었습니다.`, 'info', 1800);
-                    return;
-                }
+                selection.deleteFromDocument();
                 return;
             }
 
-            // 2. 시프트/컨트롤 클릭 다중 선택 대상 잘라내기
-            let multiTargets = [];
-            if (typeof getLiveMultiZoomTargets === 'function') {
-                try { multiTargets = getLiveMultiZoomTargets(); } catch (err) {}
-            }
-            if (!multiTargets || multiTargets.length === 0) {
-                const queryTargets = document.querySelectorAll(
-                    '.resizable-image-wrapper.multi-zoom-selected, .resizable-image-wrapper.selected, .resizable-image-wrapper.active, ' +
-                    '.flow-chip-selected, .modal-chip-active, .is-selected, .multi-zoom-selected'
-                );
-                multiTargets = Array.from(queryTargets).filter(el => el && el.isConnected);
-            }
-
-            if (multiTargets && multiTargets.length > 0 && isSelectionEmptyOrCollapsed) {
-                e.preventDefault();
-                const container = document.createElement('div');
-                let totalImages = 0;
-
-                multiTargets.forEach(target => {
-                    const clone = target.cloneNode(true);
-                    clone.querySelectorAll('.resize-handle-img, .item-controls, .insert-area-toggle-btn, .box-toggle-btn, .annotation-delete-btn, .zoom-text-input-wrapper').forEach(el => el.remove());
-                    clone.classList.remove('active', 'selected', 'multi-zoom-selected', 'is-dragging', 'controls-active');
-                    delete clone.dataset.draggableInitialized;
-                    clone.removeAttribute('data-draggable-initialized');
-
-                    const imgs = clone.querySelectorAll('img');
-                    imgs.forEach(img => {
-                        totalImages++;
-                        const src = img.getAttribute('src') || img.src || img.dataset.imageSrc || '';
-                        if (src) {
-                            img.setAttribute('src', src);
-                            img.setAttribute('data-image-src', src);
-                        }
-                    });
-                    if (clone.matches?.('.resizable-image-wrapper')) {
-                        const img = clone.querySelector('img');
-                        const src = img ? (img.getAttribute('src') || img.src || img.dataset.imageSrc || '') : (clone.dataset.imageSrc || '');
-                        if (src) clone.setAttribute('data-image-src', src);
-                        clone.setAttribute('contenteditable', 'false');
-                    }
-                    container.appendChild(clone);
-                });
-
-                e.clipboardData.setData('text/html', container.innerHTML);
-                e.clipboardData.setData('text/plain', `[다중 잘라내기 항목 ${multiTargets.length}개]`);
-
-                multiTargets.forEach(target => {
-                    const parent = target.parentElement;
-                    target.remove();
-                    if (parent) parent.dispatchEvent(new Event('input', { bubbles: true }));
-                });
-
-                if (typeof clearMultiZoomSelectionVisuals === 'function') clearMultiZoomSelectionVisuals();
-                showMessage(`${multiTargets.length}개 항목이 잘라내기 되었습니다.`, 'info', 1800);
-                return;
-            }
-
-            // 3. 단일 이미지 클릭 활성화 상태 잘라내기
-            const activeWrapper = document.querySelector('.resizable-image-wrapper.active');
-            if (activeWrapper && isSelectionEmptyOrCollapsed) {
-                e.preventDefault();
-                const clone = activeWrapper.cloneNode(true);
-                clone.querySelectorAll('.resize-handle-img, .item-controls, .annotation-delete-btn').forEach(el => el.remove());
-                clone.classList.remove('active', 'selected', 'multi-zoom-selected', 'is-dragging', 'controls-active');
-                delete clone.dataset.draggableInitialized;
-                clone.removeAttribute('data-draggable-initialized');
-
-                const img = clone.querySelector('img');
-                const src = img ? (img.getAttribute('src') || img.src || img.dataset.imageSrc || '') : (activeWrapper.dataset.imageSrc || '');
-                if (src && img) {
-                    img.setAttribute('src', src);
-                    img.setAttribute('data-image-src', src);
-                }
-                if (src) clone.setAttribute('data-image-src', src);
-                clone.setAttribute('contenteditable', 'false');
-
-                const cleanHtml = clone.outerHTML;
-                e.clipboardData.setData('text/html', cleanHtml);
-                e.clipboardData.setData('text/plain', '[이미지]');
-
-                const parent = activeWrapper.parentElement;
-                activeWrapper.remove();
-                if (typeof currentlyActiveItemControlsElement !== 'undefined' && currentlyActiveItemControlsElement === activeWrapper) {
-                    currentlyActiveItemControlsElement = null;
-                }
-                if (parent) {
-                    parent.dispatchEvent(new Event('input', { bubbles: true }));
-                }
+            const activeWrappers = Array.from(document.querySelectorAll('.resizable-image-wrapper.active, .resizable-image-wrapper.selected, .resizable-image-wrapper.multi-zoom-selected, .resizable-image-wrapper.controls-active'));
+            if (activeWrappers.length > 0) {
+                activeWrappers.forEach(w => w.remove());
                 showMessage('선택한 이미지가 잘라내기 되었습니다.', 'info', 1800);
                 return;
             }
         }
 
-        // 전역 복사/잘라내기/붙여넣기 리스너 바인딩 (중복 등록 방지)
+        // 전역 복사/잘라내기 리스너 바인딩 (중복 등록 방지)
         if (!document._clipboardListenersAttached) {
             document.addEventListener('copy', handleGlobalCopy);
             document.addEventListener('cut', handleGlobalCut);
             document._clipboardListenersAttached = true;
-        }
-
-        if (!document._globalPasteListenerAttached) {
-            document.addEventListener('paste', async (e) => {
-                if (e.defaultPrevented) return;
-                if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-                const focusedOverlay = document.getElementById('focusedEditorOverlay');
-                const isFocusedOpen = focusedOverlay && (focusedOverlay.classList.contains('active') || (focusedOverlay.style.display !== 'none' && focusedOverlay.style.display !== ''));
-                const focusedSurface = document.getElementById('focusedEditorSurface');
-                const target = (isFocusedOpen && focusedSurface) ? focusedSurface : (typeof contentArea !== 'undefined' && contentArea ? contentArea : (document.getElementById('content') || document.body));
-                await handleUnifiedPaste(e, target);
-            });
-            document._globalPasteListenerAttached = true;
         }
         // --- END: 무결성 보증 통합 복사/잘라내기/붙여넣기 글로벌 엔진 ---
 
@@ -9398,24 +9312,23 @@ function clampImagesToContainers(scope = contentArea) {
                 : Array.from(scope.querySelectorAll('.resizable-image-wrapper'));
 
             wrappers.forEach(wrapper => {
-                const container = wrapper.closest('.insert-area, .item-group, .action-item-block, .section-block, .column, #contentArea, #focusedEditorSurface') || wrapper.parentElement || document.body;
-                if (!container || container.clientWidth === 0) return;
-                const maxWidth = Math.max(80, container.clientWidth - 8);
-                const currentWidth = parseFloat(wrapper.style.width || wrapper.offsetWidth || wrapper.getBoundingClientRect().width || 0);
-                if (currentWidth > maxWidth) {
-                    wrapper.style.width = maxWidth + 'px';
+                const container = wrapper.closest('.insert-area, .flow, .item-group, .action-item-block, .section-block, .column, #contentArea, #focusedEditorSurface') || wrapper.parentElement || document.body;
+                if (!container) return;
+                const containerWidth = container.clientWidth;
+                // [무결성 보증] 컨테이너가 닫혀있거나(셔터 접힘), 렌더링 전이거나(clientWidth <= 100), 숨겨진 상태에서는 절대 너비를 축소 파괴하지 않는다!
+                if (!containerWidth || containerWidth <= 100) return;
+
+                // 반응형 축소는 CSS max-width: 100% !important 가 담당하므로, 인라인 style.width를 54px/77px/80px로 영구 깎지 않는다.
+                const currentWidth = parseFloat(wrapper.style.width || 0);
+                if (currentWidth < 120 && currentWidth > 0) {
+                    // 과거 버그로 인해 54px, 77px, 80px 등으로 비정상 축소되었던 이미지의 경우 정상 기준 크기로 안전 복원
+                    const img = wrapper.querySelector('img');
+                    const naturalW = img?.naturalWidth || 320;
+                    const restoredW = Math.min(Math.max(naturalW, 260), Math.max(containerWidth - 20, 260));
+                    wrapper.style.width = `${restoredW}px`;
                 }
-                // [무결성 보증] 높이는 항상 auto로 유지하여 종횡비 0px 붕괴 및 왜곡 원천 방어
-                wrapper.style.height = 'auto';
-                const img = wrapper.querySelector('img');
-                if (img) {
-                    img.style.maxWidth = '100%';
-                    img.style.width = '100%';
-                    img.style.height = 'auto';
-                    img.style.objectFit = 'contain';
-                    img.style.display = 'block';
-                    img.removeAttribute('height');
-                }
+                wrapper.style.maxWidth = '100%';
+                wrapper.style.boxSizing = 'border-box';
             });
         }
 // --- END: 이미지 편집 고도화 함수 ---
@@ -14453,8 +14366,25 @@ function clampImagesToContainers(scope = contentArea) {
                 });
                 clonedDoc.body?.classList.remove('focused-editor-active', 'focused-editor-flow-mode', 'focused-editor-multi-flow-mode', 'flow-chip-toolbar-active');
 
-                // N차 단독 저장 무결성 보증: 모든 이미지의 src와 data-image-src 완벽 동기화 및 래퍼 정리
-                clonedDoc.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
+                // (12-0) [무결성 보증] 이미지 임시 리사이즈 핸들(.resize-handle-img) 및 런타임 오버레이/고스트 완전 정화
+                clonedDoc.querySelectorAll('.resize-handle-img, .ghost-image, .image-crop-overlay, .crop-dim-overlay').forEach(function(el) {
+                    el.remove();
+                });
+
+                // (12-0-1) [무결성 보증] 이미지 래퍼 런타임 상태 클래스 및 속성 완전 정화 (N차 저장 누적 0건 보장)
+                clonedDoc.querySelectorAll('.resizable-image-wrapper').forEach(function(wrapper) {
+                    wrapper.classList.remove('active', 'selected', 'is-dragging', 'multi-zoom-selected', 'controls-active');
+                    wrapper.removeAttribute('data-draggable-initialized');
+                    wrapper.setAttribute('contenteditable', 'false');
+                    wrapper.dataset.editableType = 'image-wrapper';
+                    wrapper.style.height = 'auto';
+                    wrapper.style.overflow = 'visible';
+                    wrapper.style.maxWidth = '100%';
+                    wrapper.style.boxSizing = 'border-box';
+                    const curW = parseFloat(wrapper.style.width || 0);
+                    if (!curW || curW < 110) {
+                        wrapper.style.width = '300px';
+                    }
                     const img = wrapper.querySelector('img');
                     if (img) {
                         const src = img.getAttribute('src') || img.src || img.dataset.imageSrc || '';
@@ -14463,11 +14393,16 @@ function clampImagesToContainers(scope = contentArea) {
                             img.setAttribute('data-image-src', src);
                             wrapper.setAttribute('data-image-src', src);
                         }
+                        img.style.height = 'auto';
+                        img.style.width = '100%';
+                        img.style.maxWidth = '100%';
+                        img.style.objectFit = 'contain';
+                        img.style.display = 'block';
+                        img.removeAttribute('height');
+                        if (img.naturalWidth && img.naturalHeight) {
+                            img.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+                        }
                     }
-                    wrapper.setAttribute('contenteditable', 'false');
-                    wrapper.dataset.editableType = 'image-wrapper';
-                    delete wrapper.dataset.draggableInitialized;
-                    wrapper.removeAttribute('data-draggable-initialized');
                 });
 
                 const clonedFocusedEditor = clonedDoc.getElementById('focusedEditorSurface');
@@ -15995,32 +15930,31 @@ function clampImagesToContainers(scope = contentArea) {
                 // (중복 handleClipboardPaste는 상단 글로벌 handleUnifiedPaste로 단일화되어 통합 관리됩니다)
 
                 function clampImagesToContainers(scope = contentArea) {
-                    if (!scope) return;
-                    const wrappers = scope.matches?.('.resizable-image-wrapper')
-                        ? [scope]
-                        : Array.from(scope.querySelectorAll('.resizable-image-wrapper'));
+            if (!scope) return;
+            const wrappers = scope.matches?.('.resizable-image-wrapper')
+                ? [scope]
+                : Array.from(scope.querySelectorAll('.resizable-image-wrapper'));
 
-                    wrappers.forEach(wrapper => {
-                        const parent = wrapper.parentElement;
-                        if (!parent || parent.clientWidth === 0) return;
-                        const maxWidth = Math.max(80, parent.clientWidth - 8);
-                        const currentWidth = parseFloat(wrapper.style.width || wrapper.offsetWidth || wrapper.getBoundingClientRect().width || 0);
-                        if (currentWidth > maxWidth) {
-                            wrapper.style.width = maxWidth + 'px';
-                        }
-                        // [무결성 보증] 높이는 항상 auto로 유지하여 종횡비 0px 붕괴 및 왜곡 원천 방어
-                        wrapper.style.height = 'auto';
-                        const img = wrapper.querySelector('img');
-                        if (img) {
-                            img.style.maxWidth = '100%';
-                            img.style.width = '100%';
-                            img.style.height = 'auto';
-                            img.style.objectFit = 'contain';
-                            img.style.display = 'block';
-                            img.removeAttribute('height');
-                        }
-                    });
+            wrappers.forEach(wrapper => {
+                const container = wrapper.closest('.insert-area, .flow, .item-group, .action-item-block, .section-block, .column, #contentArea, #focusedEditorSurface') || wrapper.parentElement || document.body;
+                if (!container) return;
+                const containerWidth = container.clientWidth;
+                // [무결성 보증] 컨테이너가 닫혀있거나(셔터 접힘), 렌더링 전이거나(clientWidth <= 100), 숨겨진 상태에서는 절대 너비를 축소 파괴하지 않는다!
+                if (!containerWidth || containerWidth <= 100) return;
+
+                // 반응형 축소는 CSS max-width: 100% !important 가 담당하므로, 인라인 style.width를 54px/77px/80px로 영구 깎지 않는다.
+                const currentWidth = parseFloat(wrapper.style.width || 0);
+                if (currentWidth < 120 && currentWidth > 0) {
+                    // 과거 버그로 인해 54px, 77px, 80px 등으로 비정상 축소되었던 이미지의 경우 정상 기준 크기로 안전 복원
+                    const img = wrapper.querySelector('img');
+                    const naturalW = img?.naturalWidth || 320;
+                    const restoredW = Math.min(Math.max(naturalW, 260), Math.max(containerWidth - 20, 260));
+                    wrapper.style.width = `${restoredW}px`;
                 }
+                wrapper.style.maxWidth = '100%';
+                wrapper.style.boxSizing = 'border-box';
+            });
+        }
 
                 const FOCUSED_EDITOR_BUTTON_POS_KEY = 'monthlyFocusedEditorButtonPosition';
                 const FLOW_CHIP_TOOLBAR_POS_KEY = 'monthlyFlowChipToolbarPosition';
@@ -17569,9 +17503,17 @@ function clampImagesToContainers(scope = contentArea) {
 
                     // 확대 편집기 내부 이미지 조작 래퍼 활성화 및 바인딩
                     surface.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
+                        wrapper.style.height = 'auto';
+                        wrapper.style.overflow = 'visible';
+                        wrapper.style.maxWidth = '100%';
+                        wrapper.style.boxSizing = 'border-box';
+                        const curW = parseFloat(wrapper.style.width || 0);
+                        if (!curW || curW < 110) {
+                            wrapper.style.width = '300px';
+                        }
                         ensureImageWrapperStructure(wrapper);
+                        wrapper.dataset.draggableInitialized = 'false';
                         makeImageDraggable(wrapper);
-                        // generateItemControls(wrapper) 제거 (이미지 오염 방지)
                         wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
                     });
                     overlay.classList.add('active');
@@ -17622,12 +17564,23 @@ function clampImagesToContainers(scope = contentArea) {
                     }
                     focusedEditorTarget.querySelectorAll('script').forEach(el => el.remove());
                     processPastedImages(focusedEditorTarget);
+                    focusedEditorTarget.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
+                        wrapper.style.height = 'auto';
+                        wrapper.style.overflow = 'visible';
+                        wrapper.style.maxWidth = '100%';
+                        wrapper.style.boxSizing = 'border-box';
+                        const curW = parseFloat(wrapper.style.width || 0);
+                        if (!curW || curW < 110) {
+                            wrapper.style.width = '300px';
+                        }
+                        ensureImageWrapperStructure(wrapper);
+                        wrapper.dataset.draggableInitialized = 'false';
+                        makeImageDraggable(wrapper);
+                        wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
+                    });
                     normalizeMonthlyEditingLayout(focusedEditorTarget);
                     clampImagesToContainers(focusedEditorTarget);
                     generateItemControls(focusedEditorTarget);
-
-                    // *** 개선 사항 2: 모달 저장 후 일반 화면의 기존 주석들에 드래그 기능 다시 바인딩 ***
-                    focusedEditorTarget.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
                     return true;
                 }
 
@@ -17984,17 +17937,23 @@ function finishFocusedEditorSession(overlay, surface) {
                             }
 
                             const requestedImageWidth = parseInt(imageWidthInput ? imageWidthInput.value : '300', 10) || 300;
-                            const containerWidth = Math.max(80, surface.clientWidth - 8);
-                            const imageWidth = Math.min(Math.max(requestedImageWidth, 40), containerWidth);
+                            const containerWidth = (surface.clientWidth || window.innerWidth) - 24;
+                            const defaultWidth = Math.min(requestedImageWidth, Math.max(180, containerWidth > 100 ? containerWidth : 320));
 
                             base64Images.forEach(imageSrc => {
                                 const wrapper = document.createElement('div');
                                 wrapper.className = 'resizable-image-wrapper';
                                 wrapper.setAttribute('contenteditable', 'false');
                                 wrapper.dataset.editableType = 'image-wrapper';
-                                wrapper.style.width = `${imageWidth}px`;
+                                wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                                wrapper.dataset.imageSrc = imageSrc;
+                                wrapper.style.width = `${defaultWidth}px`;
+                                wrapper.style.maxWidth = '100%';
+                                wrapper.style.height = 'auto';
+                                wrapper.style.overflow = 'visible';
+                                wrapper.style.boxSizing = 'border-box';
                                 wrapper.innerHTML = `
-                                    <img src="${imageSrc}" alt="사용자 삽입 이미지">
+                                    <img src="${imageSrc}" data-image-src="${imageSrc}" alt="사용자 삽입 이미지" style="display:block; width:100%; max-width:100%; height:auto; object-fit:contain;">
                                     <div class="resize-handle-img rh-top-left"></div>
                                     <div class="resize-handle-img rh-top-right"></div>
                                     <div class="resize-handle-img rh-bottom-left"></div>
@@ -18007,8 +17966,8 @@ function finishFocusedEditorSession(overlay, surface) {
 
                                 setTimeout(() => {
                                     ensureImageWrapperStructure(wrapper);
+                                    wrapper.dataset.draggableInitialized = 'false';
                                     makeImageDraggable(wrapper);
-                                    // generateItemControls(wrapper) 제거 (이미지 오염 방지)
                                     const active = surface.querySelector('.resizable-image-wrapper.active');
                                     if (active && active !== wrapper) active.classList.remove('active');
                                     wrapper.classList.add('active');
@@ -18225,6 +18184,17 @@ document.addEventListener('focusin', e => {
                 range.collapse(false);
             }
 
+            // [무결성 보증] 이미 래퍼 내부이거나 조작 요소 내부로 들어가지 않도록 보호
+            if (range.startContainer && (range.startContainer.nodeType === 1 && range.startContainer.closest?.('.resizable-image-wrapper') ||
+                range.startContainer.parentElement?.closest?.('.resizable-image-wrapper'))) {
+                const existingWrapper = (range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement).closest('.resizable-image-wrapper');
+                if (existingWrapper && existingWrapper.parentNode) {
+                    range = document.createRange();
+                    range.setStartAfter(existingWrapper);
+                    range.collapse(true);
+                }
+            }
+
             range.insertNode(wrapper);
 
             const br = document.createElement('br');
@@ -18313,16 +18283,23 @@ document.addEventListener('focusin', e => {
                     const currentSurface = isFocusedActive ? document.getElementById('focusedEditorSurface') : contentArea;
                     const containerWidth = (currentSurface.clientWidth || window.innerWidth) - 16;
                     
-                    wrapper.style.width = `${Math.min(requestedImageWidth, Math.max(80, containerWidth))}px`;
+                    const safeWidth = Math.min(requestedImageWidth, Math.max(180, containerWidth > 100 ? containerWidth : 320));
+                    wrapper.style.width = `${safeWidth}px`;
+                    wrapper.style.maxWidth = '100%';
+                    wrapper.style.height = 'auto';
+                    wrapper.style.overflow = 'visible';
+                    wrapper.style.boxSizing = 'border-box';
                     wrapper.innerHTML = `
-                        <img src="${imageSrc}" alt="사용자 삽입 이미지">
+                        <img src="${imageSrc}" data-image-src="${imageSrc}" alt="사용자 삽입 이미지" style="display:block; width:100%; max-width:100%; height:auto; object-fit:contain;">
                         <div class="resize-handle-img rh-top-left"></div>
                         <div class="resize-handle-img rh-top-right"></div>
                         <div class="resize-handle-img rh-bottom-left"></div>
                         <div class="resize-handle-img rh-bottom-right"></div>
                     `;
                     insertImageAtCaret(wrapper);
+                    ensureImageWrapperStructure(wrapper);
                     if (typeof makeImageDraggable === 'function') makeImageDraggable(wrapper);
+                    if (typeof generateItemControls === 'function') generateItemControls(wrapper);
                     insertedCount++;
                 });
 
@@ -19144,6 +19121,10 @@ document.addEventListener('focusin', e => {
             // ⌨️ 모바일 세로 모드 전용 가상 자판 기본값(수동 모드) 초기화
             if (typeof syncMobileEditableInputModes === 'function') {
                 syncMobileEditableInputModes(true);
+            }
+
+            if (typeof reconstructAllImageWrappersIntegrity === 'function') {
+                reconstructAllImageWrappersIntegrity();
             }
 
             document.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
