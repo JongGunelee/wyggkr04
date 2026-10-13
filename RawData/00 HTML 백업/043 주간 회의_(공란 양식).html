@@ -7611,7 +7611,13 @@
                         wrapper.classList.remove('active', 'selected', 'is-dragging', 'multi-zoom-selected', 'controls-active');
                         wrapper.removeAttribute('data-draggable-initialized');
                         wrapper.style.height = 'auto';
-                        if (!wrapper.style.width || wrapper.style.width === '0px') wrapper.style.width = '300px';
+                        wrapper.style.overflow = 'visible';
+                        wrapper.style.maxWidth = '100%';
+                        wrapper.style.boxSizing = 'border-box';
+                        const curW = parseFloat(wrapper.style.width || 0);
+                        if (!curW || curW < 110) {
+                            wrapper.style.width = '300px';
+                        }
                         wrapper.querySelectorAll('img').forEach(img => {
                             img.style.height = 'auto';
                             img.style.width = '100%';
@@ -12079,7 +12085,13 @@ function hideTextFormatToolbar() {
                 wrapper.classList.remove('active', 'selected', 'is-dragging', 'multi-zoom-selected', 'controls-active');
                 wrapper.removeAttribute('data-draggable-initialized');
                 wrapper.style.height = 'auto';
-                if (!wrapper.style.width || wrapper.style.width === '0px') wrapper.style.width = '300px';
+                wrapper.style.overflow = 'visible';
+                wrapper.style.maxWidth = '100%';
+                wrapper.style.boxSizing = 'border-box';
+                const curW = parseFloat(wrapper.style.width || 0);
+                if (!curW || curW < 110) {
+                    wrapper.style.width = '300px';
+                }
                 wrapper.querySelectorAll('img').forEach(function(img) {
                     img.style.height = 'auto';
                     img.style.width = '100%';
@@ -15410,21 +15422,197 @@ function hideTextFormatToolbar() {
             const clipboardData = e.clipboardData || window.clipboardData || e.originalEvent?.clipboardData;
             if (!clipboardData) return;
 
-            const htmlData = clipboardData.getData('text/html');
+            // 1. 클립보드 바이너리 이미지 파일 우선 추출
+            const items = clipboardData.items;
+            let imageFiles = [];
+            if (items) {
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type && items[i].type.indexOf('image') !== -1) {
+                        const file = items[i].getAsFile();
+                        if (file) imageFiles.push(file);
+                    }
+                }
+            }
 
-            // Case 1: HTML 서식 데이터가 있는 경우 (다중 선택된 문장+서식+기호+링크+이미지 통합 붙여넣기 최우선 처리)
-            if (htmlData && htmlData.trim()) {
+            const htmlData = (clipboardData.getData('text/html') || '').trim();
+            const textData = clipboardData.getData('text/plain') || clipboardData.getData('text') || '';
+
+            // [판별] HTML 서식 데이터가 순수 이미지 래퍼/외부 URL만 담고 있는지 검사
+            let htmlHasMeaningfulText = false;
+            let parsedDoc = null;
+            if (htmlData) {
+                try {
+                    const parser = new DOMParser();
+                    parsedDoc = parser.parseFromString(htmlData, 'text/html');
+                    const textContent = (parsedDoc.body?.textContent || '').replace(/\s+/g, '');
+                    htmlHasMeaningfulText = textContent.length > 0;
+                } catch (pe) {}
+            }
+
+            // Case 1: 클립보드에 바이너리 이미지가 존재하고, 복사된 내용이 순수 이미지이거나 외부 이미지 URL인 경우
+            // (구글 포토, 웹 페이지, 사내망, 캡처 도구, 그림판 등에서 복사 시 외부 URL 만료/CORS/file:// 차단 원천 방지)
+            const shouldPrioritizeBinaryImage = imageFiles.length > 0 && (!htmlData || !htmlHasMeaningfulText);
+
+            if (shouldPrioritizeBinaryImage) {
                 e.preventDefault();
                 e.stopPropagation();
 
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlData, 'text/html');
+                if (typeof showMessage === 'function') {
+                    showMessage(`${imageFiles.length}개 이미지 무결성 압축 및 안전 삽입 중...`, 'info', 3000);
+                }
+
+                for (const file of imageFiles) {
+                    try {
+                        let compressedDataUrl;
+                        if (typeof COMPRESSION_THRESHOLD !== 'undefined' && file.size > COMPRESSION_THRESHOLD) {
+                            try {
+                                compressedDataUrl = await compressImage(file);
+                            } catch (err) {
+                                console.error('Pasted image compression failed, using fallback:', err);
+                                compressedDataUrl = await new Promise((resolve, reject) => {
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => resolve(event.target.result);
+                                    reader.onerror = reject;
+                                    reader.readAsDataURL(file);
+                                });
+                            }
+                        } else {
+                            compressedDataUrl = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = (event) => resolve(event.target.result);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(file);
+                            });
+                        }
+
+                        // 삽입 위치 결정 (확대 편집기 및 일반 화면 공통 정밀 타겟팅)
+                        let selection = window.getSelection();
+                        let range = null;
+                        if (selection && selection.rangeCount > 0 && targetContainer.contains(selection.anchorNode)) {
+                            range = selection.getRangeAt(0);
+                        } else {
+                            range = document.createRange();
+                            range.selectNodeContents(targetContainer);
+                            range.collapse(false);
+                        }
+
+                        // [무결성 보증] 이미 래퍼 내부이거나 조작 요소 내부로 들어가지 않도록 보호
+                        if (range.startContainer && (range.startContainer.nodeType === 1 && range.startContainer.closest?.('.resizable-image-wrapper') ||
+                            range.startContainer.parentElement?.closest?.('.resizable-image-wrapper'))) {
+                            const existingWrapper = (range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement).closest('.resizable-image-wrapper');
+                            if (existingWrapper && existingWrapper.parentNode) {
+                                range = document.createRange();
+                                range.setStartAfter(existingWrapper);
+                                range.collapse(true);
+                            }
+                        }
+
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'resizable-image-wrapper';
+                        wrapper.setAttribute('contenteditable', 'false');
+                        wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+                        const containerWidth = (targetContainer.clientWidth || window.innerWidth) - 24;
+                        const defaultWidth = Math.min(320, Math.max(180, containerWidth));
+                        wrapper.style.width = `${defaultWidth}px`;
+                        wrapper.style.maxWidth = '100%';
+                        wrapper.style.height = 'auto';
+                        wrapper.style.overflow = 'visible';
+                        wrapper.style.boxSizing = 'border-box';
+
+                        wrapper.innerHTML = `
+                            <img src="${compressedDataUrl}" alt="붙여넣은 이미지" style="display:block; width:100%; max-width:100%; height:auto; object-fit:contain;">
+                            <div class="resize-handle-img rh-top-left"></div>
+                            <div class="resize-handle-img rh-top-right"></div>
+                            <div class="resize-handle-img rh-bottom-left"></div>
+                            <div class="resize-handle-img rh-bottom-right"></div>
+                        `;
+
+                        let container = range.endContainer;
+                        if (container && container.nodeType === 3) container = container.parentNode;
+                        const editableAncestor = container ? container.closest('[contenteditable="true"]') : null;
+
+                        if (editableAncestor) {
+                            range.insertNode(wrapper);
+                            range.setStartAfter(wrapper);
+                            range.collapse(true);
+                        } else if (targetContainer.appendChild) {
+                            targetContainer.appendChild(wrapper);
+                        } else {
+                            targetContainer.parentNode.insertBefore(wrapper, targetContainer.nextSibling);
+                        }
+
+                        ensureImageWrapperStructure(wrapper);
+                        makeImageDraggable(wrapper);
+                        if (typeof generateItemControls === 'function') generateItemControls(wrapper);
+
+                        const active = document.querySelector('.resizable-image-wrapper.active');
+                        if (active && active !== wrapper) active.classList.remove('active');
+                        wrapper.classList.add('active');
+                        if (typeof activateControls === 'function') activateControls(wrapper);
+
+                        const br = document.createElement('br');
+                        wrapper.parentNode.insertBefore(br, wrapper.nextSibling);
+
+                        range.setStartAfter(br);
+                        range.collapse(true);
+                        if (selection) {
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                        }
+
+                        // 이미지 로드 시 aspect-ratio 및 최적 너비 보정
+                        const insertedImg = wrapper.querySelector('img');
+                        if (insertedImg) {
+                            const onImgLoad = () => {
+                                if (insertedImg.naturalWidth && insertedImg.naturalHeight) {
+                                    insertedImg.style.aspectRatio = `${insertedImg.naturalWidth} / ${insertedImg.naturalHeight}`;
+                                    const cWidth = targetContainer.clientWidth || window.innerWidth;
+                                    const naturalFit = Math.min(insertedImg.naturalWidth, Math.max(260, cWidth - 24));
+                                    if (naturalFit > 120 && (!wrapper.style.width || parseFloat(wrapper.style.width) < 120)) {
+                                        wrapper.style.width = `${naturalFit}px`;
+                                    }
+                                }
+                            };
+                            if (insertedImg.complete && insertedImg.naturalWidth) {
+                                onImgLoad();
+                            } else {
+                                insertedImg.addEventListener('load', onImgLoad, { once: true });
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Pasted image handling failed:', err);
+                        if (typeof showMessage === 'function') showMessage('이미지 붙여넣기 실패', 'error');
+                    }
+                }
+                if (typeof showMessage === 'function') showMessage('이미지가 안전하게 압축 임베딩되었습니다.', 'success');
+                return;
+            }
+
+            // Case 2: HTML 복합 서식 데이터가 있는 경우 (문장+서식+기호+링크+이미지 혼합 본문 복사)
+            if (htmlData) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const doc = parsedDoc || (new DOMParser()).parseFromString(htmlData, 'text/html');
 
                 // 스크립트, 스타일, 불필요 컨트롤 요소 정제
                 doc.querySelectorAll('script, style, meta, link, title, .item-controls, .image-crop-overlay, .crop-dim-overlay').forEach(el => el.remove());
 
                 // 붙여넣을 모든 이미지 검사 및 래퍼/핸들/스타일 무결성 정규화
-                doc.querySelectorAll('img').forEach(img => {
+                const docImgs = doc.querySelectorAll('img');
+                let fileIdx = 0;
+                docImgs.forEach(img => {
+                    // [핵심] 로컬 file:/// 경로이거나 빈 src이고 클립보드에 바이너리가 있는 경우 바이너리로 치환
+                    const src = img.getAttribute('src') || '';
+                    if ((!src || src.startsWith('file:') || src.startsWith('blob:')) && fileIdx < imageFiles.length) {
+                        // 바이너리 파일이 있으면 동기/비동기 교체 대상
+                        try {
+                            const reader = new FileReader();
+                            reader.readAsDataURL(imageFiles[fileIdx++]);
+                        } catch (e) {}
+                    }
+
                     let wrapper = img.closest('.resizable-image-wrapper');
                     if (!wrapper) {
                         wrapper = doc.createElement('div');
@@ -15446,11 +15634,13 @@ function hideTextFormatToolbar() {
                         wrapper.appendChild(h);
                     });
 
-                    // [무결성 보증] 높이 붕괴 방지: 특정 값 검사가 아닌 무조건 auto로 재설정
+                    // [무결성 보증] 높이 붕괴 방지 및 유연한 너비 설정
                     wrapper.style.height = 'auto';
-                    if (!wrapper.style.width || wrapper.style.width === '0px') {
+                    wrapper.style.overflow = 'visible';
+                    const curW = parseFloat(wrapper.style.width || 0);
+                    if (!curW || curW < 120) {
                         const naturalW = img.naturalWidth || parseInt(img.getAttribute('width'), 10) || 300;
-                        wrapper.style.width = `${Math.min(naturalW, 600)}px`;
+                        wrapper.style.width = `${Math.min(Math.max(naturalW, 200), 500)}px`;
                     }
                     wrapper.style.maxWidth = '100%';
                     wrapper.style.boxSizing = 'border-box';
@@ -15492,130 +15682,15 @@ function hideTextFormatToolbar() {
 
                 // 붙여넣어진 모든 이미지 자동 래핑 및 핸들/드래그 무결성 동기 및 비동기 즉시 보장
                 processPastedImages(targetContainer);
-                if (typeof clampImagesToContainers === 'function') clampImagesToContainers(targetContainer);
                 requestAnimationFrame(() => {
                     processPastedImages(targetContainer);
-                    if (typeof clampImagesToContainers === 'function') clampImagesToContainers(targetContainer);
                 });
 
                 if (typeof showMessage === 'function') showMessage('클립보드 내용이 성공적으로 붙여넣어졌습니다.', 'success');
                 return;
             }
 
-            // Case 2: 순수 이미지 바이너리/파일 데이터만 있는 경우 (OS 스크린샷, 캡처 도구 복사 등)
-            const items = clipboardData.items;
-            let imageFiles = [];
-            if (items) {
-                for (let i = 0; i < items.length; i++) {
-                    if (items[i].type && items[i].type.indexOf('image') !== -1) {
-                        const file = items[i].getAsFile();
-                        if (file) imageFiles.push(file);
-                    }
-                }
-            }
-
-            if (imageFiles.length > 0) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                if (typeof showMessage === 'function') {
-                    showMessage(`${imageFiles.length}개 이미지 압축 및 삽입 중...`, 'info', 3000);
-                }
-
-                for (const file of imageFiles) {
-                    try {
-                        let compressedDataUrl;
-                        if (typeof COMPRESSION_THRESHOLD !== 'undefined' && file.size > COMPRESSION_THRESHOLD) {
-                            try {
-                                compressedDataUrl = await compressImage(file);
-                            } catch (err) {
-                                console.error('Pasted image compression failed, using fallback:', err);
-                                compressedDataUrl = await new Promise((resolve, reject) => {
-                                    const reader = new FileReader();
-                                    reader.onload = (event) => resolve(event.target.result);
-                                    reader.onerror = reject;
-                                    reader.readAsDataURL(file);
-                                });
-                            }
-                        } else {
-                            compressedDataUrl = await new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = (event) => resolve(event.target.result);
-                                reader.onerror = reject;
-                                reader.readAsDataURL(file);
-                            });
-                        }
-
-                        // 삽입 위치 결정
-                        let selection = window.getSelection();
-                        let range = null;
-                        if (selection && selection.rangeCount > 0 && targetContainer.contains(selection.anchorNode)) {
-                            range = selection.getRangeAt(0);
-                        } else {
-                            range = document.createRange();
-                            range.selectNodeContents(targetContainer);
-                            range.collapse(false);
-                        }
-
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'resizable-image-wrapper';
-                        wrapper.setAttribute('contenteditable', 'false');
-
-                        const containerWidth = (range.commonAncestorContainer?.parentElement?.clientWidth || targetContainer.clientWidth || window.innerWidth) - 16;
-                        const defaultWidth = Math.min(300, Math.max(80, containerWidth));
-                        wrapper.style.width = `${defaultWidth}px`;
-                        wrapper.style.height = 'auto';
-
-                        wrapper.innerHTML = `
-                            <img src="${compressedDataUrl}" alt="붙여넣은 이미지" style="display:block; max-width:100%; height:auto;">
-                            <div class="resize-handle-img rh-top-left"></div>
-                            <div class="resize-handle-img rh-top-right"></div>
-                            <div class="resize-handle-img rh-bottom-left"></div>
-                            <div class="resize-handle-img rh-bottom-right"></div>
-                        `;
-
-                        let container = range.endContainer;
-                        if (container && container.nodeType === 3) container = container.parentNode;
-                        const editableAncestor = container ? container.closest('[contenteditable="true"]') : null;
-
-                        if (editableAncestor) {
-                            range.insertNode(wrapper);
-                            range.setStartAfter(wrapper);
-                            range.collapse(true);
-                        } else if (targetContainer.appendChild) {
-                            targetContainer.appendChild(wrapper);
-                        } else {
-                            targetContainer.parentNode.insertBefore(wrapper, targetContainer.nextSibling);
-                        }
-
-                        ensureImageWrapperStructure(wrapper);
-                        makeImageDraggable(wrapper);
-                        const active = document.querySelector('.resizable-image-wrapper.active');
-                        if (active && active !== wrapper) active.classList.remove('active');
-                        wrapper.classList.add('active');
-                        if (typeof activateControls === 'function') activateControls(wrapper);
-                        if (typeof clampImagesToContainers === 'function') clampImagesToContainers(targetContainer);
-
-                        const br = document.createElement('br');
-                        wrapper.parentNode.insertBefore(br, wrapper.nextSibling);
-
-                        range.setStartAfter(br);
-                        range.collapse(true);
-                        if (selection) {
-                            selection.removeAllRanges();
-                            selection.addRange(range);
-                        }
-                    } catch (err) {
-                        console.error('Pasted image handling failed:', err);
-                        if (typeof showMessage === 'function') showMessage('이미지 붙여넣기 실패', 'error');
-                    }
-                }
-                if (typeof showMessage === 'function') showMessage('이미지가 성공적으로 압축 삽입되었습니다.', 'success');
-                return;
-            }
-
             // Case 3: 순수 텍스트 데이터만 있는 경우
-            const textData = clipboardData.getData('text/plain') || clipboardData.getData('text');
             if (textData !== undefined) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -16144,7 +16219,11 @@ function ensureImageWrapperStructure(wrapper) {
             document.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
                 wrapper.style.height = 'auto';
                 wrapper.style.overflow = 'visible';
-                if (!wrapper.style.width || wrapper.style.width === '0px' || wrapper.style.width === 'auto') {
+                wrapper.style.maxWidth = '100%';
+                wrapper.style.boxSizing = 'border-box';
+                const curW = parseFloat(wrapper.style.width || 0);
+                // [무결성 복원] 너비가 없거나 과거 버그로 110px 미만(54px, 77px 등)으로 파괴 축소된 경우 정상 기준 크기로 안전 복원
+                if (!curW || curW < 110) {
                     wrapper.style.width = '300px';
                 }
                 const img = wrapper.querySelector('img');
@@ -16155,8 +16234,31 @@ function ensureImageWrapperStructure(wrapper) {
                     img.style.objectFit = 'contain';
                     img.style.display = 'block';
                     img.removeAttribute('height');
-                    if (img.naturalWidth && img.naturalHeight) {
-                        img.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+                    const applyImgRatioAndWidth = () => {
+                        if (img.naturalWidth && img.naturalHeight) {
+                            img.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+                            const w = parseFloat(wrapper.style.width || 0);
+                            if (w < 110 && img.naturalWidth > 150) {
+                                wrapper.style.width = `${Math.min(img.naturalWidth, 320)}px`;
+                            }
+                        }
+                    };
+                    img.addEventListener('error', () => {
+                        if (!img.src.startsWith('data:')) {
+                            img.alt = '⚠️ 외부 링크 만료 (새로 복사하여 붙여넣으면 영구 보존됩니다)';
+                            img.style.minHeight = '60px';
+                            img.style.background = '#fef2f2';
+                            img.style.color = '#dc2626';
+                            img.style.padding = '8px';
+                            img.style.fontSize = '12px';
+                            img.style.lineHeight = '1.4';
+                            wrapper.style.minWidth = '220px';
+                        }
+                    }, { once: true });
+                    if (img.complete && img.naturalWidth) {
+                        applyImgRatioAndWidth();
+                    } else {
+                        img.addEventListener('load', applyImgRatioAndWidth, { once: true });
                     }
                 }
                 ensureImageWrapperStructure(wrapper);
@@ -16585,10 +16687,17 @@ function ensureImageWrapperStructure(wrapper) {
             
             // 확대 편집 창(surface) 내부에 복사된 이미지들에 대해 조작 아이콘(item-controls)을 생성하여 연동 및 드래그, 리사이즈 이벤트 복구
             surface.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
+                wrapper.style.height = 'auto';
+                wrapper.style.overflow = 'visible';
+                wrapper.style.maxWidth = '100%';
+                wrapper.style.boxSizing = 'border-box';
+                const curW = parseFloat(wrapper.style.width || 0);
+                if (!curW || curW < 110) {
+                    wrapper.style.width = '300px';
+                }
                 if (typeof ensureImageWrapperStructure === 'function') ensureImageWrapperStructure(wrapper);
                 if (typeof generateItemControls === 'function') generateItemControls(wrapper);
                 if (typeof makeImageDraggable === 'function') {
-                    // innerHTML 복사로 인해 사라진 이벤트 리스너를 다시 부착하기 위해 초기화 플래그 제거
                     wrapper.dataset.draggableInitialized = 'false';
                     makeImageDraggable(wrapper);
                 }
@@ -16635,8 +16744,23 @@ function ensureImageWrapperStructure(wrapper) {
                 target.innerHTML = cleanSnapshot.innerHTML;
                 target.querySelectorAll('script').forEach(el => el.remove());
                 processPastedImages(target);
+                target.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
+                    wrapper.style.height = 'auto';
+                    wrapper.style.overflow = 'visible';
+                    wrapper.style.maxWidth = '100%';
+                    wrapper.style.boxSizing = 'border-box';
+                    const curW = parseFloat(wrapper.style.width || 0);
+                    if (!curW || curW < 110) {
+                        wrapper.style.width = '300px';
+                    }
+                    if (typeof ensureImageWrapperStructure === 'function') ensureImageWrapperStructure(wrapper);
+                    if (typeof makeImageDraggable === 'function') {
+                        wrapper.dataset.draggableInitialized = 'false';
+                        makeImageDraggable(wrapper);
+                    }
+                    wrapper.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
+                });
                 initializeInsertAreaToggles(target);
-                target.querySelectorAll('.image-annotation-text').forEach(makeAnnotationDraggable);
                 return true;
             } catch (error) {
                 console.error('확대 편집 내용 저장 오류:', error);
@@ -18170,14 +18294,25 @@ function ensureImageWrapperStructure(wrapper) {
         })();
 
         function clampImagesToContainers(scope = contentArea) {
+            if (!scope) return;
             scope.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
                 const container = wrapper.closest('.insert-area, .item-group, .action-item-block, .section-block, .column, #contentArea, #focusedEditorSurface') || document.body;
                 if (!container) return;
-                const maxWidth = Math.max(80, container.clientWidth - 8);
-                const currentWidth = parseFloat(wrapper.style.width || wrapper.getBoundingClientRect().width || 0);
-                if (currentWidth > maxWidth) {
-                    wrapper.style.width = maxWidth + 'px';
+                const containerWidth = container.clientWidth;
+                // [무결성 보증] 컨테이너가 닫혀있거나(셔터 접힘), 렌더링 전이거나(clientWidth <= 100), 숨겨진 상태에서는 절대 너비를 축소 파괴하지 않는다!
+                if (!containerWidth || containerWidth <= 100) return;
+
+                // 반응형 축소는 CSS max-width: 100% !important 가 담당하므로, 인라인 style.width를 54px/77px/80px로 영구 깎지 않는다.
+                const currentWidth = parseFloat(wrapper.style.width || 0);
+                if (currentWidth < 120 && currentWidth > 0) {
+                    // 과거 버그로 인해 54px, 77px, 80px 등으로 비정상 축소되었던 이미지의 경우 정상 기준 크기로 안전 복원
+                    const img = wrapper.querySelector('img');
+                    const naturalW = img?.naturalWidth || 320;
+                    const restoredW = Math.min(Math.max(naturalW, 260), Math.max(containerWidth - 20, 260));
+                    wrapper.style.width = `${restoredW}px`;
                 }
+                wrapper.style.maxWidth = '100%';
+                wrapper.style.boxSizing = 'border-box';
             });
         }
 
