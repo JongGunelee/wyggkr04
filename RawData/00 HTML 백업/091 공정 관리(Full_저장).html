@@ -254,6 +254,11 @@
 @media(max-width:768px) and (orientation:portrait){#operation-year-bubble{width:64px;height:64px;min-width:64px;max-width:64px;padding:6px}#operation-year-bubble strong{font-size:21px}#operation-year-bubble small{font-size:9px}}
 #operation-year-modal{position:fixed;inset:0;z-index:100610;display:flex;align-items:center;justify-content:center;background:#0f172a73;padding:12px;box-sizing:border-box;overscroll-behavior:contain}
 #operation-year-modal[hidden]{display:none!important}
+#operation-year-bubble{z-index:2147483640}
+#operation-year-lock{z-index:2147483641}
+#operation-year-modal{z-index:2147483642}
+#webSavePatPrompt,#codexXlsbUploadModal,.codex-webdown-guide-modal{z-index:2147483643!important}
+.stl-group-tooltip,#overviewSankeyAnalysisTooltip{z-index:2147483639!important}
 #operation-year-modal *{box-sizing:border-box}
 #operation-year-toolbar{width:100%;max-width:390px;max-height:calc(100dvh - 24px);overflow:auto;border-radius:18px;border:1px solid #bae6fd;background:#fff;color:#0f172a;padding:18px;box-shadow:0 12px 36px #0003;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
 #operation-year-toolbar .year-modal-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
@@ -286,7 +291,7 @@
         for (const node of higher) {
             if (node.hidden || node.closest('[hidden]') || !node.getClientRects().length) continue;
             const css = root.getComputedStyle(node);
-            if (css.visibility !== 'hidden' && Number(css.zIndex) > 100610) return false;
+            if (css.visibility !== 'hidden' && Number(css.zIndex) > Number(root.getComputedStyle(backdrop).zIndex)) return false;
         }
         return true;
     }
@@ -372,6 +377,7 @@
         const retry = root.document.getElementById('operation-year-retry'); if (retry) retry.hidden = root.YearBootCoordinator?.getState?.().phase !== 'blocked';
     }
     function modalClick(event) {
+        event.stopPropagation();
         if (event.target === backdrop) { close(); return; }
         const action = event.target.closest?.('button')?.id;
         try {
@@ -418,7 +424,7 @@
         button.addEventListener('pointerdown', pointerDown); button.addEventListener('pointermove', pointerMove); button.addEventListener('pointerup', pointerEnd); button.addEventListener('pointercancel', pointerEnd); button.addEventListener('lostpointercapture', pointerEnd);
         button.addEventListener('keydown', moveWithKeyboard);
         lockButton.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); setLocked(!locked); });
-        button.addEventListener('click', event => { if (Date.now() < suppressClickUntil && event.detail !== 0) { event.preventDefault(); event.stopPropagation(); return; } open(); });
+        button.addEventListener('click', event => { event.stopPropagation(); if (Date.now() < suppressClickUntil && event.detail !== 0) { event.preventDefault(); return; } open(); });
         backdrop.addEventListener('click', modalClick); backdrop.addEventListener('change', modalChange);
         if (!globalListeners) { root.addEventListener('resize', resize); doc.addEventListener('keydown', keyboard, true); doc.addEventListener('focusin', focusGuard); globalListeners = true; }
         mounted = true; update(safeState()); return true;
@@ -436,7 +442,7 @@
 (function(root){
     'use strict';
     const SCHEMA=1,VERSION='year-context-20261009-v2',PENDING_KEY='codex.multiyear.pending.v1';
-    const state={phase:'idle',complete:true,source:null,usingCache:false,loadedYears:[],loadedSourceIds:new Set(),marks:{},error:null};
+    const state={phase:'idle',complete:true,source:null,usingCache:false,initialProjectionComplete:false,loadedYears:[],loadedSourceIds:new Set(),marks:{},error:null};
     let completion=null,background=null,bridge=null,manifest=null,cacheBase=null,sourceBase=null,initialBase=null,legacyResolve=null,legacyId=0;
     const sourceSets={projects:new Set(),work:new Set(),milestones:new Set(),dependencies:new Set(),webLinks:new Set()};
     function recordSourceModel(model){for(const p of model.projects){sourceSets.projects.add(String(p.id));for(const dep of p.dependsOn||[])sourceSets.dependencies.add(JSON.stringify([String(p.id),dep]));}for(const w of model.works)sourceSets.work.add(JSON.stringify([String(w.projectId),w.workDate,w.workDetail||'']));for(const m of model.milestones)sourceSets.milestones.add(JSON.stringify(m));for(const [id,url]of Object.entries(model.links||{}))if(url)sourceSets.webLinks.add(JSON.stringify([id,url]));}
@@ -449,15 +455,12 @@
     async function fetchBytes(url,limit){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);try{const response=await fetch(url,{cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error('데이터 HTTP '+response.status);if(Number(response.headers.get('content-length'))>limit)throw new Error('파생 데이터 크기 제한 초과');const b=await response.arrayBuffer();if(b.byteLength>limit)throw new Error('파생 데이터 크기 제한 초과');return b;}finally{clearTimeout(timer);}}
     async function readJson(url,limit=200000){return JSON.parse(new TextDecoder().decode(await fetchBytes(url,limit)));}
     const defaultBase='https://raw.githubusercontent.com/jonggunelee/wyggkr04/main/RawData/%EA%B3%B5%EC%A0%95%EA%B4%80%EB%A6%AC/YearCache/';
-    function cacheIsWorthPartitioning(candidate){const current=root.YearContext.chooseDefault(candidate.years),file=candidate.files?.[String(current)],keys=['projects','work','milestones','dependencies','webLinks'];if(!file)return false;const total=keys.reduce((n,k)=>n+(Number(candidate.counts?.[k])||0),0),first=keys.reduce((n,k)=>n+(Number(file[k])||0),0);return total>0&&first/total<=0.6;}
     // Start the small metadata request while the existing application is still parsing.
     const probe=(root.location?.hostname==='jonggunelee.github.io'&&!root.__codexYearCacheDisabled)?readJson(defaultBase+'manifest.json').catch(()=>null):Promise.resolve(null);
     const validProbe=probe.then(async candidate=>{
         if(!candidate||candidate.schemaVersion!==SCHEMA||candidate.mappingVersion!==VERSION||candidate.generatedForOperatingYear!==root.YearContext?.currentYear?.()||candidate.sourcePath!=='RawData/공정관리/26년 잔여 공사 공정관리_(입력).xlsb'||!/^[a-f0-9]{40}$/.test(candidate.sourceCommit||'')||!/^[a-f0-9]{64}$/.test(candidate.sourceSha256||'')||!Array.isArray(candidate.years))return null;
-        // A mostly current-year source would be mapped, then decoded a second time
-        // for saving. Preserve the legacy single-source boot when this cost cannot
-        // be offset by a substantial history partition (measured 2026-10-09).
-        if(!cacheIsWorthPartitioning(candidate))return null;
+        // Every verified source uses current-year-first boot, independently of
+        // the proportion of history. Stale or invalid metadata still falls back.
         try{const commits=await readJson('https://api.github.com/repos/jonggunelee/wyggkr04/commits?path='+encodeURIComponent(candidate.sourcePath)+'&sha=main&per_page=1');return Array.isArray(commits)&&commits[0]?.sha===candidate.sourceCommit?candidate:null;}catch(e){return null;}
     });
     async function readModel(year){
@@ -494,7 +497,9 @@
         state.phase='complete';state.complete=true;state.error=null;mark('saveReady');status('전체 연도 확인 완료 · 저장 가능');
         // Persist the recovered/early edits in the existing complete-data backup before removing their waiting journal.
         const pending=sessionStorage.getItem(PENDING_KEY);if(pending){const saved=root.WebSavePlugin?.persistLocalBackup?.('year-boot-complete');if(!saved?.ok)throw new Error('전체 편집 백업 확인 실패: 대기 기록을 유지합니다.');sessionStorage.removeItem(PENDING_KEY);}
-        bridge.refresh();
+        // A source fully represented by the first model has no newly appended
+        // data to repaint. Source verification changes save readiness only.
+        if(state.initialProjectionComplete)root.YearContext.updateUI();else bridge.refresh();
     }
     async function tryBoot(url,options,adapter){
         const source=sourceDescriptor(url);if(!source||root.isStandalone||root.__codexYearCacheDisabled||root.location?.protocol==='file:')return false;
@@ -512,7 +517,7 @@
         if(state.usingCache)return true;
         bridge=adapter;
         state.complete=false;state.usingCache=true;state.source=manifest.sourceSha256;state.phase='current-loading';root.YearContext.setMetadata(manifest.years,manifest.classificationChecks);if(root.WebSavePlugin)root.WebSavePlugin.state.baselineValueSnapshot=null;status(current+'년 먼저 준비 중');mark('currentStart');
-        try{recordSourceModel(model);await bridge.initial(model);for(const p of model.projects)state.loadedSourceIds.add(String(p.id));state.loadedYears.push(current);initialBase=clone(snapshot());restorePending();state.phase='current-ready';mark('currentDataReady');bridge.refresh();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));mark('currentInteractive');status(current+'년 조회·편집 가능 · 이전 연도 확인 중');
+        try{recordSourceModel(model);state.initialProjectionComplete=Object.entries(manifest.counts).every(([key,count])=>sourceSets[key]?.size===count);await bridge.initial(model);for(const p of model.projects)state.loadedSourceIds.add(String(p.id));state.loadedYears.push(current);initialBase=clone(snapshot());restorePending();state.phase='current-ready';mark('currentDataReady');bridge.refresh();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));mark('currentInteractive');status(current+'년 조회·편집 가능 · 이전 연도 확인 중');
             background=loadRemaining;completion=loadRemaining().catch(error=>{state.phase='blocked';state.complete=false;state.error=String(error.message||error);persistPending();status('편집 내용 보존 · 전체 확인 중단: '+state.error);throw error;});completion.catch(()=>{});return true;
         }catch(error){state.phase='blocked';state.error=String(error.message||error);state.complete=false;status(state.error);throw error;}
     }
@@ -22295,7 +22300,7 @@
            This pushes the layer back in GPU stack without z-index wars
            ---------------------------- */
         /* IMPORTANT: Do NOT apply dimming/filter to modal roots; otherwise modal content looks "transparent". */
-        body.modal-active>*:not(#fullscreenModal):not(#dataDetailModal):not(#dataPanel):not(#revisionHistoryPanel):not(#mappingModal):not(#milestoneModal):not(#zoomModal):not(#errorCorrectionModal):not(#manualModal):not(#startupChoiceModal):not(#dependencyModal):not(#rsStartCalendarPopup):not(#fabMenuBtn):not(#filterTimelineFabBtn):not(#revisionHistoryFabBtn):not(#manualFabBtn):not(.modal-overlay):not(.fullscreen-modal-overlay):not(.settlement-modal-overlay):not(.pending-settlement-modal-overlay):not(script):not(style):not(link) {
+        body.modal-active>*:not(#operation-year-bubble,#operation-year-lock,#operation-year-modal):not(#fullscreenModal):not(#dataDetailModal):not(#dataPanel):not(#revisionHistoryPanel):not(#mappingModal):not(#milestoneModal):not(#zoomModal):not(#errorCorrectionModal):not(#manualModal):not(#startupChoiceModal):not(#dependencyModal):not(#rsStartCalendarPopup):not(#fabMenuBtn):not(#filterTimelineFabBtn):not(#revisionHistoryFabBtn):not(#manualFabBtn):not(.modal-overlay):not(.fullscreen-modal-overlay):not(.settlement-modal-overlay):not(.pending-settlement-modal-overlay):not(script):not(style):not(link) {
             pointer-events: none !important;
             user-select: none !important;
             filter: grayscale(0.3) opacity(0.85);
@@ -30498,7 +30503,7 @@
             return '';
         }
 
-        function collectMaintenanceCodeLegendIssues(source) {
+        function collectMaintenanceCodeLegendIssues(source, visibleSource) {
             const rows = Array.isArray(source) ? source : [];
             const resolved = new Array(rows.length);
             const frequencies = new Map();
@@ -30512,10 +30517,11 @@
             let duplicateProjects = 0;
             let temporaryProjects = 0;
             let overlapProjects = 0;
-            for (let i = 0; i < rows.length; i++) {
-                const project = rows[i];
+            const visibleRows = Array.isArray(visibleSource) ? visibleSource : rows;
+            for (let i = 0; i < visibleRows.length; i++) {
+                const project = visibleRows[i];
                 if (!project) continue;
-                const code = resolved[i];
+                const code = resolveMaintenanceCodeForLegend(project);
                 const duplicate = !!code && (frequencies.get(code) || 0) > 1;
                 const temporary = !code.startsWith('45');
                 if (!duplicate && !temporary) continue;
@@ -30537,7 +30543,8 @@
         }
 
         function updateMaintenanceCodeLegendNotice(source) {
-            const summary = collectMaintenanceCodeLegendIssues(source);
+            const visible = window.YearContext ? window.YearContext.scope(source, 'schedule') : source;
+            const summary = collectMaintenanceCodeLegendIssues(source, visible);
             document.querySelectorAll('[data-status-filter="중복및임시"]').forEach(button => {
                 const count = button.querySelector('[data-maintenance-issue-count]');
                 if (count) count.textContent = `(${summary.total}건)`;
@@ -42375,6 +42382,7 @@
                     });
                 }
 
+                syncVisibleSiCenterCustomerCards();
             } catch (e) {
                 console.warn('updateExclusiveAccordionVisibility error:', e);
             }
@@ -42831,10 +42839,6 @@
                     if (clickedItem.id === 'projectView') {
                         try { window.__refreshScheduleAccordionObservers?.(); } catch (e) { }
                         setupControlSectionToggles(clickedItem.querySelector('#controlsSection'));
-                        if (window.matchMedia('(min-width: 769px)').matches && projectData.length > 0 &&
-                            !clickedItem.querySelector('#ganttViewContent .gantt-chart-container')) {
-                            requestCoalescedMainRender('desktop-first-schedule-open');
-                        }
                         window.__scrollToTodayOnScheduleOpen = true;
                         const autoScrollDelays = [0, 50, 150, 300, 500, 800, 1200, 1600];
                         autoScrollDelays.forEach(d => {
@@ -45846,6 +45850,7 @@
                 window.addEventListener('scroll', this.scrollHandler, true);
 
                 this.outsideClickHandler = (e) => {
+                    if (e.target.closest('#operation-year-bubble,#operation-year-lock,#operation-year-modal')) return;
                     // \ubbf8\ub2c8 \ub2ec\ub825 \ud31d\uc5c5 \ub0b4\ubd80\ub294 \ubb34\uc2dc
                     if (e.target.closest('#rsStartCalendarPopup')) return;
                     if (e.target.closest('.smart-date-icon')) return;
@@ -56808,6 +56813,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         }
 
         function processMappedData(rawData, mapping, dataStartIndex) {
+            // The year adapter publishes once after authoritative Work/links are ready.
+            const deferToYearBoot = !!window.YearBootCoordinator?.isCurrentLoading?.();
             return new Promise((resolve, reject) => {
                 // [FIX-v2] processMappedData 스코프에서도 디버그 게이트를 안전하게 사용
                 const uploadDebug = !!window.__UPLOAD_DEBUG__;
@@ -57536,6 +57543,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                         // [PERF-CRITICAL] \ub80c\ub354\ub9c1\uc744 data:loaded \uc774\ubca4\ud2b8 \uc774\ud6c4\ub85c \uc9c0\uc5f0
                         // 721ms \uba54\uc778\uc2a4\ub808\ub4dc \ube14\ub85c\ud0b9 \ud574\uacb0 \u2192 \uc5c5\ub85c\ub4dc \uc18d\ub3c4 \uccb4\uac10 \ud5a5\uc0c1
                         const performRender = () => {
+                            if (deferToYearBoot) return;
                             if (window.__DEBUG_MODE__) {
                                 console.log('[finishProcessing] Data sanity check:', {
                                     projectDataLen: projectData ? projectData.length : 0,
@@ -57660,6 +57668,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                         
                         // [SUPREME-OPT] Defer data:loaded dispatch to avoid freezing UI while 22 event listeners execute synchronously
                         const fireDataLoaded = () => {
+                            if (deferToYearBoot) return;
                             if (activeAutoUploadPerf && !activeAutoUploadPerf.finished) {
                                 deferAutoUploadDataLoaded(dataLoadedDetail);
                             } else if (window.dispatchDataEvent) {
@@ -62791,6 +62800,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         }
 
         document.addEventListener('operation-year:changed', function () {
+            if (typeof window.updateWorkdateOutOfPlanNotice === 'function') window.updateWorkdateOutOfPlanNotice();
             const state = window.YearContext.getState();
             const year = state.year;
             if (typeof year === 'number') { viewMinDate = new Date(year, 0, 1); viewMaxDate = new Date(year, 11, 31); }
@@ -62835,14 +62845,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             const financialList = window.YearContext ? window.YearContext.scope(list, 'financial') : list;
             try { if (typeof renderPoSummary === 'function') renderPoSummary(financialList); } catch (e) { }
             renderSettlement(financialList);
-            // Desktop's initially closed schedule has no visible chart to paint.
-            // Existing accordion open/fullscreen paths render the latest filtered data.
-            const scheduleShell = document.getElementById('projectView');
-            const deferFirstDesktopChart = window.matchMedia('(min-width: 769px)').matches &&
-                scheduleShell && !scheduleShell.classList.contains('open') &&
-                (!fullscreenModal || fullscreenModal.classList.contains('hidden')) &&
-                !document.querySelector('#ganttViewContent .gantt-chart-container');
-            try { if (!deferFirstDesktopChart && typeof renderGanttChart === 'function') renderGanttChart(list); } catch (e) { }
+            try { if (typeof renderGanttChart === 'function') renderGanttChart(list); } catch (e) { }
         }
 
         // Compatibility aliases for the refactored render pipeline
@@ -63912,6 +63915,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
         let __settlementHeaderFastPending = false;
         let __settlementHeaderFastAttempts = 0;
+        let __settlementHeaderFastLastKey = '';
         function scheduleSettlementHeaderSummariesFast(reason) {
             if (__settlementHeaderFastPending) return;
             __settlementHeaderFastPending = true;
@@ -63925,10 +63929,16 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 try {
                     data = getStableProjectDatasetForSummary();
                 } catch (e) { }
+                const stateGeneration = window.YearContext?.getState?.().generation ?? '';
+                const dataKey = [data.length, data[0]?.id || '', data[data.length - 1]?.id || '', stateGeneration].join('|');
+                if (__settlementHeaderFastLastKey === dataKey &&
+                    !container?.hasAttribute('data-fast-header-preview') &&
+                    !overviewHeaderContainer?.hasAttribute('data-fast-header-preview')) return;
                 const settlementRendered = !!(container && renderOverviewHeaderSummariesFast(data, container));
                 const overviewRendered = !!(overviewHeaderContainer && renderSettlementHeaderSummariesFast(data, overviewHeaderContainer));
                 if (settlementRendered && overviewRendered) {
                     __settlementHeaderFastAttempts = 0;
+                    __settlementHeaderFastLastKey = dataKey;
                     try { container.setAttribute('data-fast-header-reason', String(reason || 'scheduled')); } catch (e2) { }
                     return;
                 }
@@ -63949,7 +63959,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 window.scheduleSettlementHeaderSummariesFast = scheduleSettlementHeaderSummariesFast;
                 document.addEventListener('DOMContentLoaded', function () { scheduleSettlementHeaderSummariesFast('domcontentloaded'); }, true);
                 document.addEventListener('data:loaded', function () { scheduleSettlementHeaderSummariesFast('data:loaded'); }, true);
-                document.addEventListener('data:changed', function () { scheduleSettlementHeaderSummariesFast('data:changed'); }, true);
+                document.addEventListener('data:changed', function () { __settlementHeaderFastLastKey = ''; scheduleSettlementHeaderSummariesFast('data:changed'); }, true);
+                document.addEventListener('settlement:updated', function () { __settlementHeaderFastLastKey = ''; scheduleSettlementHeaderSummariesFast('settlement:updated'); }, true);
                 document.addEventListener('app:data-ready', function () { scheduleSettlementHeaderSummariesFast('app:data-ready'); }, true);
                 window.addEventListener('load', function () { scheduleSettlementHeaderSummariesFast('window-load'); }, true);
                 setTimeout(function () { scheduleSettlementHeaderSummariesFast('boot-0'); }, 0);
@@ -63966,6 +63977,101 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
         // Modified renderGroupSummaries function
         
+// S&I center presentation only. Source projects and financial scope remain owned by the caller.
+function escapeSiCenterCustomerText(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getSiCenterCustomerGroups(projects) {
+    const groups = new Map();
+    (Array.isArray(projects) ? projects : []).forEach(project => {
+        const customer = String(typeof window.resolveCustomerText === 'function' ? window.resolveCustomerText(project) : (project.customer || project.client || '')).trim() || '미지정';
+        let group = groups.get(customer);
+        if (!group) { group = { customer, count: 0, poAmount: 0, weightedProgress: 0, projects: [] }; groups.set(customer, group); }
+        const po = Number(project.poAmount) || 0;
+        const progress = Number(project.processRate ?? project.progress ?? 0) || 0;
+        group.count += 1;
+        group.poAmount += po;
+        group.weightedProgress += po * progress;
+        group.projects.push(project);
+    });
+    return Array.from(groups.values()).sort((a, b) => a.customer.localeCompare(b.customer, 'ko', { numeric: true }));
+}
+
+function renderSiCenterCustomerBreakdown(projects) {
+    const groups = getSiCenterCustomerGroups(projects);
+    return '<div data-si-center-customer-breakdown class="text-sm text-gray-700 mt-2" style="border-top:1px solid #e5e7eb;padding-top:6px;line-height:1.6;overflow-wrap:anywhere;">' + groups.map(group =>
+        `<div data-si-card-customer="${escapeSiCenterCustomerText(group.customer)}" data-si-count="${group.count}" data-si-po="${group.poAmount}">${escapeSiCenterCustomerText(group.customer)}: ${formatCurrency(group.poAmount)} / ${group.count}건</div>`
+    ).join('') + '</div>';
+}
+
+function syncVisibleSiCenterCustomerCards() {
+    ['overviewView', 'settlementView'].forEach(id => {
+        const root = document.getElementById(id);
+        if (!root) return;
+        const visible = root.classList.contains('open') && !root.classList.contains('hidden');
+        root.querySelectorAll('.summary-card[data-filter-field="S_I_센터"]').forEach(card => {
+            const breakdown = card.querySelector('[data-si-center-customer-breakdown]');
+            if (!visible) { if (breakdown) breakdown.remove(); return; }
+            if (!breakdown) card.insertAdjacentHTML('beforeend', renderSiCenterCustomerBreakdown(getCachedSummaryCardProjects(card)));
+        });
+    });
+}
+
+function buildSiCenterCustomerDetailTable(data, toolbarHTML, summaryLabel, getMaintenanceCode, getBuildingText) {
+    const groups = getSiCenterCustomerGroups(data), escape = escapeSiCenterCustomerText;
+    const amount = value => `<td class="px-4 py-2 text-right" data-t="n" data-v="${value}">${formatCurrency(value)}</td>`;
+    const weighted = value => `<td class="px-4 py-2 text-right" data-t="n" data-v="${value}">${value.toLocaleString('ko-KR')}</td>`;
+    let no = 0, totalPo = 0, totalWeighted = 0;
+    let html = `${toolbarHTML}<table data-si-center-customer-groups="1" class="w-full text-sm text-left text-gray-500"><thead class="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0"><tr>` +
+        ['No.', '유지관리번호', '고객사', '프로젝트 명', '건물동', 'PO금액 (A)', '진행 (B)', '가중치 적용값 (A*B)'].map((label, index) => `<th scope="col" class="px-4 py-3${index >= 5 ? ' text-right' : ''}${index === 3 ? ' nowrap-project-name' : ''}">${label}</th>`).join('') + '</tr></thead><tbody>';
+    groups.forEach(group => {
+        const customer = escape(group.customer);
+        html += `<tr data-si-row="header" data-si-customer="${customer}" class="bg-gray-100"><td colspan="8" class="px-4 py-2 font-semibold" data-t="s">${customer} 상세 (${group.count}건)</td></tr>`;
+        group.projects.forEach(project => {
+            const po = Number(project.poAmount) || 0, progress = Number(project.processRate ?? project.progress ?? 0) || 0;
+            html += `<tr data-si-row="detail" data-si-customer="${customer}" class="border-b hover:bg-gray-50">` +
+                `<td class="px-4 py-2 font-medium text-gray-900" data-t="n" data-v="${++no}">${no}</td>` +
+                `<td class="px-4 py-2" data-t="s">${escape(getMaintenanceCode(project) || '-')}</td>` +
+                `<td class="px-4 py-2" data-t="s">${customer}</td>` +
+                `<td class="px-4 py-2 nowrap-project-name" data-t="s">${escape(project.taskName ?? project.name ?? '')}</td>` +
+                `<td class="px-4 py-2" data-t="s">${escape(getBuildingText(project) || '-')}</td>` + amount(po) +
+                `<td class="px-4 py-2 text-right">${progress}%</td>` + weighted(po * progress / 100) + '</tr>';
+        });
+        const rate = group.poAmount > 0 ? (group.weightedProgress / group.poAmount).toFixed(2) : '0.00';
+        html += `<tr data-si-row="subtotal" data-si-customer="${customer}" class="bg-gray-100 font-semibold"><td colspan="5" class="px-4 py-3" data-t="s">${customer} 소계 (${group.count}건)</td>` + amount(group.poAmount) + `<td class="px-4 py-2 text-right">${rate}%</td>` + weighted(group.weightedProgress / 100) + '</tr>';
+        totalPo += group.poAmount; totalWeighted += group.weightedProgress;
+    });
+    const overall = totalPo > 0 ? (totalWeighted / totalPo).toFixed(2) : '0.00';
+    return html + `</tbody><tfoot class="text-sm font-semibold text-gray-800 bg-gray-100"><tr data-si-row="total"><td colspan="5" class="px-4 py-3 text-center">합계</td>` + amount(totalPo) + '<td class="px-4 py-2 text-right">-</td>' + weighted(totalWeighted / 100) +
+        `</tr><tr><td colspan="7" class="px-4 py-3 text-center text-base">${escape(summaryLabel)} (가중치 합계 / 정산 합계)</td><td class="px-4 py-3 text-right text-base font-bold text-blue-600">${overall}%</td></tr></tfoot></table>`;
+}
+
+function sortSiCenterCustomerRows(table, columnIndex, direction) {
+    const body = table.tBodies[0], groups = new Map();
+    if (!body) return 0;
+    Array.from(body.rows).forEach(row => {
+        const customer = row.dataset.siCustomer;
+        if (customer == null) return;
+        if (!groups.has(customer)) groups.set(customer, { rows: [], subtotal: null });
+        const group = groups.get(customer);
+        if (row.dataset.siRow === 'detail') group.rows.push(row);
+        else if (row.dataset.siRow === 'subtotal') group.subtotal = row;
+    });
+    const text = row => String(row.cells[columnIndex]?.textContent || '').trim();
+    const number = value => Number(value.replace(/[,%원\s]/g, '')) || 0;
+    let moved = 0;
+    groups.forEach(group => {
+        const numeric = group.rows.every(row => /^[-+]?\d[\d,]*(?:\.\d+)?(?:%|원)?$/.test(text(row).replace(/\s/g, '')));
+        group.rows.sort((a, b) => {
+            const x = numeric ? number(text(a)) : text(a).toLowerCase(), y = numeric ? number(text(b)) : text(b).toLowerCase();
+            return x < y ? (direction === 'asc' ? -1 : 1) : x > y ? (direction === 'asc' ? 1 : -1) : 0;
+        });
+        group.rows.forEach(row => { body.insertBefore(row, group.subtotal); moved += 1; });
+    });
+    return moved;
+}
+
     function renderGroupSummaries(fullData) {
             const resolveCustomer = window.resolveCustomerText;
             // [DEBUG-FIX-VERIFY] Check if this code is running and what data it sees
@@ -64929,6 +65035,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
             // Add event listeners after rendering
             setupSettlementAccordions();
+            syncVisibleSiCenterCustomerCards();
 
             // Setup settlement section wheel scrolling
             setupSettlementWheelScrolling();
@@ -65462,7 +65569,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             }
 
             if (dataForModal.length > 0) {
-                if (typeof showProgressDetailModal === 'function' && filterType !== 'status') showProgressDetailModal(title, dataForModal, title.includes('\uc0c1\uc138') ? title.replace('\uc0c1\uc138','\uacf5\uc815\uc728') : '\uc0c1\uc138 \uacf5\uc815\uc728');
+                if (typeof showProgressDetailModal === 'function' && filterType !== 'status') showProgressDetailModal(title, dataForModal, title.includes('\uc0c1\uc138') ? title.replace('\uc0c1\uc138','\uacf5\uc815\uc728') : '\uc0c1\uc138 \uacf5\uc815\uc728', { groupByCustomer: filterType === 'custom-group' && card.dataset.filterField === 'S_I_센터' });
                 else if (typeof showDataDetailModal === 'function') showDataDetailModal(title, dataForModal);
             } else {
                 if (expectedCount > 0) {
@@ -65597,7 +65704,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             scroller.addEventListener('touchcancel', resetTouchSession, { passive: true });
         }
 
-        function showProgressDetailModal(title, data, summaryLabel = '\ucd1d\uad04 \uacf5\uc815\uc728') {
+        function showProgressDetailModal(title, data, summaryLabel = '\ucd1d\uad04 \uacf5\uc815\uc728', options = null) {
             // \ubaa8\ub2ec \ucd08\uae30\ud654
             const overlay = dataDetailModal;
             overlay.style.display = 'flex';
@@ -65717,7 +65824,11 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 return building || '-';
             };
 
-            let tableHTML = `${toolbarHTML}<table class="w-full text-sm text-left text-gray-500">
+            let tableHTML;
+            if (options && options.groupByCustomer === true) {
+                tableHTML = buildSiCenterCustomerDetailTable(data, toolbarHTML, summaryLabel, getMaintenanceCode, getBuildingText);
+            } else {
+            tableHTML = `${toolbarHTML}<table class="w-full text-sm text-left text-gray-500">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0">
                     <tr>
                         <th scope="col" class="px-4 py-3">No.</th>
@@ -65770,6 +65881,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     </tr>
                 </tfoot>
             </table>`;
+            }
 
             dataDetailTableContainer.innerHTML = tableHTML;
 
@@ -72279,6 +72391,10 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     th.dataset.sortDir = newDir;
                     indicator.textContent = newDir === 'asc' ? '\u25b2' : '\u25bc';
 
+                    if (table.dataset.siCenterCustomerGroups === '1') {
+                        sortSiCenterCustomerRows(table, colIndex, newDir);
+                        return;
+                    }
                     const rows = Array.from(tbody.querySelectorAll('tr'));
                     const cellValues = rows.map(r => {
                         const cell = r.children[colIndex];
@@ -76706,7 +76822,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 return entries;
             };
 
-            const getWorkdatePlanPinIssue = (project, indexedWorkItems = undefined) => {
+            const getWorkdatePlanPinIssue = (project, indexedWorkItems = undefined, year = 'all') => {
                 const pid = getWorkdateAuditProjectId(project);
                 if (!project || !pid) return null;
                 const planStart = normalizeDate(project.startDate || project.startDateStr);
@@ -76717,7 +76833,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 const entries = getWorkdateAuditEntries(project, indexedWorkItems);
                 const outOfPlanEntries = entries.filter(item => {
                     const parsed = normalizeDate(item.date);
-                    return parsed && !isNaN(parsed.getTime()) && (parsed < minPlan || parsed > maxPlan);
+                    return (year === 'all' || Number(item.date.slice(0, 4)) === Number(year)) && parsed && !isNaN(parsed.getTime()) && (parsed < minPlan || parsed > maxPlan);
                 });
                 if (!entries.length && minPlan && maxPlan) {
                     return {
@@ -76748,7 +76864,9 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 let source = Array.isArray(projectsArg) ? projectsArg : null;
                 if (!source) {
                     source = Array.isArray(window.projectData) ? window.projectData : [];
+                    if (window.YearContext) source = window.YearContext.scope(source, 'schedule');
                 }
+                const year = !Array.isArray(projectsArg) && window.YearContext ? window.YearContext.getViewState().year : 'all';
                 const issues = [];
                 let outOfPlanPins = 0;
                 let missingPinProjects = 0;
@@ -76771,7 +76889,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                         const indexedWorkItems = workItemsByProject
                             ? (workItemsByProject.get(getWorkdateAuditProjectId(project)) || [])
                             : undefined;
-                        const issue = getWorkdatePlanPinIssue(project, indexedWorkItems);
+                        const issue = getWorkdatePlanPinIssue(project, indexedWorkItems, year);
                         if (!issue) return;
                         issues.push(issue);
                         outOfPlanPins += issue.outOfPlanEntries ? issue.outOfPlanEntries.length : 0;
@@ -76788,7 +76906,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 };
             };
 
-            const projectHasWorkdatePlanPinIssue = (project) => !!getWorkdatePlanPinIssue(project);
+            const projectHasWorkdatePlanPinIssue = (project) => !!getWorkdatePlanPinIssue(project, undefined, window.YearContext ? window.YearContext.getViewState().year : 'all');
             window.__workdatePlanPinAudit = {
                 collect: collectWorkdatePlanPinIssues,
                 projectHasIssue: projectHasWorkdatePlanPinIssue,
@@ -76834,12 +76952,12 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 if (!button || !countEl) return;
                 const summary = collectWorkdatePlanPinIssues();
                 const markers = getActiveOutOfPlanMarkers(container);
-                const count = Math.max(summary.total || 0, markers.length || 0);
+                const count = summary.total || 0;
                 countEl.textContent = String(count);
                 button.classList.toggle('hidden', count === 0);
                 button.setAttribute('aria-hidden', count === 0 ? 'true' : 'false');
                 button.title = count > 0
-                    ? `기간 밖 작업일 핀 ${summary.outOfPlanPins || markers.length}건, 작업기간 내 핀 없음 ${summary.missingPinProjects || 0}건을 표시합니다.`
+                    ? `기간 밖 작업일 핀 ${summary.outOfPlanPins}건, 작업기간 내 핀 없음 ${summary.missingPinProjects || 0}건을 표시합니다.`
                     : '기간 밖 작업일 핀 또는 작업기간 내 핀 없음 항목 없음';
                 button.dataset.legendDiagnosticStatus = button.title;
                 button.setAttribute('aria-label', `기간 밖 핀. ${button.title}`);
@@ -101391,6 +101509,7 @@ function showPendingSettlementModal(periodType, projects) {
         }
 
         function interceptBackgroundClicksWhenAnalysisTooltipOpen(ev) {
+            if (ev.target?.closest?.('#operation-year-bubble,#operation-year-lock,#operation-year-modal')) return;
             const status = isAnyAnalysisTooltipActive();
             if (!status.active) return;
 
@@ -150148,6 +150267,18 @@ window.openAddNewProjectModal = function(editProject) {
         }
 
         function detectedDirection(table, columnIndex) {
+            if (table.dataset.siCenterCustomerGroups === '1') {
+                var ascending = true, descending = true, previousCustomer = null, previousValue = null;
+                Array.from(table.querySelectorAll('tbody tr[data-si-row="detail"]')).forEach(function(row) {
+                    var customer = row.dataset.siCustomer, value = numericNo(row.cells[columnIndex]);
+                    if (customer === previousCustomer && previousValue !== null && value !== null) {
+                        if (previousValue > value) ascending = false;
+                        if (previousValue < value) descending = false;
+                    }
+                    previousCustomer = customer; previousValue = value;
+                });
+                return ascending ? 'asc' : descending ? 'desc' : 'none';
+            }
             var values = [];
             Array.from(table.tBodies || []).forEach(function(body) {
                 collectGroups(body, columnIndex).groups.forEach(function(group) { values.push(group.value); });
@@ -150232,6 +150363,9 @@ window.openAddNewProjectModal = function(editProject) {
                 ? forcedDirection
                 : (current === 'asc' ? 'desc' : 'asc');
             var movedRows = 0;
+            if (table.dataset.siCenterCustomerGroups === '1') {
+                movedRows = sortSiCenterCustomerRows(table, columnIndex, direction);
+            } else {
             Array.from(table.tBodies || []).forEach(function(body) {
                 var collected = collectGroups(body, columnIndex);
                 if (!collected.groups.length) return;
@@ -150250,6 +150384,7 @@ window.openAddNewProjectModal = function(editProject) {
                 });
                 body.appendChild(fragment);
             });
+            }
             table.querySelectorAll('thead th[data-modal-no-sort-header]').forEach(function(header) {
                 setHeaderDirection(header, direction);
             });
