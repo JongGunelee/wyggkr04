@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "ee694ba77c54a4ba47090241e7ec27467ea7d42a76d752196d1d89ef0fab7611",
+  "sourceSha256": "b6c9514a78821f3bd351aa72e6003281c5388775edd7574ab24c8a2ec9549bab",
   "sourceFiles": {
     "status": {
-      "sha256": "10e94051927121d6d65576854021317f0317cb45b90dc80c6ee0050152380d30",
-      "byteLength": 119486
+      "sha256": "0285e5a773133cbd83c40c26c047ce7b2df26ba5d5196bed22f251566e54da58",
+      "byteLength": 119857
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -5249,6 +5249,21 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "source": "GitHub 회의록 파일 자동 점검",
         "exceptionCode": "",
         "note": "2026-10-12 기준 회의록 파일 없음"
+      },
+      {
+        "key": "2026-10-4",
+        "type": "주간",
+        "year": 2026,
+        "month": 10,
+        "week": 4,
+        "status": "미작성",
+        "counterIncluded": "Y",
+        "cardVisible": "Y",
+        "referenceDate": "2026-10-22",
+        "updatedAt": "2026-10-18T18:09:58.000Z",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "exceptionCode": "",
+        "note": "2026-10-19 기준 회의록 파일 없음"
       }
     ],
     "history": [
@@ -9589,6 +9604,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "type": "주간",
         "beforeValue": "미작성",
         "afterValue": "작성",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "283483f2-ea5a-4429-8ee7-9b389b303cef",
+        "changedAt": "2026-10-18T18:09:58.000Z",
+        "key": "2026-10-4",
+        "type": "주간",
+        "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
+        "afterValue": "{\"type\":\"주간\",\"year\":2026,\"month\":10,\"week\":4,\"status\":\"미작성\",\"counterIncluded\":\"Y\",\"cardVisible\":\"Y\",\"referenceDate\":\"2026-10-22\",\"source\":\"GitHub 회의록 파일 자동 점검\",\"exceptionCode\":\"\",\"note\":\"2026-10-19 기준 회의록 파일 없음\"}",
         "source": "GitHub 회의록 파일 자동 점검",
         "syncStatus": "완료"
       }
