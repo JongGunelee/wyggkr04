@@ -45920,12 +45920,14 @@
                     }
 
                     // \ub0a0\uc9dc \uc720\ud6a8\uc131 \uac80\uc0ac
-                    if (dateType === 'startDate' && project.endDate && newDate > project.endDate) {
+                    const currentStartDate = parseLocalDateString(project.startDate) || parseLocalDateString(project.startDateStr);
+                    const currentEndDate = parseLocalDateString(project.endDate) || parseLocalDateString(project.endDateStr);
+                    if (dateType === 'startDate' && currentEndDate && newDate > currentEndDate) {
                         showToast('\uc2dc\uc791\uc77c\uc740 \uc885\ub8cc\uc77c\ubcf4\ub2e4 \ub2a6\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.', 'error');
                         input.focus();
                         return;
                     }
-                    if (dateType === 'endDate' && project.startDate && newDate < project.startDate) {
+                    if (dateType === 'endDate' && currentStartDate && newDate < currentStartDate) {
                         showToast('\uc885\ub8cc\uc77c\uc740 \uc2dc\uc791\uc77c\ubcf4\ub2e4 \ube60\ub97c \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.', 'error');
                         input.focus();
                         return;
@@ -46228,12 +46230,15 @@
 
                     if (!barRow) return true;
 
+                    // Resolve cached strings and workbook Date values without changing source fields.
+                    const displayStartDate = parseLocalDateString(project.startDate) || parseLocalDateString(project.startDateStr);
+                    const displayEndDate = parseLocalDateString(project.endDate) || parseLocalDateString(project.endDateStr);
                     // 3. Update Bar Style
                     const bar = barRow.querySelector('.gantt-bar');
                     if (bar) {
-                        if (project.startDate && project.endDate && viewMinDate) {
-                            const offset = dateDiffInDays(viewMinDate, project.startDate);
-                            const newDuration = dateDiffInDays(project.startDate, project.endDate) + 1;
+                        if (displayStartDate && displayEndDate && viewMinDate) {
+                            const offset = dateDiffInDays(viewMinDate, displayStartDate);
+                            const newDuration = dateDiffInDays(displayStartDate, displayEndDate) + 1;
                             const barLeft = offset * DAY_WIDTH;
                             const barWidth = Math.max(1, newDuration) * DAY_WIDTH;
 
@@ -46265,7 +46270,7 @@
                         bar.dataset.status = project.status;
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
-                        bar.style.opacity = (project.endDate < today && project.status !== '\uc644\ub8cc') ? '0.7' : '1';
+                        bar.style.opacity = (displayEndDate < today && project.status !== '\uc644\ub8cc') ? '0.7' : '1';
                     }
 
                     // 4. Update Title Inputs & Highlighting
@@ -46275,16 +46280,16 @@
                         const progressSpan = titleItem.querySelector('.progress-editor');
 
                         if (startDateSpan) {
-                            startDateSpan.textContent = formatDate(project.startDate);
-                            startDateSpan.dataset.currentDate = formatDateYMD(project.startDate);
+                            startDateSpan.textContent = formatDate(displayStartDate);
+                            startDateSpan.dataset.currentDate = formatDateYMD(displayStartDate);
                             if (project._lastEditType === 'startDate') {
                                 startDateSpan.classList.add('cell-updated-highlight');
                                 setTimeout(() => startDateSpan.classList.remove('cell-updated-highlight'), 2000);
                             }
                         }
                         if (endDateSpan) {
-                            endDateSpan.textContent = formatDate(project.endDate);
-                            endDateSpan.dataset.currentDate = formatDateYMD(project.endDate);
+                            endDateSpan.textContent = formatDate(displayEndDate);
+                            endDateSpan.dataset.currentDate = formatDateYMD(displayEndDate);
                             if (project._lastEditType === 'endDate') {
                                 endDateSpan.classList.add('cell-updated-highlight');
                                 setTimeout(() => endDateSpan.classList.remove('cell-updated-highlight'), 2000);
