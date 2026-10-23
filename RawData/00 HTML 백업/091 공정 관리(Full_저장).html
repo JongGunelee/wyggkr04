@@ -119775,6 +119775,7 @@ function showPendingSettlementModal(periodType, projects) {
                         cb.checked = !modal.classList.contains('hide-col-' + def.key);
                     }
                 });
+                if (state.search) refreshProjectSearchHighlights(modal);
             }
 
             function projectColumnDefinition(key) {
@@ -119889,11 +119890,13 @@ function showPendingSettlementModal(periodType, projects) {
                 return '';
             }
             function bindProjectColumnResizers(modal) {
-                if (!modal || modal.dataset.projColumnResizeBound === '1') return;
+                if (!modal || modal.__codexProjColumnResizeBound) return;
+                modal.__codexProjColumnResizeBound = true;
                 modal.dataset.projColumnResizeBound = '1';
                 modal.addEventListener('pointerdown', function(event) {
                     var handle = event.target && event.target.closest ? event.target.closest('[data-proj-col-resize-start],[data-proj-col-resize-end]') : null;
                     if (!handle || !modal.contains(handle)) return;
+                    if (state.search) modal.querySelectorAll('.codex-proj-search-match').forEach(function(node) { node.remove(); });
                     event.preventDefault();
                     event.stopPropagation();
                     var isStart = handle.hasAttribute('data-proj-col-resize-start');
@@ -119930,6 +119933,7 @@ function showPendingSettlementModal(periodType, projects) {
                         handle.removeEventListener('pointerup', finish);
                         handle.removeEventListener('pointercancel', finish);
                         saveProjectColumnWidths();
+                        if (state.search) refreshProjectSearchHighlights(modal);
                     };
                     handle.addEventListener('pointermove', move);
                     handle.addEventListener('pointerup', finish);
@@ -120335,18 +120339,127 @@ function showPendingSettlementModal(periodType, projects) {
                 var code = normalizeText(row.maintenanceCode);
                 return !!(code && duplicateCodes && duplicateCodes[code] > 1);
             }
+            // View-only helpers: no stylesheet, observer, timer or data mutation at boot.
+            function projectSearchTerms() {
+                var query = normalizeText(state.search).normalize('NFC').toLowerCase();
+                if (!query) return [];
+                if (state.searchMode === 'phrase') return [query];
+                return Array.from(new Set(query.replace(/([가-힣])([a-z])/g, '$1 $2').replace(/([a-z])([가-힣])/g, '$1 $2').split(/\s+/).filter(Boolean)));
+            }
+            function rowMatchesProjectSearch(row, terms) {
+                return terms.every(function(term) { return FIELD_DEFS.some(function(def) { return String(row[def.key] == null ? '' : row[def.key]).normalize('NFC').toLowerCase().indexOf(term) !== -1; }); });
+            }
+            function projectSearchHighlight(value, terms) {
+                var text = String(value == null ? '' : value).normalize('NFC'), lower = text.toLowerCase(), ranges = [];
+                (terms || projectSearchTerms()).forEach(function(term) {
+                    var at = 0, start;
+                    while ((start = lower.indexOf(term, at)) !== -1) { ranges.push([start, start + term.length]); at = start + Math.max(1, term.length); }
+                });
+                if (!ranges.length) return '';
+                ranges.sort(function(a, b) { return a[0] - b[0] || b[1] - a[1]; });
+                var merged = [], html = '', cursor = 0;
+                ranges.forEach(function(r) { var last = merged[merged.length - 1]; if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]); else merged.push(r.slice()); });
+                merged.forEach(function(r) { html += escapeHtml(text.slice(cursor, r[0])) + '<mark style="background:#ffeb00;color:transparent">' + escapeHtml(text.slice(r[0], r[1])) + '</mark>'; cursor = r[1]; });
+                return html + escapeHtml(text.slice(cursor));
+            }
+            function refreshProjectSearchHighlights(modal) {
+                if (!modal) return;
+                var terms = projectSearchTerms(), plans = [];
+                if (!terms.length) { modal.querySelectorAll('.codex-proj-search-match').forEach(function(node) {node.remove();}); return; }
+                // Read all geometry before applying overlays; none participates in row layout.
+                modal.querySelectorAll('td[data-proj-cell]').forEach(function(cell) {
+                    var old = cell.querySelector('.codex-proj-search-match');
+                    var control = cell.querySelector('[data-proj-field]');
+                    var custom = cell.querySelector('[data-proj-custom]');
+                    if (custom && custom.style.display !== 'none') control = custom;
+                    if (!control || control === document.activeElement) { plans.push({cell:cell, old:old}); return; }
+                    var value = control.tagName === 'SELECT' ? (control.selectedOptions[0] || {}).textContent : control.value;
+                    var html = terms.length ? projectSearchHighlight(value, terms) : '';
+                    if (!html) { plans.push({cell:cell, old:old}); return; }
+                    var rect = control.getBoundingClientRect(), outer = cell.getBoundingClientRect(), cs = getComputedStyle(control);
+                    plans.push({cell:cell, old:old, html:html, left:rect.left-outer.left, top:rect.top-outer.top, width:rect.width, height:rect.height, font:cs.font, padding:cs.padding, border:cs.borderWidth, scroll:control.scrollLeft || 0, line:cs.lineHeight});
+                });
+                plans.forEach(function(p) {
+                    if (p.old) p.old.remove();
+                    if (!p.html) return;
+                    p.cell.style.position = 'relative';
+                    var layer = document.createElement('span');
+                    layer.className = 'codex-proj-search-match'; layer.setAttribute('aria-hidden', 'true');
+                    layer.style.cssText = 'position:absolute;pointer-events:none;overflow:hidden;white-space:pre;box-sizing:border-box;color:transparent;mix-blend-mode:multiply;';
+                    Object.assign(layer.style, {left:p.left+'px',top:p.top+'px',width:p.width+'px',height:p.height+'px',font:p.font,padding:p.padding,border:p.border+' solid transparent',lineHeight:p.line});
+                    layer.innerHTML = '<span style="position:relative;left:-'+p.scroll+'px">'+p.html+'</span>';
+                    p.cell.appendChild(layer);
+                });
+            }
+            function projectYearRows() {
+                return (state.rows || []).filter(function(row) { return !window.YearContext || row.__isNew || row.__sessionNew || window.YearContext.scope([row], 'union').length > 0; });
+            }
+            function renderProjectRowPanel() {
+                var modal = document.getElementById(MODAL_ID), panel = modal && modal.querySelector('[data-proj-row-panel]');
+                if (!panel) return;
+                var rows = projectYearRows(), hidden = rows.filter(function(row) { return !!state.hiddenRows[row.__rowId]; }).length;
+                var toggle = modal.querySelector('[data-proj-row-toggle]');
+                toggle.textContent = '행 보이기/숨기기' + (hidden ? ' ('+hidden+')' : ''); toggle.setAttribute('aria-expanded', state.rowPanelOpen ? 'true' : 'false');
+                panel.hidden = !state.rowPanelOpen;
+                if (!state.rowPanelOpen) return;
+                panel.innerHTML = '<div style="font-size:12px">체크한 행 표시 · 원본 삭제 아님 <button type="button" data-proj-row-show-all>모든 행 보이기</button> <button type="button" data-proj-row-hide-selected>선택 행 숨기기</button></div><div style="max-height:100px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">'+rows.slice().sort(function(a,b) {return Number(!!state.hiddenRows[b.__rowId])-Number(!!state.hiddenRows[a.__rowId]);}).map(function(row) {return '<label style="font-size:12px;white-space:nowrap"><input type="checkbox" data-proj-row-visible="'+escapeHtml(row.__rowId)+'"'+(state.hiddenRows[row.__rowId]?'':' checked')+'> '+escapeHtml(row.maintenanceCode)+' · '+escapeHtml(row.name)+'</label>';}).join('')+'</div>';
+            }
+            function projectExportSelection(scope) {
+                var all = scope === 'all', modal = document.getElementById(MODAL_ID);
+                return {scope:all?'all':'visible', fields:FIELD_DEFS.filter(function(def) {return all || !modal.classList.contains('hide-col-'+def.key);}), rows:all?sortedRows(projectYearRows()):pagedRows(sortedRows(filteredRows()))};
+            }
+            function updateProjectExportPreview() {
+                var modal = document.getElementById(MODAL_ID), panel = modal && modal.querySelector('[data-proj-export-panel]');
+                if (!panel || panel.hidden) return;
+                var selection = projectExportSelection(modal.querySelector('[data-proj-export-scope]').value);
+                modal.querySelector('[data-proj-export-preview]').textContent = selection.rows.length+'행 · '+selection.fields.length+'개 데이터 열 · 편집 상태 포함';
+            }
+            function ensureProjectViewControls(modal) {
+                if (modal.querySelector('[data-proj-search-mode]')) return;
+                var toolbar = modal.querySelector('.codex-proj-toolbar'), controls = document.createElement('span');
+                controls.style.cssText = 'display:flex;gap:6px;align-items:center;flex-wrap:wrap';
+                controls.innerHTML = '<select data-proj-search-mode aria-label="검색 방식"><option value="compound">복합 검색 (모든 단어)</option><option value="phrase">문구 일치 (연속 문자)</option></select><button type="button" data-proj-row-toggle aria-expanded="false">행 보이기/숨기기</button><button type="button" data-proj-export-toggle aria-expanded="false">Excel 다운로드</button>';
+                controls.querySelectorAll('button,select').forEach(function(node) { node.style.cssText='border:1px solid #cbd5e1;background:#f8fafc;color:#334155;border-radius:8px;padding:5px 7px;font-size:12px;font-weight:700;min-height:28px;cursor:pointer'; });
+                toolbar.appendChild(controls);
+                var body = modal.querySelector('.codex-proj-body'), rowPanel = document.createElement('div'), exportPanel = document.createElement('div');
+                rowPanel.setAttribute('data-proj-row-panel',''); rowPanel.hidden = true;
+                rowPanel.style.cssText = 'padding:6px 10px;border-bottom:1px solid #cbd5e1;flex-shrink:0;max-height:140px;overflow:auto';
+                exportPanel.setAttribute('data-proj-export-panel',''); exportPanel.hidden = true;
+                exportPanel.style.cssText = 'padding:6px 10px;border-bottom:1px solid #cbd5e1;flex-shrink:0';
+                exportPanel.innerHTML = '<label>Excel 범위 <select data-proj-export-scope><option value="visible">현재 페이지 표시 행·열</option><option value="all">선택 운영 연도 전체 행·열</option></select></label> <button type="button" data-proj-export>다운로드</button> <span data-proj-export-preview></span><div style="font-size:12px">전체는 검색·필터·행/열 숨김을 무시합니다. 편집 상태를 포함한 조회용이며 적용·웹 저장과 별도입니다.</div>';
+                body.parentNode.insertBefore(rowPanel,body); body.parentNode.insertBefore(exportPanel,body);
+                var search=modal.querySelector('[data-proj-search]'); search.placeholder='복합 검색: 사택 LED 또는 사택LED';
+            }
+            async function exportProjectManagerExcel(button) {
+                if (!button || button.disabled) return;
+                var modal = document.getElementById(MODAL_ID), selection = projectExportSelection(modal.querySelector('[data-proj-export-scope]').value);
+                if (!selection.rows.length || !selection.fields.length) { notify('내보낼 행 또는 데이터 열이 없습니다. 검색·행·열 표시를 확인하세요.', 'warning'); return; }
+                var rows = selection.rows.map(function(row) { return Object.assign({}, row); }), fields = selection.fields.slice(), year = window.YearContext ? window.YearContext.getState().year : '전체';
+                button.disabled = true;
+                try {
+                    if (!window.ExcelIntegrityHandler || !await window.ExcelIntegrityHandler.ensureXlsxLoaded()) throw new Error('Excel 라이브러리를 준비하지 못했습니다.');
+                    var values = rows.map(function(row,index) { return [index+1,row.__delete?'삭제 예정':((row.__isNew||row.__sessionNew)?'신규':(row.__dirty?'수정됨':'기존'))].concat(fields.map(function(def) {var value=row[def.key]==null?'':row[def.key];return /^(poAmount|prAmount|progress)$/.test(def.key)&&normalizeText(value)?numberValue(value):String(value);})); });
+                    var sheet = XLSX.utils.aoa_to_sheet([['No.','편집 상태'].concat(fields.map(function(def) {return def.label;}))].concat(values));
+                    values.forEach(function(row,r) { row.forEach(function(value,c) {var cell=sheet[XLSX.utils.encode_cell({r:r+1,c:c})];if(cell&&typeof value==='string'){cell.t='s';delete cell.f;}}); });
+                    sheet['!autofilter']={ref:sheet['!ref']}; sheet['!cols']=[{wch:7},{wch:12}].concat(fields.map(function(def) {return {wch:/^(name|note)$/.test(def.key)?44:22};}));
+                    var workbook=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook,sheet,'프로젝트 데이터');
+                    XLSX.writeFile(workbook,'프로젝트_데이터_'+year+'_'+(selection.scope==='all'?'전체':'현재페이지')+'_'+Date.now()+'.xlsx',{compression:true});
+                    notify('Excel '+rows.length+'행을 다운로드했습니다. 원본 XLSB 웹 저장과는 별도입니다.','success');
+                } catch(error) { notify('Excel 다운로드 실패: '+(error.message||error),'error'); }
+                finally {button.disabled=false;}
+            }
+
             function filteredRows(duplicateCodes) {
-                var q = normalizeText(state.search).toLowerCase();
+                var terms = projectSearchTerms();
                 var rows = (state.rows || []).filter(rowMatchesFilters);
                 if (window.YearContext) rows = rows.filter(function(row) { return row.__isNew || row.__sessionNew || window.YearContext.scope([row], 'union').length > 0; });
+                if (state.hiddenRows) rows = rows.filter(function(row) { return !state.hiddenRows[row.__rowId]; });
                 if (state.duplicateOnly) {
                     duplicateCodes = duplicateCodes || collectDuplicateMaintenanceCodes();
                     rows = rows.filter(function(row) { return isDuplicateMaintenanceRow(row, duplicateCodes); });
                 }
-                if (!q) return rows;
-                return rows.filter(function(row) {
-                    return FIELD_DEFS.some(function(def) { return String(row[def.key] || '').toLowerCase().indexOf(q) !== -1; });
-                });
+                if (!terms.length) return rows;
+                return rows.filter(function(row) { return rowMatchesProjectSearch(row, terms); });
             }
             function sortedRows(rows) {
                 rows = (rows || []).slice();
@@ -120452,15 +120565,18 @@ function showPendingSettlementModal(periodType, projects) {
                 if (lastBtn) lastBtn.disabled = state.page >= maxPage;
                 updateSortIndicators();
                 renderFilterPanel();
+                renderProjectRowPanel();
+                updateProjectExportPreview();
                 if (!body) return;
                 body.innerHTML = rows.length ? rows.map(function(row) {
                     return '<tr data-row-id="' + row.__rowId + '" class="' + (row.__dirty ? 'is-dirty ' : '') + ((row.__isNew || row.__sessionNew) ? 'is-new ' : '') + (row.__delete ? 'is-delete ' : '') + (state.focusedRowId === row.__rowId ? 'codex-proj-row-focused' : '') + '">' +
-                        '<td class="codex-proj-select-cell"><input type="checkbox" data-proj-select="' + row.__rowId + '"' + (state.selected[row.__rowId] ? ' checked' : '') + '></td>' +
+                        '<td class="codex-proj-select-cell" style="position:relative;white-space:nowrap"><input type="checkbox" data-proj-select="' + row.__rowId + '"' + (state.selected[row.__rowId] ? ' checked' : '') + '><button type="button" data-proj-hide-row="' + row.__rowId + '" title="이 행 숨기기" aria-label="이 행 숨기기" style="position:absolute;right:1px;top:50%;transform:translateY(-50%);border:0;background:none;padding:0;margin:0;width:16px;height:18px;font-size:14px;line-height:1;cursor:pointer">👁️</button></td>' +
                         '<td class="codex-proj-action-cell"><button type="button" data-proj-manage-row="' + row.__rowId + '">관리</button></td>' +
                         FIELD_DEFS.map(function(def) { return renderCell(row, def, duplicateCodes); }).join('') +
                         '</tr>';
                 }).join('') : '<tr><td colspan="' + (FIELD_DEFS.length + 2) + '" class="codex-proj-empty">' + (state.duplicateOnly ? '중복된 유지관리번호가 없습니다.' : '표시할 프로젝트가 없습니다.') + '</td></tr>';
                 applyProjectColumnWidths(modal);
+                if (state.search) refreshProjectSearchHighlights(modal);
                 if (modal && modal.classList.contains('is-proj-fullscreen')) {
                     requestAnimationFrame(function() { fitProjectManagerFullscreen(modal); });
                 }
@@ -121224,44 +121340,9 @@ function showPendingSettlementModal(periodType, projects) {
                     actions.appendChild(clearAll);
                 }
             }
-            function ensureModal() {
-                var modal = document.getElementById(MODAL_ID);
-                if (modal) {
-                    ensureProjectColumnBulkControls(modal);
-                    ensureProjectColumnGroup(modal);
-                    bindProjectColumnResizers(modal);
-                    return modal;
-                }
-                modal = document.createElement('div');
-                modal.id = MODAL_ID;
-                modal.className = 'codex-proj-modal hidden';
-                modal.setAttribute('role', 'dialog');
-                modal.setAttribute('aria-modal', 'true');
-                modal.innerHTML =
-                    '<div class="codex-proj-panel">' +
-                    '<div class="codex-proj-header" data-proj-drag-handle="1"><button type="button" data-proj-close="1" class="codex-proj-left-close" aria-label="닫기">×</button><div class="codex-proj-title"><h3>프로젝트 데이터 관리</h3><p>Project Data 워크시트 기준 신규 추가, 변경, 삭제를 적용합니다. 적용 후 웹 저장으로 GitHub 원본에 최종 저장하세요.</p></div><div class="codex-proj-actions"><button type="button" data-proj-add="1" class="primary">신규 추가</button><button type="button" data-proj-duplicate-toggle="1" class="duplicate-audit" aria-pressed="false">중복 점검 <span class="codex-proj-duplicate-count">0</span></button><button type="button" data-proj-apply="1" class="primary">적용</button><button type="button" data-proj-add-finish="1" class="focus-finish" hidden>신규 추가 종료</button><button type="button" data-proj-delete-selected="1" class="danger">선택 삭제</button><button type="button" data-proj-restore-delete="1" class="undo">삭제 취소</button><button type="button" data-proj-fullscreen="1" class="fullscreen" aria-pressed="false" title="전체 화면 보기">전체 화면</button><button type="button" data-proj-close="1" class="close" aria-label="닫기">×</button></div></div>' +
-                    '<div class="codex-proj-toolbar"><input type="search" data-proj-search="1" placeholder="유지관리번호, 명칭, 고객사, 작업유형 검색"><span class="codex-proj-sums"></span><span class="codex-proj-count"></span><span class="codex-proj-status"></span><button type="button" class="codex-proj-filter-toggle" data-proj-filter-toggle="1">필터링</button><button type="button" class="codex-proj-col-toggle" data-proj-col-toggle="1" style="border:1px solid #cbd5e1; background:#f8fafc; color:#334155; border-radius:10px; padding:7px 11px; font-size:12px; font-weight:700; cursor:pointer; margin-left:8px;">열 보이기/숨기기</button><span class="codex-proj-pager"><button type="button" data-proj-page="first">처음</button><button type="button" data-proj-page="prev">이전</button><b class="codex-proj-page-info">1 / 1</b><button type="button" data-proj-page="next">다음</button><button type="button" data-proj-page="last">마지막</button></span></div>' +
-                    '<div class="codex-proj-filter-panel hidden"><div class="codex-proj-filter-fields"></div><select data-proj-filter-select="1" aria-label="프로젝트 필터 값"></select><button type="button" data-proj-filter-clear="1">해제</button><span class="codex-proj-filter-active">필터 없음</span></div>' +
-                    '<div class="codex-proj-col-panel hidden">' +
-                        FIELD_DEFS.map(function(def) {
-                            return '<label class="codex-proj-col-field"><input type="checkbox" data-proj-col-checkbox="' + escapeHtml(def.key) + '" checked> ' + escapeHtml(def.label) + '</label>';
-                        }).join('') +
-                        '<div class="codex-proj-col-actions">' +
-                            '<button type="button" class="codex-proj-col-reset-btn" data-proj-col-reset="1">모든 열 보이기</button>' +
-                            '<button type="button" class="codex-proj-col-bulk-btn" data-proj-col-select-all="1">전체 선택</button>' +
-                            '<button type="button" class="codex-proj-col-bulk-btn" data-proj-col-clear-all="1">전체 해제</button>' +
-                            '<button type="button" class="codex-proj-col-reset-btn" data-proj-width-reset="1">열 폭 초기화</button>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="codex-proj-body"><table class="codex-proj-table"><thead><tr><th data-proj-col-key="__select">선택' + projectColumnResizeHandles('__select') + '</th><th data-proj-col-key="__action">작업' + projectColumnResizeHandles('__action') + '</th>' + FIELD_DEFS.map(function(def) {
-                        return '<th data-proj-col-key="' + escapeHtml(def.key) + '" data-proj-sort="' + escapeHtml(def.key) + '" role="button" aria-sort="none" class="col-' + escapeHtml(def.key) + '">' +
-                               escapeHtml(def.label) +
-                               ' <span data-proj-hide-col="' + escapeHtml(def.key) + '" class="codex-proj-hide-col-btn" title="이 열 숨기기">👁️</span>' +
-                               ' <span data-proj-sort-icon class="codex-proj-sort-icon">↕</span>' + projectColumnResizeHandles(def.key) + '</th>';
-                    }).join('') + '</tr></thead><tbody class="codex-proj-tbody"></tbody></table></div>' +
-                    '<div class="codex-proj-foot">신규 값은 드롭다운의 직접 입력을 선택해 입력할 수 있습니다. 기존 저장 엔진을 그대로 사용하므로 적용 후 웹 저장 버튼으로 서버 XLSB에 반영됩니다.</div>' +
-                    '<div class="codex-proj-resize codex-proj-resize-n" data-proj-resize="n"></div><div class="codex-proj-resize codex-proj-resize-e" data-proj-resize="e"></div><div class="codex-proj-resize codex-proj-resize-s" data-proj-resize="s"></div><div class="codex-proj-resize codex-proj-resize-w" data-proj-resize="w"></div><div class="codex-proj-resize codex-proj-resize-ne" data-proj-resize="ne"></div><div class="codex-proj-resize codex-proj-resize-nw" data-proj-resize="nw"></div><div class="codex-proj-resize codex-proj-resize-se" data-proj-resize="se"></div><div class="codex-proj-resize codex-proj-resize-sw" data-proj-resize="sw"></div>' +
-                    '</div>';
+            function bindProjectManagerModalEvents(modal) {
+                if (!modal || modal.__codexProjectManagerEventsBound) return;
+                modal.__codexProjectManagerEventsBound = true;
                 modal.addEventListener('click', function(event) {
                     var target = event.target;
                     if (!target || !target.closest) return;
@@ -121277,6 +121358,15 @@ function showPendingSettlementModal(periodType, projects) {
                     }
                     var focusedRow = target.closest('.codex-proj-tbody tr[data-row-id]');
                     if (focusedRow) focusProjectManagerRow(modal, focusedRow);
+                    var hideRow = target.closest('[data-proj-hide-row]');
+                    if (hideRow) { event.preventDefault(); var hiddenId=hideRow.getAttribute('data-proj-hide-row'); state.hiddenRows[hiddenId]=true; delete state.selected[hiddenId]; renderTable(); return; }
+                    if (target.closest('[data-proj-row-toggle]')) { state.rowPanelOpen=!state.rowPanelOpen; renderProjectRowPanel(); return; }
+                    if (target.closest('[data-proj-row-show-all]')) { state.hiddenRows=Object.create(null); renderTable(); return; }
+                    if (target.closest('[data-proj-row-hide-selected]')) { Object.keys(state.selected).forEach(function(id){state.hiddenRows[id]=true;}); state.selected={}; renderTable(); return; }
+                    var rowVisible=target.closest('[data-proj-row-visible]');
+                    if (rowVisible) { var visibleId=rowVisible.getAttribute('data-proj-row-visible'); if(rowVisible.checked)delete state.hiddenRows[visibleId];else{state.hiddenRows[visibleId]=true;delete state.selected[visibleId];} renderTable(); return; }
+                    if (target.closest('[data-proj-export-toggle]')) { var ep=modal.querySelector('[data-proj-export-panel]'); ep.hidden=!ep.hidden; modal.querySelector('[data-proj-export-toggle]').setAttribute('aria-expanded',ep.hidden?'false':'true');updateProjectExportPreview();return; }
+                    var exportButton=target.closest('[data-proj-export]');if(exportButton){exportProjectManagerExcel(exportButton);return;}
                     var noteCell = target.closest('[data-proj-cell="note"]');
                     if (noteCell) setExpandedNoteCell(noteCell);
                     else setExpandedNoteCell(null);
@@ -121317,12 +121407,15 @@ function showPendingSettlementModal(periodType, projects) {
                         harvestProjectManagerInputs(modal);
                         if (!state.duplicateOnly) {
                             state.duplicateViewSnapshot = {
+                                searchMode: state.searchMode,
+                                hiddenRows: Object.assign({},state.hiddenRows),
                                 search: state.search,
                                 filters: Object.assign({}, state.filters || {}),
                                 filterPanelOpen: !!state.filterPanelOpen,
                                 page: state.page
                             };
                             state.duplicateOnly = true;
+                            state.hiddenRows = Object.create(null);
                             state.search = '';
                             state.filters = {};
                             state.filterPanelOpen = false;
@@ -121333,6 +121426,9 @@ function showPendingSettlementModal(periodType, projects) {
                         } else {
                             var duplicateSnapshot = state.duplicateViewSnapshot || {};
                             state.duplicateOnly = false;
+                            state.searchMode = duplicateSnapshot.searchMode || 'compound';
+                            state.hiddenRows = Object.assign(Object.create(null),duplicateSnapshot.hiddenRows || {});
+                            modal.querySelector('[data-proj-search-mode]').value = state.searchMode;
                             state.search = normalizeText(duplicateSnapshot.search);
                             state.filters = Object.assign({}, duplicateSnapshot.filters || {});
                             state.filterPanelOpen = !!duplicateSnapshot.filterPanelOpen;
@@ -121419,6 +121515,7 @@ function showPendingSettlementModal(periodType, projects) {
                         event.preventDefault();
                         autoFitProjectColumnWidths(true);
                         applyProjectColumnWidths(modal);
+                        if (state.search) refreshProjectSearchHighlights(modal);
                         return;
                     }
                     var hideColBtn = target.closest('[data-proj-hide-col]');
@@ -121438,6 +121535,7 @@ function showPendingSettlementModal(periodType, projects) {
                         } else {
                             modal.classList.add('hide-col-' + key);
                         }
+                        if (state.search) refreshProjectSearchHighlights(modal);
                         return;
                     }
                     var rowManage = target.closest('[data-proj-manage-row]');
@@ -121518,8 +121616,52 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                 document.addEventListener('codex:work-cancellation-pending', function() {
                     if (document.getElementById(MODAL_ID)) updateProjectApplyGuidance();
                 });
+            }
+            function ensureModal() {
+                var modal = document.getElementById(MODAL_ID);
+                if (modal) {
+                    ensureProjectViewControls(modal);
+                    bindProjectManagerModalEvents(modal);
+                    installProjectModalMoveResize(modal);
+                    ensureProjectColumnBulkControls(modal);
+                    ensureProjectColumnGroup(modal);
+                    bindProjectColumnResizers(modal);
+                    return modal;
+                }
+                modal = document.createElement('div');
+                modal.id = MODAL_ID;
+                modal.className = 'codex-proj-modal hidden';
+                modal.setAttribute('role', 'dialog');
+                modal.setAttribute('aria-modal', 'true');
+                modal.innerHTML =
+                    '<div class="codex-proj-panel">' +
+                    '<div class="codex-proj-header" data-proj-drag-handle="1"><button type="button" data-proj-close="1" class="codex-proj-left-close" aria-label="닫기">×</button><div class="codex-proj-title"><h3>프로젝트 데이터 관리</h3><p>Project Data 워크시트 기준 신규 추가, 변경, 삭제를 적용합니다. 적용 후 웹 저장으로 GitHub 원본에 최종 저장하세요.</p></div><div class="codex-proj-actions"><button type="button" data-proj-add="1" class="primary">신규 추가</button><button type="button" data-proj-duplicate-toggle="1" class="duplicate-audit" aria-pressed="false">중복 점검 <span class="codex-proj-duplicate-count">0</span></button><button type="button" data-proj-apply="1" class="primary">적용</button><button type="button" data-proj-add-finish="1" class="focus-finish" hidden>신규 추가 종료</button><button type="button" data-proj-delete-selected="1" class="danger">선택 삭제</button><button type="button" data-proj-restore-delete="1" class="undo">삭제 취소</button><button type="button" data-proj-fullscreen="1" class="fullscreen" aria-pressed="false" title="전체 화면 보기">전체 화면</button><button type="button" data-proj-close="1" class="close" aria-label="닫기">×</button></div></div>' +
+                    '<div class="codex-proj-toolbar"><input type="search" data-proj-search="1" placeholder="유지관리번호, 명칭, 고객사, 작업유형 검색"><span class="codex-proj-sums"></span><span class="codex-proj-count"></span><span class="codex-proj-status"></span><button type="button" class="codex-proj-filter-toggle" data-proj-filter-toggle="1">필터링</button><button type="button" class="codex-proj-col-toggle" data-proj-col-toggle="1" style="border:1px solid #cbd5e1; background:#f8fafc; color:#334155; border-radius:10px; padding:7px 11px; font-size:12px; font-weight:700; cursor:pointer; margin-left:8px;">열 보이기/숨기기</button><span class="codex-proj-pager"><button type="button" data-proj-page="first">처음</button><button type="button" data-proj-page="prev">이전</button><b class="codex-proj-page-info">1 / 1</b><button type="button" data-proj-page="next">다음</button><button type="button" data-proj-page="last">마지막</button></span></div>' +
+                    '<div class="codex-proj-filter-panel hidden"><div class="codex-proj-filter-fields"></div><select data-proj-filter-select="1" aria-label="프로젝트 필터 값"></select><button type="button" data-proj-filter-clear="1">해제</button><span class="codex-proj-filter-active">필터 없음</span></div>' +
+                    '<div class="codex-proj-col-panel hidden">' +
+                        FIELD_DEFS.map(function(def) {
+                            return '<label class="codex-proj-col-field"><input type="checkbox" data-proj-col-checkbox="' + escapeHtml(def.key) + '" checked> ' + escapeHtml(def.label) + '</label>';
+                        }).join('') +
+                        '<div class="codex-proj-col-actions">' +
+                            '<button type="button" class="codex-proj-col-reset-btn" data-proj-col-reset="1">모든 열 보이기</button>' +
+                            '<button type="button" class="codex-proj-col-bulk-btn" data-proj-col-select-all="1">전체 선택</button>' +
+                            '<button type="button" class="codex-proj-col-bulk-btn" data-proj-col-clear-all="1">전체 해제</button>' +
+                            '<button type="button" class="codex-proj-col-reset-btn" data-proj-width-reset="1">열 폭 초기화</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="codex-proj-body"><table class="codex-proj-table"><thead><tr><th data-proj-col-key="__select">선택' + projectColumnResizeHandles('__select') + '</th><th data-proj-col-key="__action">작업' + projectColumnResizeHandles('__action') + '</th>' + FIELD_DEFS.map(function(def) {
+                        return '<th data-proj-col-key="' + escapeHtml(def.key) + '" data-proj-sort="' + escapeHtml(def.key) + '" role="button" aria-sort="none" class="col-' + escapeHtml(def.key) + '">' +
+                               escapeHtml(def.label) +
+                               ' <span data-proj-hide-col="' + escapeHtml(def.key) + '" class="codex-proj-hide-col-btn" title="이 열 숨기기">👁️</span>' +
+                               ' <span data-proj-sort-icon class="codex-proj-sort-icon">↕</span>' + projectColumnResizeHandles(def.key) + '</th>';
+                    }).join('') + '</tr></thead><tbody class="codex-proj-tbody"></tbody></table></div>' +
+                    '<div class="codex-proj-foot">신규 값은 드롭다운의 직접 입력을 선택해 입력할 수 있습니다. 기존 저장 엔진을 그대로 사용하므로 적용 후 웹 저장 버튼으로 서버 XLSB에 반영됩니다.</div>' +
+                    '<div class="codex-proj-resize codex-proj-resize-n" data-proj-resize="n"></div><div class="codex-proj-resize codex-proj-resize-e" data-proj-resize="e"></div><div class="codex-proj-resize codex-proj-resize-s" data-proj-resize="s"></div><div class="codex-proj-resize codex-proj-resize-w" data-proj-resize="w"></div><div class="codex-proj-resize codex-proj-resize-ne" data-proj-resize="ne"></div><div class="codex-proj-resize codex-proj-resize-nw" data-proj-resize="nw"></div><div class="codex-proj-resize codex-proj-resize-se" data-proj-resize="se"></div><div class="codex-proj-resize codex-proj-resize-sw" data-proj-resize="sw"></div>' +
+                    '</div>';
+                bindProjectManagerModalEvents(modal);
                 document.body.appendChild(modal);
                 ensureProjectColumnBulkControls(modal);
+                ensureProjectViewControls(modal);
                 installProjectModalMoveResize(modal);
                 return modal;
             }
@@ -121707,6 +121849,8 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                     applyRect({ left: rect.left, top: rect.top, width: rect.width, height: rect.height });
                 });
                 modal.addEventListener('focusin', function(event) {
+                    var cell=event.target && event.target.closest && event.target.closest('td[data-proj-cell]');
+                    var match=cell && cell.querySelector('.codex-proj-search-match');if(match)match.remove();
                     var row = event.target && event.target.closest ? event.target.closest('.codex-proj-tbody tr[data-row-id]') : null;
                     if (row) focusProjectManagerRow(modal, row);
                 });
@@ -121715,13 +121859,17 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
             }
             function handleMoneyBlur(event) {
                 var t = event.target;
-                if (!t || !t.matches || !t.matches('.codex-proj-money-input[data-proj-field]')) return;
-                t.value = formatAccounting(t.value);
+                if (!t || !t.matches) return;
+                if(t.matches('.codex-proj-money-input[data-proj-field]')) t.value = formatAccounting(t.value);
+                if(state.search && t.closest('td[data-proj-cell]'))refreshProjectSearchHighlights(document.getElementById(MODAL_ID));
             }
             function handleInput(event) {
                 var t = event.target;
                 if (!t) return;
+                if (t.matches && t.matches('[data-proj-search-mode]')) { if(state.searchMode===t.value)return;state.searchMode=t.value==='phrase'?'phrase':'compound';state.page=0;renderTable();return; }
+                if (t.matches && t.matches('[data-proj-export-scope]')) { updateProjectExportPreview();return; }
                 if (t.matches && t.matches('[data-proj-search]')) {
+                    if (state.search === (t.value || '')) return;
                     state.search = t.value || '';
                     state.page = 0;
                     renderTable();
@@ -121773,7 +121921,11 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                 }
             }
             function openModal() {
+                state.searchMode='compound';state.hiddenRows=Object.create(null);state.rowPanelOpen=false;
                 var modal = ensureModal();
+                modal.querySelector('[data-proj-search-mode]').value='compound';
+                modal.querySelector('[data-proj-export-panel]').hidden=true;
+                modal.querySelector('[data-proj-export-toggle]').setAttribute('aria-expanded','false');
                 snapshotRows();
                 state.opened = true;
                 modal.classList.remove('hidden');
@@ -121814,6 +121966,9 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                     btn.id = BTN_ID;
                     btn.type = 'button';
                     btn.className = 'px-3 py-1 text-sm rounded flex-shrink-0 codex-gantt-report-excel-btn';
+                }
+                if (!btn.__codexProjectManagerClickBound) {
+                    btn.__codexProjectManagerClickBound = true;
                     btn.addEventListener('click', function(event) {
                         event.preventDefault();
                         event.stopPropagation();
@@ -121832,6 +121987,9 @@ var sortKey = sortHeader.getAttribute('data-proj-sort') || '';
                     addBtn.id = addBtnId;
                     addBtn.type = 'button';
                     addBtn.className = 'px-3 py-1 text-sm rounded flex-shrink-0 codex-gantt-add-proj-btn';
+                }
+                if (!addBtn.__codexProjectAddClickBound) {
+                    addBtn.__codexProjectAddClickBound = true;
                     addBtn.addEventListener('click', function(event) {
                         event.preventDefault();
                         event.stopPropagation();
