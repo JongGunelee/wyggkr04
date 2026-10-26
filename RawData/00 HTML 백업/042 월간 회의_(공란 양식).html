@@ -1383,6 +1383,9 @@
         }
 
         /* 이미지 리사이즈 4모서리 핸들 시각화 오버홀 */
+        .resizable-image-wrapper.resizing {
+            transition: none !important;
+        }
         .resizable-image-wrapper {
             position: relative !important;
             display: inline-block !important;
@@ -6791,6 +6794,43 @@
                 console.error('툴바 정화 중 오류:', e);
             }
         }
+        window.sanitizeWhiteBackgroundSpans = function sanitizeWhiteBackgroundSpans(scope) {
+            if (!scope) return;
+            const elements = scope.querySelectorAll ? scope.querySelectorAll('span[style*="background"], font[style*="background"], p[style*="background"], b[style*="background"], i[style*="background"]') : [];
+            elements.forEach(el => {
+                if (el.classList.contains('insert-area') || el.classList.contains('box') || el.classList.contains('templated-insert-area') || el.classList.contains('flow-span') || el.closest('.item-controls, button, input, select')) return;
+                const bg = (el.style.backgroundColor || el.style.background || '').toLowerCase().replace(/\s+/g, '');
+                const isWhiteOrTransparent = (
+                    bg === 'rgb(255,255,255)' ||
+                    bg === '#ffffff' ||
+                    bg === '#fff' ||
+                    bg === 'white' ||
+                    bg === 'rgb(255,254,249)' ||
+                    bg === 'rgba(255,255,255,1)' ||
+                    bg === 'rgba(0,0,0,0)' ||
+                    bg === 'transparent' ||
+                    bg.startsWith('rgba(255,255,255')
+                );
+                if (isWhiteOrTransparent) {
+                    el.style.backgroundColor = '';
+                    el.style.removeProperty('background-color');
+                    el.style.removeProperty('background');
+                    const remainingStyle = el.getAttribute('style');
+                    if (!remainingStyle || remainingStyle.trim() === '') {
+                        el.removeAttribute('style');
+                        if (el.tagName === 'SPAN' && (!el.className || el.className.trim() === '')) {
+                            const p = el.parentNode;
+                            if (p) {
+                                while (el.firstChild) p.insertBefore(el.firstChild, el);
+                                el.remove();
+                            }
+                        }
+                    }
+                }
+            });
+        };
+        const sanitizeWhiteBackgroundSpans = window.sanitizeWhiteBackgroundSpans;
+
         function stripRuntimeUiFromClone(clone) {
             if (!clone?.querySelectorAll) return clone;
             clone.querySelectorAll(
@@ -6966,10 +7006,13 @@
                     wrapper.style.overflow = 'visible';
                     wrapper.style.maxWidth = '100%';
                     wrapper.style.boxSizing = 'border-box';
-                    const curW = parseFloat(wrapper.style.width || 0);
-                    if (!curW || curW < 110) {
+                    const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                    if (!curW || curW <= 0) {
                         wrapper.style.width = '300px';
+                    } else {
+                        wrapper.style.width = `${curW}px`;
                     }
+                    wrapper.dataset.customWidth = wrapper.style.width;
                     wrapper.querySelectorAll('img').forEach(function(img) {
                         const src = img.getAttribute('src') || img.src || img.dataset.imageSrc || '';
                         if (src) {
@@ -7058,6 +7101,7 @@
 
             return { persistence, ui, runtimeUi };
         })();
+        const sanitizeWhiteBackgroundSpans = window.sanitizeWhiteBackgroundSpans;
 
         const {
             getCanonicalZoomEditorToolbar,
@@ -7636,6 +7680,10 @@
 
             selectAndActivateImageWrapper(wrapper);
 
+            // [무결성 보증] 드래그 중 CSS transition 일시 비활성화
+            wrapper.style.transition = 'none';
+            wrapper.classList.add('resizing');
+
             const startX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
             const startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
             const startWidth = wrapper.offsetWidth || 100;
@@ -7653,6 +7701,7 @@
                 let newHeight = Math.round(newWidth / aspectRatio);
 
                 wrapper.style.width = `${newWidth}px`;
+                wrapper.dataset.customWidth = `${newWidth}px`;
                 wrapper.style.height = `${newHeight}px`;
                 wrapper.style.aspectRatio = `${aspectRatio}`;
                 wrapper.dataset.aspectRatio = `${aspectRatio}`;
@@ -7666,6 +7715,9 @@
             }
 
             function onEnd() {
+                wrapper.classList.remove('resizing');
+                wrapper.style.transition = '';
+                wrapper.dataset.customWidth = wrapper.style.width;
                 document.removeEventListener('pointermove', onMove);
                 document.removeEventListener('pointerup', onEnd);
                 document.removeEventListener('mousemove', onMove);
@@ -8607,11 +8659,13 @@ let currentZoomingImageElement = null;
                 wrapper.style.overflow = 'visible';
                 wrapper.style.maxWidth = '100%';
                 wrapper.style.boxSizing = 'border-box';
-                const curW = parseFloat(wrapper.style.width || 0);
-                // [무결성 복원] 너비가 없거나 과거 버그로 110px 미만(54px, 77px 등)으로 파괴 축소된 경우 정상 기준 크기로 안전 복원
-                if (!curW || curW < 110) {
+                const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                if (!curW || curW <= 0) {
                     wrapper.style.width = '300px';
+                } else {
+                    wrapper.style.width = `${curW}px`;
                 }
+                wrapper.dataset.customWidth = wrapper.style.width;
                 const img = wrapper.querySelector('img');
                 if (img) {
                     img.style.maxWidth = '100%';
@@ -9059,6 +9113,9 @@ function compressImage(file) {
 
                 // 스크립트, 스타일, 불필요 컨트롤 요소 정제
                 doc.querySelectorAll('script, style, meta, link, title, noscript, .item-controls, .image-crop-overlay, .crop-dim-overlay').forEach(el => el.remove());
+                if (typeof window.sanitizeWhiteBackgroundSpans === 'function') {
+                    window.sanitizeWhiteBackgroundSpans(doc.body);
+                }
 
                 // 붙여넣을 모든 이미지 검사 및 래퍼/핸들/스타일 무결성 정규화
                 const docImgs = doc.querySelectorAll('img');
@@ -9103,11 +9160,14 @@ function compressImage(file) {
                     // [무결성 보증] 높이 붕괴 방지 및 유연한 너비 설정
                     wrapper.style.height = 'auto';
                     wrapper.style.overflow = 'visible';
-                    const curW = parseFloat(wrapper.style.width || 0);
-                    if (!curW || curW < 120) {
+                    const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                    if (!curW || curW <= 0) {
                         const naturalW = img.naturalWidth || parseInt(img.getAttribute('width'), 10) || 300;
                         wrapper.style.width = `${Math.min(Math.max(naturalW, 200), 500)}px`;
+                    } else {
+                        wrapper.style.width = `${curW}px`;
                     }
+                    wrapper.dataset.customWidth = wrapper.style.width;
                     wrapper.style.maxWidth = '100%';
                     wrapper.style.boxSizing = 'border-box';
                     img.style.maxWidth = '100%';
@@ -9319,14 +9379,13 @@ function clampImagesToContainers(scope = contentArea) {
                 if (!containerWidth || containerWidth <= 100) return;
 
                 // 반응형 축소는 CSS max-width: 100% !important 가 담당하므로, 인라인 style.width를 54px/77px/80px로 영구 깎지 않는다.
-                const currentWidth = parseFloat(wrapper.style.width || 0);
-                if (currentWidth < 120 && currentWidth > 0) {
-                    // 과거 버그로 인해 54px, 77px, 80px 등으로 비정상 축소되었던 이미지의 경우 정상 기준 크기로 안전 복원
-                    const img = wrapper.querySelector('img');
-                    const naturalW = img?.naturalWidth || 320;
-                    const restoredW = Math.min(Math.max(naturalW, 260), Math.max(containerWidth - 20, 260));
-                    wrapper.style.width = `${restoredW}px`;
+                const currentWidth = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                if (!currentWidth || currentWidth <= 0) {
+                    wrapper.style.width = '300px';
+                } else {
+                    wrapper.style.width = `${currentWidth}px`;
                 }
+                wrapper.dataset.customWidth = wrapper.style.width;
                 wrapper.style.maxWidth = '100%';
                 wrapper.style.boxSizing = 'border-box';
             });
@@ -13123,7 +13182,7 @@ function clampImagesToContainers(scope = contentArea) {
                 const computedStyle = getComputedStyle(sourceElement);
                 for (let i = 0; i < computedStyle.length; i++) {
                     const propName = computedStyle[i];
-                    const styleBlacklist = ['position', 'top', 'right', 'left', 'bottom', 'z-index', 'display', 'visibility', 'opacity', 'transform', 'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'outline', 'outline-color', 'outline-style', 'outline-width', 'outline-offset', 'box-shadow', 'transition', 'cursor'];
+                    const styleBlacklist = ['position', 'top', 'right', 'left', 'bottom', 'z-index', 'display', 'visibility', 'opacity', 'transform', 'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'outline', 'outline-color', 'outline-style', 'outline-width', 'outline-offset', 'box-shadow', 'transition', 'cursor', 'background-color', 'background', 'backgroundColor'];
                     if (!styleBlacklist.includes(propName)) {
                         try { newItem.style.setProperty(computedStyle[i], computedStyle.getPropertyValue(computedStyle[i]), computedStyle.getPropertyPriority(computedStyle[i])); } catch (e) { }
                     }
@@ -13135,6 +13194,17 @@ function clampImagesToContainers(scope = contentArea) {
                 if (computedStyle.width !== 'auto' && computedStyle.width !== '0px') newItem.style.width = computedStyle.width;
                 if (computedStyle.height !== 'auto' && computedStyle.height !== '0px') newItem.style.height = computedStyle.height;
 
+
+                // [무결성 보증] 원본 소스가 명시적 인라인 배경을 가지고 있었던 경우에만 배경 복사 (흰색 기본값 강제 덮어쓰기 방지)
+                if (sourceElement.style.backgroundColor) {
+                    newItem.style.backgroundColor = sourceElement.style.backgroundColor;
+                }
+                if (sourceElement.style.background) {
+                    newItem.style.background = sourceElement.style.background;
+                }
+                if (typeof window.sanitizeWhiteBackgroundSpans === 'function') {
+                    window.sanitizeWhiteBackgroundSpans(newItem);
+                }
 
                 sourceElement.parentNode.insertBefore(newItem, sourceElement.nextSibling);
                 generateItemControls(newItem);
@@ -13723,7 +13793,7 @@ function clampImagesToContainers(scope = contentArea) {
 
             function rgbToHex(rgb) {
                 if (!rgb || typeof rgb !== 'string' || rgb.indexOf('rgb') === -1) return '#000000';
-                if (rgb === 'rgba(0, 0, 0, 0)' || rgb === 'transparent') return '#ffffff';
+                if (rgb === 'rgba(0, 0, 0, 0)' || rgb === 'transparent') return 'transparent';
                 let parts = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/);
                 if (!parts) return '#000000';
                 delete parts[0];
@@ -14381,10 +14451,13 @@ function clampImagesToContainers(scope = contentArea) {
                     wrapper.style.overflow = 'visible';
                     wrapper.style.maxWidth = '100%';
                     wrapper.style.boxSizing = 'border-box';
-                    const curW = parseFloat(wrapper.style.width || 0);
-                    if (!curW || curW < 110) {
+                    const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                    if (!curW || curW <= 0) {
                         wrapper.style.width = '300px';
+                    } else {
+                        wrapper.style.width = `${curW}px`;
                     }
+                    wrapper.dataset.customWidth = wrapper.style.width;
                     const img = wrapper.querySelector('img');
                     if (img) {
                         const src = img.getAttribute('src') || img.src || img.dataset.imageSrc || '';
@@ -15943,14 +16016,13 @@ function clampImagesToContainers(scope = contentArea) {
                 if (!containerWidth || containerWidth <= 100) return;
 
                 // 반응형 축소는 CSS max-width: 100% !important 가 담당하므로, 인라인 style.width를 54px/77px/80px로 영구 깎지 않는다.
-                const currentWidth = parseFloat(wrapper.style.width || 0);
-                if (currentWidth < 120 && currentWidth > 0) {
-                    // 과거 버그로 인해 54px, 77px, 80px 등으로 비정상 축소되었던 이미지의 경우 정상 기준 크기로 안전 복원
-                    const img = wrapper.querySelector('img');
-                    const naturalW = img?.naturalWidth || 320;
-                    const restoredW = Math.min(Math.max(naturalW, 260), Math.max(containerWidth - 20, 260));
-                    wrapper.style.width = `${restoredW}px`;
+                const currentWidth = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                if (!currentWidth || currentWidth <= 0) {
+                    wrapper.style.width = '300px';
+                } else {
+                    wrapper.style.width = `${currentWidth}px`;
                 }
+                wrapper.dataset.customWidth = wrapper.style.width;
                 wrapper.style.maxWidth = '100%';
                 wrapper.style.boxSizing = 'border-box';
             });
@@ -16383,7 +16455,7 @@ function clampImagesToContainers(scope = contentArea) {
                 }
 
                 function cleanEditableCloneForFocusedEditor(container) {
-                    container.querySelectorAll('.item-controls, .insert-area-toggle-btn, .box-toggle-btn, .resize-handle-img, .text-format-toolbar, #textFormatToolbar, .mini-toolbar, #miniToolbar, .text-color-popover, #textColorPickerPopover, .text-link-popover, #textLinkPickerPopover, .zoom-editor-toolbar, #zoomEditorToolbar, #imageZoomOverlay, #selectionZoomOverlay').forEach(el => el.remove());
+                    container.querySelectorAll('.item-controls, .insert-area-toggle-btn, .box-toggle-btn, .add-sub-insert-area-btn, .resize-handle-img, .text-format-toolbar, #textFormatToolbar, .mini-toolbar, #miniToolbar, .text-color-popover, #textColorPickerPopover, .text-link-popover, #textLinkPickerPopover, .zoom-editor-toolbar, #zoomEditorToolbar, #imageZoomOverlay, #selectionZoomOverlay').forEach(el => el.remove());
                     container.querySelectorAll('[data-draggable-initialized], [data-listener-attached]').forEach(el => {
                         el.removeAttribute('data-draggable-initialized');
                         el.removeAttribute('data-listener-attached');
@@ -17507,10 +17579,13 @@ function clampImagesToContainers(scope = contentArea) {
                         wrapper.style.overflow = 'visible';
                         wrapper.style.maxWidth = '100%';
                         wrapper.style.boxSizing = 'border-box';
-                        const curW = parseFloat(wrapper.style.width || 0);
-                        if (!curW || curW < 110) {
+                        const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                        if (!curW || curW <= 0) {
                             wrapper.style.width = '300px';
+                        } else {
+                            wrapper.style.width = `${curW}px`;
                         }
+                        wrapper.dataset.customWidth = wrapper.style.width;
                         ensureImageWrapperStructure(wrapper);
                         wrapper.dataset.draggableInitialized = 'false';
                         makeImageDraggable(wrapper);
@@ -17569,10 +17644,13 @@ function clampImagesToContainers(scope = contentArea) {
                         wrapper.style.overflow = 'visible';
                         wrapper.style.maxWidth = '100%';
                         wrapper.style.boxSizing = 'border-box';
-                        const curW = parseFloat(wrapper.style.width || 0);
-                        if (!curW || curW < 110) {
+                        const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                        if (!curW || curW <= 0) {
                             wrapper.style.width = '300px';
+                        } else {
+                            wrapper.style.width = `${curW}px`;
                         }
+                        wrapper.dataset.customWidth = wrapper.style.width;
                         ensureImageWrapperStructure(wrapper);
                         wrapper.dataset.draggableInitialized = 'false';
                         makeImageDraggable(wrapper);
@@ -17948,6 +18026,7 @@ function finishFocusedEditorSession(overlay, surface) {
                                 wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                                 wrapper.dataset.imageSrc = imageSrc;
                                 wrapper.style.width = `${defaultWidth}px`;
+                                wrapper.dataset.customWidth = `${defaultWidth}px`;
                                 wrapper.style.maxWidth = '100%';
                                 wrapper.style.height = 'auto';
                                 wrapper.style.overflow = 'visible';
@@ -18285,6 +18364,7 @@ document.addEventListener('focusin', e => {
                     
                     const safeWidth = Math.min(requestedImageWidth, Math.max(180, containerWidth > 100 ? containerWidth : 320));
                     wrapper.style.width = `${safeWidth}px`;
+                    wrapper.dataset.customWidth = `${safeWidth}px`;
                     wrapper.style.maxWidth = '100%';
                     wrapper.style.height = 'auto';
                     wrapper.style.overflow = 'visible';
