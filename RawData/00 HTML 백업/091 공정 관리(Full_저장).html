@@ -43366,11 +43366,17 @@
         }
 
         function codexLegendSelectEnhance20260729(select) {
-            if (!select || select.dataset.codexLegendSelectProxy === 'true' || !select.parentNode) return;
-            const host = document.createElement('span');
-            host.className = 'codex-legend-select-host';
-            select.parentNode.insertBefore(host, select);
-            host.appendChild(select);
+            if (!select || select.__codexLegendSelectBound20261026 || !select.parentNode) return;
+            select.__codexLegendSelectBound20261026 = true;
+            let host = select.parentNode;
+            if (!host.classList.contains('codex-legend-select-host')) {
+                host = document.createElement('span');
+                host.className = 'codex-legend-select-host';
+                select.parentNode.insertBefore(host, select);
+                host.appendChild(select);
+            } else {
+                host.querySelectorAll('.codex-legend-select-trigger').forEach(node => node.remove());
+            }
             select.classList.add('codex-legend-select-source');
             select.dataset.codexLegendSelectProxy = 'true';
             select.setAttribute('aria-hidden', 'true');
@@ -44129,6 +44135,15 @@
             zoomThreeWeeksSelected = document.getElementById('zoomThreeWeeksSelected');
 
             // [INTEGRITY-FIX] Re-attach listeners if elements exist - \uc911\ubcf5 \ubc29\uc9c0 \uccb4\ud06c \ucd94\uac00
+            const prepareFilterBinding = control => {
+                if (!control || control.__codexFilterBindingsReady20261026) return;
+                control.__codexFilterBindingsReady20261026 = true;
+                ['changeListenerAttached', 'syncListenerAttached', 'clickListenerAttached', 'dynamicWidthListener'].forEach(key => {
+                    delete control.dataset[key];
+                });
+            };
+            [taskTypeFilter, progressFilter, sortBy].forEach(prepareFilterBinding);
+
             if (taskTypeFilter && !taskTypeFilter.dataset.changeListenerAttached) {
                 taskTypeFilter.addEventListener('change', () => {
                     // [FIX] \uc989\uc2dc \ub80c\ub354\ub9c1\uc73c\ub85c \ubcc0\uacbd - \ud544\ud130 \ubc18\uc751 \uc18d\ub3c4 \uac1c\uc120
@@ -44221,9 +44236,10 @@
             // [FIX] \uc911\ubcf5 \ub9ac\uc2a4\ub108 \ubc29\uc9c0 - data attribute\ub85c \uccb4\ud06c
             if (customFilterContainer) {
                 customFilterContainer.querySelectorAll('select').forEach(select => {
+                    prepareFilterBinding(select);
                     select.removeEventListener('change', render); // Prevent duplicates
                     // [FIX] \uc774\ubbf8 \ub9ac\uc2a4\ub108\uac00 \ub4f1\ub85d\ub41c \uacbd\uc6b0 \uc2a4\ud0b5
-                    if (!select.dataset.filterChangeListenerAttached) {
+                    if (!select.__codexFilterChangeBound20261026) {
                         select.addEventListener('change', () => {
                             // [FIX] \uc989\uc2dc \ub80c\ub354\ub9c1\uc73c\ub85c \ubcc0\uacbd - \ud544\ud130 \ubc18\uc751 \uc18d\ub3c4 \uac1c\uc120
                             immediateFilterRender();
@@ -44231,6 +44247,7 @@
                             applyFilterDynamicWidth(select);
                         });
                         select.dataset.filterChangeListenerAttached = 'true';
+                        select.__codexFilterChangeBound20261026 = true;
                     }
                 });
             }
@@ -44240,6 +44257,7 @@
             const headerCustomFilter = document.getElementById('header-customer-filter-shortcut');
             const headerContractorFilter = document.getElementById('header-contractor-filter-shortcut');
             const headerCostFilter = document.getElementById('header-cost-account-filter-shortcut');
+            [headerCustomFilter, headerContractorFilter, headerCostFilter].forEach(prepareFilterBinding);
 
             // [\uac1c\uc120 \uc0ac\ud56d #1] \ud574\uc81c \ubc84\ud2bc \uc774\ubca4\ud2b8 \ub9ac\uc2a4\ub108 \ucd94\uac00
             // NOTE: \uba54\uc778 \ud578\ub4e4\ub7ec\ub294 initializeApp\uc5d0\uc11c \uc124\uc815\ub428 - \uc911\ubcf5 \ubc29\uc9c0\ub97c \uc704\ud574 \uc5ec\uae30\uc11c\ub294 \uac74\ub108\ub700
@@ -44805,7 +44823,11 @@
 
         function ensureControlDefaultValue(control) {
             if (!control) return;
-            if (typeof control.dataset.defaultValue === 'undefined') {
+            const neutralValue = control.id === 'sortBy' ? 'default' :
+                (control.tagName === 'SELECT' && (control.dataset.filterKey !== undefined || control.id === 'taskTypeFilter' || control.id === 'progressFilter') ? 'all' : null);
+            if (neutralValue !== null) {
+                if (control.dataset.defaultValue !== neutralValue) control.dataset.defaultValue = neutralValue;
+            } else if (typeof control.dataset.defaultValue === 'undefined') {
                 control.dataset.defaultValue = control.value ?? '';
             }
         }
@@ -59638,13 +59660,14 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
                 // [FIX] \ud544\ud130 \ubcc0\uacbd \uc2dc \uc989\uc2dc \ub80c\ub354\ub9c1 - \uac04\ud2b8\ucc28\ud2b8 \uc989\uc2dc \uc5f0\ub3d9
                 // [FIX] \uc911\ubcf5 \ub9ac\uc2a4\ub108 \ubc29\uc9c0 - data attribute\ub85c \uccb4\ud06c
-                if (!select.dataset.filterChangeListenerAttached) {
+                if (!select.__codexFilterChangeBound20261026) {
                     select.addEventListener('change', () => {
                         applyFilterDynamicWidth(select);
                         // [FIX] \uc989\uc2dc \ub80c\ub354\ub9c1\uc73c\ub85c \ubcc0\uacbd - \ud544\ud130 \ubc18\uc751 \uc18d\ub3c4 \uac1c\uc120
                         immediateFilterRender();
                     });
                     select.dataset.filterChangeListenerAttached = 'true';
+                    select.__codexFilterChangeBound20261026 = true;
                 }
                 wrapper.appendChild(select);
                 customFilterContainer.appendChild(wrapper);
