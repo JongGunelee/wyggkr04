@@ -851,7 +851,10 @@
         }
 
         /* --- START: Advanced Image Editing CSS --- */
-        .resizable-image-wrapper {
+        .resizable-image-wrapper.resizing {
+    transition: none !important;
+}
+.resizable-image-wrapper {
             text-align: center;
             /* To center the image and caption */
         }
@@ -7614,10 +7617,13 @@
                         wrapper.style.overflow = 'visible';
                         wrapper.style.maxWidth = '100%';
                         wrapper.style.boxSizing = 'border-box';
-                        const curW = parseFloat(wrapper.style.width || 0);
-                        if (!curW || curW < 110) {
+                        const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                        if (!curW || curW <= 0) {
                             wrapper.style.width = '300px';
+                        } else {
+                            wrapper.style.width = `${curW}px`;
                         }
+                        wrapper.dataset.customWidth = wrapper.style.width;
                         wrapper.querySelectorAll('img').forEach(img => {
                             img.style.height = 'auto';
                             img.style.width = '100%';
@@ -9189,6 +9195,9 @@
 
         function stripRuntimeUiFromClone(clone) {
             if (!clone?.querySelectorAll) return clone;
+            if (typeof sanitizeWhiteBackgroundSpans === 'function') {
+                sanitizeWhiteBackgroundSpans(clone);
+            }
             clone.querySelectorAll(
                 '.item-controls, .insert-area-toggle-btn, .box-toggle-btn, .resize-handle-img, ' +
                 '.text-format-toolbar, #textFormatToolbar, .mini-toolbar, #miniToolbar, ' +
@@ -11294,7 +11303,7 @@ function hideTextFormatToolbar() {
 
         function rgbToHex(rgb) {
             if (!rgb || typeof rgb !== 'string' || !rgb.startsWith('rgb')) return '#000000';
-            if (rgb === 'rgba(0, 0, 0, 0)' || rgb === 'transparent') return '#ffffff';
+            if (rgb === 'rgba(0, 0, 0, 0)' || rgb === 'transparent') return 'transparent';
 
             let parts = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/);
             if (!parts) return '#000000';
@@ -11897,6 +11906,7 @@ function hideTextFormatToolbar() {
             };
 
             const clonedDoc = document.cloneNode(true);
+            sanitizeWhiteBackgroundSpans(clonedDoc.getElementById('content') || clonedDoc.body);
             AppLayers.persistence.resetRuntimeArtifacts(clonedDoc);
             // 런타임에서 주입된 의존성은 원본 로더가 다시 관리한다. 저장본에 남기면 N차 저장마다 누적된다.
             clonedDoc.querySelectorAll('script[src]').forEach(script => {
@@ -12088,10 +12098,13 @@ function hideTextFormatToolbar() {
                 wrapper.style.overflow = 'visible';
                 wrapper.style.maxWidth = '100%';
                 wrapper.style.boxSizing = 'border-box';
-                const curW = parseFloat(wrapper.style.width || 0);
-                if (!curW || curW < 110) {
+                const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                if (!curW || curW <= 0) {
                     wrapper.style.width = '300px';
+                } else {
+                    wrapper.style.width = `${curW}px`;
                 }
+                wrapper.dataset.customWidth = wrapper.style.width;
                 wrapper.querySelectorAll('img').forEach(function(img) {
                     img.style.height = 'auto';
                     img.style.width = '100%';
@@ -15123,6 +15136,7 @@ function hideTextFormatToolbar() {
                     const containerWidth = (currentSurface.clientWidth || window.innerWidth) - 16;
                     
                     wrapper.style.width = `${Math.min(requestedImageWidth, Math.max(80, containerWidth))}px`;
+                    wrapper.dataset.customWidth = wrapper.style.width;
                     wrapper.style.height = 'auto';
                     wrapper.innerHTML = `
                         <img src="${imageSrc}" alt="사용자 삽입 이미지" style="display:block; width:100%; max-width:100%; height:auto; object-fit:contain;">
@@ -15407,6 +15421,45 @@ function hideTextFormatToolbar() {
         document.addEventListener('copy', (e) => handleDocumentCopyOrCut(e, false));
         document.addEventListener('cut', (e) => handleDocumentCopyOrCut(e, true));
 
+        // [무결성 보증] 복제/붙여넣기/편집 시 흰색/투명 배경 오염 원천 방지 및 제거 헬퍼
+        function sanitizeWhiteBackgroundSpans(scope) {
+            if (!scope) return;
+            const elements = scope.querySelectorAll('[style*="background"]');
+            elements.forEach(el => {
+                if (el.closest('.item-controls, .text-format-toolbar, #menuPanel, .mini-toolbar, .btn, button, input, select, .tag-status, .color-swatch')) return;
+                if (el.classList.contains('resizable-image-wrapper')) return;
+                const bg = (el.style.backgroundColor || el.style.background || '').toLowerCase().replace(/\s+/g, '');
+                const isWhiteOrTransparent = (
+                    bg === 'rgb(255,255,255)' ||
+                    bg === '#ffffff' ||
+                    bg === '#fff' ||
+                    bg === 'white' ||
+                    bg === 'rgb(255,254,249)' ||
+                    bg === 'rgba(255,255,255,1)' ||
+                    bg === 'rgba(0,0,0,0)' ||
+                    bg === 'transparent' ||
+                    bg.startsWith('rgba(255,255,255')
+                );
+                if (isWhiteOrTransparent) {
+                    el.style.backgroundColor = '';
+                    el.style.removeProperty('background-color');
+                    el.style.removeProperty('background');
+                    const remainingStyle = el.getAttribute('style');
+                    if (!remainingStyle || remainingStyle.trim() === '') {
+                        el.removeAttribute('style');
+                        if (el.tagName === 'SPAN' && (!el.className || el.className.trim() === '')) {
+                            const p = el.parentNode;
+                            if (p) {
+                                while (el.firstChild) p.insertBefore(el.firstChild, el);
+                                el.remove();
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        window.sanitizeWhiteBackgroundSpans = sanitizeWhiteBackgroundSpans;
+
         async function handleUniversalPaste(e, targetContainer) {
             // 현재 활성 편집 영역 결정: 확대 편집기가 열려 있으면 surface 우선
             const focusedOverlay = document.getElementById('focusedEditorOverlay');
@@ -15599,6 +15652,9 @@ function hideTextFormatToolbar() {
                 // 스크립트, 스타일, 불필요 컨트롤 요소 정제
                 doc.querySelectorAll('script, style, meta, link, title, .item-controls, .image-crop-overlay, .crop-dim-overlay').forEach(el => el.remove());
 
+                // [무결성 보증] 붙여넣은 텍스트의 불필요한 흰색/투명 인라인 배경색 제거하여 원본/확대 화면 테마 색상 유지
+                sanitizeWhiteBackgroundSpans(doc.body);
+
                 // 붙여넣을 모든 이미지 검사 및 래퍼/핸들/스타일 무결성 정규화
                 const docImgs = doc.querySelectorAll('img');
                 let fileIdx = 0;
@@ -15637,11 +15693,12 @@ function hideTextFormatToolbar() {
                     // [무결성 보증] 높이 붕괴 방지 및 유연한 너비 설정
                     wrapper.style.height = 'auto';
                     wrapper.style.overflow = 'visible';
-                    const curW = parseFloat(wrapper.style.width || 0);
-                    if (!curW || curW < 120) {
+                    const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                    if (!curW || curW <= 0) {
                         const naturalW = img.naturalWidth || parseInt(img.getAttribute('width'), 10) || 300;
                         wrapper.style.width = `${Math.min(Math.max(naturalW, 200), 500)}px`;
                     }
+                    wrapper.dataset.customWidth = wrapper.style.width;
                     wrapper.style.maxWidth = '100%';
                     wrapper.style.boxSizing = 'border-box';
                     img.style.maxWidth = '100%';
@@ -15682,8 +15739,10 @@ function hideTextFormatToolbar() {
 
                 // 붙여넣어진 모든 이미지 자동 래핑 및 핸들/드래그 무결성 동기 및 비동기 즉시 보장
                 processPastedImages(targetContainer);
+                sanitizeWhiteBackgroundSpans(targetContainer);
                 requestAnimationFrame(() => {
                     processPastedImages(targetContainer);
+                    sanitizeWhiteBackgroundSpans(targetContainer);
                 });
 
                 if (typeof showMessage === 'function') showMessage('클립보드 내용이 성공적으로 붙여넣어졌습니다.', 'success');
@@ -15802,9 +15861,14 @@ function hideTextFormatToolbar() {
 
             selectAndActivateImageWrapper(wrapper);
 
+            // [무결성 보증] 드래그 중 CSS transition 일시 비활성화 (200ms 지연 및 크기 떨림 방지)
+            const originalTransition = wrapper.style.transition;
+            wrapper.style.transition = 'none';
+            wrapper.classList.add('resizing');
+
             const startX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
             const startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-            const startWidth = wrapper.offsetWidth || 100;
+            const startWidth = wrapper.offsetWidth || parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0) || 100;
             const startHeight = wrapper.offsetHeight || 100;
             const aspectRatio = startWidth / (startHeight || 1);
 
@@ -15815,9 +15879,10 @@ function hideTextFormatToolbar() {
                 const curX = evt.clientX || (evt.touches && evt.touches[0] ? evt.touches[0].clientX : startX);
                 const deltaX = isLeft ? (startX - curX) : (curX - startX);
                 
-                let newWidth = Math.max(30, startWidth + deltaX);
+                let newWidth = Math.max(30, Math.round(startWidth + deltaX));
 
                 wrapper.style.width = `${newWidth}px`;
+                wrapper.dataset.customWidth = `${newWidth}px`;
                 wrapper.style.height = 'auto';
 
                 const img = wrapper.querySelector('img');
@@ -15831,6 +15896,9 @@ function hideTextFormatToolbar() {
             }
 
             function onEnd() {
+                wrapper.style.transition = originalTransition || '';
+                wrapper.classList.remove('resizing');
+                wrapper.dataset.customWidth = wrapper.style.width;
                 document.removeEventListener('pointermove', onMove);
                 document.removeEventListener('pointerup', onEnd);
                 document.removeEventListener('mousemove', onMove);
@@ -16221,11 +16289,13 @@ function ensureImageWrapperStructure(wrapper) {
                 wrapper.style.overflow = 'visible';
                 wrapper.style.maxWidth = '100%';
                 wrapper.style.boxSizing = 'border-box';
-                const curW = parseFloat(wrapper.style.width || 0);
-                // [무결성 복원] 너비가 없거나 과거 버그로 110px 미만(54px, 77px 등)으로 파괴 축소된 경우 정상 기준 크기로 안전 복원
-                if (!curW || curW < 110) {
+                const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                if (!curW || curW <= 0) {
                     wrapper.style.width = '300px';
+                } else {
+                    wrapper.style.width = `${curW}px`;
                 }
+                wrapper.dataset.customWidth = wrapper.style.width;
                 const img = wrapper.querySelector('img');
                 if (img) {
                     img.style.maxWidth = '100%';
@@ -16237,10 +16307,11 @@ function ensureImageWrapperStructure(wrapper) {
                     const applyImgRatioAndWidth = () => {
                         if (img.naturalWidth && img.naturalHeight) {
                             img.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
-                            const w = parseFloat(wrapper.style.width || 0);
-                            if (w < 110 && img.naturalWidth > 150) {
-                                wrapper.style.width = `${Math.min(img.naturalWidth, 320)}px`;
+                            const w = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                            if (!w || w <= 0) {
+                                wrapper.style.width = `${Math.min(img.naturalWidth || 300, 320)}px`;
                             }
+                            wrapper.dataset.customWidth = wrapper.style.width;
                         }
                     };
                     img.addEventListener('error', () => {
@@ -16684,6 +16755,7 @@ function ensureImageWrapperStructure(wrapper) {
 
             surface.innerHTML = target.innerHTML;
             cleanEditableCloneForFocusedEditor(surface);
+            sanitizeWhiteBackgroundSpans(surface);
             
             // 확대 편집 창(surface) 내부에 복사된 이미지들에 대해 조작 아이콘(item-controls)을 생성하여 연동 및 드래그, 리사이즈 이벤트 복구
             surface.querySelectorAll('.resizable-image-wrapper').forEach(wrapper => {
@@ -16691,10 +16763,13 @@ function ensureImageWrapperStructure(wrapper) {
                 wrapper.style.overflow = 'visible';
                 wrapper.style.maxWidth = '100%';
                 wrapper.style.boxSizing = 'border-box';
-                const curW = parseFloat(wrapper.style.width || 0);
-                if (!curW || curW < 110) {
+                const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                if (!curW || curW <= 0) {
                     wrapper.style.width = '300px';
+                } else {
+                    wrapper.style.width = `${curW}px`;
                 }
+                wrapper.dataset.customWidth = wrapper.style.width;
                 if (typeof ensureImageWrapperStructure === 'function') ensureImageWrapperStructure(wrapper);
                 if (typeof generateItemControls === 'function') generateItemControls(wrapper);
                 if (typeof makeImageDraggable === 'function') {
@@ -16740,6 +16815,7 @@ function ensureImageWrapperStructure(wrapper) {
                 const cleanSnapshot = surface.cloneNode(true);
                 cleanEditableCloneForFocusedEditor(cleanSnapshot);
                 cleanSnapshot.querySelectorAll('script').forEach(el => el.remove());
+                sanitizeWhiteBackgroundSpans(cleanSnapshot);
 
                 target.innerHTML = cleanSnapshot.innerHTML;
                 target.querySelectorAll('script').forEach(el => el.remove());
@@ -16749,10 +16825,13 @@ function ensureImageWrapperStructure(wrapper) {
                     wrapper.style.overflow = 'visible';
                     wrapper.style.maxWidth = '100%';
                     wrapper.style.boxSizing = 'border-box';
-                    const curW = parseFloat(wrapper.style.width || 0);
-                    if (!curW || curW < 110) {
+                    const curW = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                    if (!curW || curW <= 0) {
                         wrapper.style.width = '300px';
+                    } else {
+                        wrapper.style.width = `${curW}px`;
                     }
+                    wrapper.dataset.customWidth = wrapper.style.width;
                     if (typeof ensureImageWrapperStructure === 'function') ensureImageWrapperStructure(wrapper);
                     if (typeof makeImageDraggable === 'function') {
                         wrapper.dataset.draggableInitialized = 'false';
@@ -16885,11 +16964,19 @@ function ensureImageWrapperStructure(wrapper) {
                             dataUrl = await new Promise(res => { reader.onload = e => res(e.target.result); reader.readAsDataURL(file); });
                         }
                         
+                        const defaultImageWidth = (typeof imageWidthInput !== 'undefined' && imageWidthInput && imageWidthInput.value) ? (parseInt(imageWidthInput.value, 10) || 300) : 300;
                         const wrapper = document.createElement('div');
                         wrapper.className = 'resizable-image-wrapper';
-                        wrapper.contentEditable = "false";
+                        wrapper.setAttribute('contenteditable', 'false');
+                        wrapper.dataset.editableType = 'image-wrapper';
+                        wrapper.dataset.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                        wrapper.style.width = `${defaultImageWidth}px`;
+                        wrapper.dataset.customWidth = `${defaultImageWidth}px`;
+                        wrapper.style.height = 'auto';
+                        wrapper.style.maxWidth = '100%';
+                        wrapper.style.boxSizing = 'border-box';
                         wrapper.innerHTML = `
-                            <img src="${dataUrl}" alt="Inserted Image">
+                            <img src="${dataUrl}" alt="Inserted Image" style="display:block; width:100%; max-width:100%; height:auto; object-fit:contain;">
                             <div class="resize-handle-img rh-top-left"></div>
                             <div class="resize-handle-img rh-top-right"></div>
                             <div class="resize-handle-img rh-bottom-left"></div>
@@ -17277,6 +17364,7 @@ function ensureImageWrapperStructure(wrapper) {
             // 복제된 노드 기능 활성화 헬퍼 함수 (공용)
             const initializeClonedNode = (node) => {
                 if (!node) return;
+                if (typeof sanitizeWhiteBackgroundSpans === 'function') sanitizeWhiteBackgroundSpans(node);
                 // [Zero-Residue Auto-Sanitization Stage 4] 툴바, 원형 조작 버튼, 이관 버튼, 하단 hr, 빈 줄노트 상자 100% 소멸 치료
                 node.querySelectorAll('.text-format-toolbar, #textFormatToolbar, .mini-toolbar, #miniToolbar, .item-controls, .transfer-items-btn, .insert-area-toggle-btn, .annotation-delete-btn, .annotation-drag-handle, .resize-handle-img, .item-controls-owner, hr, .empty-line, .placeholder-line, .item-creation-controls').forEach(el => el.remove());
                 if (node.matches && node.matches('.text-format-toolbar, #textFormatToolbar, .mini-toolbar, #miniToolbar, .item-controls, .transfer-items-btn, .insert-area-toggle-btn, .annotation-delete-btn, .annotation-drag-handle, .resize-handle-img, hr, .empty-line, .placeholder-line, .item-creation-controls')) {
@@ -18302,15 +18390,14 @@ function ensureImageWrapperStructure(wrapper) {
                 // [무결성 보증] 컨테이너가 닫혀있거나(셔터 접힘), 렌더링 전이거나(clientWidth <= 100), 숨겨진 상태에서는 절대 너비를 축소 파괴하지 않는다!
                 if (!containerWidth || containerWidth <= 100) return;
 
-                // 반응형 축소는 CSS max-width: 100% !important 가 담당하므로, 인라인 style.width를 54px/77px/80px로 영구 깎지 않는다.
-                const currentWidth = parseFloat(wrapper.style.width || 0);
-                if (currentWidth < 120 && currentWidth > 0) {
-                    // 과거 버그로 인해 54px, 77px, 80px 등으로 비정상 축소되었던 이미지의 경우 정상 기준 크기로 안전 복원
-                    const img = wrapper.querySelector('img');
-                    const naturalW = img?.naturalWidth || 320;
-                    const restoredW = Math.min(Math.max(naturalW, 260), Math.max(containerWidth - 20, 260));
-                    wrapper.style.width = `${restoredW}px`;
+                // 반응형 축소는 CSS max-width: 100% !important 가 담당하므로 사용자가 조정한 커스텀 너비를 강제 파괴하지 않는다.
+                const currentWidth = parseFloat(wrapper.style.width || wrapper.dataset.customWidth || 0);
+                if (!currentWidth || currentWidth <= 0) {
+                    wrapper.style.width = '300px';
+                } else {
+                    wrapper.style.width = `${currentWidth}px`;
                 }
+                wrapper.dataset.customWidth = wrapper.style.width;
                 wrapper.style.maxWidth = '100%';
                 wrapper.style.boxSizing = 'border-box';
             });
@@ -19615,6 +19702,7 @@ function ensureImageWrapperStructure(wrapper) {
                 });
             }
             fixColorContrastForAll();
+            if (typeof sanitizeWhiteBackgroundSpans === 'function') sanitizeWhiteBackgroundSpans(document.getElementById('content') || document.body);
 
             updatePageTitleSuffix();
 
