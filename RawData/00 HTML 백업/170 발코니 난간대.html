@@ -2,7 +2,11 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1524" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>안전 난간대 및 베란다 창호 외벽 구조 접합부 3D 정밀 시뮬레이터</title>
   <style>
     :root {
@@ -889,10 +893,10 @@
        접혔을 때 표시되는 물방울형 플로팅 도크 버튼 (.dock-droplet)
        - 물방울 모양 및 아쿠아 블루 그라데이션, 자유 마우스 드래그 이동 지원
        ========================================================================= */
-    /* [Phase 34] 물방울형 플로팅 도크 버튼 (.dock-droplet) - fixed 위치 및 bottom 54px 기준 정렬 */
+    /* [Phase 34/61] 물방울형 플로팅 도크 버튼 (.dock-droplet) - bottom 16px 기준 정렬 (하단 공간 100% 확보) */
     .dock-droplet {
       position: fixed;
-      bottom: 54px;
+      bottom: 16px;
       left: 50%;
       transform: translateX(-50%);
       width: 56px;
@@ -1054,10 +1058,10 @@
     }
 
     /* [Phase 33] 하단 2대 툴바 등분배 및 비중첩 조화 래퍼 (#bottom-dock-wrapper) */
-    /* [Phase 33/34] 하단 2대 툴바 등분배 및 비중첩 조화 래퍼 (#bottom-dock-wrapper) - bottom 54px로 상향하여 34px 워크북 탭과 20px 완전 안전 여유 확보 */
+    /* [Phase 33/34/61] 하단 2대 툴바 등분배 및 비중첩 조화 래퍼 (#bottom-dock-wrapper) - bottom 16px로 하향하여 하단 작업 영역 100% 확보 */
     .bottom-dock-wrapper {
       position: fixed;
-      bottom: 54px;
+      bottom: 16px;
       left: 0;
       right: 0;
       display: flex;
@@ -1271,46 +1275,48 @@
     @media (max-width: 900px) {
       .bottom-dock-wrapper {
         flex-wrap: wrap;
-        bottom: 54px;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
       }
       #smart-dock { max-width: 96vw; overflow-x: auto; justify-content: flex-start; }
       .view-nav-bar { max-width: 96vw; overflow-x: auto; justify-content: flex-start; }
     }
   
     /* =========================================================================
-       15. 엑셀 워크북 탭 및 워크시트 (Excel Workbench & Sheets) - MEP 벤치마킹
+       15. [Phase 61] 상단 엑셀 워크북 시트 탭 바 (#workbook-bottom-bar) - 최상단 검정 영역 이동 및 다크 모던 테마
        ========================================================================= */
     #workbook-bottom-bar {
       position: fixed;
-      bottom: 0;
+      top: 0;
+      bottom: auto;
       left: 0;
       right: 0;
-      height: 34px;
-      background: #f3f3f3;
-      border-top: 1px solid #d4d4d4;
+      height: 38px;
+      background: #090d16;
+      border-bottom: 1px solid #1e293b;
+      border-top: none;
       display: flex;
       align-items: center;
-      z-index: 100;
+      z-index: 1000;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, "Malgun Gothic", sans-serif;
       font-size: 12px;
       user-select: none;
-      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
     }
 
     .wb-nav-arrows {
       display: flex;
       align-items: center;
       height: 100%;
-      border-right: 1px solid #d4d4d4;
-      background: #eaeaea;
+      border-right: 1px solid #1e293b;
+      background: #0b1120;
     }
 
     .wb-arrow-btn {
-      width: 24px;
+      width: 26px;
       height: 100%;
       border: none;
       background: transparent;
-      color: #64748b;
+      color: #94a3b8;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1319,8 +1325,8 @@
       transition: all 0.15s;
     }
     .wb-arrow-btn:hover {
-      background: #dcdcdc;
-      color: #0f172a;
+      background: #1e293b;
+      color: #38bdf8;
     }
 
     .wb-tabs-track {
@@ -1338,10 +1344,11 @@
       gap: 6px;
       padding: 0 14px;
       height: 100%;
-      background: #f3f3f3;
-      color: #475569;
-      border-top: 3px solid transparent;
-      border-right: 1px solid #dcdcdc;
+      background: #0f172a;
+      color: #94a3b8;
+      border-top: none;
+      border-bottom: 3px solid transparent;
+      border-right: 1px solid #1e293b;
       cursor: pointer;
       font-size: 12px;
       font-weight: 500;
@@ -1350,22 +1357,29 @@
       position: relative;
     }
     .wb-tab:hover:not(.active) {
-      background: #e8e8e8;
-      color: #1e293b;
+      background: #1e293b;
+      color: #f1f5f9;
     }
     .wb-tab.active {
-      background: #ffffff;
-      color: #0f172a;
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
       font-weight: 700;
-      border-top: 3px solid #107c41; /* Excel Signature Green */
-      box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
+      border-bottom: 3px solid #38bdf8;
+      box-shadow: none;
     }
     .wb-tab.active#wb-tab-model {
-      border-top-color: #0284c7; /* Modeling Blue */
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border-bottom: 3px solid #38bdf8;
+    }
+    .wb-tab.active#wb-tab-sheet-summary {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border-bottom: 3px solid #10b981;
     }
 
     .wb-tab-icon { font-size: 13px; }
-    .wb-tab-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+    .wb-tab-name { max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
     .wb-tab-edit-hint {
       font-size: 11px;
       opacity: 0.35;
@@ -1381,7 +1395,7 @@
       border: 1px solid transparent;
       border-radius: 4px;
       background: transparent;
-      color: #475569;
+      color: #94a3b8;
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
@@ -1391,15 +1405,15 @@
       transition: all 0.15s;
     }
     .wb-add-sheet-btn:hover {
-      background: #e2e8f0;
-      color: #107c41;
-      border-color: #cbd5e1;
+      background: #1e293b;
+      color: #38bdf8;
+      border-color: #38bdf8;
     }
 
     .wb-split-bar {
       width: 1px;
       height: 18px;
-      background: #cbd5e1;
+      background: #1e293b;
       margin: 0 4px;
     }
 
@@ -1411,25 +1425,27 @@
       gap: 10px;
       padding-right: 14px;
       font-size: 11px;
-      color: #64748b;
+      color: #94a3b8;
     }
-    .wb-status-item b { color: #1e293b; }
-    .wb-status-sep { color: #cbd5e1; }
-    .wb-status-ok { color: #107c41; font-weight: 600; }
+    .wb-status-item b { color: #f1f5f9; }
+    .wb-status-sep { color: #334155; }
+    .wb-status-ok { color: #10b981; font-weight: 600; }
 
     /* =========================================================================
        16. 엑셀 워크시트 작업화면 (#sheet-workspace)
        ========================================================================= */
     #sheet-workspace {
       position: fixed;
-      top: 56px;
-      bottom: 34px;
+      top: 38px;
+      bottom: 0;
       left: 0;
       right: 0;
+      height: calc(100vh - 38px);
       background: #f8fafc;
       z-index: 40;
       display: none; /* 기본 모델링 탭일 때 숨김 */
       flex-direction: column;
+      overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, "Malgun Gothic", sans-serif;
     }
 
@@ -2169,7 +2185,7 @@
     }
     .quick-height-bar {
       position: absolute;
-      top: 68px;
+      top: 48px;
       right: 20px;
       background: rgba(10, 16, 30, 0.94);
       border: 1px solid var(--border-blue);
@@ -2255,13 +2271,266 @@
 /* =========================================================================
    17. 세대별 호실 배치 워크북 (#rooms-workspace-container) & 세부 모달 스타일
    ========================================================================= */
-#rooms-workspace-container {
-  flex: 1;
+#rooms-workspace-container,
+#summary-workspace-container {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 100%;
   display: none;
   flex-direction: column;
   overflow: hidden;
   background: #0f172a;
   position: relative;
+}
+
+/* [Phase 59/61/62] 점검 집계표 독립 워크북 스타일 - display: block으로 flex-shrink 압축 방지 및 마우스 휠 스크롤 완벽 보장 */
+.summary-content-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 20px 60px 20px;
+  display: block; /* Flex 대신 Block 레이아웃으로 자식들이 본래 높이를 100% 유지 */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+.summary-content-scroll > * {
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.summary-content-scroll > *:last-child {
+  margin-bottom: 0;
+}
+
+/* [Phase 62] KPI 대시보드 카드 인터랙션 & 상세 검증 모달 스타일 */
+.summary-kpi-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  cursor: pointer !important;
+}
+.summary-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -2px rgba(0, 0, 0, 0.4), 0 0 12px rgba(56, 189, 248, 0.2);
+  border-color: #475569;
+}
+.kpi-click-badge {
+  font-size: 9.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  transition: background 0.15s, color 0.15s;
+}
+.summary-kpi-card:hover .kpi-click-badge {
+  filter: brightness(1.2);
+}
+
+/* [Phase 62] 점검 집계표 상세 테이블 전체화면 모달 (#summary-fullscreen-modal) */
+.summary-fullscreen-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 15, 29, 0.98);
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  padding: 16px 24px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: modalFadeIn 0.2s ease-out;
+}
+.summary-fs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #334155;
+  flex-shrink: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.summary-fs-title-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.summary-fs-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.summary-fs-body {
+  flex: 1;
+  overflow: auto;
+  margin-top: 12px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+  padding: 0;
+}
+.summary-fs-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.summary-fs-body th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #1e293b;
+  color: #94a3b8;
+  padding: 10px 12px;
+  border-bottom: 2px solid #334155;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.summary-fs-body td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+  white-space: nowrap;
+}
+.summary-fs-body tr:hover td {
+  background: rgba(56, 189, 248, 0.08);
+}
+
+/* [Phase 62] KPI 검증 모달 스타일 (#kpi-verification-modal) */
+#kpi-verification-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 880px;
+  max-width: 95vw;
+  max-height: 88vh;
+  background: #0f172a;
+  border: 1px solid #38bdf8;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.3);
+  z-index: 2100;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalFadeIn 0.2s ease-out;
+}
+.kpi-verify-formula-box {
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 11.5px;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.kpi-verify-metric-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+@media (max-width: 640px) {
+  .kpi-verify-metric-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.kpi-verify-metric-chip {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.kpi-verify-metric-label {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+.kpi-verify-metric-val {
+  font-size: 16px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+.summary-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+.rooms-pill.done {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #6ee7b7;
+}
+.summary-kpi-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+.summary-kpi-title {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.summary-kpi-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #f8fafc;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.summary-kpi-sub {
+  font-size: 10.5px;
+  color: #64748b;
+}
+.summary-anchors-track {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.summary-anchors-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 8px;
+}
+.summary-anchors-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+.summary-anchor-mini-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.summary-anchor-mini-card:hover {
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.15);
 }
 
 /* 상단 서브 툴바 (호실 배치 튜닝: 조화로운 레이아웃, 가독성, 스크롤바 제거) */
@@ -2326,6 +2595,11 @@
 .rooms-pill.warning { border-color: rgba(245, 158, 11, 0.5); color: #fcd34d; background: rgba(245, 158, 11, 0.12); }
 .rooms-pill.good { border-color: rgba(16, 185, 129, 0.5); color: #6ee7b7; background: rgba(16, 185, 129, 0.12); }
 .rooms-pill.repaired { border-color: rgba(59, 130, 246, 0.5); color: #93c5fd; background: rgba(59, 130, 246, 0.12); }
+.rooms-pill.inspecting { border-color: rgba(234, 179, 8, 0.5); color: #fde047; background: rgba(234, 179, 8, 0.12); }
+.summary-click-chip { cursor: pointer; padding: 2px 7px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s ease; }
+.summary-click-chip:hover { background: rgba(56, 189, 248, 0.3) !important; border-color: #38bdf8 !important; transform: translateY(-1px); box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
+.summary-click-chip.total { background: rgba(56, 189, 248, 0.25); border: 1px solid #38bdf8; color: #f8fafc; font-weight: 800; font-size: 11px; }
+.summary-click-chip.total:hover { background: rgba(56, 189, 248, 0.45) !important; box-shadow: 0 0 10px rgba(56, 189, 248, 0.6); }
 
 /* 뷰 모드 세그먼트 토글 (자주 사용하는 메뉴 맨 앞 배치) */
 .rooms-segment-group {
@@ -3045,7 +3319,7 @@
 /* 1. 상호 전환 복귀 플로팅 위젯 (#wb-3d-return-pill) */
 .wb-return-pill {
   position: fixed;
-  top: 68px;
+  top: 48px;
   left: 20px;
   background: rgba(15, 23, 42, 0.92);
   border: 1.5px solid #38bdf8;
@@ -3975,6 +4249,332 @@
       background: rgba(16, 185, 129, 0.25) !important;
       color: #34d399 !important;
       border: 1px solid rgba(52, 211, 153, 0.6) !important;
+    }
+
+    /* =========================================================================
+       [Phase 60] 스마트폰 모바일 세로 모드(Portrait Mode) 전수 반응형 최적화 & Safe Area
+       ========================================================================= */
+    html, body {
+      touch-action: manipulation;
+      -webkit-text-size-adjust: 100%;
+    }
+    button, input, select, textarea {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* 태블릿/스마트폰 가로/세로 공통 반응형 (max-width: 900px) */
+    @media (max-width: 900px) {
+      .bottom-dock-wrapper {
+        flex-wrap: wrap;
+        bottom: calc(44px + env(safe-area-inset-bottom, 0px));
+      }
+      #smart-dock { max-width: 96vw; overflow-x: auto; justify-content: flex-start; }
+      .view-nav-bar { max-width: 96vw; overflow-x: auto; justify-content: flex-start; }
+    }
+
+    /* 스마트폰 세로 모드 정밀 최적화 (max-width: 640px) */
+    @media (max-width: 640px) {
+      /* 1. [Phase 61] 상단 엑셀 워크북 탭 바 모바일 튜닝 */
+      #workbook-bottom-bar {
+        position: fixed !important;
+        top: 0 !important;
+        bottom: auto !important;
+        height: calc(38px + env(safe-area-inset-top, 0px)) !important;
+        padding-top: env(safe-area-inset-top, 0px) !important;
+        padding-bottom: 0 !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+        border-bottom: 1px solid #1e293b !important;
+        border-top: none !important;
+      }
+      #sheet-workspace {
+        top: calc(38px + env(safe-area-inset-top, 0px)) !important;
+        bottom: 0 !important;
+        height: calc(100vh - (38px + env(safe-area-inset-top, 0px))) !important;
+      }
+      .wb-tabs-track {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+      }
+      .wb-tabs-track::-webkit-scrollbar {
+        display: none !important;
+      }
+      .wb-tab {
+        padding: 0 10px !important;
+        font-size: 11px !important;
+        min-height: 36px !important;
+      }
+      .wb-tab-edit-hint {
+        display: none !important;
+      }
+      .wb-nav-arrows {
+        display: none !important;
+      }
+
+      /* 2. 3D 모델링 환경 플로팅 도크 & 툴바 */
+      .bottom-dock-wrapper {
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        padding: 0 6px !important;
+        max-width: 100vw !important;
+        left: 0 !important;
+        right: 0 !important;
+      }
+      #smart-dock,
+      .view-nav-bar {
+        max-width: 98vw !important;
+        width: auto !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        border-radius: 20px !important;
+        padding: 3px 6px !important;
+        scrollbar-width: none !important;
+      }
+      #smart-dock::-webkit-scrollbar,
+      .view-nav-bar::-webkit-scrollbar {
+        display: none !important;
+      }
+      .dock-btn, .nav-item {
+        padding: 5px 8px !important;
+        font-size: 10.5px !important;
+        min-height: 32px !important;
+      }
+      .wb-return-pill {
+        top: max(10px, env(safe-area-inset-top, 10px)) !important;
+        left: max(10px, env(safe-area-inset-left, 10px)) !important;
+        padding: 6px 12px !important;
+        font-size: 11px !important;
+      }
+      #quick-height-bar {
+        width: calc(100vw - 16px) !important;
+        left: 8px !important;
+        right: 8px !important;
+        max-width: none !important;
+        min-width: unset !important;
+        top: max(8px, env(safe-area-inset-top, 8px)) !important;
+        max-height: 75vh !important;
+        overflow-y: auto !important;
+      }
+
+      /* 3. 워크벤치 상단 리본바 */
+      .sheet-top-bar {
+        height: auto !important;
+        min-height: 42px !important;
+        padding: 4px 6px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 4px !important;
+      }
+      .sheet-ribbon-group {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        flex-wrap: nowrap !important;
+        padding-bottom: 2px !important;
+      }
+      .sheet-ribbon-group::-webkit-scrollbar {
+        display: none !important;
+      }
+      .sheet-tool-btn {
+        padding: 4px 7px !important;
+        font-size: 10.5px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+      }
+      .sheet-app-badge {
+        font-size: 10px !important;
+        padding: 2px 5px !important;
+      }
+      .sheet-formula-bar {
+        height: 30px !important;
+        padding: 0 4px !important;
+      }
+      #sheet-formula-input {
+        font-size: 11px !important;
+      }
+
+      /* 4. 점검 집계표 (sheet-summary) 모바일 세로 최적화 */
+      .rooms-sub-toolbar {
+        height: auto !important;
+        min-height: 40px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 6px 8px !important;
+        gap: 6px !important;
+      }
+      .rooms-toolbar-group {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        flex-wrap: nowrap !important;
+        padding-bottom: 2px !important;
+      }
+      .rooms-toolbar-group::-webkit-scrollbar {
+        display: none !important;
+      }
+      .rooms-pill, .rooms-btn {
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+      }
+      .summary-content-scroll {
+        padding: 8px 8px calc(48px + env(safe-area-inset-bottom, 0px)) 8px !important;
+        gap: 10px !important;
+      }
+      /* KPI 5대 카드: 스마트폰 화면 맞춤 반응형 그리드 (첫번째 전단지 점검현황 카드는 2칸 확장 배치) */
+      .summary-kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+      }
+      .summary-kpi-grid > .summary-kpi-card:first-child {
+        grid-column: span 2 !important;
+      }
+      .summary-kpi-card {
+        padding: 8px 10px !important;
+      }
+      .summary-kpi-title {
+        font-size: 10px !important;
+      }
+      .summary-kpi-value {
+        font-size: 15px !important;
+      }
+      .summary-kpi-sub {
+        font-size: 9px !important;
+      }
+      /* P1~P6 앙커 미니 트랙: 스마트폰 화면에 최적화된 3열 x 2행 */
+      .summary-anchors-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 5px !important;
+      }
+      .summary-anchor-mini-card {
+        padding: 6px 4px !important;
+      }
+      /* 집계표 및 매트릭스 표 모바일 터치 가로 스크롤 완벽 지원 */
+      .rooms-summary-table-section {
+        padding: 8px 6px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      .rooms-stats-table th,
+      .rooms-stats-table td {
+        padding: 6px 4px !important;
+        font-size: 10px !important;
+        white-space: nowrap !important;
+      }
+
+      /* 5. 호실 배치 (sheet-rooms) 모바일 세로 최적화 */
+      .rooms-filter-bar {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        flex-wrap: nowrap !important;
+        padding: 5px 6px !important;
+      }
+      .rooms-filter-bar::-webkit-scrollbar {
+        display: none !important;
+      }
+      .rooms-filter-group {
+        flex-shrink: 0 !important;
+        flex-wrap: nowrap !important;
+      }
+      .filter-btn-pill {
+        padding: 3px 6px !important;
+        font-size: 10px !important;
+        flex-shrink: 0 !important;
+      }
+      #rooms-keyplan-panel {
+        margin: 4px 6px 0 6px !important;
+      }
+      .elevation-cards-wrap {
+        padding: 0 6px !important;
+        gap: 14px !important;
+      }
+      .building-elevation-block {
+        border-width: 1.5px !important;
+      }
+      .elevation-block-head {
+        padding: 5px 8px !important;
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+      }
+      .elevation-grid-body,
+      .elevation-rows-wrap {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      .room-cell {
+        min-width: 72px !important;
+        padding: 4px 5px !important;
+      }
+
+      /* 6. 모바일 전용 모달 반응형 시트 스타일 (96vw, Safe Area, 오버플로우 방지) */
+      .app-window,
+      #room-detail-modal,
+      #defect-modal,
+      #building-inspect-summary-modal,
+      #bulk-edit-modal,
+      #fill-sheet-modal,
+      #collision-prompt-modal,
+      #dynamic-keyplan-window,
+      #minimap-window {
+        width: 96vw !important;
+        min-width: unset !important;
+        max-width: 96vw !important;
+        left: 2vw !important;
+        right: 2vw !important;
+        top: max(8px, env(safe-area-inset-top, 8px)) !important;
+        max-height: calc(100vh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+        transform: none !important;
+        border-radius: 12px !important;
+      }
+      .room-modal-header {
+        padding: 8px 10px !important;
+      }
+      .room-modal-title {
+        font-size: 11px !important;
+        gap: 4px !important;
+      }
+      .win-btn {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 13px !important;
+      }
+      .room-modal-body {
+        padding: 8px !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      .room-kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 5px !important;
+      }
+      .room-kpi-card {
+        padding: 6px 8px !important;
+      }
+      .room-kpi-label {
+        font-size: 9.5px !important;
+      }
+      .room-kpi-val {
+        font-size: 11px !important;
+      }
+      .room-points-table {
+        font-size: 10px !important;
+      }
+      .room-points-table th,
+      .room-points-table td {
+        padding: 5px 4px !important;
+        white-space: nowrap !important;
+      }
+      /* 모달 내부 테이블 가로 스크롤 래퍼 */
+      #room-points-table,
+      #bulk-points-table,
+      #bldg-summary-points-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
     }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -5534,6 +6134,9 @@
         <button class="sheet-tool-btn primary" onclick="WorkbookManager.loadBuildingStatusData()" title="14개동 사택·기숙사 세대수 및 화학/에너지솔루션 배정 건물 현황 데이터 자동 작성">
           🏢 <b>건물 현황</b>
         </button>
+        <button class="sheet-tool-btn primary" onclick="WorkbookManager.jumpToSummaryWithNav()" title="사택 11개동 발코니 난간대 앙커(6개소) 정밀 안전점검 집계표 및 전체 현황 표 보기">
+          📊 <b>점검 집계표</b>
+        </button>
         <button class="sheet-tool-btn primary" onclick="WorkbookManager.jumpToRoomsWithNav()" title="사택 11개동 309세대 발코니 난간대 앙커(6개소) 정밀 안전점검 및 호실 배치도 보기">
           🚪 <b>호실 배치</b>
         </button>
@@ -5657,6 +6260,9 @@
             <button class="sic-jump-btn" id="sic-rooms-btn" onclick="WorkbookManager.jumpToBuildingRoomsFromSite()" style="display: none; margin-top: 6px; width: 100%; justify-content: center; background: #e11d48; border-color: #f43f5e; color: #fff; font-weight: 700;">
               🚪 [사택] 세대별 호실 입면도 보기
             </button>
+            <button class="sic-jump-btn" id="sic-inspect-btn" onclick="WorkbookManager.jumpToBuildingSummaryFromSite()" style="display: none; margin-top: 6px; width: 100%; justify-content: center; background: #059669; border-color: #10b981; color: #fff; font-weight: 700;">
+              📋 [사택] 안전점검 현황 요약 보기
+            </button>
           </div>
         </div>
 
@@ -5680,6 +6286,12 @@
           </div>
           <div class="rooms-pill uninspected" id="rooms-pill-uninspected" title="정밀안전점검 미실시 세대 (대기)" style="background: rgba(100, 116, 139, 0.2); border: 1px solid #64748b; color: #cbd5e1;">
             <span>⚪ 미점검 <b id="rooms-pill-uninspected-count">309</b></span>
+          </div>
+          <div class="rooms-pill inspecting" id="rooms-pill-inspecting" title="정밀안전점검 진행중 세대" style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.5); color: #fde047;">
+            <span>🟡 점검중 <b>0</b></span>
+          </div>
+          <div class="rooms-pill done" id="rooms-pill-done" title="정밀안전점검 완료 세대">
+            <span>🟢 점검완료 <b id="rooms-pill-done-count">2</b></span>
           </div>
           <div class="rooms-pill danger" id="rooms-pill-danger" title="D등급 긴급 보수 대상 세대">
             <span>🚨 긴급 <b>0</b></span>
@@ -5733,6 +6345,9 @@
             <button class="rooms-btn nav-btn" id="btn-toggle-viewpoint-keyplan" onclick="WorkbookManager.toggleDynamicKeyplanWindow()" title="단지 입면 뷰포인트 키플랜 팝업 열기/닫기" style="border-color: #38bdf8; color: #38bdf8; font-weight: 700;">
               🧭 뷰포인트 키플랜
             </button>
+            <button class="rooms-btn nav-btn" onclick="WorkbookManager.jumpToSummaryWithNav()" title="사택 11개동 앙커 정밀 안전점검 집계표 워크북으로 이동">
+              📊 점검 집계표
+            </button>
             <button class="rooms-btn nav-btn" onclick="WorkbookManager.jumpToSiteMapWithNav()" title="단지 배치도 보기 (복귀 지원)">
               🗺️ 단지 배치
             </button>
@@ -5760,6 +6375,7 @@
           <button class="filter-btn-pill" id="filter-status-A_B" onclick="WorkbookManager.setRoomsStatusFilter('A_B')">🟢 A/B등급</button>
           <button class="filter-btn-pill" id="filter-status-완료" onclick="WorkbookManager.setRoomsStatusFilter('완료')">🔵 조치완료</button>
           <button class="filter-btn-pill" id="filter-status-조치진행" onclick="WorkbookManager.setRoomsStatusFilter('조치진행')">🟠 조치진행</button>
+          <button class="filter-btn-pill" id="filter-status-점검완료" onclick="WorkbookManager.setRoomsStatusFilter('점검완료')">🟢 점검완료</button>
           <button class="filter-btn-pill" id="filter-status-점검중" onclick="WorkbookManager.setRoomsStatusFilter('점검중')">🟡 점검중</button>
           <button class="filter-btn-pill" id="filter-status-미점검" onclick="WorkbookManager.setRoomsStatusFilter('미점검')">⚪ 미점검</button>
         </div>
@@ -5798,8 +6414,8 @@
             <div class="rooms-summary-title">
               <span>📊 사택 11개동 세대별 발코니 난간대 앙커(6개소) 정밀 안전점검 집계표</span>
             </div>
-            <div style="font-size: 11px; color: #94a3b8;">
-              총 세대수: 309세대 (기숙사 제외) · 점검률: 86.1%
+            <div style="font-size: 11px; color: #94a3b8;" id="rooms-summary-rate-label">
+              총 세대수: 309세대 (11개동 1,854개소 · 기숙사 제외) · 점검률: 0.6% (2/309세대 점검실시)
             </div>
           </div>
           <table class="rooms-stats-table" id="rooms-stats-table">
@@ -5813,7 +6429,7 @@
                 <th>층수</th>
                 <th>총 세대수</th>
                 <th>배정</th>
-                <th>점검완료</th>
+                <th title="클릭 시 해당 건물동의 세부 안전점검 현황 요약 팝업 표출">점검완료 🔍</th>
                 <th>🚨 D등급(긴급)</th>
                 <th>⚠️ C등급(주의)</th>
                 <th>🟢 A·B등급(양호)</th>
@@ -5826,6 +6442,237 @@
               <!-- JS에서 집계 데이터 동적 렌더링 -->
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4) [Phase 59] 사택 11개동 앙커 정밀 안전점검 집계표 독립 워크북 (#summary-workspace-container) -->
+    <div id="summary-workspace-container">
+      <!-- 점검 집계표 서브 툴바 -->
+      <div class="rooms-sub-toolbar">
+        <!-- 좌측 현황 지표 바 (가독성 & 콤팩트 튜닝) -->
+        <div class="rooms-toolbar-group">
+          <button class="rooms-btn return-btn" id="summary-return-pill" onclick="WorkbookManager.popNavHistory()" style="display: none;" title="이전 화면으로 복귀">
+            ↩️ 이전 화면 복귀
+          </button>
+          <span class="rooms-badge" style="background: rgba(56, 189, 248, 0.2); border-color: #38bdf8; color: #38bdf8;">INSPECTION SUMMARY</span>
+          <div class="rooms-pill" style="font-weight: 700; color: #f1f5f9;">
+            <span>🏢 사택 11개동 (309세대 · 1,854개소)</span>
+          </div>
+          <div class="rooms-pill uninspected" id="summary-pill-uninspected" title="정밀안전점검 미실시 세대 (대기)" style="background: rgba(100, 116, 139, 0.2); border: 1px solid #64748b; color: #cbd5e1;">
+            <span>⚪ 미점검 <b id="summary-pill-uninspected-count">307</b></span>
+          </div>
+          <div class="rooms-pill inspecting" id="summary-pill-inspecting" title="정밀안전점검 진행중 세대" style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.5); color: #fde047;">
+            <span>🟡 점검중 <b id="summary-pill-inspecting-count">0</b></span>
+          </div>
+          <div class="rooms-pill done" id="summary-pill-done" title="정밀안전점검 완료 세대">
+            <span>🟢 점검완료 <b id="summary-pill-done-count">2</b></span>
+          </div>
+          <div class="rooms-pill danger" id="summary-pill-danger" title="D등급 긴급 보수 대상 세대">
+            <span>🚨 긴급 <b id="summary-pill-danger-count">1</b></span>
+          </div>
+          <div class="rooms-pill warning" id="summary-pill-warning" title="C등급 주의 관찰 대상 세대">
+            <span>⚠️ 주의 <b id="summary-pill-warning-count">1</b></span>
+          </div>
+          <div class="rooms-pill good" id="summary-pill-good" title="A/B등급 양호 세대">
+            <span>🟢 양호 <b id="summary-pill-good-count">0</b></span>
+          </div>
+          <div class="rooms-pill repaired" id="summary-pill-repaired" title="보강 조치완료 세대">
+            <span>🔵 완료 <b id="summary-pill-repaired-count">0</b></span>
+          </div>
+          <div class="rooms-pill" id="summary-pill-cost" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; font-weight: 700;" title="누적 소요 조치예산">
+            <span>💰 조치예산 <b id="summary-pill-cost-val">₩185,000</b></span>
+          </div>
+        </div>
+
+        <!-- 우측 액션 & 조작 메뉴바 -->
+        <div class="rooms-toolbar-group">
+          <!-- 1순위: 데이터베이스 저장 및 내보내기 -->
+          <div class="rooms-btn-group" style="display: inline-flex; gap: 4px;">
+            <button class="rooms-btn web-save-btn" id="btn-summary-web-save" onclick="WorkbookManager.executeWebSave()" title="편집된 모든 정밀안전점검 DB 데이터를 XLSB 바이너리로 컴파일하여 원격 GitHub 및 로컬 동기화 저장">
+              ☁️ 웹 저장
+            </button>
+            <button class="rooms-btn excel-save-btn" id="btn-summary-excel-save" onclick="WorkbookManager.exportExcelWithValidation()" title="최신 안전점검 DB를 드롭다운 목록(데이터 유효성 검사) 및 조건부 서식이 완벽 적용된 로컬 엑셀(.xlsx) 파일로 다운로드 저장">
+              📊 엑셀 저장
+            </button>
+            <button class="rooms-btn" onclick="takeScreenshot()" title="현재 워크시트 화면 캡처 및 PNG 이미지 다운로드 (단축키 P)">
+              📷 스크린샷
+            </button>
+          </div>
+
+          <!-- 2순위: 다른 워크북 빠른 전환 링크 -->
+          <div class="rooms-btn-group" style="display: inline-flex; gap: 4px;">
+            <button class="rooms-btn nav-btn" onclick="WorkbookManager.jumpToRoomsWithNav()" title="사택 11개동 세대별 호실 배치도 보기 (복귀 지원)">
+              🚪 호실 배치
+            </button>
+            <button class="rooms-btn nav-btn" onclick="WorkbookManager.jumpToSiteMapWithNav()" title="단지 배치도 보기 (복귀 지원)">
+              🗺️ 단지 배치
+            </button>
+            <button class="rooms-btn nav-btn" onclick="WorkbookManager.jumpToBuildingStatusWithNav()" title="건물동 현황 표 보기 (복귀 지원)">
+              📋 건물 현황
+            </button>
+          </div>
+
+          <!-- 3순위: 전산 DB 연계 상태 인디케이터 -->
+          <span class="rooms-db-pill" title="공식 바이너리 DB: 사택_발코니난간대_정밀안전점검_DB.xlsb (309세대 정상 매핑)">
+            📗 XLSB DB
+          </span>
+        </div>
+      </div>
+
+      <!-- 메인 스크롤 콘텐츠 본문 -->
+      <div class="summary-content-scroll" id="summary-content-scroll">
+        <!-- 1) 경영/안전총괄 4대 대시보드 KPI 카드 -->
+        <div class="summary-kpi-grid">
+          <div class="summary-kpi-card" style="border-left: 4px solid #8b5cf6;" onclick="WorkbookManager.openKpiVerificationModal('inspect-status')" title="클릭 시 [사택 11개동 세대별 점검 3단계(미점검·점검중·점검완료) 현황 및 결함 조치 대기 세대] 세부 검증 모달 열기">
+            <div class="summary-kpi-title">
+              <span>📋 전 단지 점검 현황</span>
+              <span class="kpi-click-badge" style="color: #a78bfa; background: rgba(139, 92, 246, 0.15);">🔍 데이터 검증 ➜</span>
+            </div>
+            <div class="summary-kpi-value" id="summary-kpi-inspect-status" style="color: #c4b5fd;">2 / 309 세대</div>
+            <div class="summary-kpi-sub" id="summary-kpi-inspect-status-sub">🟢 완료 2 · 🟡 점검중 0 · ⚪ 미점검 307 (결함대기: 2세대)</div>
+          </div>
+          <div class="summary-kpi-card" style="border-left: 4px solid #38bdf8;" onclick="WorkbookManager.openKpiVerificationModal('inspect-rate')" title="클릭 시 [전 단지 점검 진척도] 세부 검증 모달 열기">
+            <div class="summary-kpi-title">
+              <span>📈 전 단지 점검 진척도</span>
+              <span class="kpi-click-badge" style="color: #38bdf8; background: rgba(56, 189, 248, 0.15);">🔍 데이터 검증 ➜</span>
+            </div>
+            <div class="summary-kpi-value" id="summary-kpi-inspect-rate" style="color: #38bdf8;">0.6%</div>
+            <div class="summary-kpi-sub" id="summary-kpi-inspect-sub">2 / 309 세대 점검 완료 (잔여: 307세대)</div>
+          </div>
+          <div class="summary-kpi-card" style="border-left: 4px solid #ef4444;" onclick="WorkbookManager.openKpiVerificationModal('defects')" title="클릭 시 [결함 조치 대상 세대(D·C등급)] 세부 검증 모달 열기">
+            <div class="summary-kpi-title">
+              <span>🚨 결함 조치 대상 세대</span>
+              <span class="kpi-click-badge" style="color: #ef4444; background: rgba(239, 68, 68, 0.15);">🔍 데이터 검증 ➜</span>
+            </div>
+            <div class="summary-kpi-value" id="summary-kpi-defect-count" style="color: #fca5a5;">2 세대</div>
+            <div class="summary-kpi-sub" id="summary-kpi-defect-sub">🚨 D등급 긴급 1세대 / ⚠️ C등급 주의 1세대</div>
+          </div>
+          <div class="summary-kpi-card" style="border-left: 4px solid #3b82f6;" onclick="WorkbookManager.openKpiVerificationModal('repairs')" title="클릭 시 [결함 보강 조치율 산출 및 완료 세대] 세부 검증 모달 열기">
+            <div class="summary-kpi-title">
+              <span>🔵 결함 보강 조치율</span>
+              <span class="kpi-click-badge" style="color: #3b82f6; background: rgba(59, 130, 246, 0.15);">🔍 데이터 검증 ➜</span>
+            </div>
+            <div class="summary-kpi-value" id="summary-kpi-repair-rate" style="color: #93c5fd;">0.0%</div>
+            <div class="summary-kpi-sub" id="summary-kpi-repair-sub">완료 0세대 / 조치필요 2세대</div>
+          </div>
+          <div class="summary-kpi-card" style="border-left: 4px solid #10b981;" onclick="WorkbookManager.openKpiVerificationModal('budget')" title="클릭 시 [외벽 앙커 보수·보강 소요 예산 총괄] 세부 검증 모달 열기">
+            <div class="summary-kpi-title">
+              <span>💰 누적 소요 조치예산</span>
+              <span class="kpi-click-badge" style="color: #10b981; background: rgba(16, 185, 129, 0.15);">🔍 데이터 검증 ➜</span>
+            </div>
+            <div class="summary-kpi-value" id="summary-kpi-total-cost" style="color: #6ee7b7;">₩ 185,000</div>
+            <div class="summary-kpi-sub" id="summary-kpi-total-cost-sub">외벽 앙커 보수·보강 소요 예산 총액</div>
+          </div>
+        </div>
+
+        <!-- 2) P1~P6 외벽 고정 앙커 6개소 전 단지 현황 미니 트랙 -->
+        <div class="summary-anchors-track">
+          <div class="summary-anchors-header">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 12.5px; font-weight: 700; color: #f8fafc;">🔩 외벽 고정 앙커 6개소(P1 ~ P6) 전 단지 현황 트랙</span>
+              <span style="font-size: 11px; color: #94a3b8;">(카드 클릭 시 3D 모델 해당 포인트 뷰 전환 및 정밀 분석 오픈)</span>
+            </div>
+            <button class="rooms-btn" onclick="WorkbookManager.jumpTo3DOverallFromSummary()" style="padding: 2px 8px; font-size: 10.5px; border-color: #38bdf8; color: #38bdf8; cursor: pointer;" title="전체 3D 난간대 조망 뷰로 전환 (언제든 좌상단 복귀 버튼으로 점검 집계표로 복원 가능)">
+              🏢 3D 모델링 전체 뷰
+            </button>
+          </div>
+          <div class="summary-anchors-grid" id="summary-sheet-anchors-grid">
+            <!-- JS 동적 렌더링 -->
+          </div>
+        </div>
+
+        <!-- 3) 메인: 사택 11개동 세대별 앙커 정밀안전점검 집계표 (접기/펼치기/전체화면 지원) -->
+        <div class="rooms-summary-table-section" id="summary-table1-section" style="margin: 0; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 14px;">
+          <div class="rooms-summary-head" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <div class="rooms-summary-title">
+                <span style="font-size: 13px; font-weight: 700; color: #f8fafc;">📊 사택 11개동 세대별 발코니 난간대 앙커(6개소) 정밀 안전점검 집계표</span>
+              </div>
+              <div style="font-size: 11px; color: #94a3b8;" id="summary-sheet-rate-label">
+                총 세대수: 309세대 (11개동 1,854개소 · 기숙사 제외) · 점검완료 열 [🔍] 클릭 시 해당 건물동 세부 점검 요약 표출
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <button class="rooms-btn" id="btn-toggle-summary-t1" onclick="WorkbookManager.toggleSummaryTable(1)" title="테이블 본문 접기/펼치기 토글">
+                ▼ 접기
+              </button>
+              <button class="rooms-btn" onclick="WorkbookManager.openSummaryTableFullscreen(1)" style="border-color: #38bdf8; color: #38bdf8; font-weight: 700;" title="테이블 전체 화면 모달 확대 보기 (검색·정렬·필터)">
+                ⛶ 전체 화면
+              </button>
+            </div>
+          </div>
+          <div class="summary-table-body-wrap" id="summary-table1-body-wrap" style="overflow-x: auto; margin-top: 10px;">
+          <table class="rooms-stats-table" id="summary-sheet-stats-table">
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>동명</th>
+                <th>m²(평형)</th>
+                <th>사용승인일</th>
+                <th>리모델링</th>
+                <th>층수</th>
+                <th>총 세대수</th>
+                <th>배정</th>
+                <th title="클릭 시 해당 건물동의 세부 안전점검 현황 요약 팝업 표출">점검완료 🔍</th>
+                <th>🚨 D등급(긴급)</th>
+                <th>⚠️ C등급(주의)</th>
+                <th>🟢 A·B등급(양호)</th>
+                <th>🔵 조치완료</th>
+                <th>소요 조치예산(원)</th>
+                <th>입면 바로가기</th>
+              </tr>
+            </thead>
+            <tbody id="summary-sheet-stats-tbody">
+              <!-- JS 동적 렌더링 -->
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <!-- 4) 보완: 건물동별 외벽 고정 앙커 6개소(P1~P6) 결함 분포 및 전체 현황 표 (접기/펼치기/전체화면 지원) -->
+        <div class="rooms-summary-table-section" id="summary-table2-section" style="margin: 0; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 14px;">
+          <div class="rooms-summary-head" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <div class="rooms-summary-title">
+                <span style="font-size: 13px; font-weight: 700; color: #38bdf8;">📋 건물동별 외벽 고정 앙커 6개소(P1~P6) 결함 분포 및 전체 현황 표</span>
+              </div>
+              <div style="font-size: 11px; color: #94a3b8;">
+                전체 11개동 309세대 × 6개소 = 총 1,854개 앙커 포인트 전수 모니터링 현황
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <button class="rooms-btn" id="btn-toggle-summary-t2" onclick="WorkbookManager.toggleSummaryTable(2)" title="테이블 본문 접기/펼치기 토글">
+                ▼ 접기
+              </button>
+              <button class="rooms-btn" onclick="WorkbookManager.openSummaryTableFullscreen(2)" style="border-color: #38bdf8; color: #38bdf8; font-weight: 700;" title="테이블 전체 화면 모달 확대 보기 (검색·정렬·필터)">
+                ⛶ 전체 화면
+              </button>
+            </div>
+          </div>
+          <div class="summary-table-body-wrap" id="summary-table2-body-wrap" style="overflow-x: auto; margin-top: 10px;">
+          <table class="rooms-stats-table" id="summary-sheet-anchors-matrix-table">
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>동명</th>
+                <th>세대수</th>
+                <th style="color: #38bdf8;">P1(좌상단)</th>
+                <th style="color: #38bdf8;">P2(우상단)</th>
+                <th style="color: #38bdf8;">P3(좌중단)</th>
+                <th style="color: #38bdf8;">P4(우중단)</th>
+                <th style="color: #38bdf8;">P5(좌하단)</th>
+                <th style="color: #38bdf8;">P6(우하단)</th>
+                <th style="color: #ef4444;">결함 앙커(D+C)</th>
+                <th style="color: #10b981;">정상 앙커(A/B/완료)</th>
+                <th>총 조치예산(원)</th>
+              </tr>
+            </thead>
+            <tbody id="summary-sheet-anchors-matrix-tbody">
+              <!-- JS 동적 렌더링 -->
+            </tbody>
+          </table>
+          </div>
         </div>
       </div>
     </div>
@@ -7137,6 +7984,7 @@ function generateDeterministicRooms() {
           buildingName: b.name,
           roomNo: roomNum,
           roomLabel: `${roomNum}호`,
+          unit: roomNum,
           area: b.area || '84㎡',
           approvalDate: b.approvalDate || '-',
           remodeling: b.remodeling || '-',
@@ -7211,6 +8059,161 @@ function colIndexToColName(idx) {
     n = Math.floor(n / 26) - 1;
   }
   return name;
+}
+
+function getInspectionSummarySpreadsheetData() {
+  const data = {};
+  const setCell = (ref, val, formula = null, fmt = {}) => {
+    data[ref] = {
+      val: val !== undefined ? String(val) : '',
+      value: val !== undefined ? String(val) : '',
+      formula: formula || null,
+      fmt: fmt
+    };
+  };
+
+  // 타이틀
+  setCell('A1', '사택 11개동 세대별 발코니 난간대 앙커(6개소) 정밀 안전점검 집계표', null, { bold: true, size: 14 });
+  setCell('A2', '기준일시: ' + new Date().toLocaleDateString('ko-KR') + ' · 대상: 11개동 309세대 (앙커 총 1,854개소)', null, { color: '#64748b' });
+
+  // 메인 테이블 헤더 (Row 4)
+  const headers = ['No.', '동명', 'm²(평형)', '사용승인일', '리모델링', '층수', '총 세대수', '소속 배정', '점검완료', 'D등급(위험)', 'C등급(주의)', 'A/B등급(양호)', '조치완료', '점검중', '미점검', '총 조치예산(원)'];
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
+  headers.forEach((h, idx) => setCell(cols[idx] + '4', h, null, { bold: true, bg: '#1e293b', color: '#f8fafc', align: 'center' }));
+
+  let totUnits = 0, totDone = 0, totD = 0, totC = 0, totAB = 0, totDoneFix = 0, totProg = 0, totUninsp = 0, totCost = 0;
+
+  if (typeof BUILDING_SPECS !== 'undefined' && typeof ROOMS_DATA !== 'undefined') {
+    BUILDING_SPECS.forEach((b, idx) => {
+      const rIdx = 5 + idx;
+      const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+      const uCnt = bRooms.length;
+      const dCnt = bRooms.filter(r => r.safetyGrade === 'D').length;
+      const cCnt = bRooms.filter(r => r.safetyGrade === 'C').length;
+      const abCnt = bRooms.filter(r => r.safetyGrade === 'A' || r.safetyGrade === 'B' || r.safetyGrade === '양호').length;
+      const doneFixCnt = bRooms.filter(r => r.safetyGrade === '완료').length;
+      const progCnt = bRooms.filter(r => r.safetyGrade === '점검중' || r.progress === '점검중').length;
+      const uninspCnt = bRooms.filter(r => r.safetyGrade === '미점검' || r.progress === '미점검' || !r.progress).length;
+      const doneCnt = bRooms.filter(r => r.progress && r.progress !== '미착수' && r.progress !== '미점검').length;
+      const costSum = bRooms.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+
+      totUnits += uCnt;
+      totDone += doneCnt;
+      totD += dCnt;
+      totC += cCnt;
+      totAB += abCnt;
+      totDoneFix += doneFixCnt;
+      totProg += progCnt;
+      totUninsp += uninspCnt;
+      totCost += costSum;
+
+      setCell('A' + rIdx, idx + 1, null, { align: 'center' });
+      setCell('B' + rIdx, b.name, null, { bold: true });
+      setCell('C' + rIdx, b.area || '-', null, { align: 'center' });
+      setCell('D' + rIdx, b.approvalDate || '-', null, { align: 'center' });
+      setCell('E' + rIdx, b.remodeling || '-', null, { align: 'center' });
+      setCell('F' + rIdx, b.floors + '층', null, { align: 'center' });
+      setCell('G' + rIdx, uCnt, null, { align: 'center', bold: true });
+      setCell('H' + rIdx, b.team, null, { align: 'center' });
+      setCell('I' + rIdx, doneCnt, null, { align: 'center' });
+      setCell('J' + rIdx, dCnt, null, { align: 'center', color: '#ef4444', bold: true });
+      setCell('K' + rIdx, cCnt, null, { align: 'center', color: '#f59e0b', bold: true });
+      setCell('L' + rIdx, abCnt, null, { align: 'center', color: '#10b981', bold: true });
+      setCell('M' + rIdx, doneFixCnt, null, { align: 'center', color: '#3b82f6', bold: true });
+      setCell('N' + rIdx, progCnt, null, { align: 'center' });
+      setCell('O' + rIdx, uninspCnt, null, { align: 'center' });
+      setCell('P' + rIdx, costSum.toLocaleString(), null, { align: 'right', bold: true });
+    });
+
+    const sumRow = 5 + BUILDING_SPECS.length;
+    setCell('A' + sumRow, '합계', null, { bold: true, align: 'center' });
+    setCell('B' + sumRow, BUILDING_SPECS.length + '개동', null, { bold: true });
+    setCell('C' + sumRow, '-', null, { align: 'center' });
+    setCell('D' + sumRow, '-', null, { align: 'center' });
+    setCell('E' + sumRow, '4개동 리모델링', null, { align: 'center' });
+    setCell('F' + sumRow, '-', null, { align: 'center' });
+    setCell('G' + sumRow, totUnits, null, { bold: true, align: 'center' });
+    setCell('H' + sumRow, '-', null, { align: 'center' });
+    setCell('I' + sumRow, totDone, null, { bold: true, align: 'center' });
+    setCell('J' + sumRow, totD, null, { bold: true, align: 'center', color: '#ef4444' });
+    setCell('K' + sumRow, totC, null, { bold: true, align: 'center', color: '#f59e0b' });
+    setCell('L' + sumRow, totAB, null, { bold: true, align: 'center', color: '#10b981' });
+    setCell('M' + sumRow, totDoneFix, null, { bold: true, align: 'center', color: '#3b82f6' });
+    setCell('N' + sumRow, totProg, null, { align: 'center' });
+    setCell('O' + sumRow, totUninsp, null, { align: 'center' });
+    setCell('P' + sumRow, totCost.toLocaleString(), null, { bold: true, align: 'right' });
+
+    // [Phase 63] Table 2 동기화: 건물동별 외벽 고정 앙커 6개소(P1~P6, 총 1,854개소) 결함 분포 매트릭스 표
+    const mTitleRow = sumRow + 3;
+    setCell('A' + mTitleRow, '건물동별 외벽 고정 앙커 6개소(P1~P6, 총 1,854개소) 결함 분포 및 전체 현황 표', null, { bold: true, size: 12 });
+    setCell('A' + (mTitleRow + 1), 'P1~P6 앙커 포인트별 상태(위험/주의) 결함 개소 및 소요비용 실시간 집계', null, { color: '#64748b' });
+
+    const mHeaderRow = mTitleRow + 2;
+    const mHeaders = ['No.', '동명', '총 세대수', 'P1(좌상단)', 'P2(좌중단)', 'P3(좌하단)', 'P4(우상단)', 'P5(우중단)', 'P6(우하단)', '총 결함개소', '정상 앙커개소', '예상 보수비용(원)'];
+    const mCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+    mHeaders.forEach((h, idx) => setCell(mCols[idx] + mHeaderRow, h, null, { bold: true, bg: '#1e293b', color: '#f8fafc', align: 'center' }));
+
+    let totP = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+    let totAllDefects = 0, totAllGoods = 0, totMCost = 0;
+
+    BUILDING_SPECS.forEach((b, idx) => {
+      const rIdx = mHeaderRow + 1 + idx;
+      const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+      const pDef = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+      let bDefCount = 0;
+      let bGoodCount = 0;
+      let bCost = 0;
+
+      bRooms.forEach(r => {
+        ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => {
+          const pt = r.points && r.points[pk];
+          if (pt) {
+            if (pt.status === 'danger' || pt.status === 'warning') {
+              pDef[pk]++;
+              bDefCount++;
+            } else if (pt.status === 'good' || pt.status === 'repaired') {
+              bGoodCount++;
+            }
+            bCost += (pt.cost || 0);
+          }
+        });
+      });
+
+      ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => totP[pk] += pDef[pk]);
+      totAllDefects += bDefCount;
+      totAllGoods += bGoodCount;
+      totMCost += bCost;
+
+      setCell('A' + rIdx, idx + 1, null, { align: 'center' });
+      setCell('B' + rIdx, b.name, null, { bold: true });
+      setCell('C' + rIdx, bRooms.length, null, { align: 'center', bold: true });
+      setCell('D' + rIdx, pDef.P1, null, { align: 'center', color: pDef.P1 > 0 ? '#ef4444' : '#64748b', bold: pDef.P1 > 0 });
+      setCell('E' + rIdx, pDef.P2, null, { align: 'center', color: pDef.P2 > 0 ? '#ef4444' : '#64748b', bold: pDef.P2 > 0 });
+      setCell('F' + rIdx, pDef.P3, null, { align: 'center', color: pDef.P3 > 0 ? '#ef4444' : '#64748b', bold: pDef.P3 > 0 });
+      setCell('G' + rIdx, pDef.P4, null, { align: 'center', color: pDef.P4 > 0 ? '#ef4444' : '#64748b', bold: pDef.P4 > 0 });
+      setCell('H' + rIdx, pDef.P5, null, { align: 'center', color: pDef.P5 > 0 ? '#ef4444' : '#64748b', bold: pDef.P5 > 0 });
+      setCell('I' + rIdx, pDef.P6, null, { align: 'center', color: pDef.P6 > 0 ? '#ef4444' : '#64748b', bold: pDef.P6 > 0 });
+      setCell('J' + rIdx, bDefCount + '개소', null, { align: 'center', color: bDefCount > 0 ? '#ef4444' : '#64748b', bold: true });
+      setCell('K' + rIdx, bGoodCount + '개소', null, { align: 'center', color: '#10b981', bold: true });
+      setCell('L' + rIdx, bCost.toLocaleString(), null, { align: 'right', bold: true, color: '#fca5a5' });
+    });
+
+    const mSumRow = mHeaderRow + 1 + BUILDING_SPECS.length;
+    setCell('A' + mSumRow, '합계', null, { bold: true, align: 'center' });
+    setCell('B' + mSumRow, '전체 11개동 1,854개소 총괄', null, { bold: true });
+    setCell('C' + mSumRow, totUnits, null, { bold: true, align: 'center' });
+    setCell('D' + mSumRow, totP.P1, null, { bold: true, align: 'center', color: '#ef4444' });
+    setCell('E' + mSumRow, totP.P2, null, { bold: true, align: 'center', color: '#ef4444' });
+    setCell('F' + mSumRow, totP.P3, null, { bold: true, align: 'center', color: '#ef4444' });
+    setCell('G' + mSumRow, totP.P4, null, { bold: true, align: 'center', color: '#ef4444' });
+    setCell('H' + mSumRow, totP.P5, null, { bold: true, align: 'center', color: '#ef4444' });
+    setCell('I' + mSumRow, totP.P6, null, { bold: true, align: 'center', color: '#ef4444' });
+    setCell('J' + mSumRow, totAllDefects + '개소', null, { bold: true, align: 'center', color: '#ef4444' });
+    setCell('K' + mSumRow, totAllGoods + '개소', null, { bold: true, align: 'center', color: '#10b981' });
+    setCell('L' + mSumRow, totMCost.toLocaleString(), null, { bold: true, align: 'right', color: '#f87171' });
+  }
+
+  return data;
 }
 
 function getRoomsSpreadsheetData() {
@@ -7802,6 +8805,15 @@ const WorkbookManager = {
           rowCount: 22,
           colCount: 12
         },
+        'sheet-summary': {
+          id: 'sheet-summary',
+          name: '점검 집계표',
+          type: 'summary',
+          data: getInspectionSummarySpreadsheetData(),
+          activeCell: 'A1',
+          rowCount: 35,
+          colCount: 16
+        },
         'sheet-1': {
           id: 'sheet-1',
           name: '건물동 현황',
@@ -7821,7 +8833,7 @@ const WorkbookManager = {
           colCount: 16
         }
       },
-      sheetOrder: ['sheet-site', 'sheet-1', 'sheet-rooms'],
+      sheetOrder: ['sheet-summary', 'sheet-site', 'sheet-1', 'sheet-rooms'],
       sheetFocusMode: 'row', // [Phase 46] 'row' (기본값) | 'col' | 'both' | 'none'
       isWorkbookToolbarCollapsed: false, // [Phase 47] 상단 메뉴바 접기/펴기 (기본값: 펴기 상태)
       isKeyplanMarkerLocked: false, // [Phase 47] 동적 키플랜 마커 뱃지 위치 잠금 (기본값: 해제/열림 🔓)
@@ -7842,6 +8854,7 @@ const WorkbookManager = {
         this.bindEvents();
         // 초기 시작 탭은 'model' (3D 모델링 기본)
         this.activateTab('model', false);
+        this.updateMobileLayout();
       },
 
       colIndexToName(index) {
@@ -7899,7 +8912,7 @@ const WorkbookManager = {
           const tab = document.createElement('div');
           tab.className = 'wb-tab' + (this.activeTabId === sheetId ? ' active' : '');
           tab.id = 'wb-tab-' + sheetId;
-          const icon = s.id === 'sheet-site' ? '🗺️' : '📊';
+          const icon = s.id === 'sheet-site' ? '🗺️' : (s.id === 'sheet-summary' ? '📊' : (s.id === 'sheet-rooms' ? '🏠' : '📋'));
           tab.title = '워크시트: ' + s.name + ' (더블클릭 또는 우클릭 시 탭 이름 변경)';
           tab.innerHTML = '<span class="wb-tab-icon">' + icon + '</span><span class="wb-tab-name">' + s.name + '</span><span class="wb-tab-edit-hint" title="이름 바꾸기">✏️</span>';
           tab.onclick = () => this.activateTab(sheetId);
@@ -7930,6 +8943,8 @@ const WorkbookManager = {
           if (sheetWorkspace) sheetWorkspace.style.display = 'none';
           const roomsCont = document.getElementById('rooms-workspace-container');
           if (roomsCont) roomsCont.style.display = 'none';
+          const summaryCont = document.getElementById('summary-workspace-container');
+          if (summaryCont) summaryCont.style.display = 'none';
           // [Phase 43] 3D 뷰 진입 시 동적 키플랜 숨김
           const kpWin = document.getElementById('dynamic-keyplan-window');
           if (kpWin) kpWin.style.display = 'none';
@@ -7970,18 +8985,42 @@ const WorkbookManager = {
           if (sheetWorkspace) sheetWorkspace.style.display = 'flex';
 
           const roomsContainer = document.getElementById('rooms-workspace-container');
+          const summaryContainer = document.getElementById('summary-workspace-container');
+          const topBar = document.getElementById('wb-sheet-top-bar');
+          const formulaBar = document.querySelector('.sheet-formula-bar');
+
+          if (tabId === 'sheet-site' || tabId === 'sheet-summary' || tabId === 'sheet-rooms') {
+            if (topBar) topBar.style.display = 'none';
+            if (formulaBar) formulaBar.style.display = 'none';
+          } else {
+            if (topBar) topBar.style.display = 'flex';
+            if (formulaBar) formulaBar.style.display = 'flex';
+          }
 
           if (tabId === 'sheet-site') {
             // 단지 배치도 뷰 활성화
             if (gridContainer) gridContainer.style.display = 'none';
             if (roomsContainer) roomsContainer.style.display = 'none';
+            if (summaryContainer) summaryContainer.style.display = 'none';
             if (siteContainer) siteContainer.style.display = 'flex';
             if (appBadge) appBadge.textContent = 'EXCEL WORKBENCH · 단지 배치도';
             // [Phase 43] 동적 키플랜은 호실 배치 워크북 내부에서만 표시! 타 워크북에서는 즉시 숨김
             const kpWin = document.getElementById('dynamic-keyplan-window');
             if (kpWin) kpWin.style.display = 'none';
             this.initSiteMap();
+          } else if (tabId === 'sheet-summary') {
+            // [Phase 59/61] 사택 11개동 앙커 정밀 안전점검 집계표 독립 워크북 활성화
+            if (gridContainer) gridContainer.style.display = 'none';
+            if (roomsContainer) roomsContainer.style.display = 'none';
+            if (siteContainer) siteContainer.style.display = 'none';
+            if (summaryContainer) summaryContainer.style.display = 'flex';
+            if (appBadge) appBadge.textContent = 'EXCEL WORKBENCH · 사택 11개동 앙커 정밀 안전점검 집계표';
+            const kpWin = document.getElementById('dynamic-keyplan-window');
+            if (kpWin) kpWin.style.display = 'none';
+            this.initSummaryWheelScroll();
+            this.renderInspectionSummarySheet();
           } else if (tabId === 'sheet-rooms') {
+            if (summaryContainer) summaryContainer.style.display = 'none';
             // 세대별 호실 배치도 뷰 활성화
             if (gridContainer) gridContainer.style.display = 'none';
             if (siteContainer) siteContainer.style.display = 'none';
@@ -8007,6 +9046,7 @@ const WorkbookManager = {
             // 일반 엑셀 그리드 (건물동 현황 등)
             if (siteContainer) siteContainer.style.display = 'none';
             if (roomsContainer) roomsContainer.style.display = 'none';
+            if (summaryContainer) summaryContainer.style.display = 'none';
             if (gridContainer) gridContainer.style.display = 'block';
             const sName = this.sheets[tabId] ? this.sheets[tabId].name : '시트';
             if (appBadge) appBadge.textContent = 'EXCEL WORKBENCH · ' + sName;
@@ -8730,12 +9770,31 @@ const WorkbookManager = {
             };
           }
 
-          // sheetOrder 순서 보장: 단지 배치, 건물동 현황 순
+          // [Phase 59] sheet-summary (점검 집계표) 워크북 존재 보장
+          if (!this.sheets['sheet-summary']) {
+            this.sheets['sheet-summary'] = {
+              id: 'sheet-summary',
+              name: '점검 집계표',
+              type: 'summary',
+              data: typeof getInspectionSummarySpreadsheetData === 'function' ? getInspectionSummarySpreadsheetData() : {},
+              activeCell: 'A1',
+              rowCount: 35,
+              colCount: 16
+            };
+          }
+
+          // [Phase 61] sheetOrder 순서 보장: 점검 집계표(모델링 바로 우측), 단지 배치, 건물동 현황, 호실 배치 순
+          this.sheetOrder = this.sheetOrder.filter(id => id !== 'sheet-summary');
+          this.sheetOrder.unshift('sheet-summary');
+
           if (!this.sheetOrder.includes('sheet-site')) {
-            this.sheetOrder.unshift('sheet-site');
+            this.sheetOrder.splice(1, 0, 'sheet-site');
           }
           if (!this.sheetOrder.includes('sheet-1')) {
             this.sheetOrder.push('sheet-1');
+          }
+          if (!this.sheetOrder.includes('sheet-rooms')) {
+            this.sheetOrder.push('sheet-rooms');
           }
         } catch (e) {
           console.warn('LocalStorage load failed:', e);
@@ -9298,29 +10357,36 @@ const WorkbookManager = {
           if (typeof WindowManager !== 'undefined' && WindowManager.makeDraggable) {
             WindowManager.makeDraggable('room-detail-modal', 'room-detail-modal-head');
             WindowManager.makeDraggable('bulk-edit-modal', 'bulk-edit-modal-head');
+            WindowManager.makeDraggable('building-inspect-summary-modal', 'building-inspect-summary-modal-head');
           }
           this.roomsInitialized = true;
         }
       },
 
       updateRoomsKpiPills() {
-        let dCount = 0, cCount = 0, okCount = 0, doneCount = 0, uninspectedCount = 0;
+        let dCount = 0, cCount = 0, okCount = 0, doneCount = 0, inspectingCount = 0, uninspectedCount = 0, doneInspCount = 0;
         ROOMS_DATA.forEach(r => {
           if (r.safetyGrade === 'D') dCount++;
           else if (r.safetyGrade === 'C') cCount++;
           else if (r.safetyGrade === '완료') doneCount++;
-          else if (r.safetyGrade === '미점검') uninspectedCount++;
           else if (r.safetyGrade === 'A' || r.safetyGrade === 'B' || r.safetyGrade === '양호') okCount++;
+
+          if (r.safetyGrade === '점검중' || r.progress === '점검중') inspectingCount++;
+          else if (r.progress && r.progress !== '미점검' && r.progress !== '미착수') doneInspCount++;
           else uninspectedCount++;
         });
 
         const pillU = document.getElementById('rooms-pill-uninspected');
+        const pillInsp = document.getElementById('rooms-pill-inspecting');
+        const pillDone = document.getElementById('rooms-pill-done');
         const pillD = document.getElementById('rooms-pill-danger');
         const pillC = document.getElementById('rooms-pill-warning');
         const pillOk = document.getElementById('rooms-pill-good');
         const pillRep = document.getElementById('rooms-pill-repaired');
 
         if (pillU) pillU.innerHTML = `<span>⚪ 미점검 <b>${uninspectedCount}</b></span>`;
+        if (pillInsp) pillInsp.innerHTML = `<span>🟡 점검중 <b>${inspectingCount}</b></span>`;
+        if (pillDone) pillDone.innerHTML = `<span>🟢 점검완료 <b>${doneInspCount}</b></span>`;
         if (pillD) pillD.innerHTML = `<span>🚨 긴급 <b>${dCount}</b></span>`;
         if (pillC) pillC.innerHTML = `<span>⚠️ 주의 <b>${cCount}</b></span>`;
         if (pillOk) pillOk.innerHTML = `<span>🟢 양호 <b>${okCount}</b></span>`;
@@ -9574,6 +10640,919 @@ const WorkbookManager = {
         return cell;
       },
 
+      jumpToSummaryWithNav(fromTab = null) {
+        const current = fromTab || this.activeTabId || 'sheet-rooms';
+        this.pushNavState({
+          fromTab: current,
+          label: current === 'sheet-rooms' ? '호실 배치' : (current === 'sheet-site' ? '단지 배치' : '건물동 현황')
+        });
+        this.activateTab('sheet-summary');
+      },
+
+      // [Phase 65 벤치마킹 복원] 점검 집계표 ➜ 3D 모델링 전체 뷰 전환 (복귀 플로팅 위젯 완벽 연동)
+      jumpTo3DOverallFromSummary() {
+        this.pushNavState({
+          fromTab: 'sheet-summary',
+          label: '사택 11개동 앙커 정밀 안전점검 집계표',
+          shortLabel: '점검 집계표',
+          view: 'overall'
+        });
+        this.activateTab('model');
+        setTimeout(() => {
+          if (typeof closeDefectModal === 'function') {
+            closeDefectModal();
+          }
+          if (typeof CameraHistoryManager !== 'undefined' && typeof CameraHistoryManager.fitToView === 'function') {
+            CameraHistoryManager.fitToView();
+          } else if (typeof tweenCam === 'function') {
+            tweenCam(new THREE.Vector3(0, 1.5, 5.4), new THREE.Vector3(0, 1.5, 0), 650);
+          }
+          this.updateReturnPill();
+          if (typeof showToast === 'function') {
+            showToast('🏢 3D 모델링 전체 뷰로 전환되었습니다. (좌상단 복귀 버튼으로 점검 집계표 복원)');
+          }
+        }, 80);
+      },
+
+      // [Phase 65 벤치마킹 복원] P1~P6 외벽 앙커 카드 클릭 시 해당 포인트 3D 이동 + 정밀분석 팝업창 오픈 + 복귀 위젯 연동
+      focusPointFromSummary(pointKey) {
+        const pMap = { P1: 0, P2: 1, P3: 2, P4: 3, P5: 4, P6: 5 };
+        const pNames = {
+          P1: 'P1 (좌측상단)', P2: 'P2 (우측상단)',
+          P3: 'P3 (좌측중단)', P4: 'P4 (우측중단)',
+          P5: 'P5 (좌측하단)', P6: 'P6 (우측하단)'
+        };
+        const pId = pMap[pointKey] !== undefined ? pMap[pointKey] : 0;
+        const pName = pNames[pointKey] || pointKey;
+
+        this.pushNavState({
+          fromTab: 'sheet-summary',
+          label: '사택 11개동 앙커 정밀 안전점검 집계표',
+          shortLabel: '점검 집계표',
+          pointKey: pointKey,
+          pointName: pName,
+          modalOpen: true
+        });
+
+        this.activateTab('model');
+
+        setTimeout(() => {
+          if (typeof focusDefect === 'function') {
+            focusDefect(pId);
+          }
+          this.updateReturnPill();
+          if (typeof showToast === 'function') {
+            showToast(`🔍 [${pointKey}] 3D 위치로 줌인 및 전 단지 정밀 분석창을 열었습니다. (복귀: 좌상단 버튼)`);
+          }
+        }, 80);
+      },
+
+      // [Phase 61/62] 점검 집계표 마우스 휠 스크롤 리스너 이중 보장 바인딩
+      initSummaryWheelScroll() {
+        const scrollEl = document.getElementById('summary-content-scroll');
+        const containerEl = document.getElementById('summary-workspace-container');
+        if (scrollEl && !scrollEl._wheelBound) {
+          scrollEl._wheelBound = true;
+          scrollEl.addEventListener('wheel', (e) => {
+            scrollEl.scrollTop += e.deltaY;
+          }, { passive: true });
+        }
+        if (containerEl && !containerEl._wheelBound) {
+          containerEl._wheelBound = true;
+          containerEl.addEventListener('wheel', (e) => {
+            if (scrollEl && e.target !== scrollEl && !scrollEl.contains(e.target)) {
+              scrollEl.scrollTop += e.deltaY;
+            }
+          }, { passive: true });
+        }
+      },
+
+      // [Phase 62] 점검 집계표 2대 상세 테이블 접기/펼치기 토글
+      toggleSummaryTable(tableNum) {
+        const wrap = document.getElementById('summary-table' + tableNum + '-body-wrap');
+        const btn = document.getElementById('btn-toggle-summary-t' + tableNum);
+        if (!wrap) return;
+        const isCollapsed = wrap.style.display === 'none';
+        if (isCollapsed) {
+          wrap.style.display = 'block';
+          if (btn) btn.innerHTML = '▼ 접기';
+        } else {
+          wrap.style.display = 'none';
+          if (btn) btn.innerHTML = '▶ 펼치기';
+        }
+      },
+
+      // [Phase 62] 점검 집계표 2대 상세 테이블 전체 화면 모달 제어
+      currentFsTableNum: 1,
+      fsSearchQuery: '',
+      fsTeamFilter: 'all',
+
+      openSummaryTableFullscreen(tableNum) {
+        this.currentFsTableNum = tableNum || 1;
+        const modal = document.getElementById('summary-fullscreen-modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+
+        const titleEl = document.getElementById('summary-fs-title');
+        const badgeEl = document.getElementById('summary-fs-badge');
+        const searchInput = document.getElementById('summary-fs-search');
+        const teamFilter = document.getElementById('summary-fs-filter-team');
+
+        if (searchInput) searchInput.value = '';
+        if (teamFilter) teamFilter.value = 'all';
+        this.fsSearchQuery = '';
+        this.fsTeamFilter = 'all';
+
+        if (this.currentFsTableNum === 1) {
+          if (badgeEl) badgeEl.textContent = '📊 세대별 점검 집계';
+          if (titleEl) titleEl.textContent = '사택 11개동 세대별 발코니 난간대 앙커(6개소) 정밀 안전점검 집계표 [전체화면 검증 뷰]';
+        } else {
+          if (badgeEl) badgeEl.textContent = '📋 앙커 결함 매트릭스';
+          if (titleEl) titleEl.textContent = '건물동별 외벽 고정 앙커 6개소(P1~P6) 결함 분포 및 전체 현황 표 [전체화면 검증 뷰]';
+        }
+
+        this.renderSummaryFullscreenTable();
+      },
+
+      closeSummaryTableFullscreen() {
+        const modal = document.getElementById('summary-fullscreen-modal');
+        if (modal) modal.style.display = 'none';
+      },
+
+      onSummaryFullscreenSearch(val) {
+        this.fsSearchQuery = (val || '').trim().toLowerCase();
+        this.renderSummaryFullscreenTable();
+      },
+
+      onSummaryFullscreenFilter() {
+        const sel = document.getElementById('summary-fs-filter-team');
+        this.fsTeamFilter = sel ? sel.value : 'all';
+        this.renderSummaryFullscreenTable();
+      },
+
+      renderSummaryFullscreenTable() {
+        const bodyEl = document.getElementById('summary-fs-body');
+        if (!bodyEl) return;
+
+        let specs = BUILDING_SPECS.filter(b => {
+          if (this.fsTeamFilter === '화학' && !b.isChem) return false;
+          if (this.fsTeamFilter === '에너지솔루션' && b.isChem) return false;
+          if (this.fsTeamFilter === 'defect') {
+            const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const defCount = bRooms.filter(r => r.safetyGrade === 'D' || r.safetyGrade === 'C').length;
+            if (defCount === 0) return false;
+          }
+          if (this.fsSearchQuery) {
+            const matchName = (b.name || '').toLowerCase().includes(this.fsSearchQuery);
+            const matchTeam = (b.team || '').toLowerCase().includes(this.fsSearchQuery);
+            const matchArea = (b.area || '').toLowerCase().includes(this.fsSearchQuery);
+            if (!matchName && !matchTeam && !matchArea) return false;
+          }
+          return true;
+        });
+
+        if (this.currentFsTableNum === 1) {
+          let html = '<table class="rooms-stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr>' +
+            '<th style="width: 45px;">No.</th>' +
+            '<th>동명</th>' +
+            '<th>m²(평형)</th>' +
+            '<th>사용승인일</th>' +
+            '<th>리모델링</th>' +
+            '<th>층수</th>' +
+            '<th>총 세대수</th>' +
+            '<th>배정</th>' +
+            '<th>점검완료 (클릭 시 세부 요약) 🔍</th>' +
+            '<th>🚨 D등급(긴급)</th>' +
+            '<th>⚠️ C등급(주의)</th>' +
+            '<th>🟢 A·B등급(양호)</th>' +
+            '<th>🔵 조치완료</th>' +
+            '<th>소요 조치예산(원)</th>' +
+            '<th>입면 바로가기</th>' +
+            '</tr></thead><tbody>';
+
+          let sumUnits = 0, sumInsp = 0, sumD = 0, sumC = 0, sumOk = 0, sumRep = 0, sumCost = 0;
+          specs.forEach((b, idx) => {
+            const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const inspected = bRooms.filter(r => r.progress && r.progress !== '미점검' && r.progress !== '미착수').length;
+            const dCount = bRooms.filter(r => r.safetyGrade === 'D').length;
+            const cCount = bRooms.filter(r => r.safetyGrade === 'C').length;
+            const repCount = bRooms.filter(r => r.safetyGrade === '완료').length;
+            const okCount = bRooms.filter(r => r.safetyGrade === 'A' || r.safetyGrade === 'B' || r.safetyGrade === '양호').length;
+            const bCost = bRooms.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+            const pct = bRooms.length > 0 ? ((inspected / bRooms.length) * 100).toFixed(1) : '0.0';
+
+            sumUnits += bRooms.length;
+            sumInsp += inspected;
+            sumD += dCount;
+            sumC += cCount;
+            sumOk += okCount;
+            sumRep += repCount;
+            sumCost += bCost;
+
+            html += '<tr>' +
+              '<td style="text-align: center; color: #94a3b8;">' + (idx + 1) + '</td>' +
+              '<td style="font-weight: 700; color: #f8fafc; font-size: 13px;">' + b.name + '</td>' +
+              '<td style="color: #38bdf8; font-weight: 600;">' + (b.area || '-') + '</td>' +
+              '<td style="color: #cbd5e1;">' + (b.approvalDate || '-') + '</td>' +
+              '<td style="color: #fbbf24; font-weight: 600;">' + (b.remodeling || '-') + '</td>' +
+              '<td style="text-align: center;">' + b.floors + '층</td>' +
+              '<td style="text-align: center; font-weight: 700;">' + bRooms.length + '</td>' +
+              '<td style="text-align: center;"><span style="color: ' + (b.isChem ? '#facc15' : '#38bdf8') + '; font-weight: 600;">' + b.team + '</span></td>' +
+              '<td style="text-align: center;"><span class="summary-click-chip" onclick="WorkbookManager.showBuildingInspectionSummary(\'' + b.id + '\')">' + inspected + '세대 (' + pct + '%) 🔍</span></td>' +
+              '<td style="text-align: center; color: #ef4444; font-weight: 700;">' + dCount + '</td>' +
+              '<td style="text-align: center; color: #f59e0b; font-weight: 700;">' + cCount + '</td>' +
+              '<td style="text-align: center; color: #10b981; font-weight: 700;">' + okCount + '</td>' +
+              '<td style="text-align: center; color: #3b82f6; font-weight: 700;">' + repCount + '</td>' +
+              '<td style="text-align: right; font-weight: 700; color: #fca5a5;">₩ ' + bCost.toLocaleString() + '</td>' +
+              '<td style="text-align: center;"><button class="rooms-btn" onclick="WorkbookManager.closeSummaryTableFullscreen(); WorkbookManager.jumpToRoomsWithNav(\'' + b.id + '\');" style="padding: 2px 8px; font-size: 11px;">🔍 입면 보기</button></td>' +
+              '</tr>';
+          });
+
+          const sumPct = sumUnits > 0 ? ((sumInsp / sumUnits) * 100).toFixed(1) : '0.0';
+          html += '<tr class="total-row" style="background: rgba(56, 189, 248, 0.12); font-weight: 800;">' +
+            '<td colspan="6" style="text-align: center; color: #38bdf8;">선택/표시 건물동 합계 (' + specs.length + '개동)</td>' +
+            '<td style="text-align: center; color: #38bdf8;">' + sumUnits + '</td>' +
+            '<td>-</td>' +
+            '<td style="text-align: center;"><span class="summary-click-chip total" onclick="WorkbookManager.showBuildingInspectionSummary(\'all\')">' + sumInsp + '세대 (' + sumPct + '%) 🔍</span></td>' +
+            '<td style="text-align: center; color: #ef4444;">' + sumD + '</td>' +
+            '<td style="text-align: center; color: #f59e0b;">' + sumC + '</td>' +
+            '<td style="text-align: center; color: #10b981;">' + sumOk + '</td>' +
+            '<td style="text-align: center; color: #3b82f6;">' + sumRep + '</td>' +
+            '<td style="text-align: right; color: #f87171;">₩ ' + sumCost.toLocaleString() + '</td>' +
+            '<td>-</td>' +
+            '</tr></tbody></table>';
+
+          bodyEl.innerHTML = html;
+        } else {
+          let html = '<table class="rooms-stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr>' +
+            '<th style="width: 45px;">No.</th>' +
+            '<th>동명</th>' +
+            '<th>세대수</th>' +
+            '<th style="color: #38bdf8;">P1 (좌상단)</th>' +
+            '<th style="color: #38bdf8;">P2 (우상단)</th>' +
+            '<th style="color: #38bdf8;">P3 (좌중단)</th>' +
+            '<th style="color: #38bdf8;">P4 (우중단)</th>' +
+            '<th style="color: #38bdf8;">P5 (좌하단)</th>' +
+            '<th style="color: #38bdf8;">P6 (우하단)</th>' +
+            '<th style="color: #ef4444;">결함 앙커 (D+C)</th>' +
+            '<th style="color: #10b981;">정상 앙커 (A/B/완료)</th>' +
+            '<th>총 조치예산(원)</th>' +
+            '<th>3D 상세</th>' +
+            '</tr></thead><tbody>';
+
+          let sumUnits = 0, sumDef = 0, sumGood = 0, sumCost = 0;
+          let pTotals = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+
+          specs.forEach((b, idx) => {
+            const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            let bDefCount = 0, bGoodCount = 0;
+            let bP = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+            bRooms.forEach(r => {
+              if (r.points) {
+                ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => {
+                  const pt = r.points[pk];
+                  if (pt) {
+                    if (pt.status === 'danger' || pt.status === 'warning' || pt.progress === '조치진행') {
+                      bDefCount++;
+                      bP[pk]++;
+                      pTotals[pk]++;
+                    } else {
+                      bGoodCount++;
+                    }
+                  } else {
+                    bGoodCount++;
+                  }
+                });
+              } else {
+                bGoodCount += 6;
+              }
+            });
+            const bCost = bRooms.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+            sumUnits += bRooms.length;
+            sumDef += bDefCount;
+            sumGood += bGoodCount;
+            sumCost += bCost;
+
+            html += '<tr>' +
+              '<td style="text-align: center; color: #94a3b8;">' + (idx + 1) + '</td>' +
+              '<td style="font-weight: 700; color: #f8fafc; font-size: 13px;">' + b.name + '</td>' +
+              '<td style="text-align: center; font-weight: 700;">' + bRooms.length + '</td>' +
+              '<td style="text-align: center; color: ' + (bP.P1 > 0 ? '#ef4444; font-weight: 700;' : '#94a3b8;') + '">' + (bP.P1 > 0 ? '🚨 ' + bP.P1 : '0') + '</td>' +
+              '<td style="text-align: center; color: ' + (bP.P2 > 0 ? '#ef4444; font-weight: 700;' : '#94a3b8;') + '">' + (bP.P2 > 0 ? '🚨 ' + bP.P2 : '0') + '</td>' +
+              '<td style="text-align: center; color: ' + (bP.P3 > 0 ? '#ef4444; font-weight: 700;' : '#94a3b8;') + '">' + (bP.P3 > 0 ? '🚨 ' + bP.P3 : '0') + '</td>' +
+              '<td style="text-align: center; color: ' + (bP.P4 > 0 ? '#ef4444; font-weight: 700;' : '#94a3b8;') + '">' + (bP.P4 > 0 ? '🚨 ' + bP.P4 : '0') + '</td>' +
+              '<td style="text-align: center; color: ' + (bP.P5 > 0 ? '#ef4444; font-weight: 700;' : '#94a3b8;') + '">' + (bP.P5 > 0 ? '🚨 ' + bP.P5 : '0') + '</td>' +
+              '<td style="text-align: center; color: ' + (bP.P6 > 0 ? '#ef4444; font-weight: 700;' : '#94a3b8;') + '">' + (bP.P6 > 0 ? '🚨 ' + bP.P6 : '0') + '</td>' +
+              '<td style="text-align: center; color: ' + (bDefCount > 0 ? '#ef4444; font-weight: 800;' : '#94a3b8;') + '">' + bDefCount + '개소</td>' +
+              '<td style="text-align: center; color: #10b981; font-weight: 700;">' + bGoodCount + '개소</td>' +
+              '<td style="text-align: right; font-weight: 700; color: #fca5a5;">₩ ' + bCost.toLocaleString() + '</td>' +
+              '<td style="text-align: center;"><button class="rooms-btn" onclick="WorkbookManager.closeSummaryTableFullscreen(); WorkbookManager.activateTab(\'model\');" style="padding: 2px 8px; font-size: 11px; border-color: #38bdf8; color: #38bdf8;">🏢 3D 모델</button></td>' +
+              '</tr>';
+          });
+
+          html += '<tr class="total-row" style="background: rgba(56, 189, 248, 0.12); font-weight: 800;">' +
+            '<td colspan="2" style="text-align: center; color: #38bdf8;">전체 앙커 집계 총괄 (' + specs.length + '개동)</td>' +
+            '<td style="text-align: center; color: #38bdf8;">' + sumUnits + '</td>' +
+            '<td style="text-align: center; color: #ef4444;">' + pTotals.P1 + '</td>' +
+            '<td style="text-align: center; color: #ef4444;">' + pTotals.P2 + '</td>' +
+            '<td style="text-align: center; color: #ef4444;">' + pTotals.P3 + '</td>' +
+            '<td style="text-align: center; color: #ef4444;">' + pTotals.P4 + '</td>' +
+            '<td style="text-align: center; color: #ef4444;">' + pTotals.P5 + '</td>' +
+            '<td style="text-align: center; color: #ef4444;">' + pTotals.P6 + '</td>' +
+            '<td style="text-align: center; color: #ef4444;">' + sumDef + '개소</td>' +
+            '<td style="text-align: center; color: #10b981;">' + sumGood + '개소</td>' +
+            '<td style="text-align: right; color: #f87171;">₩ ' + sumCost.toLocaleString() + '</td>' +
+            '<td>-</td>' +
+            '</tr></tbody></table>';
+
+          bodyEl.innerHTML = html;
+        }
+      },
+
+      // [Phase 62] 4대 KPI 대시보드 카드 상세 데이터 검증 모달
+      openKpiVerificationModal(type) {
+        const modal = document.getElementById('kpi-verification-modal');
+        const badgeEl = document.getElementById('kpi-verify-badge');
+        const titleEl = document.getElementById('kpi-verify-title');
+        const bodyEl = document.getElementById('kpi-verify-body');
+        if (!modal || !bodyEl) return;
+        modal.style.display = 'flex';
+
+        const totUnits = ROOMS_DATA.length;
+        const totDone = ROOMS_DATA.filter(r => r.progress && r.progress !== '미점검' && r.progress !== '미착수' && r.progress !== '점검중').length;
+        const totD = ROOMS_DATA.filter(r => r.safetyGrade === 'D').length;
+        const totC = ROOMS_DATA.filter(r => r.safetyGrade === 'C').length;
+        const totAB = ROOMS_DATA.filter(r => r.safetyGrade === 'A' || r.safetyGrade === 'B' || r.safetyGrade === '양호').length;
+        const totRepaired = ROOMS_DATA.filter(r => r.safetyGrade === '완료').length;
+        const totProg = ROOMS_DATA.filter(r => r.safetyGrade === '점검중' || r.progress === '점검중').length;
+        const totUninsp = ROOMS_DATA.filter(r => (r.safetyGrade === '미점검' || r.progress === '미점검' || !r.progress) && r.safetyGrade !== '점검중' && r.progress !== '점검중' && r.progress !== '조치진행' && r.progress !== '조치완료' && r.progress !== '점검완료').length;
+        const totCost = ROOMS_DATA.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+        const actionNeeded = totD + totC;
+        const inspectionRate = totUnits > 0 ? ((totDone / totUnits) * 100).toFixed(1) : '0.0';
+        const repairRate = (actionNeeded + totRepaired) > 0 ? ((totRepaired / (actionNeeded + totRepaired)) * 100).toFixed(1) : '0.0';
+        const waitActionRooms = ROOMS_DATA.filter(r => (r.safetyGrade === 'D' || r.safetyGrade === 'C') && r.safetyGrade !== '완료' && r.progress !== '조치완료');
+        const waitActionCount = waitActionRooms.length;
+
+        if (type === 'inspect-status') {
+          if (badgeEl) badgeEl.textContent = '📋 점검 현황 & 결함 대기 검증';
+          if (titleEl) titleEl.textContent = '사택 11개동 세대별 점검 3단계(미점검·점검중·점검완료) 현황 및 결함 조치 대기 세대 정밀 검증';
+
+          let html = '<div class="kpi-verify-formula-box" style="background: rgba(139, 92, 246, 0.08); border-color: rgba(139, 92, 246, 0.3);">' +
+            '<span><b>📐 데이터 정합성 & 산출 근거</b>: 전 단지 309세대 = 미점검(' + totUninsp + '세대) + 점검중(' + totProg + '세대) + 점검완료(' + totDone + '세대) <b>[100% 전수 일치]</b></span>' +
+            '<span style="font-size: 11px; color: #c4b5fd;">※ 점검완료 ' + totDone + '세대 중 외벽 결함 확인 조치대기: <b>' + waitActionCount + '세대</b> (D등급 ' + totD + '세대, C등급 ' + totC + '세대) · 보강 조치완료: ' + totRepaired + '세대 · 양호: ' + totAB + '세대</span>' +
+            '</div>' +
+            '<div class="kpi-verify-metric-strip">' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #8b5cf6;"><span class="kpi-verify-metric-label">🏢 전 단지 총 세대</span><span class="kpi-verify-metric-val" style="color: #c4b5fd;">' + totUnits + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #10b981;"><span class="kpi-verify-metric-label">🟢 점검 완료 세대</span><span class="kpi-verify-metric-val" style="color: #6ee7b7;">' + totDone + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #f59e0b;"><span class="kpi-verify-metric-label">🟡 점검 진행중</span><span class="kpi-verify-metric-val" style="color: #fde047;">' + totProg + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #64748b;"><span class="kpi-verify-metric-label">⚪ 미점검 대기</span><span class="kpi-verify-metric-val" style="color: #cbd5e1;">' + totUninsp + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #ef4444;"><span class="kpi-verify-metric-label">🚨 결함 확인(D·C)</span><span class="kpi-verify-metric-val" style="color: #fca5a5;">' + actionNeeded + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #ec4899;"><span class="kpi-verify-metric-label">⏳ 결함 조치 대기</span><span class="kpi-verify-metric-val" style="color: #f472b6;">' + waitActionCount + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #3b82f6;"><span class="kpi-verify-metric-label">🔵 보강 완료 세대</span><span class="kpi-verify-metric-val" style="color: #93c5fd;">' + totRepaired + ' 세대</span></div>' +
+            '</div>' +
+            '<div style="font-size: 12.5px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">🏢 1. 사택 11개 건물동별 점검 3단계(미점검·점검중·점검완료) 및 결함 대기 정밀 검증표</div>' +
+            '<div style="overflow-x: auto; margin-bottom: 16px;">' +
+            '<table class="rooms-stats-table" style="width: 100%;"><thead><tr>' +
+            '<th>No.</th><th>건물동</th><th>소속</th><th>총세대수</th><th>⚪ 미점검</th><th>🟡 점검중</th><th>🟢 점검완료</th><th>점검률</th><th>🚨 결함확인</th><th>⏳ 조치대기</th><th>🔵 조치완료</th><th>소요예산(원)</th>' +
+            '</tr></thead><tbody>';
+
+          BUILDING_SPECS.forEach((b, idx) => {
+            const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const bUnits = bRooms.length;
+            const bDone = bRooms.filter(r => r.progress && r.progress !== '미점검' && r.progress !== '미착수' && r.progress !== '점검중').length;
+            const bProg = bRooms.filter(r => r.safetyGrade === '점검중' || r.progress === '점검중').length;
+            const bUninsp = bRooms.filter(r => (r.safetyGrade === '미점검' || r.progress === '미점검' || !r.progress) && r.safetyGrade !== '점검중' && r.progress !== '점검중' && r.progress !== '조치진행' && r.progress !== '조치완료' && r.progress !== '점검완료').length;
+            const bD = bRooms.filter(r => r.safetyGrade === 'D').length;
+            const bC = bRooms.filter(r => r.safetyGrade === 'C').length;
+            const bDefs = bD + bC;
+            const bWait = bRooms.filter(r => (r.safetyGrade === 'D' || r.safetyGrade === 'C') && r.safetyGrade !== '완료' && r.progress !== '조치완료').length;
+            const bRep = bRooms.filter(r => r.safetyGrade === '완료').length;
+            const bCost = bRooms.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+            const bPct = bUnits > 0 ? ((bDone / bUnits) * 100).toFixed(1) : '0.0';
+
+            html += '<tr>' +
+              '<td style="text-align: center; color: #94a3b8;">' + (idx + 1) + '</td>' +
+              '<td style="font-weight: 700; color: #f8fafc;">' + b.name + '</td>' +
+              '<td><span style="color: ' + (b.isChem ? '#facc15' : '#38bdf8') + '; font-weight: 600;">' + b.team + '</span></td>' +
+              '<td style="text-align: center; font-weight: 700;">' + bUnits + '</td>' +
+              '<td style="text-align: center; color: #cbd5e1;">' + bUninsp + '</td>' +
+              '<td style="text-align: center; color: #fde047;">' + bProg + '</td>' +
+              '<td style="text-align: center; font-weight: 700; color: ' + (bDone > 0 ? '#10b981;' : '#94a3b8;') + '">' + bDone + '</td>' +
+              '<td style="text-align: center; font-weight: 700; color: #38bdf8;">' + bPct + '%</td>' +
+              '<td style="text-align: center; font-weight: 700; color: ' + (bDefs > 0 ? '#ef4444;' : '#94a3b8;') + '">' + bDefs + '</td>' +
+              '<td style="text-align: center; font-weight: 700; color: ' + (bWait > 0 ? '#f472b6;' : '#94a3b8;') + '">' + bWait + '</td>' +
+              '<td style="text-align: center; font-weight: 700; color: ' + (bRep > 0 ? '#3b82f6;' : '#94a3b8;') + '">' + bRep + '</td>' +
+              '<td style="text-align: right; font-weight: 700; color: ' + (bCost > 0 ? '#fca5a5;' : '#94a3b8;') + '">₩ ' + bCost.toLocaleString() + '</td>' +
+              '</tr>';
+          });
+
+          // 합계 행
+          html += '<tr class="total-row" style="background: rgba(30, 41, 59, 0.85); border-top: 2px solid #64748b; font-weight: 800;">' +
+            '<td colspan="3" style="text-align: center; color: #c4b5fd;">사택 11개동 합계</td>' +
+            '<td style="text-align: center; color: #f8fafc;">' + totUnits + '</td>' +
+            '<td style="text-align: center; color: #cbd5e1;">' + totUninsp + '</td>' +
+            '<td style="text-align: center; color: #fde047;">' + totProg + '</td>' +
+            '<td style="text-align: center; color: #10b981;">' + totDone + '</td>' +
+            '<td style="text-align: center; color: #38bdf8;">' + inspectionRate + '%</td>' +
+            '<td style="text-align: center; color: #ef4444;">' + actionNeeded + '</td>' +
+            '<td style="text-align: center; color: #f472b6;">' + waitActionCount + '</td>' +
+            '<td style="text-align: center; color: #3b82f6;">' + totRepaired + '</td>' +
+            '<td style="text-align: right; color: #fca5a5;">₩ ' + totCost.toLocaleString() + '</td>' +
+            '</tr></tbody></table></div>' +
+
+            '<div style="font-size: 12.5px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">🚨 2. [점검완료] 세대 중 실제 결함 확인 및 조치 대기 세대 상세 명세서 (호실 클릭 시 점검서 직행)</div>';
+
+          if (waitActionRooms.length === 0) {
+            html += '<div style="text-align: center; padding: 25px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; color: #10b981; font-size: 13px; font-weight: 700;">🟢 현재 결함 조치 대기 세대가 없습니다. 점검된 모든 세대의 안전성이 확보되었거나 조치가 완료되었습니다.</div>';
+          } else {
+            html += '<div style="overflow-x: auto;">' +
+              '<table class="rooms-stats-table" style="width: 100%;"><thead><tr>' +
+              '<th>건물동 - 호실</th><th>소속 배정</th><th>안전등급</th><th>조치 상태</th><th>결함 앙커(P1~P6)</th><th>결함 상세 내용 및 보수 계획</th><th>소요 보수예산</th><th>점검서 열기</th>' +
+              '</tr></thead><tbody>';
+
+            waitActionRooms.forEach(r => {
+              let defectPts = [];
+              if (r.points) {
+                ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => {
+                  const pt = r.points[pk];
+                  if (pt && (pt.status === 'danger' || pt.status === 'warning' || pt.progress === '조치진행')) {
+                    defectPts.push({
+                      key: pk,
+                      name: pt.name || pk,
+                      status: pt.status,
+                      defect: pt.defect || ''
+                    });
+                  }
+                });
+              }
+
+              const ptsBadges = defectPts.map(p => {
+                const isD = p.status === 'danger';
+                return `<span style="background: ${isD ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color: ${isD ? '#fca5a5' : '#fde047'}; padding: 2px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; margin-right: 4px;" title="${p.defect}">${isD ? '🚨' : '⚠️'} ${p.key}</span>`;
+              }).join('');
+
+              const gradeColor = r.safetyGrade === 'D' ? '#ef4444' : '#f59e0b';
+              const gradeBg = r.safetyGrade === 'D' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+
+              html += '<tr>' +
+                '<td style="font-weight: 800; color: #38bdf8;">🏢 ' + r.buildingName + ' ' + (r.roomLabel || r.roomNo + '호') + '</td>' +
+                '<td><span style="color: #cbd5e1; font-weight: 600;">' + (r.team || '-') + '</span></td>' +
+                '<td><span style="background: ' + gradeBg + '; color: ' + gradeColor + '; border: 1px solid ' + gradeColor + '; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 800;">' + r.safetyGrade + '등급</span></td>' +
+                '<td><span style="color: #ec4899; font-weight: 700; font-size: 11px;">⏳ 조치 대기중</span></td>' +
+                '<td>' + (ptsBadges || '<span style="color: #94a3b8;">-</span>') + '</td>' +
+                '<td style="font-size: 11px; text-align: left;"><div style="color: #f8fafc; font-weight: 600;">' + (r.defectSummary || '외벽 앙커 결함 발견') + '</div><div style="color: #94a3b8; margin-top: 2px;">계획: ' + (r.actionSummary || '보강 공법 수립 및 자재 수급 대기') + '</div></td>' +
+                '<td style="text-align: right; font-weight: 800; color: #fca5a5;">₩ ' + (r.totalCost || 0).toLocaleString() + '</td>' +
+                '<td style="text-align: center;"><button class="rooms-btn" onclick="WorkbookManager.closeKpiVerificationModal(); WorkbookManager.openRoomDetailModal(\'' + r.id + '\');" style="padding: 2px 8px; font-size: 10.5px; border-color: #38bdf8; color: #38bdf8; font-weight: 700;">🔍 점검서 열람</button></td>' +
+                '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+          }
+
+          bodyEl.innerHTML = html;
+
+        } else if (type === 'inspect-rate') {
+          if (badgeEl) badgeEl.textContent = '📈 점검 진척도 검증';
+          if (titleEl) titleEl.textContent = '전 단지 발코니 난간대 정밀안전점검 진척도 상세 검증';
+
+          let html = '<div class="kpi-verify-formula-box">' +
+            '<span><b>📐 산출 공식</b>: [점검 완료 세대수(' + totDone + '세대) ÷ 총 세대수(' + totUnits + '세대)] × 100% = <b>' + inspectionRate + '%</b></span>' +
+            '<span style="font-size: 11px; color: #38bdf8;">※ 미착수/미점검 ' + (totUnits - totDone) + '세대 대기 중</span>' +
+            '</div>' +
+            '<div class="kpi-verify-metric-strip">' +
+            '<div class="kpi-verify-metric-chip"><span class="kpi-verify-metric-label">총 세대수</span><span class="kpi-verify-metric-val" style="color: #38bdf8;">' + totUnits + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip"><span class="kpi-verify-metric-label">점검 완료 세대</span><span class="kpi-verify-metric-val" style="color: #10b981;">' + totDone + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip"><span class="kpi-verify-metric-label">미점검 잔여 세대</span><span class="kpi-verify-metric-val" style="color: #cbd5e1;">' + (totUnits - totDone) + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip"><span class="kpi-verify-metric-label">전 단지 점검률</span><span class="kpi-verify-metric-val" style="color: #fbbf24;">' + inspectionRate + '%</span></div>' +
+            '</div>' +
+            '<div style="font-size: 12.5px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">🏢 11개 건물동별 점검 진척 현황 검증</div>' +
+            '<table class="rooms-stats-table" style="width: 100%; margin-bottom: 14px;"><thead><tr>' +
+            '<th>동명</th><th>배정</th><th>총 세대수</th><th>점검완료</th><th>잔여 미점검</th><th>동별 점검률</th><th>진척도 게이지</th>' +
+            '</tr></thead><tbody>';
+
+          BUILDING_SPECS.forEach(b => {
+            const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const done = bRooms.filter(r => r.progress && r.progress !== '미점검' && r.progress !== '미착수').length;
+            const remaining = bRooms.length - done;
+            const pct = bRooms.length > 0 ? ((done / bRooms.length) * 100).toFixed(1) : '0.0';
+            html += '<tr>' +
+              '<td style="font-weight: 700; color: #f8fafc;">' + b.name + '</td>' +
+              '<td><span style="color: ' + (b.isChem ? '#facc15' : '#38bdf8') + ';">' + b.team + '</span></td>' +
+              '<td style="text-align: center; font-weight: 700;">' + bRooms.length + '</td>' +
+              '<td style="text-align: center; color: ' + (done > 0 ? '#10b981; font-weight: 700;' : '#94a3b8;') + '">' + done + '세대</td>' +
+              '<td style="text-align: center; color: #cbd5e1;">' + remaining + '세대</td>' +
+              '<td style="text-align: center; font-weight: 700; color: #38bdf8;">' + pct + '%</td>' +
+              '<td style="width: 140px;"><div style="background: #334155; border-radius: 4px; height: 10px; overflow: hidden;"><div style="background: linear-gradient(90deg, #38bdf8, #10b981); width: ' + pct + '%; height: 100%;"></div></div></td>' +
+              '</tr>';
+          });
+
+          html += '</tbody></table>' +
+            '<div style="font-size: 12.5px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">📋 점검 완료(완료/조치진행/점검중) 세대 상세 목록 (호실 클릭 시 점검서 직행)</div>';
+
+          const doneRooms = ROOMS_DATA.filter(r => r.progress && r.progress !== '미점검' && r.progress !== '미착수');
+          if (doneRooms.length === 0) {
+            html += '<div style="text-align: center; padding: 20px; color: #94a3b8;">현재 점검이 완료된 세대가 없습니다. (미점검 309세대)</div>';
+          } else {
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;">';
+            doneRooms.forEach(r => {
+              html += '<div style="background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 10px; cursor: pointer;" onclick="WorkbookManager.closeKpiVerificationModal(); WorkbookManager.openRoomDetailModal(\'' + r.id + '\');" title="클릭 시 점검서 열기">' +
+                '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">' +
+                '<span style="font-size: 13px; font-weight: 800; color: #38bdf8;">🏢 ' + r.buildingName + ' ' + (r.roomLabel || (r.roomNo ? r.roomNo + '호' : '')) + '</span>' +
+                '<span class="rooms-badge" style="font-size: 10px; padding: 2px 6px;">' + (r.safetyGrade || r.progress) + '</span>' +
+                '</div>' +
+                '<div style="font-size: 11px; color: #94a3b8;">소속: ' + (r.team || '-') + ' · 점검일: ' + (r.inspectDate || '-') + '</div>' +
+                '<div style="font-size: 11px; color: #fca5a5; font-weight: 700; margin-top: 4px;">조치예산: ₩ ' + (r.totalCost || 0).toLocaleString() + '</div>' +
+                '</div>';
+            });
+            html += '</div>';
+          }
+          bodyEl.innerHTML = html;
+
+        } else if (type === 'defects') {
+          if (badgeEl) badgeEl.textContent = '🚨 결함 대상 검증';
+          if (titleEl) titleEl.textContent = '결함 조치 대상 세대(D·C등급) 정밀 검증 내역';
+
+          let html = '<div class="kpi-verify-formula-box" style="background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.3);">' +
+            '<span><b>📐 산출 근거</b>: D등급(긴급 보수 ' + totD + '세대) + C등급(주의 관찰 ' + totC + '세대) = 총 <b>' + actionNeeded + '세대</b></span>' +
+            '<span style="font-size: 11px; color: #fca5a5;">외벽 앙커 탈락/부식/체결력 상실 긴급 조치 대상</span>' +
+            '</div>' +
+            '<div class="kpi-verify-metric-strip">' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #ef4444;"><span class="kpi-verify-metric-label">🚨 D등급 (긴급 보수)</span><span class="kpi-verify-metric-val" style="color: #ef4444;">' + totD + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #f59e0b;"><span class="kpi-verify-metric-label">⚠️ C등급 (주의 관찰)</span><span class="kpi-verify-metric-val" style="color: #f59e0b;">' + totC + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip"><span class="kpi-verify-metric-label">총 결함 세대수</span><span class="kpi-verify-metric-val" style="color: #fca5a5;">' + actionNeeded + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip"><span class="kpi-verify-metric-label">결함 세대 비율</span><span class="kpi-verify-metric-val" style="color: #cbd5e1;">' + (totUnits > 0 ? ((actionNeeded / totUnits) * 100).toFixed(1) : 0) + '%</span></div>' +
+            '</div>' +
+            '<div style="font-size: 12.5px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">📋 결함 조치 대상 세대 전수 목록 (클릭 시 호실 점검서 직행)</div>';
+
+          const defectRooms = ROOMS_DATA.filter(r => r.safetyGrade === 'D' || r.safetyGrade === 'C');
+          if (defectRooms.length === 0) {
+            html += '<div style="text-align: center; padding: 30px; background: #1e293b; border-radius: 8px; color: #10b981; font-size: 13px; font-weight: 700;">🟢 현재 결함 조치 대상(D·C등급) 세대가 없습니다. 전 단지 안전 상태가 양호합니다.</div>';
+          } else {
+            html += '<table class="rooms-stats-table" style="width: 100%;"><thead><tr>' +
+              '<th>동-호수</th><th>배정</th><th>안전등급</th><th>결함 앙커(P1~P6)</th><th>결함 상세 내용</th><th>소요 예산</th><th>점검서 열기</th>' +
+              '</tr></thead><tbody>';
+            defectRooms.forEach(r => {
+              let defectPts = [];
+              if (r.points) {
+                ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => {
+                  const pt = r.points[pk];
+                  if (pt && (pt.status === 'danger' || pt.status === 'warning' || pt.progress === '조치진행')) {
+                    defectPts.push(pk);
+                  }
+                });
+              }
+              const ptsBadge = defectPts.map(p => '<span style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: 700; margin-right: 2px;">' + p + '</span>').join('');
+              html += '<tr>' +
+                '<td style="font-weight: 800; color: #38bdf8;">🏢 ' + r.buildingName + ' ' + (r.roomLabel || (r.roomNo ? r.roomNo + '호' : '')) + '</td>' +
+                '<td>' + (r.team || '-') + '</td>' +
+                '<td><span class="rooms-pill danger" style="padding: 2px 6px;">' + r.safetyGrade + '등급</span></td>' +
+                '<td>' + (ptsBadge || '-') + '</td>' +
+                '<td style="font-size: 11px; color: #cbd5e1;">' + (r.defectNotes || (r.safetyGrade === 'D' ? '외벽 앙커 균열 및 부식 탈락 위험' : '앙커 체결 볼트 헐거움 주의')) + '</td>' +
+                '<td style="text-align: right; font-weight: 700; color: #fca5a5;">₩ ' + (r.totalCost || 0).toLocaleString() + '</td>' +
+                '<td style="text-align: center;"><button class="rooms-btn" onclick="WorkbookManager.closeKpiVerificationModal(); WorkbookManager.openRoomDetailModal(\'' + r.id + '\');" style="padding: 2px 8px; font-size: 10.5px;">🔍 점검서 열람</button></td>' +
+                '</tr>';
+            });
+            html += '</tbody></table>';
+          }
+          bodyEl.innerHTML = html;
+
+        } else if (type === 'repairs') {
+          if (badgeEl) badgeEl.textContent = '🔵 조치율 검증';
+          if (titleEl) titleEl.textContent = '결함 보강 조치율 산출 및 완료 세대 검증 내역';
+
+          let html = '<div class="kpi-verify-formula-box" style="background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.3);">' +
+            '<span><b>📐 산출 공식</b>: [조치 완료(' + totRepaired + '세대) ÷ {조치 필요(' + actionNeeded + '세대) + 조치 완료(' + totRepaired + '세대)}] × 100% = <b>' + repairRate + '%</b></span>' +
+            '<span style="font-size: 11px; color: #93c5fd;">※ 결함 세대 보강 완료 진척율</span>' +
+            '</div>' +
+            '<div class="kpi-verify-metric-strip">' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #3b82f6;"><span class="kpi-verify-metric-label">🔵 조치 완료 세대</span><span class="kpi-verify-metric-val" style="color: #93c5fd;">' + totRepaired + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #ef4444;"><span class="kpi-verify-metric-label">🚨 조치 필요 세대</span><span class="kpi-verify-metric-val" style="color: #fca5a5;">' + actionNeeded + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip"><span class="kpi-verify-metric-label">총 대상 세대</span><span class="kpi-verify-metric-val" style="color: #cbd5e1;">' + (actionNeeded + totRepaired) + ' 세대</span></div>' +
+            '<div class="kpi-verify-metric-chip"><span class="kpi-verify-metric-label">보강 조치율</span><span class="kpi-verify-metric-val" style="color: #38bdf8;">' + repairRate + '%</span></div>' +
+            '</div>' +
+            '<div style="font-size: 12.5px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">📋 보강 조치 완료 세대 내역</div>';
+
+          const repairedRooms = ROOMS_DATA.filter(r => r.safetyGrade === '완료');
+          if (repairedRooms.length === 0) {
+            html += '<div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 6px; color: #94a3b8;">현재 보강 조치 완료 처리된 세대가 없습니다.</div>';
+          } else {
+            html += '<table class="rooms-stats-table" style="width: 100%; margin-bottom: 14px;"><thead><tr>' +
+              '<th>동-호수</th><th>배정</th><th>상태</th><th>적용 보강 공법</th><th>투입 예산</th><th>점검서 확인</th>' +
+              '</tr></thead><tbody>';
+            repairedRooms.forEach(r => {
+              html += '<tr>' +
+                '<td style="font-weight: 800; color: #38bdf8;">🏢 ' + r.buildingName + ' ' + (r.roomLabel || (r.roomNo ? r.roomNo + '호' : '')) + '</td>' +
+                '<td>' + (r.team || '-') + '</td>' +
+                '<td><span class="rooms-pill repaired" style="padding: 2px 6px;">조치완료</span></td>' +
+                '<td style="font-size: 11px; color: #cbd5e1;">' + (r.repairMethod || '에폭시 주입 및 앙커볼트 전면 재체결 완료') + '</td>' +
+                '<td style="text-align: right; font-weight: 700; color: #10b981;">₩ ' + (r.totalCost || 0).toLocaleString() + '</td>' +
+                '<td style="text-align: center;"><button class="rooms-btn" onclick="WorkbookManager.closeKpiVerificationModal(); WorkbookManager.openRoomDetailModal(\'' + r.id + '\');" style="padding: 2px 8px; font-size: 10.5px;">🔍 점검서 확인</button></td>' +
+                '</tr>';
+            });
+            html += '</tbody></table>';
+          }
+          bodyEl.innerHTML = html;
+
+        } else if (type === 'budget') {
+          if (badgeEl) badgeEl.textContent = '💰 소요예산 검증';
+          if (titleEl) titleEl.textContent = '외벽 앙커 보수·보강 소요 예산 총괄 검증 내역';
+
+          let html = '<div class="kpi-verify-formula-box" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3); Drei">' +
+            '<span><b>📐 산출 공식</b>: 309세대 외벽 앙커 6개소(1,854개) 소요 보수비용 총합 (∑ point.cost) = <b>₩ ' + totCost.toLocaleString() + '</b></span>' +
+            '<span style="font-size: 11px; color: #6ee7b7;">회계 단위 정밀 합산 완비</span>' +
+            '</div>' +
+            '<div class="kpi-verify-metric-strip">' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #10b981;"><span class="kpi-verify-metric-label">총 소요 조치예산</span><span class="kpi-verify-metric-val" style="color: #6ee7b7;">₩ ' + totCost.toLocaleString() + '</span></div>' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #ef4444;"><span class="kpi-verify-metric-label">🚨 D등급 긴급 예산</span><span class="kpi-verify-metric-val" style="color: #fca5a5;">₩ ' + ROOMS_DATA.filter(r => r.safetyGrade === 'D').reduce((s, r) => s + (r.totalCost || 0), 0).toLocaleString() + '</span></div>' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #f59e0b;"><span class="kpi-verify-metric-label">⚠️ C등급 주의 예산</span><span class="kpi-verify-metric-val" style="color: #fde047;">₩ ' + ROOMS_DATA.filter(r => r.safetyGrade === 'C').reduce((s, r) => s + (r.totalCost || 0), 0).toLocaleString() + '</span></div>' +
+            '<div class="kpi-verify-metric-chip" style="border-left: 3px solid #3b82f6;"><span class="kpi-verify-metric-label">🔵 완료 투입 예산</span><span class="kpi-verify-metric-val" style="color: #93c5fd;">' + (totRepaired > 0 ? '₩ ' + ROOMS_DATA.filter(r => r.safetyGrade === '완료').reduce((s, r) => s + (r.totalCost || 0), 0).toLocaleString() : '₩ 0') + '</span></div>' +
+            '</div>' +
+            '<div style="font-size: 12.5px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">🏢 건물동별 소요예산 집계 및 전 단지 대비 예산 비중(%)</div>' +
+            '<table class="rooms-stats-table" style="width: 100%; margin-bottom: 14px;"><thead><tr>' +
+            '<th>No.</th><th>동명</th><th>배정</th><th>총 세대수</th><th>결함 세대수</th><th>소요 예산</th><th>예산 점유율(%)</th>' +
+            '</tr></thead><tbody>';
+
+          BUILDING_SPECS.forEach((b, idx) => {
+            const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const defs = bRooms.filter(r => r.safetyGrade === 'D' || r.safetyGrade === 'C').length;
+            const bCost = bRooms.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+            const share = totCost > 0 ? ((bCost / totCost) * 100).toFixed(1) : '0.0';
+            html += '<tr>' +
+              '<td style="text-align: center; color: #94a3b8;">' + (idx + 1) + '</td>' +
+              '<td style="font-weight: 700; color: #f8fafc;">' + b.name + '</td>' +
+              '<td><span style="color: ' + (b.isChem ? '#facc15' : '#38bdf8') + '; font-weight: 600;">' + b.team + '</span></td>' +
+              '<td style="text-align: center; font-weight: 700;">' + bRooms.length + '</td>' +
+              '<td style="text-align: center; color: ' + (defs > 0 ? '#ef4444; font-weight: 700;' : '#94a3b8;') + '">' + defs + '세대</td>' +
+              '<td style="text-align: right; font-weight: 700; color: ' + (bCost > 0 ? '#fca5a5;' : '#94a3b8;') + '">₩ ' + bCost.toLocaleString() + '</td>' +
+              '<td style="text-align: right; font-weight: 700; color: #38bdf8;">' + share + '%</td>' +
+              '</tr>';
+          });
+          html += '</tbody></table>';
+          bodyEl.innerHTML = html;
+        }
+      },
+
+      closeKpiVerificationModal() {
+        const modal = document.getElementById('kpi-verification-modal');
+        if (modal) modal.style.display = 'none';
+      },
+
+      renderInspectionSummarySheet() {
+        if (!Array.isArray(ROOMS_DATA) || !Array.isArray(BUILDING_SPECS)) return;
+        this.initSummaryWheelScroll();
+
+        const totUnits = ROOMS_DATA.length;
+        const totDone = ROOMS_DATA.filter(r => r.progress && r.progress !== '미점검' && r.progress !== '미착수').length;
+        const totD = ROOMS_DATA.filter(r => r.safetyGrade === 'D').length;
+        const totC = ROOMS_DATA.filter(r => r.safetyGrade === 'C').length;
+        const totAB = ROOMS_DATA.filter(r => r.safetyGrade === 'A' || r.safetyGrade === 'B' || r.safetyGrade === '양호').length;
+        const totRepaired = ROOMS_DATA.filter(r => r.safetyGrade === '완료').length;
+        const totProg = ROOMS_DATA.filter(r => r.safetyGrade === '점검중' || r.progress === '점검중').length;
+        const totUninsp = ROOMS_DATA.filter(r => r.safetyGrade === '미점검' || r.progress === '미점검' || !r.progress).length;
+        const totCost = ROOMS_DATA.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+        const inspectionRate = totUnits > 0 ? ((totDone / totUnits) * 100).toFixed(1) : '0.0';
+        const actionNeeded = totD + totC;
+        const repairRate = (actionNeeded + totRepaired) > 0 ? ((totRepaired / (actionNeeded + totRepaired)) * 100).toFixed(1) : '0.0';
+
+        // 결함 조치 대기 세대 (점검 완료 세대 중 D 또는 C 등급 결함이 확인되어 아직 보수 완료되지 않은 세대)
+        const waitActionRooms = ROOMS_DATA.filter(r => (r.safetyGrade === 'D' || r.safetyGrade === 'C') && r.safetyGrade !== '완료' && r.progress !== '조치완료');
+        const waitActionCount = waitActionRooms.length;
+
+        // 1. 서브 툴바 상단 칩 업데이트
+        const uninspEl = document.getElementById('summary-pill-uninspected-count');
+        if (uninspEl) uninspEl.textContent = String(totUninsp);
+        const progEl = document.getElementById('summary-pill-inspecting-count');
+        if (progEl) progEl.textContent = String(totProg);
+        const doneInspEl = document.getElementById('summary-pill-done-count');
+        if (doneInspEl) doneInspEl.textContent = String(totDone);
+        const dEl = document.getElementById('summary-pill-danger-count');
+        if (dEl) dEl.textContent = String(totD);
+        const cEl = document.getElementById('summary-pill-warning-count');
+        if (cEl) cEl.textContent = String(totC);
+        const gEl = document.getElementById('summary-pill-good-count');
+        if (gEl) gEl.textContent = String(totAB);
+        const rEl = document.getElementById('summary-pill-repaired-count');
+        if (rEl) rEl.textContent = String(totRepaired);
+        const costEl = document.getElementById('summary-pill-cost-val');
+        if (costEl) costEl.textContent = '₩' + totCost.toLocaleString();
+
+        // 2. 상단 5대 경영/안전 KPI 대시보드 카드 업데이트
+        const kpiStatus = document.getElementById('summary-kpi-inspect-status');
+        if (kpiStatus) kpiStatus.textContent = `${totDone} / ${totUnits} 세대`;
+        const kpiStatusSub = document.getElementById('summary-kpi-inspect-status-sub');
+        if (kpiStatusSub) kpiStatusSub.textContent = `🟢 완료 ${totDone} · 🟡 점검중 ${totProg} · ⚪ 미점검 ${totUninsp} (결함대기: ${waitActionCount}세대)`;
+
+        const kpiRate = document.getElementById('summary-kpi-inspect-rate');
+        if (kpiRate) kpiRate.textContent = inspectionRate + '%';
+        const kpiRateSub = document.getElementById('summary-kpi-inspect-sub');
+        if (kpiRateSub) kpiRateSub.textContent = totDone + ' / ' + totUnits + ' 세대 점검 완료 (잔여: ' + totUninsp + '세대)';
+
+        const kpiDefect = document.getElementById('summary-kpi-defect-count');
+        if (kpiDefect) kpiDefect.textContent = actionNeeded + ' 세대';
+        const kpiDefectSub = document.getElementById('summary-kpi-defect-sub');
+        if (kpiDefectSub) kpiDefectSub.textContent = '🚨 D등급 긴급 ' + totD + '세대 / ⚠️ C등급 주의 ' + totC + '세대';
+
+        const kpiRepair = document.getElementById('summary-kpi-repair-rate');
+        if (kpiRepair) kpiRepair.textContent = repairRate + '%';
+        const kpiRepairSub = document.getElementById('summary-kpi-repair-sub');
+        if (kpiRepairSub) kpiRepairSub.textContent = '완료 ' + totRepaired + '세대 / 조치필요 ' + actionNeeded + '세대';
+
+        const kpiCost = document.getElementById('summary-kpi-total-cost');
+        if (kpiCost) kpiCost.textContent = '₩ ' + totCost.toLocaleString();
+        const kpiCostSub = document.getElementById('summary-kpi-total-cost-sub');
+        if (kpiCostSub) kpiCostSub.textContent = '외벽 앙커 보수·보강 소요 예산 총액';
+
+        // 3. P1~P6 외벽 앙커 6개소 미니 트랙 렌더링
+        const anchorsGrid = document.getElementById('summary-sheet-anchors-grid');
+        if (anchorsGrid) {
+          anchorsGrid.innerHTML = '';
+          const pNames = {
+            P1: 'P1 (좌측상단)', P2: 'P2 (우측상단)',
+            P3: 'P3 (좌측중단)', P4: 'P4 (우측중단)',
+            P5: 'P5 (좌측하단)', P6: 'P6 (우측하단)'
+          };
+          ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => {
+            let d = 0, c = 0, ab = 0, rep = 0, cost = 0;
+            ROOMS_DATA.forEach(r => {
+              const pt = r.points && r.points[pk];
+              if (pt) {
+                if (pt.status === 'danger') d++;
+                else if (pt.status === 'warning') c++;
+                else if (pt.status === 'good') ab++;
+                else if (pt.status === 'repaired') rep++;
+                cost += (pt.cost || 0);
+              }
+            });
+            const uninsp = ROOMS_DATA.length - (d + c + ab + rep);
+            const card = document.createElement('div');
+            card.className = 'summary-anchor-mini-card';
+            card.title = `[부위 ${pk}] ${pNames[pk]} 외벽 고정 앙커\n• 🚨 위험(D): ${d}세대\n• ⚠️ 주의(C): ${c}세대\n• 🟢 양호(A/B): ${ab}세대\n• 🔵 조치완료: ${rep}세대\n• ⚪ 미점검: ${uninsp}세대\n• 소요 보수예산: ₩ ${cost.toLocaleString()}\n👉 마우스 클릭: 3D 모델 [${pk}] 위치로 이동 및 부위별 전 단지 결함 종합 분석창 열기`;
+            card.onclick = () => this.focusPointFromSummary(pk);
+            card.innerHTML = `
+              <div style="font-size: 11px; font-weight: 700; color: #38bdf8;">${pNames[pk]}</div>
+              <div style="display: flex; justify-content: center; gap: 6px; font-size: 10px; margin: 5px 0;">
+                <span style="color: #ef4444; font-weight: 700;" title="위험(D)">🚨 ${d}</span>
+                <span style="color: #f59e0b; font-weight: 700;" title="주의(C)">⚠️ ${c}</span>
+                <span style="color: #10b981; font-weight: 700;" title="양호(A/B)">🟢 ${ab}</span>
+                <span style="color: #3b82f6; font-weight: 700;" title="조치완료">🔵 ${rep}</span>
+              </div>
+              <div style="font-size: 11px; font-weight: 800; color: #fca5a5;">₩ ${cost.toLocaleString()}</div>
+              <div style="font-size: 9.5px; color: #38bdf8; margin-top: 3px; font-weight: 700;">🔍 3D 분석 ➜</div>
+            `;
+            anchorsGrid.appendChild(card);
+          });
+        }
+
+        // 4. 메인 집계표 (15열) 동적 렌더링
+        const tbody = document.getElementById('summary-sheet-stats-tbody');
+        if (tbody) {
+          tbody.innerHTML = '';
+          BUILDING_SPECS.forEach((b, idx) => {
+            const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const inspected = bRooms.filter(r => r.progress && r.progress !== '미점검' && r.progress !== '미착수').length;
+            const dCount = bRooms.filter(r => r.safetyGrade === 'D').length;
+            const cCount = bRooms.filter(r => r.safetyGrade === 'C').length;
+            const repCount = bRooms.filter(r => r.safetyGrade === '완료').length;
+            const okCount = bRooms.filter(r => r.safetyGrade === 'A' || r.safetyGrade === 'B' || r.safetyGrade === '양호').length;
+            const bCost = bRooms.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+            const pct = bRooms.length > 0 ? ((inspected / bRooms.length) * 100).toFixed(1) : '0.0';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${idx + 1}</td>
+              <td style="font-weight: 700; color: #f8fafc;">${b.name}</td>
+              <td style="font-size: 11px; color: #38bdf8; font-weight: 600;">${b.area || '-'}</td>
+              <td style="font-size: 11px; color: #cbd5e1;">${b.approvalDate || '-'}</td>
+              <td style="font-size: 11px; color: #fbbf24; font-weight: 600;">${b.remodeling || '-'}</td>
+              <td>${b.floors}층</td>
+              <td style="font-weight: 700;">${bRooms.length}</td>
+              <td><span style="color: ${b.isChem ? '#facc15' : '#38bdf8'}; font-weight: 600;">${b.team}</span></td>
+              <td style="text-align: center;">
+                <span class="summary-click-chip" onclick="WorkbookManager.showBuildingInspectionSummary('${b.id}')" title="🏢 [${b.name}] 세부 안전점검 현황 요약 팝업 보기">
+                  ${inspected}세대 (${pct}%) 🔍
+                </span>
+              </td>
+              <td style="color: #ef4444; font-weight: 700;">${dCount}</td>
+              <td style="color: #f59e0b; font-weight: 700;">${cCount}</td>
+              <td style="color: #10b981; font-weight: 700;">${okCount}</td>
+              <td style="color: #3b82f6; font-weight: 700;">${repCount}</td>
+              <td style="text-align: right; font-weight: 700; color: #fca5a5;">₩ ${bCost.toLocaleString()}</td>
+              <td>
+                <button class="rooms-btn" onclick="WorkbookManager.jumpToRoomsWithNav('${b.id}')" style="padding: 2px 8px; font-size: 10px; margin: 0 auto;">
+                  🔍 입면 보기
+                </button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+
+          // 메인 합계 행
+          const totPct = totUnits > 0 ? ((totDone / totUnits) * 100).toFixed(1) : '0.0';
+          const totTr = document.createElement('tr');
+          totTr.className = 'total-row';
+          totTr.innerHTML = `
+            <td colspan="6" style="text-align: center; font-weight: 800; color: #38bdf8;">사택 11개동 합계</td>
+            <td style="font-weight: 800; color: #38bdf8;">${totUnits}</td>
+            <td>-</td>
+            <td style="text-align: center;">
+              <span class="summary-click-chip total" onclick="WorkbookManager.showBuildingInspectionSummary('all')" title="🏢 [사택 11개동 전체] 세부 안전점검 종합 요약 팝업 보기">
+                ${totDone}세대 (${totPct}%) 🔍
+              </span>
+            </td>
+            <td style="color: #ef4444; font-weight: 800;">${totD}</td>
+            <td style="color: #f59e0b; font-weight: 800;">${totC}</td>
+            <td style="color: #10b981; font-weight: 800;">${totAB}</td>
+            <td style="color: #3b82f6; font-weight: 800;">${totRepaired}</td>
+            <td style="text-align: right; font-weight: 800; color: #f87171;">₩ ${totCost.toLocaleString()}</td>
+            <td>-</td>
+          `;
+          tbody.appendChild(totTr);
+        }
+
+        // 5. 보완 표: 건물동별 외벽 고정 앙커 6개소(P1~P6) 결함 분포 및 전체 현황 표 (12열)
+        const matrixTbody = document.getElementById('summary-sheet-anchors-matrix-tbody');
+        if (matrixTbody) {
+          matrixTbody.innerHTML = '';
+          let totP = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+          let totAllDefects = 0, totAllGoods = 0;
+
+          BUILDING_SPECS.forEach((b, idx) => {
+            const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const pDef = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+            let bDefCount = 0;
+            let bGoodCount = 0;
+            let bCost = 0;
+
+            bRooms.forEach(r => {
+              ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => {
+                const pt = r.points && r.points[pk];
+                if (pt) {
+                  if (pt.status === 'danger' || pt.status === 'warning') {
+                    pDef[pk]++;
+                    bDefCount++;
+                  } else if (pt.status === 'good' || pt.status === 'repaired') {
+                    bGoodCount++;
+                  }
+                  bCost += (pt.cost || 0);
+                }
+              });
+            });
+
+            ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => totP[pk] += pDef[pk]);
+            totAllDefects += bDefCount;
+            totAllGoods += bGoodCount;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${idx + 1}</td>
+              <td style="font-weight: 700; color: #f8fafc;">${b.name}</td>
+              <td style="font-weight: 700;">${bRooms.length}</td>
+              <td style="${pDef.P1 > 0 ? 'color: #ef4444; font-weight: 700; cursor: pointer;' : 'color: #64748b;'}" onclick="WorkbookManager.jumpToRoomsWithNav('${b.id}')">${pDef.P1}</td>
+              <td style="${pDef.P2 > 0 ? 'color: #ef4444; font-weight: 700; cursor: pointer;' : 'color: #64748b;'}" onclick="WorkbookManager.jumpToRoomsWithNav('${b.id}')">${pDef.P2}</td>
+              <td style="${pDef.P3 > 0 ? 'color: #ef4444; font-weight: 700; cursor: pointer;' : 'color: #64748b;'}" onclick="WorkbookManager.jumpToRoomsWithNav('${b.id}')">${pDef.P3}</td>
+              <td style="${pDef.P4 > 0 ? 'color: #ef4444; font-weight: 700; cursor: pointer;' : 'color: #64748b;'}" onclick="WorkbookManager.jumpToRoomsWithNav('${b.id}')">${pDef.P4}</td>
+              <td style="${pDef.P5 > 0 ? 'color: #ef4444; font-weight: 700; cursor: pointer;' : 'color: #64748b;'}" onclick="WorkbookManager.jumpToRoomsWithNav('${b.id}')">${pDef.P5}</td>
+              <td style="${pDef.P6 > 0 ? 'color: #ef4444; font-weight: 700; cursor: pointer;' : 'color: #64748b;'}" onclick="WorkbookManager.jumpToRoomsWithNav('${b.id}')">${pDef.P6}</td>
+              <td style="${bDefCount > 0 ? 'color: #ef4444; font-weight: 800;' : 'color: #64748b;'}">${bDefCount}개소</td>
+              <td style="color: #10b981; font-weight: 700;">${bGoodCount}개소</td>
+              <td style="text-align: right; font-weight: 700; color: #fca5a5;">₩ ${bCost.toLocaleString()}</td>
+            `;
+            matrixTbody.appendChild(tr);
+          });
+
+          // 앙커 매트릭스 총괄 합계 행
+          const mSumTr = document.createElement('tr');
+          mSumTr.className = 'total-row';
+          mSumTr.innerHTML = `
+            <td colspan="2" style="text-align: center; font-weight: 800; color: #38bdf8;">전체 11개동 앙커 1,854개소 총괄</td>
+            <td style="font-weight: 800; color: #38bdf8;">${totUnits}</td>
+            <td style="color: #ef4444; font-weight: 800;">${totP.P1}</td>
+            <td style="color: #ef4444; font-weight: 800;">${totP.P2}</td>
+            <td style="color: #ef4444; font-weight: 800;">${totP.P3}</td>
+            <td style="color: #ef4444; font-weight: 800;">${totP.P4}</td>
+            <td style="color: #ef4444; font-weight: 800;">${totP.P5}</td>
+            <td style="color: #ef4444; font-weight: 800;">${totP.P6}</td>
+            <td style="color: #ef4444; font-weight: 800;">${totAllDefects}개소</td>
+            <td style="color: #10b981; font-weight: 800;">${totAllGoods}개소</td>
+            <td style="text-align: right; font-weight: 800; color: #f87171;">₩ ${totCost.toLocaleString()}</td>
+          `;
+          matrixTbody.appendChild(mSumTr);
+        }
+
+        // 6. 내부 워크시트 데이터 동기화
+        if (this.sheets['sheet-summary'] && typeof getInspectionSummarySpreadsheetData === 'function') {
+          this.sheets['sheet-summary'].data = getInspectionSummarySpreadsheetData();
+        }
+      },
+
+      updateMobileLayout() {
+        const isMobile = window.innerWidth <= 640;
+        const kpPanel = document.getElementById('rooms-keyplan-panel');
+        if (isMobile && kpPanel && !this.keyPlanManuallyExpanded && !this.isKeyPlanCollapsed) {
+          this.toggleKeyPlanCollapse(true);
+        }
+      },
+
       renderRoomsSummaryTable() {
         const tbody = document.getElementById('rooms-stats-tbody');
         if (!tbody) return;
@@ -9583,12 +11562,13 @@ const WorkbookManager = {
 
         BUILDING_SPECS.forEach((b, idx) => {
           const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
-          const inspected = bRooms.filter(r => r.progress !== '미점검').length;
+          const inspected = bRooms.filter(r => r.progress && r.progress !== '미점검' && r.progress !== '미착수').length;
           const dCount = bRooms.filter(r => r.safetyGrade === 'D').length;
           const cCount = bRooms.filter(r => r.safetyGrade === 'C').length;
           const repCount = bRooms.filter(r => r.safetyGrade === '완료').length;
-          const okCount = bRooms.filter(r => r.safetyGrade === 'A' || r.safetyGrade === 'B').length;
-          const bCost = bRooms.reduce((sum, r) => sum + r.totalCost, 0);
+          const okCount = bRooms.filter(r => r.safetyGrade === 'A' || r.safetyGrade === 'B' || r.safetyGrade === '양호').length;
+          const bCost = bRooms.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+          const pct = bRooms.length > 0 ? ((inspected / bRooms.length) * 100).toFixed(1) : '0.0';
 
           totUnits += bRooms.length;
           totDone += inspected;
@@ -9608,7 +11588,11 @@ const WorkbookManager = {
             <td>${b.floors}층</td>
             <td style="font-weight: 700;">${bRooms.length}</td>
             <td><span style="color: ${b.isChem ? '#facc15' : '#38bdf8'}; font-weight: 600;">${b.team}</span></td>
-            <td>${inspected} (${Math.round(inspected / bRooms.length * 100)}%)</td>
+            <td style="text-align: center;">
+              <span class="summary-click-chip" onclick="WorkbookManager.showBuildingInspectionSummary('${b.id}')" title="🏢 [${b.name}] 세부 안전점검 현황 요약 팝업 보기">
+                ${inspected}세대 (${pct}%) 🔍
+              </span>
+            </td>
             <td style="color: #ef4444; font-weight: 700;">${dCount}</td>
             <td style="color: #f59e0b; font-weight: 700;">${cCount}</td>
             <td style="color: #10b981; font-weight: 700;">${okCount}</td>
@@ -9623,14 +11607,19 @@ const WorkbookManager = {
           tbody.appendChild(tr);
         });
 
-        // [Phase 56] 합계 행 (15개 열 완벽 1:1 정렬 및 무결성 정합화)
+        // [Phase 56 & Phase 58] 합계 행 (15개 열 완벽 1:1 정렬 및 무결성 정합화)
+        const totPct = totUnits > 0 ? ((totDone / totUnits) * 100).toFixed(1) : '0.0';
         const totTr = document.createElement('tr');
         totTr.className = 'total-row';
         totTr.innerHTML = `
           <td colspan="6" style="text-align: center; font-weight: 800; color: #38bdf8;">사택 11개동 합계</td>
           <td style="font-weight: 800; color: #38bdf8;">${totUnits}</td>
           <td>-</td>
-          <td style="font-weight: 800; color: #38bdf8;">${totDone} (${Math.round(totDone / totUnits * 100)}%)</td>
+          <td style="text-align: center;">
+            <span class="summary-click-chip total" onclick="WorkbookManager.showBuildingInspectionSummary('all')" title="🏢 [사택 11개동 전체] 세부 안전점검 종합 요약 팝업 보기">
+              ${totDone}세대 (${totPct}%) 🔍
+            </span>
+          </td>
           <td style="color: #ef4444; font-weight: 800;">${totD}</td>
           <td style="color: #f59e0b; font-weight: 800;">${totC}</td>
           <td style="color: #10b981; font-weight: 800;">${totOk}</td>
@@ -9639,6 +11628,251 @@ const WorkbookManager = {
           <td>-</td>
         `;
         tbody.appendChild(totTr);
+
+        // [Phase 58] 상단 서브타이틀 동적 점검률 및 점검 실시 세대수 정밀 연동 (레거시 고정값 하드코딩 오류 영구 척결)
+        const rateLabel = document.getElementById('rooms-summary-rate-label');
+        if (rateLabel) {
+          rateLabel.innerHTML = `총 세대수: <b style="color: #f8fafc;">${totUnits}세대</b> (11개동 1,854개소 · 기숙사 제외) · 점검률: <b style="color: ${totDone > 0 ? '#38bdf8' : '#94a3b8'}; font-weight: 800;">${totPct}%</b> (${totDone}/${totUnits}세대 점검실시)`;
+        }
+
+        // [Phase 59] 점검 집계표 독립 워크북 실시간 연동 갱신
+        if (typeof this.renderInspectionSummarySheet === 'function') {
+          this.renderInspectionSummarySheet();
+        }
+      },
+
+      showBuildingInspectionSummary(bId) {
+        const modal = document.getElementById('building-inspect-summary-modal');
+        const badge = document.getElementById('bldg-summary-badge');
+        const title = document.getElementById('bldg-summary-title');
+        const body = document.getElementById('building-inspect-summary-body');
+        const jumpBtn = document.getElementById('bldg-summary-jump-elevation-btn');
+        if (!modal || !body) return;
+
+        const isAll = (bId === 'all');
+        const bldg = !isAll ? BUILDING_SPECS.find(b => b.id === bId) : null;
+        const bName = isAll ? '사택 11개동 전체' : (bldg ? bldg.name : bId);
+        const targetRooms = isAll ? ROOMS_DATA : ROOMS_DATA.filter(r => r.buildingId === bId);
+        const totUnits = targetRooms.length;
+        const totAnchors = totUnits * 6;
+
+        if (badge) {
+          badge.textContent = isAll ? '🏢 전 단지 종합 요약' : `🏢 ${bName} 점검요약`;
+          badge.className = 'modal-badge ' + (isAll ? 'badge-primary' : 'badge-info');
+        }
+        if (title) {
+          title.textContent = isAll
+            ? `사택 11개동 전체 (${totUnits}세대 · ${totAnchors.toLocaleString()}개소 앙커) 정밀안전점검 현황 요약`
+            : `사택 ${bName} (${bldg ? bldg.floors : ''}층 · ${totUnits}세대 · ${totAnchors}개소 앙커) 점검 현황 요약`;
+        }
+
+        if (jumpBtn) {
+          jumpBtn.textContent = isAll ? '🔍 11개동 전체 입면도 바로가기' : `🔍 [${bName}] 입면도 바로가기`;
+          jumpBtn.onclick = () => {
+            this.closeBuildingInspectionSummary();
+            this.setRoomsBuildingFilter(bId);
+            const block = document.getElementById('elevation-block-' + (isAll ? 'apt-1' : bId));
+            if (block) block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          };
+        }
+
+        // 진행 현황 5단계 및 등급 집계
+        const repairedRooms = targetRooms.filter(r => r.safetyGrade === '완료' || r.progress === '조치완료');
+        const dangerRooms = targetRooms.filter(r => r.safetyGrade === 'D');
+        const warningRooms = targetRooms.filter(r => r.safetyGrade === 'C');
+        const goodRooms = targetRooms.filter(r => (r.safetyGrade === 'A' || r.safetyGrade === 'B' || r.safetyGrade === '양호') && r.progress === '점검완료');
+        const inspectingRooms = targetRooms.filter(r => (r.progress === '점검중' || r.safetyGrade === '점검중') && r.safetyGrade !== 'D' && r.safetyGrade !== 'C');
+        const uninspectedRooms = targetRooms.filter(r => (r.progress === '미점검' || r.progress === '미착수' || !r.progress) && (r.safetyGrade === '미점검' || !r.safetyGrade));
+
+        // 점검 실시 세대수
+        const inspectedRooms = targetRooms.filter(r => r.progress && r.progress !== '미점검' && r.progress !== '미착수');
+        const inspectedCount = inspectedRooms.length;
+        const inspRate = totUnits > 0 ? ((inspectedCount / totUnits) * 100).toFixed(1) : '0.0';
+        const totalCost = targetRooms.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+
+        // 6개 앙커 포인트별 집계 (P1~P6)
+        const ptStats = {};
+        ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pt => {
+          ptStats[pt] = { danger: 0, warning: 0, repaired: 0, good: 0, cost: 0 };
+          targetRooms.forEach(r => {
+            if (r.points && r.points[pt]) {
+              const pInfo = r.points[pt];
+              if (pInfo.status === 'danger') ptStats[pt].danger++;
+              else if (pInfo.status === 'warning') ptStats[pt].warning++;
+              else if (pInfo.status === 'repaired') ptStats[pt].repaired++;
+              else if (pInfo.status === 'good') ptStats[pt].good++;
+              ptStats[pt].cost += (pInfo.cost || 0);
+            }
+          });
+        });
+
+        // 렌더링 HTML 생성
+        let html = '';
+
+        // 건물 기본 메타 정보
+        if (!isAll && bldg) {
+          html += `
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span style="color: #94a3b8;">배정팀:</span> <b style="color: ${bldg.isChem ? '#facc15' : '#38bdf8'};">${bldg.team}</b> ·
+                <span style="color: #94a3b8;">평형:</span> <b style="color: #38bdf8;">${bldg.area || '84㎡'}</b> ·
+                <span style="color: #94a3b8;">사용승인:</span> <b style="color: #cbd5e1;">${bldg.approvalDate || '-'}</b> ·
+                <span style="color: #94a3b8;">리모델링:</span> <b style="color: #fbbf24;">${bldg.remodeling || '-'}</b>
+              </div>
+              <div style="font-weight: 700; color: #f87171;">
+                소요 조치예산: <span style="font-size: 13px; font-weight: 800;">₩ ${totalCost.toLocaleString()}</span>
+              </div>
+            </div>
+          `;
+        } else if (isAll) {
+          html += `
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span style="color: #94a3b8;">관리 대상:</span> <b style="color: #38bdf8;">사택 11개동 309세대 (기숙사 제외)</b> ·
+                <span style="color: #94a3b8;">외벽 앙커 총수:</span> <b style="color: #fbbf24;">1,854개소</b> (세대당 6개소)
+              </div>
+              <div style="font-weight: 700; color: #f87171;">
+                단지 전체 소요예산: <span style="font-size: 13px; font-weight: 800;">₩ ${totalCost.toLocaleString()}</span>
+              </div>
+            </div>
+          `;
+        }
+
+        // 1. 점검 진척도 및 프로그레스 바 카드
+        html += `
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 12px; font-weight: 700; color: #f8fafc;">📊 정밀안전점검 실시율 (Inspection Progress)</span>
+              <span style="font-size: 13px; font-weight: 800; color: ${inspectedCount > 0 ? '#38bdf8' : '#94a3b8'};">${inspRate}% (${inspectedCount} / ${totUnits}세대)</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: rgba(51, 65, 85, 0.5); border-radius: 4px; overflow: hidden; display: flex;">
+              <div style="width: ${inspRate}%; background: linear-gradient(90deg, #0284c7, #38bdf8); transition: width 0.3s ease;"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px;">
+              <div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; padding: 6px; text-align: center;">
+                <div style="font-size: 10px; color: #93c5fd;">🔵 조치완료</div>
+                <div style="font-size: 13px; font-weight: 800; color: #60a5fa;">${repairedRooms.length}세대</div>
+              </div>
+              <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; padding: 6px; text-align: center;">
+                <div style="font-size: 10px; color: #fca5a5;">🚨 긴급(D)</div>
+                <div style="font-size: 13px; font-weight: 800; color: #ef4444;">${dangerRooms.length}세대</div>
+              </div>
+              <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 6px; padding: 6px; text-align: center;">
+                <div style="font-size: 10px; color: #fde047;">⚠️ 주의(C)</div>
+                <div style="font-size: 13px; font-weight: 800; color: #f59e0b;">${warningRooms.length}세대</div>
+              </div>
+              <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 6px; text-align: center;">
+                <div style="font-size: 10px; color: #6ee7b7;">🟢 양호(A/B)</div>
+                <div style="font-size: 13px; font-weight: 800; color: #10b981;">${goodRooms.length}세대</div>
+              </div>
+              <div style="background: rgba(100, 116, 139, 0.15); border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 6px; padding: 6px; text-align: center;">
+                <div style="font-size: 10px; color: #cbd5e1;">⚪ 미점검</div>
+                <div style="font-size: 13px; font-weight: 800; color: #94a3b8;">${uninspectedRooms.length}세대</div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // 2. 외벽 앙커 6개소 포인트별 현황 요약 테이블
+        html += `
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 10px 12px;">
+            <div style="font-size: 11.5px; font-weight: 700; color: #f8fafc; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+              <span>🔩 외벽 고정 앙커(P1~P6) 6개 포인트별 결함 및 소요예산</span>
+              <span style="font-size: 10.5px; color: #94a3b8;">세대당 6개소 앙커 일괄 관리</span>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center;">
+              <thead>
+                <tr style="background: rgba(30, 41, 59, 0.8); color: #cbd5e1; border-bottom: 1px solid #475569;">
+                  <th style="padding: 4px;">부위</th>
+                  <th style="padding: 4px;">명칭</th>
+                  <th style="padding: 4px; color: #ef4444;">🚨 긴급(D)</th>
+                  <th style="padding: 4px; color: #f59e0b;">⚠️ 주의(C)</th>
+                  <th style="padding: 4px; color: #38bdf8;">🔵 조치완료</th>
+                  <th style="padding: 4px; text-align: right;">소요예산</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+        ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(ptKey => {
+          const cat = (typeof DEFECT_CATALOG !== 'undefined' && DEFECT_CATALOG[ptKey]) ? DEFECT_CATALOG[ptKey] : { name: ptKey };
+          const s = ptStats[ptKey];
+          html += `
+            <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+              <td style="padding: 5px; font-weight: 700; color: #38bdf8;">${ptKey}</td>
+              <td style="padding: 5px; text-align: left; color: #cbd5e1;">${cat.name}</td>
+              <td style="padding: 5px; font-weight: 700; color: ${s.danger > 0 ? '#ef4444' : '#64748b'};">${s.danger}건</td>
+              <td style="padding: 5px; font-weight: 700; color: ${s.warning > 0 ? '#f59e0b' : '#64748b'};">${s.warning}건</td>
+              <td style="padding: 5px; font-weight: 700; color: ${s.repaired > 0 ? '#38bdf8' : '#64748b'};">${s.repaired}건</td>
+              <td style="padding: 5px; text-align: right; font-weight: 700; color: ${s.cost > 0 ? '#fca5a5' : '#64748b'};">₩ ${s.cost.toLocaleString()}</td>
+            </tr>
+          `;
+        });
+        html += `
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        // 3. 점검 실시 및 조치 필요 세대 상세 리스트 (클릭 시 세대별 점검표로 즉시 직행)
+        const activeRooms = targetRooms.filter(r => r.safetyGrade !== '미점검' || (r.progress && r.progress !== '미점검' && r.progress !== '미착수'));
+        html += `
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 10px 12px;">
+            <div style="font-size: 11.5px; font-weight: 700; color: #f8fafc; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+              <span>🚪 점검 실시 및 조치 세대 현황 (${activeRooms.length}세대)</span>
+              <span style="font-size: 10.5px; color: #38bdf8;">💡 호실 칩 클릭 시 해당 세대 정밀안전점검서 즉시 오픈</span>
+            </div>
+        `;
+        if (activeRooms.length === 0) {
+          html += `
+            <div style="padding: 12px; text-align: center; color: #94a3b8; font-size: 11.5px; background: rgba(30, 41, 59, 0.4); border-radius: 6px;">
+              현재까지 정밀안전점검이 실시된 세대가 없습니다. (잔여 미점검: <b>${uninspectedRooms.length}세대</b>)<br>
+              아래 <b>[입면도 바로가기]</b>를 클릭하여 입면도에서 호실을 선택해 점검을 시작하세요.
+            </div>
+          `;
+        } else {
+          html += `<div style="display: flex; flex-direction: column; gap: 6px;">`;
+          activeRooms.forEach(r => {
+            const gradeColor = (r.safetyGrade === 'D') ? '#ef4444' : ((r.safetyGrade === 'C') ? '#f59e0b' : ((r.safetyGrade === '완료') ? '#38bdf8' : '#10b981'));
+            const gradeBadge = (r.safetyGrade === 'D') ? '🚨 D등급' : ((r.safetyGrade === 'C') ? '⚠️ C등급' : ((r.safetyGrade === '완료') ? '🔵 조치완료' : '🟢 양호'));
+            html += `
+              <div onclick="WorkbookManager.closeBuildingInspectionSummary(); WorkbookManager.openRoomDetailModal('${r.id}');" style="cursor: pointer; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 6px; padding: 7px 10px; display: flex; align-items: center; justify-content: space-between; transition: all 0.15s ease;" onmouseenter="this.style.borderColor='#38bdf8'; this.style.background='rgba(30, 41, 59, 0.95)';" onmouseleave="this.style.borderColor='rgba(148, 163, 184, 0.25)'; this.style.background='rgba(30, 41, 59, 0.7)';">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-weight: 800; color: #f8fafc; font-size: 12px;">${r.buildingName} ${r.roomLabel}</span>
+                  <span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700; color: ${gradeColor}; border: 1px solid ${gradeColor}; background: rgba(0,0,0,0.2);">${gradeBadge}</span>
+                  <span style="font-size: 10.5px; color: #94a3b8;">${r.progress || '진행상태'}</span>
+                  ${r.defectSummary ? `<span style="font-size: 10.5px; color: #cbd5e1; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">· ${r.defectSummary}</span>` : ''}
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-weight: 700; color: #fca5a5; font-size: 11px;">₩ ${(r.totalCost || 0).toLocaleString()}</span>
+                  <span style="font-size: 11px; color: #38bdf8;">점검서 🔍</span>
+                </div>
+              </div>
+            `;
+          });
+          html += `</div>`;
+          if (uninspectedRooms.length > 0) {
+            html += `
+              <div style="margin-top: 8px; font-size: 10.5px; color: #94a3b8; text-align: right;">
+                ⚪ 미점검 잔여 세대: <b>${uninspectedRooms.length}세대</b> (점검 대기 중)
+              </div>
+            `;
+          }
+        }
+        html += `</div>`;
+
+        body.innerHTML = html;
+
+        modal.style.display = 'flex';
+        modal.style.zIndex = '10010';
+        if (typeof WindowManager !== 'undefined' && WindowManager.bringToFront) {
+          WindowManager.bringToFront(modal);
+          modal.style.zIndex = '10010';
+        }
+      },
+
+      closeBuildingInspectionSummary() {
+        const modal = document.getElementById('building-inspect-summary-modal');
+        if (modal) modal.style.display = 'none';
       },
 
       openRoomDetailModal(roomId) {
@@ -9926,6 +12160,28 @@ const WorkbookManager = {
         });
       },
 
+      // [Phase 63/64] 데이터 변동 시 전 워크북(summary/rooms/bldg/site), 모달 및 원격 DB 플래그 일체 실시간 전수 동기화
+      notifyDataMutation() {
+        if (typeof this.renderInspectionSummarySheet === 'function') {
+          this.renderInspectionSummarySheet();
+        }
+        if (this.sheets) {
+          if (this.sheets['sheet-summary'] && typeof getInspectionSummarySpreadsheetData === 'function') {
+            this.sheets['sheet-summary'].data = getInspectionSummarySpreadsheetData();
+          }
+          if (this.sheets['sheet-rooms'] && typeof getRoomsSpreadsheetData === 'function') {
+            this.sheets['sheet-rooms'].data = getRoomsSpreadsheetData();
+          }
+        }
+        if (typeof updateDefectModal === 'function' && typeof currentDefectId !== 'undefined') {
+          updateDefectModal(currentDefectId);
+        }
+        if (typeof renderAnchorDefectList === 'function') {
+          renderAnchorDefectList();
+        }
+        this.markWebDirty(true);
+      },
+
       // [Phase 56] 포인트별 진행 현황 5단계 변경 핸들러 및 세대 종합 실시간 연동
       onPointProgressChange(roomId, ptKey, newProg) {
         const room = ROOMS_DATA.find(r => r.id === roomId);
@@ -9978,10 +12234,7 @@ const WorkbookManager = {
         this.autoSave();
         this.markWebDirty(true);
         if (this.fullscreenBuildingId) this.renderBuildingFullscreen(this.fullscreenBuildingId);
-        // [Phase 57] '전 단지 종합 분석' 모달 소요 예산 및 통계 실시간 동기화
-        if (typeof updateDefectModal === 'function' && typeof currentDefectId !== 'undefined') {
-          updateDefectModal(currentDefectId);
-        }
+        this.notifyDataMutation();
 
         if (typeof showToast === 'function') {
           showToast(`📍 [${room.buildingName} ${room.roomLabel} ${ptKey}] 진행 현황이 [${newProg}](으)로 갱신되었습니다.`);
@@ -10028,10 +12281,7 @@ const WorkbookManager = {
         this.autoSave();
         this.markWebDirty(true);
         if (this.fullscreenBuildingId) this.renderBuildingFullscreen(this.fullscreenBuildingId);
-        // [Phase 57] '전 단지 종합 분석' 모달 소요 예산 및 통계 실시간 동기화
-        if (typeof updateDefectModal === 'function' && typeof currentDefectId !== 'undefined') {
-          updateDefectModal(currentDefectId);
-        }
+        this.notifyDataMutation();
         if (typeof showToast === 'function') {
           showToast(`🔩 [${room.buildingName} ${room.roomLabel}] ${room.points[ptKey].name} 상태가 [${newStatus}](으)로 갱신되었습니다.`);
         }
@@ -10073,10 +12323,7 @@ const WorkbookManager = {
         if (!room || !room.points[ptKey]) return;
         room.points[ptKey].defect = newDefect;
         this.autoSave();
-        this.markWebDirty(true);
-        if (typeof updateDefectModal === 'function' && typeof currentDefectId !== 'undefined') {
-          updateDefectModal(currentDefectId);
-        }
+        this.notifyDataMutation();
       },
 
       onPointActionChange(roomId, ptKey, newAction) {
@@ -10084,10 +12331,7 @@ const WorkbookManager = {
         if (!room || !room.points[ptKey]) return;
         room.points[ptKey].action = newAction;
         this.autoSave();
-        this.markWebDirty(true);
-        if (typeof updateDefectModal === 'function' && typeof currentDefectId !== 'undefined') {
-          updateDefectModal(currentDefectId);
-        }
+        this.notifyDataMutation();
       },
 
       recalcRoomGradeAndCost(room) {
@@ -10631,6 +12875,7 @@ const WorkbookManager = {
               floor: fl,
               roomNo: rNo,
               roomLabel: String(row['호실'] || (rNo + '호')),
+              unit: rNo,
               area: row['전용면적'] || b.area || '84㎡',
               approvalDate: b.approvalDate || '-',
               remodeling: b.remodeling || '-',
@@ -10687,10 +12932,8 @@ const WorkbookManager = {
                 this.renderRoomSchematic(currentRoom);
               }
             }
-            // [Phase 57] 전 단지 종합 분석 모달 실시간 동기화
-            if (typeof updateDefectModal === 'function' && typeof currentDefectId !== 'undefined') {
-              updateDefectModal(currentDefectId);
-            }
+            // [Phase 57/63] 전 단지 종합 분석 모달 및 점검 집계표 워크북 실시간 전수 동기화
+            this.notifyDataMutation();
           }
         } catch (err) {
           console.error('parseAndMapXlsbData failed:', err);
@@ -10821,12 +13064,26 @@ const WorkbookManager = {
           if (btnRooms) btnRooms.innerHTML = '⏳ <b>GitHub 원격 저장 중...</b>';
           if (btnSheet) btnSheet.innerHTML = '⏳ <b>GitHub 원격 저장 중...</b>';
 
-          // 1. SheetJS 워크북 생성 (공식 2개 시트 구조 완벽 보존)
+          // 1. SheetJS 워크북 생성 (점검_집계표, 앙커_결함_매트릭스, 호실별_정밀안전점검_DB 3대 전산 구조 완벽 보존) [Phase 63]
           const wb = XLSX.utils.book_new();
 
-          // Sheet 1: 단지종합현황
+          // Sheet 1: 점검_집계표 (건물동별 세대 안전점검 집계 및 합계행) [Phase 63 동기화]
+          let totUnits = 0, totInspected = 0, totD = 0, totC = 0, totAB = 0, totDone = 0, totProgress = 0, totUninspected = 0, totCostSum = 0;
           const s1_rows = BUILDING_SPECS.map((b, idx) => {
             const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const u = bRooms.length;
+            const insp = bRooms.filter(r => r.progress !== '미착수' && r.progress !== '미점검').length;
+            const d = bRooms.filter(r => r.safetyGrade === 'D').length;
+            const c = bRooms.filter(r => r.safetyGrade === 'C').length;
+            const ab = bRooms.filter(r => r.safetyGrade === 'A' || r.safetyGrade === 'B').length;
+            const dn = bRooms.filter(r => r.safetyGrade === '완료').length;
+            const prog = bRooms.filter(r => r.safetyGrade === '점검중' || r.progress === '점검중').length;
+            const uninsp = bRooms.filter(r => r.safetyGrade === '미점검' || r.progress === '미점검').length;
+            const cost = bRooms.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+
+            totUnits += u; totInspected += insp; totD += d; totC += c; totAB += ab; totDone += dn;
+            totProgress += prog; totUninspected += uninsp; totCostSum += cost;
+
             return {
               'No.': idx + 1,
               '건물동': b.name,
@@ -10834,22 +13091,143 @@ const WorkbookManager = {
               '건물사용승인일': b.approvalDate || '-',
               '리모델링': b.remodeling || '-',
               '층수': `${b.floors}층`,
-              '총 세대수': bRooms.length,
+              '총 세대수': u,
               '소속': b.team,
-              '점검완료': bRooms.filter(r => r.progress !== '미착수' && r.progress !== '미점검').length,
-              'D등급(위험)': bRooms.filter(r => r.safetyGrade === 'D').length,
-              'C등급(주의)': bRooms.filter(r => r.safetyGrade === 'C').length,
-              'A/B등급(양호)': bRooms.filter(r => r.safetyGrade === 'A' || r.safetyGrade === 'B').length,
-              '조치완료': bRooms.filter(r => r.safetyGrade === '완료').length,
-              '점검중': bRooms.filter(r => r.safetyGrade === '점검중' || r.progress === '점검중').length,
-              '미점검': bRooms.filter(r => r.safetyGrade === '미점검' || r.progress === '미점검').length,
-              '총 조치예산(원)': bRooms.reduce((sum, r) => sum + r.totalCost, 0)
+              '점검완료': insp,
+              'D등급(위험)': d,
+              'C등급(주의)': c,
+              'A/B등급(양호)': ab,
+              '조치완료': dn,
+              '점검중': prog,
+              '미점검': uninsp,
+              '총 조치예산(원)': cost
             };
           });
+          s1_rows.push({
+            'No.': '합계',
+            '건물동': BUILDING_SPECS.length + '개동',
+            'm2(평형)': '-',
+            '건물사용승인일': '-',
+            '리모델링': '4개동 리모델링',
+            '층수': '-',
+            '총 세대수': totUnits,
+            '소속': '-',
+            '점검완료': totInspected,
+            'D등급(위험)': totD,
+            'C등급(주의)': totC,
+            'A/B등급(양호)': totAB,
+            '조치완료': totDone,
+            '점검중': totProgress,
+            '미점검': totUninspected,
+            '총 조치예산(원)': totCostSum
+          });
           const ws1 = XLSX.utils.json_to_sheet(s1_rows);
-          XLSX.utils.book_append_sheet(wb, ws1, '단지종합현황');
+          XLSX.utils.book_append_sheet(wb, ws1, '점검_집계표');
 
-          // Sheet 2: 호실별_정밀안전점검_DB
+          // Sheet 2: 앙커_결함_매트릭스 (11개동 외벽 고정 앙커 6개소 결함 분포 및 전체 현황 표) [Phase 63 신설]
+          let totP = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+          let totAllDefects = 0, totAllGoods = 0, totMCost = 0;
+
+          const matrix_rows = BUILDING_SPECS.map((b, idx) => {
+            const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const pDef = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+            let bDefCount = 0;
+            let bGoodCount = 0;
+            let bCost = 0;
+
+            bRooms.forEach(r => {
+              ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => {
+                const pt = r.points && r.points[pk];
+                if (pt) {
+                  if (pt.status === 'danger' || pt.status === 'warning') {
+                    pDef[pk]++;
+                    bDefCount++;
+                  } else if (pt.status === 'good' || pt.status === 'repaired') {
+                    bGoodCount++;
+                  }
+                  bCost += (pt.cost || 0);
+                }
+              });
+            });
+
+            ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => totP[pk] += pDef[pk]);
+            totAllDefects += bDefCount;
+            totAllGoods += bGoodCount;
+            totMCost += bCost;
+
+            return {
+              'No.': idx + 1,
+              '건물동': b.name,
+              '세대수': bRooms.length,
+              'P1(좌상단)': pDef.P1,
+              'P2(우상단)': pDef.P2,
+              'P3(좌중단)': pDef.P3,
+              'P4(우중단)': pDef.P4,
+              'P5(좌하단)': pDef.P5,
+              'P6(우하단)': pDef.P6,
+              '총 결함개소': bDefCount,
+              '정상 앙커개소': bGoodCount,
+              '예상 보수비용(원)': bCost
+            };
+          });
+
+          matrix_rows.push({
+            'No.': '합계',
+            '건물동': '전체 11개동 1,854개소 총괄',
+            '세대수': totUnits,
+            'P1(좌상단)': totP.P1,
+            'P2(우상단)': totP.P2,
+            'P3(좌중단)': totP.P3,
+            'P4(우중단)': totP.P4,
+            'P5(좌하단)': totP.P5,
+            'P6(우하단)': totP.P6,
+            '총 결함개소': totAllDefects,
+            '정상 앙커개소': totAllGoods,
+            '예상 보수비용(원)': totMCost
+          });
+
+          const wsMatrix = XLSX.utils.json_to_sheet(matrix_rows);
+          XLSX.utils.book_append_sheet(wb, wsMatrix, '앙커_결함_매트릭스');
+
+          // [Phase 64 전수 연동] Sheet 3: 단지_배치_카탈로그 (14개동 단지 공간 배치 및 제원)
+          const site_rows = SITE_BUILDINGS.map(b => ({
+            '번호': b.no,
+            '동 명칭': b.name,
+            '건물 분류': b.type,
+            'm2(평형)': b.area || '-',
+            '건물사용승인일': b.approvalDate || '-',
+            '리모델링': b.remodeling || '-',
+            '층수': b.floors,
+            '총 세대수': b.units,
+            '화학 전담': b.chemUnits,
+            '에너지솔루션': b.esUnits,
+            '배치도 좌표 (X, Y)': b.box[0] + ', ' + b.box[1],
+            '단지 내 위치 및 상세 특징': b.desc + (b.detail ? ' · ' + b.detail : '')
+          }));
+          const wsSite = XLSX.utils.json_to_sheet(site_rows);
+          XLSX.utils.book_append_sheet(wb, wsSite, '단지_배치_카탈로그');
+
+          // [Phase 64 전수 연동] Sheet 4: 건물동_현황 (14개동 공식 건물 제원 및 층별/세대별 상세 배정 내역)
+          const bldgGrid = typeof getBuildingStatusData === 'function' ? getBuildingStatusData() : {};
+          const bldg_rows = [];
+          for (let r = 3; r <= 33; r++) {
+            bldg_rows.push({
+              '번호': bldgGrid['A' + r] || '',
+              '동 명칭': bldgGrid['B' + r] || '',
+              'm2(평형)': bldgGrid['C' + r] || '-',
+              '건물사용승인일': bldgGrid['D' + r] || '-',
+              '리모델링': bldgGrid['E' + r] || '-',
+              '층수': bldgGrid['F' + r] || '-',
+              '세대수 (실수)': bldgGrid['G' + r] || '-',
+              '화 학': bldgGrid['H' + r] || '-',
+              '에너지솔루션': bldgGrid['I' + r] || '-',
+              '관리 및 세대 배정 상세 내역 / 비고': bldgGrid['J' + r] || ''
+            });
+          }
+          const wsBldg = XLSX.utils.json_to_sheet(bldg_rows);
+          XLSX.utils.book_append_sheet(wb, wsBldg, '건물동_현황');
+
+          // Sheet 5: 호실별_정밀안전점검_DB
           const s2_rows = ROOMS_DATA.map(r => ({
             '세대ID': r.id,
             '건물동': r.buildingName,
@@ -11095,9 +13473,9 @@ const WorkbookManager = {
           };
 
           // -------------------------------------------------------------
-          // Sheet 1: 단지종합현황 (행 고정, 통계 집계, 통화 서식, 시스템 아이콘 일체화)
+          // Sheet 1: 점검_집계표 (행 고정, 통계 집계, 통화 서식, 시스템 아이콘 일체화) [Phase 59]
           // -------------------------------------------------------------
-          const ws1 = wb.addWorksheet('단지종합현황', {
+          const ws1 = wb.addWorksheet('점검_집계표', {
             views: [{ state: 'frozen', xSplit: 0, ySplit: 1, showGridLines: true }]
           });
 
@@ -11214,7 +13592,274 @@ const WorkbookManager = {
           });
 
           // -------------------------------------------------------------
-          // Sheet 2: 호실별_정밀안전점검_DB (309세대 상세, P1~P6 진행현황 42개 컬럼 완결, 조건부 서식, 드롭다운 유효성 검사)
+          // Sheet 2: 앙커_결함_매트릭스 (11개동 외벽 고정 앙커 6개소 결함 분포 및 전체 현황 표) [Phase 63 신설]
+          // -------------------------------------------------------------
+          const ws_matrix = wb.addWorksheet('앙커_결함_매트릭스', {
+            views: [{ state: 'frozen', xSplit: 0, ySplit: 1, showGridLines: true }]
+          });
+
+          ws_matrix.columns = [
+            { header: 'No.', key: 'no', width: 6 },
+            { header: '🏢 건물동', key: 'name', width: 14 },
+            { header: '🏠 세대수', key: 'units', width: 12 },
+            { header: 'P1상태 (좌상단 결함)', key: 'p1', width: 18 },
+            { header: 'P2상태 (우상단 결함)', key: 'p2', width: 18 },
+            { header: 'P3상태 (좌중단 결함)', key: 'p3', width: 18 },
+            { header: 'P4상태 (우중단 결함)', key: 'p4', width: 18 },
+            { header: 'P5상태 (좌하단 결함)', key: 'p5', width: 18 },
+            { header: 'P6상태 (우하단 결함)', key: 'p6', width: 18 },
+            { header: '🚨 총 결함개소', key: 'defectCount', width: 16 },
+            { header: '🟢 정상 앙커개소', key: 'goodCount', width: 16 },
+            { header: '💰 예상 보수비용(원)', key: 'cost', width: 20 }
+          ];
+
+          ws_matrix.getRow(1).height = 28;
+          ws_matrix.getRow(1).eachCell(cell => {
+            cell.font = { name: '맑은 고딕', bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          });
+
+          let mTotP = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+          let mTotDefects = 0, mTotGoods = 0, mTotCost = 0;
+
+          BUILDING_SPECS.forEach((b, idx) => {
+            const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const pDef = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+            let bDefCount = 0;
+            let bGoodCount = 0;
+            let bCost = 0;
+
+            bRooms.forEach(r => {
+              ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => {
+                const pt = r.points && r.points[pk];
+                if (pt) {
+                  if (pt.status === 'danger' || pt.status === 'warning') {
+                    pDef[pk]++;
+                    bDefCount++;
+                  } else if (pt.status === 'good' || pt.status === 'repaired') {
+                    bGoodCount++;
+                  }
+                  bCost += (pt.cost || 0);
+                }
+              });
+            });
+
+            ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => mTotP[pk] += pDef[pk]);
+            mTotDefects += bDefCount;
+            mTotGoods += bGoodCount;
+            mTotCost += bCost;
+
+            const row = ws_matrix.addRow({
+              no: idx + 1,
+              name: b.name,
+              units: bRooms.length,
+              p1: pDef.P1,
+              p2: pDef.P2,
+              p3: pDef.P3,
+              p4: pDef.P4,
+              p5: pDef.P5,
+              p6: pDef.P6,
+              defectCount: bDefCount,
+              goodCount: bGoodCount,
+              cost: bCost
+            });
+            row.height = 22;
+            row.eachCell((cell, colNum) => {
+              cell.font = { name: '맑은 고딕', size: 9.5 };
+              cell.border = {
+                top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+              };
+              if (colNum === 12) {
+                cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                cell.numFmt = '#,##0';
+                cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FFDC2626' } };
+              } else if (colNum >= 4 && colNum <= 10) {
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                if (Number(cell.value) > 0) {
+                  cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FFDC2626' } };
+                }
+              } else if (colNum === 11) {
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FF16A34A' } };
+              } else {
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+              }
+            });
+          });
+
+          // 앙커 매트릭스 합계행
+          const mSumRow = ws_matrix.addRow({
+            no: '합계',
+            name: '전체 11개동 1,854개소 총괄',
+            units: totalUnits,
+            p1: mTotP.P1,
+            p2: mTotP.P2,
+            p3: mTotP.P3,
+            p4: mTotP.P4,
+            p5: mTotP.P5,
+            p6: mTotP.P6,
+            defectCount: mTotDefects,
+            goodCount: mTotGoods,
+            cost: mTotCost
+          });
+          mSumRow.height = 24;
+          mSumRow.eachCell((cell, colNum) => {
+            cell.font = { name: '맑은 고딕', bold: true, size: 10, color: { argb: 'FF0F172A' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+            cell.border = {
+              top: { style: 'medium', color: { argb: 'FF94A3B8' } },
+              left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              bottom: { style: 'double', color: { argb: 'FF475569' } },
+              right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+            };
+            if (colNum === 12) {
+              cell.alignment = { vertical: 'middle', horizontal: 'right' };
+              cell.numFmt = '#,##0';
+              cell.font = { name: '맑은 고딕', bold: true, size: 10, color: { argb: 'FFDC2626' } };
+            } else {
+              cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            }
+          });
+
+          // -------------------------------------------------------------
+          // [Phase 64 전수 연동] Sheet 3: 단지_배치_카탈로그 (14개동 공간 배치 좌표 및 공식 제원)
+          // -------------------------------------------------------------
+          const ws_site = wb.addWorksheet('단지_배치_카탈로그', {
+            views: [{ state: 'frozen', xSplit: 0, ySplit: 1, showGridLines: true }]
+          });
+
+          ws_site.columns = [
+            { header: '번호', key: 'no', width: 8 },
+            { header: '🏢 동 명칭', key: 'name', width: 16 },
+            { header: '🏷️ 건물 분류', key: 'type', width: 14 },
+            { header: '📐 m²(평형)', key: 'area', width: 14 },
+            { header: '📅 사용승인일', key: 'approvalDate', width: 14 },
+            { header: '🔨 리모델링', key: 'remodeling', width: 16 },
+            { header: '📶 층수', key: 'floors', width: 10 },
+            { header: '🏠 총 세대수', key: 'units', width: 13 },
+            { header: '화학 전담', key: 'chemUnits', width: 13 },
+            { header: '에너지솔루션', key: 'esUnits', width: 14 },
+            { header: '📍 배치도 좌표 (X, Y)', key: 'coords', width: 18 },
+            { header: '📝 단지 내 위치 및 상세 특징', key: 'desc', width: 48 }
+          ];
+
+          ws_site.getRow(1).height = 28;
+          ws_site.getRow(1).eachCell(cell => {
+            cell.font = { name: '맑은 고딕', bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          });
+
+          SITE_BUILDINGS.forEach(b => {
+            const row = ws_site.addRow({
+              no: b.no,
+              name: b.name,
+              type: b.type,
+              area: b.area || '-',
+              approvalDate: b.approvalDate || '-',
+              remodeling: b.remodeling || '-',
+              floors: b.floors,
+              units: b.units,
+              chemUnits: b.chemUnits,
+              esUnits: b.esUnits,
+              coords: b.box[0] + ', ' + b.box[1],
+              desc: b.desc + (b.detail ? ' · ' + b.detail : '')
+            });
+            row.height = 22;
+            row.eachCell((cell, colNum) => {
+              cell.font = { name: '맑은 고딕', size: 9.5 };
+              cell.border = {
+                top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+              };
+              if (colNum === 12) {
+                cell.alignment = { vertical: 'middle', horizontal: 'left' };
+              } else {
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+              }
+            });
+          });
+
+          // -------------------------------------------------------------
+          // [Phase 64 전수 연동] Sheet 4: 건물동_현황 (14개동 공식 제원 및 관리/배정 상세 내역)
+          // -------------------------------------------------------------
+          const ws_bldg = wb.addWorksheet('건물동_현황', {
+            views: [{ state: 'frozen', xSplit: 0, ySplit: 1, showGridLines: true }]
+          });
+
+          ws_bldg.columns = [
+            { header: '번호', key: 'no', width: 8 },
+            { header: '🏢 동 명칭', key: 'name', width: 22 },
+            { header: '📐 m²(평형)', key: 'area', width: 14 },
+            { header: '📅 사용승인일', key: 'approvalDate', width: 14 },
+            { header: '🔨 리모델링', key: 'remodeling', width: 16 },
+            { header: '📶 층수', key: 'floors', width: 10 },
+            { header: '🏠 세대수 (실수)', key: 'units', width: 16 },
+            { header: '화 학', key: 'chem', width: 14 },
+            { header: '에너지솔루션', key: 'es', width: 16 },
+            { header: '📋 관리 및 세대 배정 상세 내역 / 비고', key: 'note', width: 55 }
+          ];
+
+          ws_bldg.getRow(1).height = 28;
+          ws_bldg.getRow(1).eachCell(cell => {
+            cell.font = { name: '맑은 고딕', bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          });
+
+          const expBldgGrid = typeof getBuildingStatusData === 'function' ? getBuildingStatusData() : {};
+          for (let r = 3; r <= 33; r++) {
+            const isTotalRow = (r === 33);
+            const isChemRow = (r === 9 || r === 15 || r === 18 || r === 22 || r === 25 || r === 32);
+
+            const row = ws_bldg.addRow({
+              no: expBldgGrid['A' + r] || '',
+              name: expBldgGrid['B' + r] || '',
+              area: expBldgGrid['C' + r] || '-',
+              approvalDate: expBldgGrid['D' + r] || '-',
+              remodeling: expBldgGrid['E' + r] || '-',
+              floors: expBldgGrid['F' + r] || '-',
+              units: expBldgGrid['G' + r] || '-',
+              chem: expBldgGrid['H' + r] || '-',
+              es: expBldgGrid['I' + r] || '-',
+              note: expBldgGrid['J' + r] || ''
+            });
+
+            row.height = isTotalRow ? 24 : 22;
+            row.eachCell((cell, colNum) => {
+              cell.font = {
+                name: '맑은 고딕',
+                size: isTotalRow ? 10 : 9.5,
+                bold: isTotalRow || (colNum === 2 && !cell.value.includes('↳')),
+                color: isTotalRow ? { argb: 'FF0F172A' } : (isChemRow && (colNum === 2 || colNum === 8) ? { argb: 'FFB91C1C' } : { argb: 'FF1E293B' })
+              };
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: isTotalRow ? { argb: 'FFF1F5F9' } : (isChemRow ? { argb: 'FFFEF9C3' } : { argb: 'FFFFFFFF' })
+              };
+              cell.border = {
+                top: { style: isTotalRow ? 'medium' : 'thin', color: { argb: isTotalRow ? 'FF94A3B8' : 'FFE2E8F0' } },
+                left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                bottom: { style: isTotalRow ? 'double' : 'thin', color: { argb: isTotalRow ? 'FF475569' : 'FFE2E8F0' } },
+                right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+              };
+              if (colNum === 10) {
+                cell.alignment = { vertical: 'middle', horizontal: 'left' };
+              } else {
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+              }
+            });
+          }
+
+          // -------------------------------------------------------------
+          // Sheet 5: 호실별_정밀안전점검_DB (309세대 상세, P1~P6 진행현황 42개 컬럼 완결, 조건부 서식, 드롭다운 유효성 검사)
           // -------------------------------------------------------------
           const ws2 = wb.addWorksheet('호실별_정밀안전점검_DB', {
             views: [{ state: 'frozen', xSplit: 0, ySplit: 1, showGridLines: true }]
@@ -11431,8 +14076,12 @@ const WorkbookManager = {
           wb.definedNames.add("'코드_기준정보'!$C$2:$C$8", '종합안전등급목록');
           wb.definedNames.add("'코드_기준정보'!$D$2:$D$6", '진행현황목록');
           wb.definedNames.add("'코드_기준정보'!$E$2:$E$6", '앙커상태목록');
-          wb.definedNames.add("'단지종합현황'!$A$1:$P$13", '단지종합현황_데이터');
-          wb.definedNames.add(`'호실별_정밀안전점검_DB'!$A$1:$AP$${ROOMS_DATA.length + 1}`, '호실별_정밀안전점검_DB');
+          wb.definedNames.add("'점검_집계표'!$A$1:$P$13", '점검집계표_데이터');
+          wb.definedNames.add("'점검_집계표'!$A$1:$P$13", '단지종합현황_데이터');
+          wb.definedNames.add("'앙커_결함_매트릭스'!$A$1:$L$13", '앙커결함매트릭스_데이터');
+          wb.definedNames.add("'단지_배치_카탈로그'!$A$1:$L$16", '단지배치_데이터');
+          wb.definedNames.add("'건물동_현황'!$A$1:$J$32", '건물동현황_데이터');
+          wb.definedNames.add(`'호실별_정밀안전점검_DB'!$A$1:$AP${ROOMS_DATA.length + 1}`, '호실별_정밀안전점검_DB');
 
           // -------------------------------------------------------------
           // 데이터 유효성 검사 (셀 클릭 시 자동 드롭다운 목록 표출 및 입력 오류 방지)
@@ -11672,7 +14321,7 @@ const WorkbookManager = {
           setTimeout(() => URL.revokeObjectURL(url), 1000);
 
           if (typeof showToast === 'function') {
-            showToast('📊 ' + filename + ' 다운로드 완료! (P1~P6 진행현황 42열·이름 관리자·조건부 서식 완결)');
+            showToast('📊 ' + filename + ' 다운로드 완료! (점검집계표·앙커매트릭스·단지배치·건물동현황·309세대 42열 DB·이름관리자·조건부서식 전수 완결)');
           }
 
           if (btnRooms) btnRooms.innerHTML = '✅ <b>엑셀 저장 완료</b>';
@@ -11700,27 +14349,167 @@ const WorkbookManager = {
           // 3개 시트로 구성된 공식 통합 문서 생성
           const wb = XLSX.utils.book_new();
 
-          // Sheet 1: 단지종합현황
+          // Sheet 1: 점검_집계표 (건물동별 세대 안전점검 집계 및 합계행) [Phase 63/66 동기화]
+          let oldTotUnits = 0, oldTotInspected = 0, oldTotD = 0, oldTotC = 0, oldTotAB = 0, oldTotDone = 0, oldTotProgress = 0, oldTotUninspected = 0, oldTotCostSum = 0;
           const s1_rows = BUILDING_SPECS.map((b, idx) => {
             const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const u = bRooms.length;
+            const insp = bRooms.filter(r => r.progress && r.progress !== '미착수' && r.progress !== '미점검' && r.progress !== '점검중').length;
+            const d = bRooms.filter(r => r.safetyGrade === 'D').length;
+            const c = bRooms.filter(r => r.safetyGrade === 'C').length;
+            const ab = bRooms.filter(r => r.safetyGrade === 'A' || r.safetyGrade === 'B' || r.safetyGrade === '양호').length;
+            const dn = bRooms.filter(r => r.safetyGrade === '완료').length;
+            const prog = bRooms.filter(r => r.safetyGrade === '점검중' || r.progress === '점검중').length;
+            const uninsp = bRooms.filter(r => (r.safetyGrade === '미점검' || r.progress === '미점검' || !r.progress) && r.safetyGrade !== '점검중' && r.progress !== '점검중' && r.progress !== '조치진행' && r.progress !== '조치완료' && r.progress !== '점검완료').length;
+            const cost = bRooms.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+
+            oldTotUnits += u; oldTotInspected += insp; oldTotD += d; oldTotC += c; oldTotAB += ab; oldTotDone += dn;
+            oldTotProgress += prog; oldTotUninspected += uninsp; oldTotCostSum += cost;
+
             return {
               'No.': idx + 1,
               '건물동': b.name,
+              'm2(평형)': b.area || '-',
+              '건물사용승인일': b.approvalDate || '-',
+              '리모델링': b.remodeling || '-',
               '층수': `${b.floors}층`,
-              '총 세대수': bRooms.length,
+              '총 세대수': u,
               '소속': b.team,
-              '점검완료': bRooms.filter(r => r.progress !== '미착수').length,
-              'D등급(위험)': bRooms.filter(r => r.safetyGrade === 'D').length,
-              'C등급(주의)': bRooms.filter(r => r.safetyGrade === 'C').length,
-              'A/B등급(양호)': bRooms.filter(r => r.safetyGrade === 'A' || r.safetyGrade === 'B').length,
-              '조치완료': bRooms.filter(r => r.safetyGrade === '완료').length,
-              '총 조치예산(원)': bRooms.reduce((sum, r) => sum + r.totalCost, 0)
+              '점검완료': insp,
+              'D등급(위험)': d,
+              'C등급(주의)': c,
+              'A/B등급(양호)': ab,
+              '조치완료': dn,
+              '점검중': prog,
+              '미점검': uninsp,
+              '총 조치예산(원)': cost
             };
           });
+          s1_rows.push({
+            'No.': '합계',
+            '건물동': BUILDING_SPECS.length + '개동',
+            'm2(평형)': '-',
+            '건물사용승인일': '-',
+            '리모델링': '4개동 리모델링',
+            '층수': '-',
+            '총 세대수': oldTotUnits,
+            '소속': '-',
+            '점검완료': oldTotInspected,
+            'D등급(위험)': oldTotD,
+            'C등급(주의)': oldTotC,
+            'A/B등급(양호)': oldTotAB,
+            '조치완료': oldTotDone,
+            '점검중': oldTotProgress,
+            '미점검': oldTotUninspected,
+            '총 조치예산(원)': oldTotCostSum
+          });
           const ws1 = XLSX.utils.json_to_sheet(s1_rows);
-          XLSX.utils.book_append_sheet(wb, ws1, '단지종합현황');
+          XLSX.utils.book_append_sheet(wb, ws1, '점검_집계표');
 
-          // Sheet 2: 호실별_정밀안전점검_DB
+          // Sheet 2: 앙커_결함_매트릭스 (11개동 외벽 고정 앙커 6개소 결함 분포 및 전체 현황 표) [Phase 63 신설]
+          let oldTotP = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+          let oldTotAllDefects = 0, oldTotAllGoods = 0, oldTotMCost = 0;
+
+          const oldMatrixRows = BUILDING_SPECS.map((b, idx) => {
+            const bRooms = ROOMS_DATA.filter(r => r.buildingId === b.id);
+            const pDef = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 };
+            let bDefCount = 0;
+            let bGoodCount = 0;
+            let bCost = 0;
+
+            bRooms.forEach(r => {
+              ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => {
+                const pt = r.points && r.points[pk];
+                if (pt) {
+                  if (pt.status === 'danger' || pt.status === 'warning') {
+                    pDef[pk]++;
+                    bDefCount++;
+                  } else if (pt.status === 'good' || pt.status === 'repaired') {
+                    bGoodCount++;
+                  }
+                  bCost += (pt.cost || 0);
+                }
+              });
+            });
+
+            ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].forEach(pk => oldTotP[pk] += pDef[pk]);
+            oldTotAllDefects += bDefCount;
+            oldTotAllGoods += bGoodCount;
+            oldTotMCost += bCost;
+
+            return {
+              'No.': idx + 1,
+              '건물동': b.name,
+              '세대수': bRooms.length,
+              'P1(좌상단)': pDef.P1,
+              'P2(우상단)': pDef.P2,
+              'P3(좌중단)': pDef.P3,
+              'P4(우중단)': pDef.P4,
+              'P5(좌하단)': pDef.P5,
+              'P6(우하단)': pDef.P6,
+              '총 결함개소': bDefCount,
+              '정상 앙커개소': bGoodCount,
+              '예상 보수비용(원)': bCost
+            };
+          });
+
+          oldMatrixRows.push({
+            'No.': '합계',
+            '건물동': '전체 11개동 1,854개소 총괄',
+            '세대수': oldTotUnits,
+            'P1(좌상단)': oldTotP.P1,
+            'P2(우상단)': oldTotP.P2,
+            'P3(좌중단)': oldTotP.P3,
+            'P4(우중단)': oldTotP.P4,
+            'P5(좌하단)': oldTotP.P5,
+            'P6(우하단)': oldTotP.P6,
+            '총 결함개소': oldTotAllDefects,
+            '정상 앙커개소': oldTotAllGoods,
+            '예상 보수비용(원)': oldTotMCost
+          });
+
+          const wsOldMatrix = XLSX.utils.json_to_sheet(oldMatrixRows);
+          XLSX.utils.book_append_sheet(wb, wsOldMatrix, '앙커_결함_매트릭스');
+
+          // [Phase 64 전수 연동] Sheet 3: 단지_배치_카탈로그 (14개동 단지 공간 배치 및 제원)
+          const oldSiteRows = SITE_BUILDINGS.map(b => ({
+            '번호': b.no,
+            '동 명칭': b.name,
+            '건물 분류': b.type,
+            'm2(평형)': b.area || '-',
+            '건물사용승인일': b.approvalDate || '-',
+            '리모델링': b.remodeling || '-',
+            '층수': b.floors,
+            '총 세대수': b.units,
+            '화학 전담': b.chemUnits,
+            '에너지솔루션': b.esUnits,
+            '배치도 좌표 (X, Y)': b.box[0] + ', ' + b.box[1],
+            '단지 내 위치 및 상세 특징': b.desc + (b.detail ? ' · ' + b.detail : '')
+          }));
+          const wsOldSite = XLSX.utils.json_to_sheet(oldSiteRows);
+          XLSX.utils.book_append_sheet(wb, wsOldSite, '단지_배치_카탈로그');
+
+          // [Phase 64 전수 연동] Sheet 4: 건물동_현황 (14개동 공식 건물 제원 및 층별/세대별 상세 배정 내역)
+          const oldBldgGrid = typeof getBuildingStatusData === 'function' ? getBuildingStatusData() : {};
+          const oldBldgRows = [];
+          for (let r = 3; r <= 33; r++) {
+            oldBldgRows.push({
+              '번호': oldBldgGrid['A' + r] || '',
+              '동 명칭': oldBldgGrid['B' + r] || '',
+              'm2(평형)': oldBldgGrid['C' + r] || '-',
+              '건물사용승인일': oldBldgGrid['D' + r] || '-',
+              '리모델링': oldBldgGrid['E' + r] || '-',
+              '층수': oldBldgGrid['F' + r] || '-',
+              '세대수 (실수)': oldBldgGrid['G' + r] || '-',
+              '화 학': oldBldgGrid['H' + r] || '-',
+              '에너지솔루션': oldBldgGrid['I' + r] || '-',
+              '관리 및 세대 배정 상세 내역 / 비고': oldBldgGrid['J' + r] || ''
+            });
+          }
+          const wsOldBldg = XLSX.utils.json_to_sheet(oldBldgRows);
+          XLSX.utils.book_append_sheet(wb, wsOldBldg, '건물동_현황');
+
+          // Sheet 5: 호실별_정밀안전점검_DB
           const s2_rows = ROOMS_DATA.map(r => ({
             '세대ID': r.id,
             '건물동': r.buildingName,
@@ -11810,11 +14599,23 @@ const WorkbookManager = {
         if (!state.fromTab) state.fromTab = this.activeTabId;
         // 중복 연속 푸시 방지
         const last = this.navStack[this.navStack.length - 1];
-        if (last && last.fromTab === state.fromTab && last.bId === state.bId && last.roomId === state.roomId) {
+        if (last && last.fromTab === state.fromTab && last.bId === state.bId && last.roomId === state.roomId && last.pointKey === state.pointKey && last.view === state.view) {
           return;
         }
         this.navStack.push(state);
         this.updateReturnPill();
+      },
+
+      // [Phase 65 호환] pushNavHistory 별칭 제공으로 미정의 함수 호출 오류 원천 방지
+      pushNavHistory(fromTab, opts = {}) {
+        if (typeof fromTab === 'object' && fromTab !== null) {
+          this.pushNavState(fromTab);
+        } else {
+          this.pushNavState({
+            fromTab: typeof fromTab === 'string' ? fromTab : this.activeTabId,
+            ...opts
+          });
+        }
       },
 
       popNavHistory() {
@@ -11874,6 +14675,18 @@ const WorkbookManager = {
               if (cellEl) cellEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 100);
           }
+        } else if (prevState.fromTab === 'sheet-summary') {
+          // [Phase 65 벤치마킹 복원] 사택 11개동 앙커 정밀 안전점검 집계표로 완벽 복원
+          this.activateTab('sheet-summary', false);
+          if (typeof closeDefectModal === 'function') {
+            closeDefectModal();
+          }
+          setTimeout(() => {
+            const trackEl = document.querySelector('.summary-anchors-track');
+            if (trackEl) {
+              trackEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 100);
         }
 
         this.updateReturnPill();
@@ -11885,15 +14698,17 @@ const WorkbookManager = {
       updateReturnPill() {
         const hasHistory = (this.navStack && this.navStack.length > 0) || !!this.lastRoomNav;
         const last = (this.navStack && this.navStack.length > 0) ? this.navStack[this.navStack.length - 1] : this.lastRoomNav;
-        const returnText = last ? `↩️ [${last.roomLabel || last.label} 점검서로 복귀]` : '이전 화면으로 복귀';
-        const returnTitle = last ? `클릭 시 직전 화면인 [${last.roomLabel || last.label}]로 즉시 복귀합니다` : '이전 화면 복귀';
+        const isFromSummary = last && last.fromTab === 'sheet-summary';
+        const returnText = last ? (isFromSummary ? '↩️ [점검 집계표로 복귀]' : `↩️ [${last.roomLabel || last.label} 점검서로 복귀]`) : '이전 화면으로 복귀';
+        const returnTitle = last ? (isFromSummary ? '클릭 시 직전 화면인 [사택 11개동 앙커 정밀 안전점검 집계표]로 즉시 복귀합니다' : `클릭 시 직전 화면인 [${last.roomLabel || last.label}]로 즉시 복귀합니다`) : '이전 화면 복귀';
 
         // 1. 3D floating pill
         const pill3D = document.getElementById('wb-3d-return-pill');
         const lbl3D = document.getElementById('wb-return-pill-label');
         if (pill3D) {
           if (hasHistory && this.activeTabId === 'model') {
-            if (lbl3D) lbl3D.innerHTML = `↩️ <b>[${last.roomLabel || last.label} 점검서로 복귀]</b>`;
+            const btnHtml = isFromSummary ? '↩️ <b>[점검 집계표로 복귀]</b>' : `↩️ <b>[${last.roomLabel || last.label} 점검서로 복귀]</b>`;
+            if (lbl3D) lbl3D.innerHTML = btnHtml;
             pill3D.title = returnTitle;
             pill3D.style.display = 'flex';
             pill3D.style.zIndex = '999999';
@@ -11935,6 +14750,18 @@ const WorkbookManager = {
             roomsBtn.style.display = 'inline-flex';
           } else {
             roomsBtn.style.display = 'none';
+          }
+        }
+
+        // 4-2. Summary toolbar return button [Phase 59]
+        const summaryBtn = document.getElementById('summary-return-pill');
+        if (summaryBtn) {
+          if (hasHistory && this.activeTabId === 'sheet-summary') {
+            summaryBtn.textContent = returnText;
+            summaryBtn.title = returnTitle;
+            summaryBtn.style.display = 'inline-flex';
+          } else {
+            summaryBtn.style.display = 'none';
           }
         }
 
@@ -12162,10 +14989,7 @@ const WorkbookManager = {
         this.autoSave();
         this.markWebDirty(true);
         if (this.fullscreenBuildingId) this.renderBuildingFullscreen(this.fullscreenBuildingId);
-        // [Phase 57] '전 단지 종합 분석' 모달 소요 예산 및 통계 실시간 동기화
-        if (typeof updateDefectModal === 'function' && typeof currentDefectId !== 'undefined') {
-          updateDefectModal(currentDefectId);
-        }
+        this.notifyDataMutation();
 
         if (typeof showToast === 'function') {
           showToast(`🛡️ [${room.buildingName} ${room.roomLabel}] 종합안전등급이 [${newGrade}](으)로 갱신되었습니다.`);
@@ -12211,10 +15035,7 @@ const WorkbookManager = {
         this.autoSave();
         this.markWebDirty(true);
         if (this.fullscreenBuildingId) this.renderBuildingFullscreen(this.fullscreenBuildingId);
-        // [Phase 57] '전 단지 종합 분석' 모달 소요 예산 및 통계 실시간 동기화
-        if (typeof updateDefectModal === 'function' && typeof currentDefectId !== 'undefined') {
-          updateDefectModal(currentDefectId);
-        }
+        this.notifyDataMutation();
 
         if (typeof showToast === 'function') {
           showToast(`🚪 [${room.buildingName} ${room.roomLabel}] 진행 상태가 [${newVal}](으)로 갱신되었습니다.`);
@@ -12702,6 +15523,17 @@ const WorkbookManager = {
           }
         }
 
+        const inspectBtn = document.getElementById('sic-inspect-btn');
+        if (inspectBtn) {
+          if (b.type === '사택') {
+            inspectBtn.innerHTML = `📋 [${b.name}] 안전점검 현황 요약 보기`;
+            inspectBtn.onclick = () => this.jumpToBuildingSummaryFromSite(b);
+            inspectBtn.style.display = 'flex';
+          } else {
+            inspectBtn.style.display = 'none';
+          }
+        }
+
         card.style.display = 'block';
 
         // 수식 입력줄 연동 표시
@@ -12740,6 +15572,17 @@ const WorkbookManager = {
         this.jumpToBuildingRooms(bldg.id);
       },
 
+      jumpToBuildingSummaryFromSite(b) {
+        const bldg = b || SITE_BUILDINGS.find(item => item.id === this.selectedBuildingId) || SITE_BUILDINGS[0];
+        this.pushNavState({
+          fromTab: 'sheet-site',
+          bId: bldg.id,
+          bName: bldg.name,
+          label: `단지 배치 (${bldg.name})`
+        });
+        this.showBuildingInspectionSummary(bldg.id);
+      },
+
       jumpToBuildingStatusFromSiteToolbar() {
         this.pushNavState({
           fromTab: 'sheet-site',
@@ -12769,13 +15612,15 @@ const WorkbookManager = {
 
       camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.05, 80);
       renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      // [Phase 60] 스마트폰/모바일 디바이스 감지 및 초고해상도 DPR GPU 부하 최적화
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768 && 'ontouchstart' in window);
+      renderer.setPixelRatio(isMobileDevice ? Math.min(window.devicePixelRatio || 1, 1.25) : Math.min(window.devicePixelRatio || 1, 1.5));
       renderer.powerPreference = "high-performance";
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.15;
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.type = isMobileDevice ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
 
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = false; // 기본값: 관성 자동 미끄러짐 완전 차단 (마우스 드래그 멈춤 즉시 100% 화면 정지)
@@ -12838,7 +15683,8 @@ const WorkbookManager = {
       const sun = new THREE.DirectionalLight(0xfffaec, 2.5);
       sun.position.set(5, 10, 8);
       sun.castShadow = true;
-      sun.shadow.mapSize.set(2048, 2048);
+      const shadowMapRes = (typeof isMobileDevice !== 'undefined' && isMobileDevice) ? 1024 : 2048;
+      sun.shadow.mapSize.set(shadowMapRes, shadowMapRes);
       sun.shadow.camera.near = 0.5;
       sun.shadow.camera.far = 25;
       sun.shadow.camera.left = -5;
@@ -16410,8 +19256,16 @@ const WorkbookManager = {
     /* =========================================================================
        8. 애니메이션 루프
        ========================================================================= */
+    // [Phase 60] 모바일 배터리/GPU 보호 및 백그라운드 비활성화 핸들러
+    let isAppHidden = false;
+    document.addEventListener('visibilitychange', () => {
+      isAppHidden = document.hidden;
+      if (!isAppHidden && clock) clock.getDelta();
+    });
+
     function animate() {
       requestAnimationFrame(animate);
+      if (isAppHidden) return;
       if (typeof WorkbookManager !== "undefined" && WorkbookManager.activeTabId !== "model") return;
       const dt = clock.getDelta();
       animTime += dt;
@@ -16421,10 +19275,9 @@ const WorkbookManager = {
         PhysicsEngine.update(dt);
       }
 
-      // [Phase 54] 충돌 동결(Freeze) 상태인 경우 현실 물리 법칙에 따라 이동·회전·워킹 일체 정지
+      // [Phase 54 & Phase 60] 충돌 동결(Freeze) 상태인 경우 현실 물리 법칙에 따라 이동·회전·워킹 일체 정지 (이중 RAF 호출 제거)
       if (typeof PhysicsEngine !== 'undefined' && PhysicsEngine.isFrozen) {
         renderer.render(scene, camera);
-        requestAnimationFrame(animate);
         return;
       }
 
@@ -18375,9 +21228,14 @@ const WorkbookManager = {
     }
 
     function onResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      if (camera && renderer) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+      if (typeof WorkbookManager !== 'undefined' && typeof WorkbookManager.updateMobileLayout === 'function') {
+        WorkbookManager.updateMobileLayout();
+      }
     }
 
     /* =========================================================================
@@ -19305,7 +22163,7 @@ const WorkbookManager = {
         // 좌측 툴바 접기 시 물방울 위치: 제일 좌측 하단 코너 고정
         droplet.style.position = 'fixed';
         droplet.style.left = '20px';
-        droplet.style.bottom = '54px';
+        droplet.style.bottom = '16px';
         droplet.style.top = 'auto';
         droplet.style.right = 'auto';
         droplet.style.margin = '0';
@@ -19320,7 +22178,7 @@ const WorkbookManager = {
         // 펼치기 시 좌측 하단 기준 복원
         dock.style.position = 'fixed';
         dock.style.left = '20px';
-        dock.style.bottom = '54px';
+        dock.style.bottom = '16px';
         dock.style.top = 'auto';
         dock.style.right = 'auto';
         dock.style.margin = '0';
@@ -19348,7 +22206,7 @@ const WorkbookManager = {
         // 우측 툴바 접기 시 물방울 위치: 제일 우측 하단 코너 고정
         droplet.style.position = 'fixed';
         droplet.style.right = '20px';
-        droplet.style.bottom = '54px';
+        droplet.style.bottom = '16px';
         droplet.style.top = 'auto';
         droplet.style.left = 'auto';
         droplet.style.margin = '0';
@@ -19363,7 +22221,7 @@ const WorkbookManager = {
         // 펼치기 시 우측 하단 기준 복원
         bar.style.position = 'fixed';
         bar.style.right = '20px';
-        bar.style.bottom = '54px';
+        bar.style.bottom = '16px';
         bar.style.top = 'auto';
         bar.style.left = 'auto';
         bar.style.margin = '0';
@@ -20426,6 +23284,16 @@ const WorkbookManager = {
       } else if (key === ' ' || key === 'Spacebar') {
         stopAll3DMotion();
       } else if (key === 'Escape') {
+        const fsModal = document.getElementById('summary-fullscreen-modal');
+        if (fsModal && fsModal.style.display !== 'none') {
+          WorkbookManager.closeSummaryTableFullscreen();
+          return;
+        }
+        const kpiModal = document.getElementById('kpi-verification-modal');
+        if (kpiModal && kpiModal.style.display !== 'none') {
+          WorkbookManager.closeKpiVerificationModal();
+          return;
+        }
         if (walkMode) {
           toggleWalkView(false);
         } else {
@@ -20714,6 +23582,31 @@ const WorkbookManager = {
   </div>
 
 
+  <!-- [Phase 58] 건물동별/전단지 발코니 난간대 정밀안전점검 현황 요약 팝업 모달 -->
+  <div id="building-inspect-summary-modal" class="app-window" style="display: none; width: 720px; max-width: 95vw; max-height: 85vh; flex-direction: column;">
+    <div class="room-modal-header" id="building-inspect-summary-modal-head">
+      <div class="room-modal-title" style="display: flex; align-items: center; gap: 8px;">
+        <span class="modal-badge badge-info" id="bldg-summary-badge">🏢 점검 현황 요약</span>
+        <span id="bldg-summary-title" style="font-size: 13.5px; font-weight: 800; color: #f8fafc;">사택 5동 점검 현황 요약</span>
+      </div>
+      <div class="window-actions">
+        <button class="win-btn win-btn-close" onclick="WorkbookManager.closeBuildingInspectionSummary()" title="닫기">✕</button>
+      </div>
+    </div>
+    <div class="room-modal-body" id="building-inspect-summary-body" style="overflow-y: auto; max-height: calc(85vh - 100px); padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+      <!-- JS에서 동적 렌더링 -->
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-top: 1px solid rgba(148, 163, 184, 0.2); background: rgba(15, 23, 42, 0.95); border-radius: 0 0 8px 8px;">
+      <button class="rooms-btn" id="bldg-summary-jump-elevation-btn" onclick="" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.5); color: #38bdf8; font-weight: 700; font-size: 11.5px; padding: 5px 12px;">
+        🔍 입면도(Elevation) 바로가기
+      </button>
+      <button class="rooms-btn" onclick="WorkbookManager.closeBuildingInspectionSummary()" style="font-size: 11.5px; padding: 5px 14px;">
+        닫기
+      </button>
+    </div>
+  </div>
+
+
   <!-- 동별 세대 전수 정밀점검 입면 배치도 전체화면 모달 -->
   <div id="building-fullscreen-modal" style="display: none;">
     <div class="bldg-fs-header">
@@ -20730,6 +23623,59 @@ const WorkbookManager = {
       </div>
     </div>
     <div class="bldg-fs-body" id="bldg-fs-body">
+    </div>
+  </div>
+
+  <!-- [Phase 62] 점검 집계표 상세 테이블 1/2 전용 전체화면 모달 (#summary-fullscreen-modal) -->
+  <div id="summary-fullscreen-modal" class="summary-fullscreen-modal" style="display: none;">
+    <div class="summary-fs-header">
+      <div class="summary-fs-title-area">
+        <span class="modal-badge badge-primary" id="summary-fs-badge" style="font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 700; background: #0284c7; color: #fff;">📊 정밀 점검 집계</span>
+        <span style="font-size: 16px; font-weight: 800; color: #f8fafc;" id="summary-fs-title">사택 11개동 정밀 안전점검 집계표 [전체화면 검증 뷰]</span>
+      </div>
+      <div class="summary-fs-controls">
+        <input type="text" id="summary-fs-search" placeholder="🔍 동명 / 배정 검색..." oninput="WorkbookManager.onSummaryFullscreenSearch(this.value)" style="background: #1e293b; border: 1px solid #475569; border-radius: 4px; padding: 5px 10px; color: #f8fafc; font-size: 11.5px; width: 170px;" />
+        <select id="summary-fs-filter-team" onchange="WorkbookManager.onSummaryFullscreenFilter()" style="background: #1e293b; border: 1px solid #475569; border-radius: 4px; padding: 5px 8px; color: #38bdf8; font-size: 11.5px; font-weight: 600; cursor: pointer;">
+          <option value="all">🏢 전 단지 (11개동)</option>
+          <option value="화학">🟡 LG화학 (7개동)</option>
+          <option value="에너지솔루션">🔵 LG에너지솔루션 (4개동)</option>
+          <option value="defect">🚨 결함 발생동만 (D+C)</option>
+        </select>
+        <button class="rooms-btn excel-save-btn" onclick="WorkbookManager.exportExcelWithValidation()" style="padding: 5px 10px; font-size: 11px;" title="엑셀(.xlsx) 파일 다운로드">
+          📊 엑셀 저장
+        </button>
+        <button class="win-btn win-btn-close" onclick="WorkbookManager.closeSummaryTableFullscreen()" style="width: 36px; height: 32px; font-size: 16px; font-weight: 800; background: #ef4444; color: #ffffff; border: none; border-radius: 4px; cursor: pointer;" title="전체화면 닫기 (ESC)">✕</button>
+      </div>
+    </div>
+    <div class="summary-fs-body" id="summary-fs-body">
+      <!-- JS에서 테이블 동적 렌더링 -->
+    </div>
+  </div>
+
+  <!-- [Phase 62] 4대 KPI 대시보드 카드 상세 데이터 검증 모달 (#kpi-verification-modal) -->
+  <div id="kpi-verification-modal" style="display: none;">
+    <div class="room-modal-header" style="background: #1e293b; padding: 12px 18px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="modal-badge badge-info" id="kpi-verify-badge" style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: #0284c7; color: #fff; font-weight: 700;">📈 지표 데이터 검증</span>
+        <span id="kpi-verify-title" style="font-size: 14px; font-weight: 800; color: #f8fafc;">전 단지 점검 진척도 정밀 검증 내역</span>
+      </div>
+      <div class="window-actions">
+        <button class="win-btn win-btn-close" onclick="WorkbookManager.closeKpiVerificationModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 16px; cursor: pointer; padding: 2px 6px;" title="닫기 (ESC)">✕</button>
+      </div>
+    </div>
+    <div class="room-modal-body" id="kpi-verify-body" style="overflow-y: auto; max-height: calc(88vh - 110px); padding: 16px; display: flex; flex-direction: column; gap: 12px; background: #0f172a; color: #cbd5e1;">
+      <!-- JS에서 동적 렌더링 -->
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 18px; border-top: 1px solid #334155; background: #1e293b;">
+      <span style="font-size: 11px; color: #94a3b8;" id="kpi-verify-footer-hint">※ 공식 바이너리 DB(사택_발코니난간대_정밀안전점검_DB.xlsb) 309세대 실시간 정합 연계</span>
+      <div style="display: flex; gap: 6px;">
+        <button class="rooms-btn excel-save-btn" onclick="WorkbookManager.exportExcelWithValidation()" style="padding: 4px 10px; font-size: 11px;">
+          📊 엑셀 내보내기
+        </button>
+        <button class="rooms-btn" onclick="WorkbookManager.closeKpiVerificationModal()" style="padding: 4px 12px; font-size: 11px;">
+          닫기
+        </button>
+      </div>
     </div>
   </div>
 
