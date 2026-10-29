@@ -136582,6 +136582,10 @@ window.openAddNewProjectModal = function(editProject) {
                 partialSequenceFullscreenFilter: 'all',
                 lastHousehold: null,
                 householdMainQuery: '',
+                householdMainTarget: 'household',
+                householdMainMatch: 'all',
+                householdFullscreenTarget: 'household',
+                householdFullscreenMatch: 'all',
                 householdMainBuildingsExpanded: false,
                 householdMainUnitsExpanded: false,
                 householdMainSearchComposing: false,
@@ -137877,18 +137881,20 @@ window.openAddNewProjectModal = function(editProject) {
                                 '<td>' + escapeHtml(item.workStart || '-') + '<br><span>~ ' + escapeHtml(item.workEnd || '-') + '</span></td>' +
                                 '<td><button type="button" class="work-content-household-count-link" data-household-drilldown="pins" data-household-project-ref="' + escapeHtml(item.projectId) + '">' + formatNumber(item.pinCount) + '건</button></td><td>' + formatNumber(item.progress) + '%</td><td>' + formatNumber(item.poAmount) + '원</td></tr>';
                         }).join('');
-                        return '<details class="work-content-household-unit"' + unitOpenAttr + '><summary><strong>' + escapeHtml(household.household) + '호</strong><span>' + formatNumber(household.projects.length) + '개 작업</span><span>' + escapeHtml((household.workStart || '-') + ' ~ ' + (household.workEnd || '-')) + '</span><b>' + formatNumber(household.poAmount) + '원</b></summary>' +
+                        return '<details class="work-content-household-unit"' + unitOpenAttr + '><summary><strong>' + escapeHtml(analysis.other ? '동·호 구분 없음' : household.household + '호') + '</strong><span>' + formatNumber(household.projects.length) + '개 작업</span><span>' + escapeHtml((household.workStart || '-') + ' ~ ' + (household.workEnd || '-')) + '</span><b>' + formatNumber(household.poAmount) + '원</b></summary>' +
                             '<div class="work-content-household-table-wrap"><table class="work-content-household-table"><thead><tr>' + householdStaticHeader('파싱 작업명', 'taskName') + householdStaticHeader('유지관리명', 'projectName') + householdStaticHeader('실제 작업내용', 'workDetailText') + householdStaticHeader('작업일 시작/종료', 'workRange') + householdStaticHeader('핀', 'pinCount') + householdStaticHeader('진척', 'progress') + householdStaticHeader('PO금액', 'poAmount') + '</tr></thead><tbody>' + rows + '</tbody></table></div></details>';
                     }).join('');
-                    return '<details class="work-content-household-building"' + buildingOpenAttr + '><summary><strong>' + escapeHtml(householdBuildingGroupLabel(building)) + '</strong><span>' + formatNumber(building.households.length) + '세대 · ' + formatNumber(building.projects.length) + '개 작업</span><b>' + formatNumber(building.poAmount) + '원</b></summary>' + householdHtml + '</details>';
+                    return '<details class="work-content-household-building"' + buildingOpenAttr + '><summary><strong>' + escapeHtml(householdBuildingGroupLabel(building)) + '</strong><span>' + (analysis.other ? '' : formatNumber(building.households.length) + '세대 · ') + formatNumber(building.projects.length) + '개 작업</span><b>' + formatNumber(building.poAmount) + '원</b></summary>' + householdHtml + '</details>';
                 }).join('');
             }
             function householdMainSummaryText(visible) {
+                if (visible && visible.other) return '기타 작업 ' + formatNumber(visible.projects.length) + '건 · PO ' + formatNumber(visible.totalPo) + '원';
                 return formatNumber((visible && visible.buildings || []).length) + '\uac1c \ub3d9 \u00b7 ' + formatNumber(visible && visible.householdCount || 0) + '\uc138\ub300 \u00b7 PO ' + formatNumber(visible && visible.totalPo || 0) + '\uc6d0';
             }
             function renderHouseholdMainToolsHtml(visible) {
-                return '<div class="work-content-household-fullscreen-tools work-content-household-main-tools" data-household-main-tools="1">' +
-                    '<label class="work-content-household-fullscreen-search work-content-household-main-search"><span aria-hidden="true">\u2315</span><input id="workContentHouseholdMainSearch" type="search" value="' + escapeHtml(state.householdMainQuery) + '" placeholder="\ub3d9\u00b7\ud638\uc2e4\uc740 \uc804\uccb4 \uc785\ub825(\uc608: 5\ub3d9, 101\ud638), \uc720\uc9c0\uad00\ub9ac\uba85\u00b7\ubc88\ud638 \uac80\uc0c9" autocomplete="off"></label>' +
+                return '<div style="flex-wrap:wrap !important" class="work-content-household-fullscreen-tools work-content-household-main-tools" data-household-main-tools="1">' +
+                    '<label class="work-content-household-fullscreen-search work-content-household-main-search"><span aria-hidden="true">\u2315</span><input id="workContentHouseholdMainSearch" type="search" value="' + escapeHtml(state.householdMainQuery) + '" placeholder="동·호(예: 5-101, 5동 101호) 또는 작업명·번호 검색" autocomplete="off"></label>' +
+                    householdSearchOptionsHtml('Main') +
                     '<button type="button" class="work-content-household-search-submit" data-household-search-submit="main" title="\uc138\ub300\ub0b4 \uc791\uc5c5 \uac80\uc0c9" aria-label="\uc138\ub300\ub0b4 \uc791\uc5c5 \uac80\uc0c9">\ud83d\udd0d</button>' +
                     '<div class="work-content-popup-summary" data-household-main-summary>' + householdMainSummaryText(visible) + '</div>' +
                     '<button type="button" class="work-content-household-toggle-all" data-household-toggle-scope="main" data-household-toggle="buildings" aria-pressed="' + (state.householdMainBuildingsExpanded ? 'true' : 'false') + '" title="\ub3d9 \uc804\uccb4 ' + (state.householdMainBuildingsExpanded ? '\uc811\uae30' : '\ud3bc\uce58\uae30') + '">\ub3d9' + (state.householdMainBuildingsExpanded ? '\u2212' : '+') + '</button>' +
@@ -139021,6 +139027,7 @@ window.openAddNewProjectModal = function(editProject) {
                 var analysis = state.lastHousehold || analyzeHousehold(true);
                 if (kind === 'pins') {
                     var project = (analysis.projects || []).filter(function(item) { return String(item.projectId) === String(projectRef); })[0];
+                    if (!project) project = householdOtherAnalysis(analysis).projects.filter(function(item) { return String(item.projectId) === String(projectRef); })[0];
                     var entries = project ? (project.displayEntries || project.entries || []) : [];
                     var pinHtml = '<div class="work-content-popup-summary">표시 ' + formatNumber(entries.length) + '건 · ' + escapeHtml(project ? project.projectName : '작업일 핀') + '</div><div class="work-content-popup-list">' + (entries.length ? renderResultListHtml(entries, WORK_CONTENT_OVERLAY_ROW_LIMIT) : '<div style="padding:18px;text-align:center;color:#64748b;font-weight:800;">연계된 작업일 핀이 없습니다.</div>') + '</div>';
                     openWorkContentOverlay('workContentHouseholdCountDetailModal', '작업일 핀 ' + formatNumber(entries.length) + '건 상세', pinHtml, { scope: 'detail', title: '작업일 핀 상세' });
@@ -140860,32 +140867,80 @@ window.openAddNewProjectModal = function(editProject) {
                 if (state.viewMode === 'household') return '작업 분석 - 세대내 작업 분석';
                 return '작업 분석 - 작업 내용 검색';
             }
-            function filterHouseholdAnalysis(analysis, query) {
+            function householdOtherAnalysis(analysis) {
+                var lens = normalizeDraftLens(readDraftFromDom());
+                var byProject = Object.create(null);
+                collectEntries().forEach(function(entry) {
+                    [entry.projectId, entry.maintenanceCode, entry.projectName].map(normalizeLookupText).filter(Boolean).forEach(function(key) {
+                        if (!byProject[key]) byProject[key] = [];
+                        byProject[key].push(entry);
+                    });
+                });
+                var projects = [];
+                var candidates = (analysis.unparsedProjects || []).concat((analysis.projects || []).filter(function(item) { return item.isRental; }));
+                var seen = Object.create(null);
+                candidates.forEach(function(raw) {
+                    var project = raw.project;
+                    var projectKey = String(raw.projectId || raw.maintenanceCode || raw.projectName);
+                    if (seen[projectKey]) return;
+                    seen[projectKey] = true;
+                    var keys = householdProjectLookupKeys(project), entries = [];
+                    for (var i = 0; i < keys.length; i += 1) { if (byProject[keys[i]]) { entries = byProject[keys[i]]; break; } }
+                    entries = Array.from(new Set(entries));
+                    var selected = entries.filter(function(entry) { return entry.workDate && entryInLens(entry, lens.startTime, lens.endTime); });
+                    if ((lens.startTime != null || lens.endTime != null) && !selected.length) return;
+                    var displayed = lens.startTime != null || lens.endTime != null ? selected : entries;
+                    var dates = displayed.map(function(entry) { return normalizeDateKey(entry.workDate); }).filter(Boolean).sort();
+                    var details = displayed.map(function(entry) { return String(entry.workDetail || '').trim(); }).filter(function(text, index, list) { return text && list.indexOf(text) === index; });
+                    projects.push({ project: project, projectId: raw.projectId, maintenanceCode: raw.maintenanceCode, projectName: raw.projectName,
+                        building: '', buildingGroupKey: 'other-work', buildingGroupLabel: '기타 작업', household: 'N/A', taskName: raw.projectName || '작업명 미기재',
+                        entries: entries, displayEntries: displayed, workDetails: details, workStart: dates[0] || '', workEnd: dates[dates.length - 1] || '',
+                        pinCount: dates.length, progress: getProgress(project), poAmount: getProjectPoAmount(project), settlement: getSettlementLabel(project) });
+                });
+                return { other: true, projects: projects, buildings: projects.length ? [{ building: '', buildingGroupKey: 'other-work', buildingGroupLabel: '기타 작업',
+                    households: [{ household: 'N/A', projects: projects }], projects: projects }] : [] };
+            }
+            function householdSearchOptionsHtml(scope) {
+                var other = state['household' + scope + 'Target'] === 'other';
+                var mode = state['household' + scope + 'Match'] || 'all';
+                var style = ' style="max-width:100%;min-width:0;border:1px solid #cbd5e1;border-radius:6px;padding:6px;background:#fff;color:#075985;font-weight:800"';
+                return '<select' + style + ' data-household-search-target="' + scope + '" aria-label="검색 대상">' +
+                    '<option value="household"' + (!other ? ' selected' : '') + '>기존 세대 분석</option><option value="other"' + (other ? ' selected' : '') + '>기타 작업</option></select>' +
+                    '<select' + style + ' data-household-search-match="' + scope + '" aria-label="기타 작업 검색 방식"' + (!other ? ' hidden disabled' : '') + '>' +
+                    '<option value="all"' + (mode === 'all' ? ' selected' : '') + '>복합 검색(모든 단어)</option><option value="phrase"' + (mode === 'phrase' ? ' selected' : '') + '>문구 일치(연속 문자)</option></select>';
+            }
+            function filterHouseholdAnalysis(analysis, query, scope) {
+                var other = state['household' + (scope || 'Main') + 'Target'] === 'other';
+                var source = other ? householdOtherAnalysis(analysis) : analysis;
                 var q = normalizeLookupText(query);
-                if (!q) return analysis;
-                var buildingHousehold = q.match(/^(\d+)동(\d+)호$/);
+                if (!q && !other) return analysis;
+                var address = normalizeText(query).replace(/[‐‑‒–—―−]/g, '-');
+                var shorthand = address.match(/^(\d{1,3})\s*[-/]\s*(\d{2,4})$/);
+                var buildingHousehold = shorthand || q.match(/^(\d+)동(\d+)호?$/);
                 var buildingOnly = q.match(/^(\d+)동$/);
                 var householdOnly = q.match(/^(\d+)호$/);
-                var filtered = { buildings: [], projects: [], householdCount: 0, totalPo: 0 };
-                (analysis.buildings || []).forEach(function(building) {
-                    if (buildingHousehold && String(building.building) !== String(parseInt(buildingHousehold[1], 10))) return;
-                    if (buildingOnly && String(building.building) !== String(parseInt(buildingOnly[1], 10))) return;
+                var words = normalizeText(query).split(/\s+/).filter(Boolean);
+                var phrase = state['household' + (scope || 'Main') + 'Match'] === 'phrase';
+                var filtered = { other: other, buildings: [], projects: [], householdCount: 0, totalPo: 0 };
+                (source.buildings || []).forEach(function(building) {
+                    if (!other && buildingHousehold && String(building.building) !== String(parseInt(buildingHousehold[1], 10))) return;
+                    if (!other && buildingOnly && String(building.building) !== String(parseInt(buildingOnly[1], 10))) return;
                     var buildingLabel = householdBuildingGroupLabel(building);
-                    var buildingMatch = (buildingOnly || buildingHousehold) ? true : (!householdOnly && normalizeLookupText(buildingLabel).indexOf(q) > -1);
-                    var buildingCopy = {
-                        building: building.building,
-                        buildingGroupKey: householdBuildingGroupKey(building),
-                        buildingGroupLabel: buildingLabel,
-                        isRental: !!building.isRental,
-                        households: [], projects: [], poAmount: 0, completed: 0, active: 0
-                    };
+                    var buildingMatch = !other && ((buildingOnly || buildingHousehold) ? true : (!householdOnly && normalizeLookupText(buildingLabel).indexOf(q) > -1));
+                    var buildingCopy = { building: building.building, buildingGroupKey: householdBuildingGroupKey(building), buildingGroupLabel: buildingLabel,
+                        isRental: !!building.isRental, households: [], projects: [], poAmount: 0, completed: 0, active: 0 };
                     (building.households || []).forEach(function(unit) {
-                        if (buildingHousehold && String(unit.household) !== String(parseInt(buildingHousehold[2], 10))) return;
-                        if (householdOnly && String(unit.household) !== String(parseInt(householdOnly[1], 10))) return;
-                        var unitMatch = (householdOnly || buildingHousehold) ? true : (normalizeLookupText(buildingLabel + ' ' + householdUnitDisplayLabel(unit)).indexOf(q) > -1 || normalizeLookupText(householdUnitDisplayLabel(unit)).indexOf(q) > -1);
+                        if (!other && buildingHousehold && String(unit.household) !== String(parseInt(buildingHousehold[2], 10))) return;
+                        if (!other && householdOnly && String(unit.household) !== String(parseInt(householdOnly[1], 10))) return;
+                        var unitMatch = !other && ((householdOnly || buildingHousehold) ? true : (normalizeLookupText(buildingLabel + ' ' + householdUnitDisplayLabel(unit)).indexOf(q) > -1 || normalizeLookupText(householdUnitDisplayLabel(unit)).indexOf(q) > -1));
                         var projects = (unit.projects || []).filter(function(item) {
-                            if (buildingMatch || unitMatch) return true;
-                            return [item.projectName, item.maintenanceCode, item.projectId, item.taskName, (item.workDetails || []).join(' ')].some(function(value) { return normalizeLookupText(value).indexOf(q) > -1; });
+                            if (!other && (buildingMatch || unitMatch)) return true;
+                            var fields = [item.projectName, item.maintenanceCode, item.projectId, item.taskName, (item.workDetails || []).join(' ')];
+                            if (other) {
+                                var text = normalizeText(fields.join(' '));
+                                return phrase ? text.indexOf(normalizeText(query)) > -1 : words.every(function(word) { return text.indexOf(word) > -1; });
+                            }
+                            return fields.some(function(value) { return normalizeLookupText(value).indexOf(q) > -1; });
                         });
                         if (!projects.length) return;
                         var copy = { household: unit.household, projects: projects, poAmount: 0, completed: 0, active: 0, workStart: '', workEnd: '' };
@@ -140984,9 +141039,10 @@ window.openAddNewProjectModal = function(editProject) {
                 }
                 if (state.viewMode === 'household') {
                     var household = state.lastHousehold || analyzeHousehold(true);
-                    var visible = filterHouseholdAnalysis(household, state.householdFullscreenQuery);
-                    return '<div class="work-content-household-fullscreen-tools">' +
-                        '<label class="work-content-household-fullscreen-search"><span aria-hidden="true">⌕</span><input id="workContentHouseholdFullscreenSearch" type="search" value="' + escapeHtml(state.householdFullscreenQuery) + '" placeholder="동·호실은 전체 입력(예: 5동, 101호), 유지관리명·번호 검색, 조합 검색(예: 2동 101호)" autocomplete="off"></label>' +
+                    var visible = filterHouseholdAnalysis(household, state.householdFullscreenQuery, 'Fullscreen');
+                    return '<div style="flex-wrap:wrap !important" class="work-content-household-fullscreen-tools">' +
+                        '<label class="work-content-household-fullscreen-search"><span aria-hidden="true">⌕</span><input id="workContentHouseholdFullscreenSearch" type="search" value="' + escapeHtml(state.householdFullscreenQuery) + '" placeholder="동·호(예: 5-101, 5동 101호) 또는 작업명·번호 검색" autocomplete="off"></label>' +
+                    householdSearchOptionsHtml('Fullscreen') +
                         '<div class="work-content-popup-summary" data-household-fullscreen-summary>' + formatNumber(visible.buildings.length) + '개 동 · ' + formatNumber(visible.householdCount) + '세대 · PO ' + formatNumber(visible.totalPo) + '원</div>' +
                         '<button type="button" class="work-content-household-toggle-all" data-household-toggle="buildings" aria-pressed="' + (state.householdBuildingsExpanded ? 'true' : 'false') + '" title="동 전체 ' + (state.householdBuildingsExpanded ? '접기' : '펼치기') + '">동' + (state.householdBuildingsExpanded ? '−' : '+') + '</button>' +
                         '<button type="button" class="work-content-household-toggle-all" data-household-toggle="units" aria-pressed="' + (state.householdUnitsExpanded ? 'true' : 'false') + '" title="호실 전체 ' + (state.householdUnitsExpanded ? '접기' : '펼치기') + '">호' + (state.householdUnitsExpanded ? '−' : '+') + '</button></div>' +
@@ -141000,6 +141056,7 @@ window.openAddNewProjectModal = function(editProject) {
                 var title = state.viewMode === 'partialSequence' ? '프로젝트별 4공정 부분 시퀀스 - 전체 화면' : (state.viewMode === 'sequence' ? '프로젝트별 4공정 완성 시퀀스 - 전체 화면' : (state.viewMode === 'household' ? '세대내 작업 분석 - 전체 화면' : '개별 작업 연계 목록 - 전체 화면'));
                 if (state.viewMode === 'household') {
                     state.householdFullscreenQuery = '';
+                    state.householdFullscreenTarget = 'household'; state.householdFullscreenMatch = 'all';
                     state.householdBuildingsExpanded = false;
                     state.householdUnitsExpanded = false;
                 }
@@ -141027,10 +141084,10 @@ window.openAddNewProjectModal = function(editProject) {
                 var modal = $('workContentResultFullscreenModal');
                 if (!modal || modal.classList.contains('hidden') || state.viewMode !== 'household') return;
                 var household = state.lastHousehold || analyzeHousehold(true);
-                var visible = filterHouseholdAnalysis(household, state.householdFullscreenQuery);
+                var visible = filterHouseholdAnalysis(household, state.householdFullscreenQuery, 'Fullscreen');
                 var summary = modal.querySelector('[data-household-fullscreen-summary]');
                 var list = modal.querySelector('[data-household-fullscreen-list]');
-                if (summary) summary.textContent = formatNumber(visible.buildings.length) + '개 동 · ' + formatNumber(visible.householdCount) + '세대 · PO ' + formatNumber(visible.totalPo) + '원';
+                if (summary) summary.textContent = householdMainSummaryText(visible);
                 if (list) list.innerHTML = visible.projects.length ? renderHouseholdListHtml(visible, 500, { buildingsExpanded: state.householdBuildingsExpanded, unitsExpanded: state.householdUnitsExpanded }) : '<div style="padding:18px !important; text-align:center !important; color:#64748b !important; font-weight:800 !important;">검색 조건에 맞는 세대내 작업이 없습니다.</div>';
                 if (list) applyHouseholdTablePresentation(list);
                 modal.querySelectorAll('[data-household-toggle="buildings"]').forEach(function(button) { button.setAttribute('aria-pressed', state.householdBuildingsExpanded ? 'true' : 'false'); button.textContent = '동' + (state.householdBuildingsExpanded ? '−' : '+'); button.title = '동 전체 ' + (state.householdBuildingsExpanded ? '접기' : '펼치기'); });
@@ -141081,6 +141138,7 @@ window.openAddNewProjectModal = function(editProject) {
                 state.viewMode = 'household';
                 state.lastHousehold = null;
                 state.householdMainQuery = '';
+                state.householdMainTarget = 'household'; state.householdMainMatch = 'all';
                 state.householdMainBuildingsExpanded = false;
                 state.householdMainUnitsExpanded = false;
                 state.householdMainSearchComposing = false;
@@ -141133,6 +141191,10 @@ window.openAddNewProjectModal = function(editProject) {
             }
             function applyToGantt() {
                 var analysis = isSequenceViewMode() ? analyzeSequence() : (state.viewMode === 'household' ? analyzeHousehold() : analyze());
+                if (state.viewMode === 'household' && state.householdMainTarget === 'other') {
+                    var otherView = filterHouseholdAnalysis(analysis, state.householdMainQuery);
+                    analysis = Object.assign({}, analysis, { query: state.householdMainQuery, mode: state.householdMainMatch, projectIds: otherView.projects.map(function(item) { return item.projectId; }), entries: otherView.projects.reduce(function(out, item) { return out.concat(item.displayEntries || []); }, []) });
+                }
                 state.applied = {
                     viewMode: state.viewMode,
                     query: analysis.query,
@@ -141163,6 +141225,7 @@ window.openAddNewProjectModal = function(editProject) {
             }
             function resetDraft() {
                 state.draft = { query: '', mode: 'contains', start: '', end: '' };
+                state.householdMainQuery = ''; state.householdMainTarget = 'household'; state.householdMainMatch = 'all';
                 state.lastSequence = null;
                 state.lastPartialSequence = null;
                 state.lastHousehold = null;
@@ -141471,7 +141534,7 @@ window.openAddNewProjectModal = function(editProject) {
                         '.work-content-household-linked-section h4 span { color:#0e7490 !important; font-size:12px !important; }',
                         '.work-content-household-linked-section .work-content-household-evidence-wrap { max-height:280px !important; }',
                         '.work-content-household-project-evidence { min-width:1250px !important; }',
-                        '@media (max-width:767px) { #workContentSearchModal .work-content-household-building, .work-content-popup-modal .work-content-household-building { margin:6px !important; } #workContentSearchModal .work-content-household-building > summary, .work-content-popup-modal .work-content-household-building > summary { grid-template-columns:minmax(70px,.7fr) minmax(130px,1.5fr) minmax(100px,auto) !important; min-width:360px !important; padding:8px !important; font-size:11px !important; } #workContentSearchModal .work-content-household-unit > summary, .work-content-popup-modal .work-content-household-unit > summary { grid-template-columns:70px 100px 170px 110px !important; min-width:474px !important; padding:8px !important; font-size:10px !important; } #workContentSearchModal .work-content-household-building, .work-content-popup-modal .work-content-household-building { overflow-x:auto !important; } #workContentSearchModal .work-content-household-table, .work-content-popup-modal .work-content-household-table { min-width:900px !important; } .work-content-household-fullscreen-tools { flex-wrap:wrap !important; } .work-content-household-fullscreen-search { order:3 !important; flex-basis:100% !important; max-width:none !important; } .work-content-household-fullscreen-tools .work-content-popup-summary { margin-left:0 !important; flex:1 1 auto !important; font-size:10px !important; } .work-content-household-evidence { min-width:900px !important; } }',
+                        '@media (max-width:767px) { #workContentSearchModal .work-content-result-panel > div:first-child { flex-wrap:wrap !important; } #workContentSearchModal .work-content-result-panel > div:first-child > div:first-child { flex-wrap:wrap !important; width:100% !important; } #workContentSearchModal #workContentResultTitle { flex:1 0 100% !important; word-break:keep-all !important; } #workContentSearchModal #workContentResultList { min-height:280px !important; } #workContentSearchModal .work-content-household-building, .work-content-popup-modal .work-content-household-building { margin:6px !important; } #workContentSearchModal .work-content-household-building > summary, .work-content-popup-modal .work-content-household-building > summary { grid-template-columns:minmax(70px,.7fr) minmax(130px,1.5fr) minmax(100px,auto) !important; min-width:360px !important; padding:8px !important; font-size:11px !important; } #workContentSearchModal .work-content-household-unit > summary, .work-content-popup-modal .work-content-household-unit > summary { grid-template-columns:70px 100px 170px 110px !important; min-width:474px !important; padding:8px !important; font-size:10px !important; } #workContentSearchModal .work-content-household-building, .work-content-popup-modal .work-content-household-building { overflow-x:auto !important; } #workContentSearchModal .work-content-household-table, .work-content-popup-modal .work-content-household-table { min-width:900px !important; } .work-content-household-fullscreen-tools { flex-wrap:wrap !important; } .work-content-household-fullscreen-search { order:3 !important; flex-basis:100% !important; max-width:none !important; } .work-content-household-fullscreen-tools .work-content-popup-summary { margin-left:0 !important; flex:1 1 auto !important; font-size:10px !important; } .work-content-household-evidence { min-width:900px !important; } }',
                         '.work-content-formula-box { border:1px solid #dbeafe !important; border-radius:8px !important; background:#eff6ff !important; padding:10px !important; margin:0 0 10px !important; }',
                         '.work-content-formula-table { width:100% !important; border-collapse:collapse !important; font-size:12px !important; background:#fff !important; border-radius:6px !important; overflow:hidden !important; }',
                         '.work-content-formula-table th, .work-content-formula-table td { border-bottom:1px solid #e5e7eb !important; padding:8px 10px !important; text-align:left !important; vertical-align:top !important; }',
@@ -142206,6 +142269,17 @@ window.openAddNewProjectModal = function(editProject) {
                     document.addEventListener(type, function(event) {
                         var t = event.target;
                         if (!t) return;
+                        if (t.matches && t.matches('[data-household-search-target], [data-household-search-match]')) {
+                            if (event.type !== 'change') return;
+                            var searchScope = t.getAttribute('data-household-search-target') || t.getAttribute('data-household-search-match');
+                            var isTarget = t.hasAttribute('data-household-search-target');
+                            state['household' + searchScope + (isTarget ? 'Target' : 'Match')] = isTarget ? (t.value === 'other' ? 'other' : 'household') : (t.value === 'phrase' ? 'phrase' : 'all');
+                            var tools = t.closest('.work-content-household-fullscreen-tools');
+                            var match = tools && tools.querySelector('[data-household-search-match]');
+                            if (match) { match.hidden = match.disabled = state['household' + searchScope + 'Target'] !== 'other'; }
+                            if (searchScope === 'Main') updateHouseholdMainResults(); else updateHouseholdFullscreenResults();
+                            return;
+                        }
                         if (t.matches && t.matches('[data-work-period-option]')) return;
                         if (t.matches && t.matches('[data-work-period-type]')) {
                             var toolbar = t.closest('[data-work-period-scope]');

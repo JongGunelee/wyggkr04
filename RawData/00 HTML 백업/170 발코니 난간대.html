@@ -2187,9 +2187,39 @@
       gap: 8px;
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), 0 0 16px rgba(56, 189, 248, 0.2);
       animation: fadeIn 0.2s ease;
+      white-space: nowrap;
+      width: max-content;
+      max-width: 96vw;
+      box-sizing: border-box;
+    }
+    .assembly-hud-bar #assembly-hud-bar-head {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 800;
+      font-size: 11.5px;
+      color: #38bdf8;
+      cursor: grab;
+      user-select: none;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .assembly-hud-bar #assembly-hud-body {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      white-space: nowrap;
     }
     .assembly-hud-bar .rot-slider {
       accent-color: #38bdf8;
+      flex-shrink: 0;
+    }
+    .assembly-hud-bar .rooms-btn,
+    .assembly-hud-bar .win-btn,
+    .assembly-hud-bar .dock-sep {
+      flex-shrink: 0;
+      white-space: nowrap;
     }
     .quick-height-bar {
       position: absolute;
@@ -3156,6 +3186,75 @@
   background: #0f172a;
   font-weight: 800;
   color: #f8fafc;
+}
+
+/* =========================================================================
+   [Phase 100] 진행 현황 근거 데이터 모달 및 상세 테이블 (틀고정, 행 포커스, 갱신행 가독성)
+   ========================================================================= */
+#progress-evidence-modal {
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+}
+#progress-evidence-table {
+  overflow: auto;
+  flex: 1;
+  min-height: 120px;
+  position: relative;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0b1120;
+}
+#progress-evidence-table .evidence-stats-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 11.5px;
+  color: #cbd5e1;
+}
+#progress-evidence-table .evidence-stats-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #1e293b;
+  color: #38bdf8;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-bottom: 2px solid #0284c7;
+  border-right: 1px solid #334155;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+#progress-evidence-table .evidence-stats-table thead th:last-child {
+  border-right: none;
+}
+#progress-evidence-table .evidence-stats-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #1e293b;
+  border-right: 1px solid #1e293b;
+  text-align: center;
+  vertical-align: middle;
+}
+#progress-evidence-table .evidence-stats-table td:last-child {
+  border-right: none;
+}
+#progress-evidence-table .evidence-stats-table tbody tr {
+  transition: background 0.12s ease, outline 0.12s ease;
+  cursor: pointer;
+}
+#progress-evidence-table .evidence-stats-table tbody tr:hover {
+  background: rgba(56, 189, 248, 0.14) !important;
+}
+#progress-evidence-table .evidence-stats-table tbody tr:focus,
+#progress-evidence-table .evidence-stats-table tbody tr.row-focused {
+  background: rgba(56, 189, 248, 0.24) !important;
+  outline: 1.5px solid #38bdf8;
+}
+#progress-evidence-table .evidence-stats-table tbody tr.evidence-row-updated {
+  background: rgba(15, 23, 42, 0.9);
+}
+#progress-evidence-table .evidence-stats-table tbody tr.evidence-row-uninspected {
+  background: rgba(11, 17, 32, 0.5);
+  color: #94a3b8;
 }
 
 /* =========================================================================
@@ -4843,14 +4942,15 @@ body.model-fullscreen #model-fullscreen-open{display:none}
   </div>
 
   <!-- [Phase 32] 상단 중앙 전용 독립 플로팅 조립도 HUD 슬라이더 바 (#assembly-hud-bar) : 독립 이동/접기/펴기/닫기 완벽 지원 -->
+  <!-- [Phase 109] flex-shrink: 0 및 white-space: nowrap 영구 적용으로 텍스트 수직 깨짐 차단 및 38px 슬림 단일 라인 무결성 보장 -->
   <div id="assembly-hud-bar" class="assembly-hud-bar" style="display: none;">
-    <div id="assembly-hud-bar-head" style="display: flex; align-items: center; gap: 5px; font-weight: 800; font-size: 11.5px; color: #38bdf8; cursor: grab; user-select: none;" title="시공 조립도 슬라이더 바 마우스 드래그 이동">
-      <span style="font-size: 13px; color: #94a3b8;">⠿</span>
-      <span style="font-size: 14px;">🏗️</span>
-      <span>시공 조립도</span>
+    <div id="assembly-hud-bar-head" style="display: flex; align-items: center; gap: 5px; font-weight: 800; font-size: 11.5px; color: #38bdf8; cursor: grab; user-select: none; flex-shrink: 0; white-space: nowrap;" title="시공 조립도 슬라이더 바 마우스 드래그 이동">
+      <span style="font-size: 13px; color: #94a3b8; flex-shrink: 0;">⠿</span>
+      <span style="font-size: 14px; flex-shrink: 0;">🏗️</span>
+      <span style="white-space: nowrap; flex-shrink: 0; display: inline-block;">시공 조립도</span>
     </div>
-    <div class="dock-sep" style="height: 16px; margin: 0 4px;"></div>
-    <div id="assembly-hud-body" style="display: flex; align-items: center; gap: 6px;">
+    <div class="dock-sep" style="height: 16px; margin: 0 4px; flex-shrink: 0;"></div>
+    <div id="assembly-hud-body" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap;">
       <button class="rooms-btn" onclick="prevAssemblyStep()" style="padding: 3px 8px; font-size: 11px;" title="이전 시공 단계 (◀)">◀ 이전</button>
       <div style="display: flex; align-items: center; gap: 8px;">
         <input type="range" class="rot-slider" id="slider-assembly-hud" min="0" max="1" step="0.005" value="1.0" oninput="onAssemblySliderInput(this.value)" style="width: 140px; cursor: pointer;" title="시공 순서 슬라이더 (0% 완전 분해 ~ 100% 완전 조립)" />
@@ -4860,6 +4960,18 @@ body.model-fullscreen #model-fullscreen-open{display:none}
       <button class="rooms-btn primary" id="btn-assembly-hud-play" onclick="toggleAssemblyPlay()" style="padding: 3px 10px; font-size: 11px; font-weight: 700;" title="조립 애니메이션 자동 재생">▶ 자동재생</button>
       <button class="rooms-btn" onclick="setCameraView('exploded')" style="padding: 3px 8px; font-size: 11px;" title="추천 3/4 액소노메트릭 분해 시점">📷 시점</button>
       <button class="rooms-btn" onclick="WindowManager.toggle('assembly-panel')" style="padding: 3px 8px; font-size: 11px;" title="상세 시공 설명 및 단계 패널 열기/닫기">📋 상세창</button>
+      <div class="dock-sep" style="height: 16px; margin: 0 3px;"></div>
+      <div style="position: relative; display: inline-flex; align-items: center; gap: 3px;">
+        <button type="button" class="rooms-btn" id="btn-assembly-marker-menu" onclick="AssemblyMarkerManager.toggleMenu(event)" style="padding: 3px 7px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 4px;" title="시공 조립도 내 마커(P, BP, Hs) 개별/일괄 표시 및 숨김 설정">
+          <span>📍 마커</span>
+          <span id="badge-assembly-markers-status" style="font-size: 9.5px; padding: 1px 5px; border-radius: 8px; background: rgba(148,163,184,0.18); color: #94a3b8; font-weight: 600;">숨김 (기본)</span>
+          <span style="font-size: 9px; opacity: 0.7;">▾</span>
+        </button>
+        <button type="button" class="rooms-btn" id="btn-assembly-grp-p" onclick="AssemblyMarkerManager.toggleGroup('P')" style="padding: 3px 6px; font-size: 10.5px; font-weight: 700; color: #94a3b8;" title="P1~P6 외벽 앙커 마커 일괄 표시/숨김 토글">P</button>
+        <button type="button" class="rooms-btn" id="btn-assembly-grp-bp" onclick="AssemblyMarkerManager.toggleGroup('BP')" style="padding: 3px 6px; font-size: 10.5px; font-weight: 700; color: #94a3b8;" title="BP1~BP6 하부 지주 마커 일괄 표시/숨김 토글">BP</button>
+        <button type="button" class="rooms-btn" id="btn-assembly-grp-hs" onclick="AssemblyMarkerManager.toggleGroup('Hs')" style="padding: 3px 6px; font-size: 10.5px; font-weight: 700; color: #94a3b8;" title="Hs 수평 파이프 마커 표시/숨김 토글">Hs</button>
+        <div id="assembly-markers-dropdown" style="display: none; position: absolute; top: calc(100% + 8px); left: 0; min-width: 320px; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; box-shadow: 0 14px 34px rgba(0,0,0,0.7), 0 0 16px rgba(56, 189, 248, 0.2); padding: 10px 12px; z-index: 10001; font-size: 11px; color: #e2e8f0;"></div>
+      </div>
     </div>
     <button class="win-btn" onclick="toggleAssemblyHudCollapse()" style="margin-left: 2px; padding: 0 4px; font-size: 11px;" title="슬라이더 바 접기/펴기">−</button>
     <button class="win-btn win-btn-close" onclick="setAssemblyHudVisible(false)" style="margin-left: 2px; padding: 0 4px; font-size: 11px;" title="슬라이더 바 닫기">✕</button>
@@ -5529,6 +5641,22 @@ body.model-fullscreen #model-fullscreen-open{display:none}
     </div>
     <div class="window-body" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
 
+        <!-- 0. [Phase 100] 건축 구조물 가시성 (외벽·발코니 내부 숨김 및 난간대 단독 뷰) 제어 섹션 -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 8px 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-weight: 700; color: #38bdf8; font-size: 11.5px; display: flex; align-items: center; gap: 5px;">
+              <span>🏢</span> 건축 구조물 가시성 (외벽·발코니)
+            </span>
+            <span id="badge-building-visibility" style="font-size: 9.5px; padding: 2px 6px; border-radius: 4px; font-weight: 700; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">전체 표시 (기본)</span>
+          </div>
+          <div style="font-size: 9.5px; color: #94a3b8; line-height: 1.4; margin-bottom: 6px;">
+            외벽·창호에 가려진 난간대 부재와 앙커를 선명히 확인하려면 임시 숨김으로 전환하세요.
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button type="button" class="qhb-btn active" id="btn-building-show" onclick="setBuildingStructureVisibility(true)" style="flex: 1; text-align: center; font-size: 10.5px; padding: 4px 6px;" title="건물 외벽, 창호, 발코니 내부 등 모든 건축 구조물 표시 (기본값)">🏢 전체 표시 (기본)</button>
+            <button type="button" class="qhb-btn" id="btn-building-hide" onclick="setBuildingStructureVisibility(false)" style="flex: 1.2; text-align: center; font-size: 10.5px; padding: 4px 6px;" title="외벽 및 발코니를 임시 숨기고 난간대·부재·마커만 단독 표시">✨ 난간대만 표시 (건축물 숨김)</button>
+          </div>
+        </div>
 
         <!-- 1. 높이 조절 섹션 -->
         <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 8px 10px;">
@@ -6874,6 +7002,8 @@ body.model-fullscreen #model-fullscreen-open{display:none}
     let depthControlMode = 'all';
     let isWallChamferEnabled = false;
     let wallChamferGroup = null;
+    let isBuildingStructureVisible = true;
+    let archStructureGroup = null;
     let handrailHeight = 2.00; // 기본값: 2.00m (원래 2.50m 대비 -0.5m 낮음 - 사용자 요청 반영)
     let stressGradTex = null;
 
@@ -7080,8 +7210,8 @@ body.model-fullscreen #model-fullscreen-open{display:none}
         this.syncDockBtn(id, true);
         if (id === 'rot-panel') rotSettingsBarVisible = true;
         if (id === 'assembly-panel') {
-          // [Phase 32] assembly-panel 열기 시 HUD 바도 함께 열리도록 보장
-          if (!isAssemblyModeActive) setAssemblyMode(true);
+          // [Phase 32] assembly-panel 열기 시 HUD 바도 함께 열리도록 보장 (상세창 직접 열기)
+          if (!isAssemblyModeActive) setAssemblyMode(true, { showPanel: true, silent: true });
         }
       },
 
@@ -7149,7 +7279,13 @@ body.model-fullscreen #model-fullscreen-open{display:none}
         const btnId = map[id];
         if (btnId) {
           const btn = document.getElementById(btnId);
-          if (btn) btn.classList.toggle('active', isActive);
+          if (btn) {
+            if (id === 'assembly-panel') {
+              btn.classList.toggle('active', typeof isAssemblyModeActive !== 'undefined' ? isAssemblyModeActive : isActive);
+            } else {
+              btn.classList.toggle('active', isActive);
+            }
+          }
         }
       },
 
@@ -8859,7 +8995,7 @@ const InspectionAnalytics={
   const s=ProgressDashboard.current(),view=ProgressDashboard.viewSnapshot(s,owner||ProgressDashboard.filterOwner),a=this.analyse(view),chart=typeof index==='number'?ProgressDashboard.charts(view)[index]:null;
   const category=event?.target?.closest('[data-category]')?.dataset.category||'';
   const selectedIds=new Set(a.rooms.map(r=>r.id));let rooms=a.rooms,points=view.points.filter(p=>p.selected&&selectedIds.has(p.roomId));
-  if(chart&&[0,1,3].includes(index)&&category)rooms=rooms.filter(r=>category.replace(/^\[[^\]]*\]\s*/,'')===r.building);
+  if(chart&&[0,1,3].includes(index)&&category)rooms=rooms.filter(r=>category.replace(/^[[^]]*]s*/,'')===r.building);
   if(index===6)rooms=rooms.filter(r=>this.valid(r.date));
   if(index===9)rooms=rooms.filter(r=>this.valid(r.constructDate));
   if(index==='kpi'&&event===2)rooms=rooms.filter(r=>r.stage==='complete');
@@ -8874,13 +9010,124 @@ const InspectionAnalytics={
   }
   const rows=pointChart?points.map(p=>{const r=RoomIndex.get(p.roomId);return {'세대ID':p.roomId,'건물동':p.building,'호실':getRoomDisplayLabel(r),'부위':p.key,'상태':({uninspected:'미점검',danger:'위험',warning:'주의',good:'양호',repaired:'조치완료'})[p.status],'진행':p.progress,'결함 내용':r.points[p.key].defect||'','보강 공법':r.points[p.key].action||'','집행비':p.cost};}):rooms.map(r=>({'세대ID':r.id,'건물동':r.building,'소속':r.owner,'호실':getRoomDisplayLabel(RoomIndex.get(r.id)),'점검인':r.inspector,'점검 날짜':r.date,'시공사':r.contractor,'시공 날짜':r.constructDate,'점검 단계':({complete:'점검완료',in_progress:'점검중',uninspected:'미점검'})[r.stage],'집행비':r.cost}));
   this.close();this.evidence={rows,page:0,title:(chart?.title||'선택 건물주 점검 근거')+(category?' · '+category:''),query:''};
-  const modal=document.createElement('div');modal.id='progress-evidence-modal';modal.className='app-window';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.style.cssText='display:flex;flex-direction:column;position:fixed;left:4vw;top:8vh;width:92vw;max-height:84vh;z-index:12000;background:#0f172a;color:#e2e8f0;border:1px solid #38bdf8;border-radius:12px;padding:16px;box-sizing:border-box;';
-  modal.innerHTML='<div style="display:flex;justify-content:space-between"><strong id="progress-evidence-title"></strong><button class="rooms-btn" onclick="InspectionAnalytics.close()" aria-label="근거 데이터 닫기">닫기 ×</button></div><p>선택된 실제 점검 원본만 사용합니다. 연도는 현재 저장된 점검·시공일 기준이며 과거 상태 이력은 아닙니다. 날짜 미입력 기록은 연도 집계에서 제외합니다.</p><div><input id="progress-evidence-search" placeholder="세대·부위·입력 내용 검색" oninput="InspectionAnalytics.evidence.query=this.value;InspectionAnalytics.evidence.page=0;InspectionAnalytics.renderEvidence()"><button class="rooms-btn" onclick="InspectionAnalytics.exportEvidence()">근거 데이터 Excel</button></div><div id="progress-evidence-table" style="overflow:auto;flex:1;min-height:100px"></div><div><button class="rooms-btn" onclick="InspectionAnalytics.page(-1)">이전</button><span id="progress-evidence-count"></span><button class="rooms-btn" onclick="InspectionAnalytics.page(1)">다음</button></div>';
+  const modal=document.createElement('div');modal.id='progress-evidence-modal';modal.className='app-window';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.style.cssText='display:flex;flex-direction:column;position:fixed;left:4vw;top:8vh;width:92vw;max-height:84vh;z-index:12000;background:#0f172a;color:#e2e8f0;border:1px solid #38bdf8;border-radius:12px;padding:16px;box-sizing:border-box;box-shadow:0 25px 60px rgba(0,0,0,0.75);';
+  modal.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:18px">📊</span>
+      <strong id="progress-evidence-title" style="font-size:15px;color:#38bdf8"></strong>
+    </div>
+    <button class="rooms-btn" onclick="InspectionAnalytics.close()" aria-label="근거 데이터 닫기" style="padding:4px 10px;font-size:12px">닫기 ×</button>
+  </div>
+  <p style="font-size:11.5px;color:#94a3b8;margin:0 0 10px 0;line-height:1.5">선택된 실제 점검 원본만 사용합니다. 연도는 현재 저장된 점검·시공일 기준이며 과거 상태 이력은 아닙니다. 날짜 미입력 기록은 연도 집계에서 제외합니다.</p>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+    <input id="progress-evidence-search" placeholder="세대·부위·입력 내용 검색" oninput="InspectionAnalytics.evidence.query=this.value;InspectionAnalytics.evidence.page=0;InspectionAnalytics.renderEvidence()" style="flex:1;background:#1e293b;color:#f8fafc;border:1px solid #475569;border-radius:6px;padding:6px 12px;font-size:12px">
+    <button class="rooms-btn excel-save-btn" onclick="InspectionAnalytics.exportEvidence()">근거 데이터 Excel</button>
+  </div>
+  <div id="progress-evidence-table"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;flex-wrap:wrap;gap:8px">
+    <div>
+      <button class="rooms-btn" onclick="InspectionAnalytics.page(-1)">이전</button>
+      <span id="progress-evidence-count"></span>
+      <button class="rooms-btn" onclick="InspectionAnalytics.page(1)">다음</button>
+    </div>
+    <div style="font-size:11px;color:#94a3b8;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <span style="display:inline-flex;align-items:center;gap:4px"><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(16,185,129,0.3);border:1px solid #10b981"></i> 점검완료 (확인)</span>
+      <span style="display:inline-flex;align-items:center;gap:4px"><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(245,158,11,0.3);border:1px solid #f59e0b"></i> 점검중 / 확인필요</span>
+      <span style="display:inline-flex;align-items:center;gap:4px"><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#1e293b;border:1px solid #475569"></i> 미점검 (기본 유지)</span>
+      <span style="color:#64748b;">| 행 클릭 시 포커스 강조</span>
+    </div>
+  </div>`;
   document.body.append(modal);this.renderEvidence();
  },
  filtered(){const e=this.evidence;return e.rows.filter(r=>!e.query||Object.values(r).some(v=>String(v).toLowerCase().includes(e.query.toLowerCase())));},
  page(delta){const rows=this.filtered();this.evidence.page=Math.min(Math.max(0,this.evidence.page+delta),Math.max(0,Math.ceil(rows.length/100)-1));this.renderEvidence();},
- renderEvidence(){const e=this.evidence,esc=ProgressDashboard.esc,rows=this.filtered(),page=rows.slice(e.page*100,e.page*100+100),keys=Object.keys(rows[0]||{});document.getElementById('progress-evidence-title').textContent=e.title;document.getElementById('progress-evidence-count').textContent=' '+rows.length+'건 · '+(e.page+1)+'/'+Math.max(1,Math.ceil(rows.length/100))+'쪽 · 집행비 합계 '+rows.reduce((n,r)=>n+r['집행비'],0).toLocaleString()+'원 ';document.getElementById('progress-evidence-table').innerHTML='<table class="rooms-stats-table"><thead><tr>'+keys.map(k=>'<th>'+esc(k)+'</th>').join('')+'<th>원본 점검서</th></tr></thead><tbody>'+page.map(r=>'<tr>'+keys.map(k=>'<td>'+esc(r[k])+'</td>').join('')+'<td><button class="rooms-btn" onclick="InspectionAnalytics.openReport(\''+esc(r['세대ID'])+'\')">점검서</button></td></tr>').join('')+'</tbody></table>'+(rows.length?'':'<p>해당 근거 기록이 없습니다.</p>');},
+ focusRow(tr){
+  if(!tr)return;
+  const tbody=tr.closest('tbody');
+  if(tbody){
+   tbody.querySelectorAll('tr.row-focused').forEach(r=>{if(r!==tr)r.classList.remove('row-focused');});
+  }
+  tr.classList.toggle('row-focused');
+ },
+ formatCell(k,val,r){
+  const esc=ProgressDashboard.esc;
+  const str=String(val??'').trim();
+  if(k==='점검 단계'){
+   if(str==='점검완료'){
+    const missing=!r['점검인']||!r['점검 날짜'];
+    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;background:rgba(16,185,129,0.2);color:#34d399;border:1px solid rgba(16,185,129,0.4);">✓ 점검완료${missing?' <span title="점검인 또는 날짜 누락: 사용자 확인 필요" style="background:#f59e0b;color:#0f172a;font-size:9.5px;padding:1px 4px;border-radius:3px;font-weight:800;">⚠️확인필요</span>':''}</span>`;
+   }
+   if(str==='점검중'){
+    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.4);">⚡ 점검중</span>`;
+   }
+   return `<span style="color:#94a3b8;">미점검</span>`;
+  }
+  if(k==='상태'){
+   if(str==='위험')return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;background:rgba(239,68,68,0.22);color:#fca5a5;border:1px solid #ef4444;">🚨 위험</span>`;
+   if(str==='주의')return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;background:rgba(245,158,11,0.22);color:#fcd34d;border:1px solid #f59e0b;">⚠️ 주의</span>`;
+   if(str==='양호')return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;background:rgba(16,185,129,0.22);color:#6ee7b7;border:1px solid #10b981;">✓ 양호</span>`;
+   if(str==='조치완료')return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;background:rgba(59,130,246,0.22);color:#93c5fd;border:1px solid #3b82f6;">🛠️ 조치완료</span>`;
+   return `<span style="color:#94a3b8;">미점검</span>`;
+  }
+  if(k==='진행'){
+   if(str&&str!=='미점검'){
+    return `<span style="padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;background:rgba(56,189,248,0.2);color:#38bdf8;border:1px solid rgba(56,189,248,0.35);">${esc(str)}</span>`;
+   }
+   return `<span style="color:#94a3b8;">미점검</span>`;
+  }
+  if(k==='집행비'){
+   const n=Number(val)||0;
+   if(n>0)return `<span style="color:#fbbf24;font-weight:700;">₩${n.toLocaleString()}원</span>`;
+   return `<span style="color:#64748b;">-</span>`;
+  }
+  if(['점검인','시공사'].includes(k)){
+   if(str)return `<strong style="color:#f8fafc;font-weight:700;">${esc(str)}</strong>`;
+   return `<span style="color:#64748b;">-</span>`;
+  }
+  if(['점검 날짜','시공 날짜'].includes(k)){
+   if(str)return `<span style="color:#38bdf8;font-family:monospace;font-size:11px;font-weight:600;">${esc(str)}</span>`;
+   return `<span style="color:#64748b;">-</span>`;
+  }
+  if(['결함 내용','보강 공법'].includes(k)){
+   if(str)return `<span style="color:#f8fafc;font-weight:600;">${esc(str)}</span>`;
+   return `<span style="color:#64748b;">-</span>`;
+  }
+  return esc(str);
+ },
+ rowStyle(r){
+  const isPoint='부위' in r;
+  if(isPoint){
+   const uninspected=r['상태']==='미점검'&&(!r['진행']||r['진행']==='미점검');
+   if(uninspected)return {cls:'evidence-row-uninspected',style:'border-left:3px solid transparent;'};
+   let bCol='#38bdf8',bg='rgba(56,189,248,0.04)';
+   if(r['상태']==='위험'){bCol='#ef4444';bg='rgba(239,68,68,0.08)';}
+   else if(r['상태']==='주의'){bCol='#f59e0b';bg='rgba(245,158,11,0.08)';}
+   else if(r['상태']==='양호'){bCol='#10b981';bg='rgba(16,185,129,0.06)';}
+   else if(r['상태']==='조치완료'){bCol='#3b82f6';bg='rgba(59,130,246,0.06)';}
+   return {cls:'evidence-row-updated',style:`border-left:3px solid ${bCol};background:${bg};`};
+  }else{
+   const uninspected=r['점검 단계']==='미점검'&&!r['점검인']&&!r['점검 날짜']&&!r['시공사']&&!r['시공 날짜']&&(!r['집행비']||r['집행비']===0);
+   if(uninspected)return {cls:'evidence-row-uninspected',style:'border-left:3px solid transparent;'};
+   const isComplete=r['점검 단계']==='점검완료';
+   const bCol=isComplete?'#10b981':'#f59e0b';
+   const bg=isComplete?'rgba(16,185,129,0.06)':'rgba(245,158,11,0.06)';
+   return {cls:'evidence-row-updated',style:`border-left:3px solid ${bCol};background:${bg};`};
+  }
+ },
+ renderEvidence(){
+  const e=this.evidence,esc=ProgressDashboard.esc,rows=this.filtered(),page=rows.slice(e.page*100,e.page*100+100),keys=Object.keys(rows[0]||{});
+  document.getElementById('progress-evidence-title').textContent=e.title;
+  document.getElementById('progress-evidence-count').textContent=' '+rows.length+'건 · '+(e.page+1)+'/'+Math.max(1,Math.ceil(rows.length/100))+'쪽 · 집행비 합계 '+rows.reduce((n,r)=>n+r['집행비'],0).toLocaleString()+'원 ';
+  let tableHtml='<table class="evidence-stats-table"><thead><tr>'+keys.map(k=>'<th>'+esc(k)+'</th>').join('')+'<th>원본 점검서</th></tr></thead><tbody>';
+  tableHtml+=page.map(r=>{
+   const {cls,style}=this.rowStyle(r);
+   return `<tr class="${cls}" style="${style}" tabindex="0" onclick="InspectionAnalytics.focusRow(this)" title="행 클릭 시 포커스 강조">`+
+     keys.map(k=>'<td>'+this.formatCell(k,r[k],r)+'</td>').join('')+
+     `<td><button class="rooms-btn" onclick="InspectionAnalytics.openReport('${esc(r['세대ID'])}')">점검서</button></td></tr>`;
+  }).join('');
+  tableHtml+='</tbody></table>'+(rows.length?'':'<p style="text-align:center;padding:24px;color:#94a3b8;">해당 근거 기록이 없습니다.</p>');
+  document.getElementById('progress-evidence-table').innerHTML=tableHtml;
+ },
  openReport(id){this.close();WorkbookManager.activateTab('sheet-rooms');WorkbookManager.openRoomDetailModal(id);},
  exportEvidence(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(this.filtered()),'분석_근거');XLSX.writeFile(wb,'안전점검_분석근거.xlsx');}
 };
@@ -17352,6 +17599,7 @@ const WorkbookManager = {
 
         function init() {
       ModelParameters.restoreLocal();
+      if (typeof AssemblyMarkerManager !== 'undefined') AssemblyMarkerManager.init();
       const canvas = document.getElementById('webgl-canvas');
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0xa2bad2);
@@ -17465,6 +17713,12 @@ const WorkbookManager = {
        4. 건축 외벽 파사드 및 베란다 창호 (사진 4 완벽 일치)
        ========================================================================= */
     function buildRealFacade() {
+      if (!archStructureGroup) {
+        archStructureGroup = new THREE.Group();
+        archStructureGroup.name = 'archStructureGroup';
+        scene.add(archStructureGroup);
+      }
+      archStructureGroup.visible = isBuildingStructureVisible;
       const wallTex = makeWallTexture();
       const wallMat = new THREE.MeshStandardMaterial({
         map: wallTex,
@@ -17524,13 +17778,13 @@ const WorkbookManager = {
       const topWall = new THREE.Mesh(new THREE.BoxGeometry(totalW, 0.75, 0.20), wallMat);
       topWall.position.set(0, 3.275, -0.10);
       topWall.receiveShadow = true;
-      scene.add(topWall);
+      archStructureGroup.add(topWall);
 
       // 2) 좌측 후퇴 외벽 (X = -4.25m ~ -2.18m, 폭 2.07m, 중심 X = -3.215m)
       const leftWall = new THREE.Mesh(new THREE.BoxGeometry(2.07, 2.10, 0.20), wallMat);
       leftWall.position.set(-3.215, 1.85, -0.10);
       leftWall.receiveShadow = true;
-      scene.add(leftWall);
+      archStructureGroup.add(leftWall);
 
       // [현장 실사 사진 100% 매칭] 돌출 발코니 베이 좌측 측면 마감 벽체 (Side Return Wall, Z: -0.10m ~ +0.035m, Y: 0.80m ~ 2.90m)
       const leftBaySideWall = new THREE.Mesh(
@@ -17539,7 +17793,7 @@ const WorkbookManager = {
       );
       leftBaySideWall.position.set(bayLeftX - 0.04, 1.85, (bayFrontZ - 0.10) / 2);
       leftBaySideWall.receiveShadow = true;
-      scene.add(leftBaySideWall);
+      archStructureGroup.add(leftBaySideWall);
 
       // 3) [돌출부 좌측 외벽 잼(Jamb) 체결 벽체] (X: -2.18m ~ -2.02m, 폭 0.16m, 중심 X = -2.10m)
       //    [현장 실사 사진 100% 매칭: 인위적인 짙은 회색 띠 완전 영구 소거, 순백색 외벽으로 통일]
@@ -17547,7 +17801,7 @@ const WorkbookManager = {
       const leftJambWall = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.85, 0.22), wallMat);
       leftJambWall.position.set(-2.10, 1.975, bayFrontZ - 0.11);
       leftJambWall.receiveShadow = true;
-      scene.add(leftJambWall);
+      archStructureGroup.add(leftJambWall);
 
       // [현장 실사 사진 100% 매칭: 창호틀 직접 맞닿음]
       // 거실 창호 우측틀(+2.02m)과 반창 좌측틀(+2.02m)이 직접 맞닿으므로(커플링 바), 중간 분리벽을 소거하고
@@ -17558,13 +17812,13 @@ const WorkbookManager = {
       const underBalconyWall = new THREE.Mesh(new THREE.BoxGeometry(bayW, 0.25, 0.22), wallMat);
       underBalconyWall.position.set(0, 0.925, bayFrontZ - 0.11);
       underBalconyWall.receiveShadow = true;
-      scene.add(underBalconyWall);
+      archStructureGroup.add(underBalconyWall);
 
       // 발코니 창문 하부 돌출 물끊기 실 몰딩 (현장 실사 사진 100% 매칭: 짙은 회색 배제, 창호 일체형 백색/알루미늄 실 몰딩)
       const balconySill = new THREE.Mesh(new THREE.BoxGeometry(DIMS.winW + 0.04, 0.035, 0.06), sillMat);
       balconySill.position.set(0, 1.04, bayFrontZ - 0.005);
       balconySill.receiveShadow = true;
-      scene.add(balconySill);
+      archStructureGroup.add(balconySill);
 
       // 5) [사용자 요청 완벽 반영: 반창 높이 축소 & 4번 앙커 간섭 0% 완전 박멸]
       //    - 우측 인접 방 2짝 반창 하단 외벽체 (X: +2.02m ~ +3.62m, 폭 1.60m, 중심 X=+2.82m)
@@ -17573,7 +17827,7 @@ const WorkbookManager = {
       const underRightWall = new THREE.Mesh(new THREE.BoxGeometry(1.60, 1.48, 0.25), wallMat);
       underRightWall.position.set(2.82, 1.54, bayFrontZ - 0.125);
       underRightWall.receiveShadow = true;
-      scene.add(underRightWall);
+      archStructureGroup.add(underRightWall);
 
       // [현장 실사 사진 100% 매칭] 우측 반창 하부 외벽의 은은한 세로 빗물 흐름 자국 (Subtle Rain Streak)
       const streakMat = new THREE.MeshStandardMaterial({
@@ -17584,19 +17838,19 @@ const WorkbookManager = {
       });
       const rainStreak = new THREE.Mesh(new THREE.PlaneGeometry(0.045, 0.70), streakMat);
       rainStreak.position.set(2.64, 1.65, bayFrontZ + 0.002);
-      scene.add(rainStreak);
+      archStructureGroup.add(rainStreak);
 
       // 우측 반창 창문 하부 돌출 물끊기 실 몰딩 (Y=2.28m, 우측 4번 앙커 플랜지 및 덮개 캡과 222mm 안전 분리)
       const rightSill = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.035, 0.06), sillMat);
       rightSill.position.set(2.83, 2.28, bayFrontZ - 0.01);
       rightSill.receiveShadow = true;
-      scene.add(rightSill);
+      archStructureGroup.add(rightSill);
 
       // 6) 우측 외벽 (X=+3.62m ~ +4.25m, 폭 0.63m, 중심 X=+3.935m)
       const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.63, 2.10, 0.20), wallMat);
       rightWall.position.set(3.935, 1.85, -0.10);
       rightWall.receiveShadow = true;
-      scene.add(rightWall);
+      archStructureGroup.add(rightWall);
 
       // -----------------------------------------------------------------
       // B. [현장 사진 핵심] 상부 일체형 차양/물받이 턱 (Continuous Top Lintel / Eyebrow Drip Hood)
@@ -17606,7 +17860,7 @@ const WorkbookManager = {
       topHood.position.set(0.815, 2.932, 0.015);
       topHood.castShadow = true;
       topHood.receiveShadow = true;
-      scene.add(topHood);
+      archStructureGroup.add(topHood);
 
       // [현장 실사 사진 100% 매칭] 상부 차양 좌측 코너 리턴 캡 (Left Eyebrow Hood Return, 사진 좌측 상단 모서리 돌출 캡핑)
       const topHoodReturn = new THREE.Mesh(
@@ -17616,7 +17870,7 @@ const WorkbookManager = {
       topHoodReturn.position.set(bayLeftX - 0.04, 2.932, (bayFrontZ - 0.04) / 2);
       topHoodReturn.castShadow = true;
       topHoodReturn.receiveShadow = true;
-      scene.add(topHoodReturn);
+      archStructureGroup.add(topHoodReturn);
 
       // -----------------------------------------------------------------
       // C. [실사 창호 시스템 구축] (메인 4짝 발코니 창문 + 우측 2짝 인접 창문)
@@ -17637,7 +17891,7 @@ const WorkbookManager = {
       );
       upperSlab.position.set(0, 3.73, 0.02);
       upperSlab.receiveShadow = true;
-      scene.add(upperSlab);
+      archStructureGroup.add(upperSlab);
 
       // -----------------------------------------------------------------
       // F. [층간 먹색 띠장 몰딩] (사진 하단: 2층 외벽 하단선 Y=0.80m 바로 밑에 밀착)
@@ -17646,7 +17900,7 @@ const WorkbookManager = {
       const band = new THREE.Mesh(new THREE.BoxGeometry(totalW, 0.20, 0.22), bandMat);
       band.position.set(0, 0.70, -0.01);
       band.receiveShadow = true;
-      scene.add(band);
+      archStructureGroup.add(band);
 
       // -----------------------------------------------------------------
       // G. [1층/아래층 외벽 및 창호 상부 프레임] (사진 최하단 실사 연출)
@@ -17659,18 +17913,18 @@ const WorkbookManager = {
       const lowerWall = new THREE.Mesh(new THREE.BoxGeometry(totalW, 0.75, 0.20), lowerWallMat);
       lowerWall.position.set(0, 0.225, -0.10);
       lowerWall.receiveShadow = true;
-      scene.add(lowerWall);
+      archStructureGroup.add(lowerWall);
 
       // 아래층 창호 상단부 (사진 최하단 창호 프레임 노출 재현)
       const win1FFrame = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.06, 0.08), frameWhiteMat);
       win1FFrame.position.set(0.0, 0.52, -0.02);
-      scene.add(win1FFrame);
+      archStructureGroup.add(win1FFrame);
       const win1FGlass = new THREE.Mesh(
         new THREE.PlaneGeometry(3.7, 0.45),
         new THREE.MeshStandardMaterial({ color: 0x3d6e7b, roughness: 0.08, metalness: 0.35, transparent: true, opacity: 0.75 })
       );
       win1FGlass.position.set(0.0, 0.26, -0.02);
-      scene.add(win1FGlass);
+      archStructureGroup.add(win1FGlass);
     }
 
     // 베란다 창호 시스템 (현장 실사 사진 100% 매칭: 메인 4짝 발코니 창문 + 우측 2짝 인접 반창)
@@ -17842,7 +18096,7 @@ const WorkbookManager = {
 
       winGroup.add(rightGroup);
 
-      scene.add(winGroup);
+      (archStructureGroup || scene).add(winGroup);
     }
 
     /* =========================================================================
@@ -18160,7 +18414,7 @@ const WorkbookManager = {
       ceilingLight.position.set(centerX, ceilingY - 0.20, (startZ + endZ) / 2);
       g.add(ceilingLight);
 
-      scene.add(g);
+      (archStructureGroup || scene).add(g);
     }
 
     function buildSecurityWindow(x, y) {
@@ -18184,7 +18438,7 @@ const WorkbookManager = {
         bar.position.set(bx, 0, 0.06);
         g.add(bar);
       }
-      scene.add(g);
+      (archStructureGroup || scene).add(g);
     }
 
     /* =========================================================================
@@ -18607,6 +18861,28 @@ const WorkbookManager = {
         const bQ = document.getElementById(`btn-qhb-d-${pr.id}`);
         if (bQ) bQ.classList.toggle('active', isAct);
       });
+
+      // [Phase 105] 직관 파이프(Standoff) 슬라이더 및 라벨도 깊이 변경 시 실시간 UI 동기화
+      if (typeof LEGACY_POINT_KEYS !== 'undefined' && typeof pointDefinition === 'function') {
+        const setValue = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+        const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        LEGACY_POINT_KEYS.forEach(key => {
+          const k = pointDefinition(key).anchorKey;
+          setValue('slider-adjust-pipe-' + k, anchorPipeLengths[k]);
+          setValue('slider-pipe-' + k, anchorPipeLengths[k]);
+          setText('label-adjust-pipe-' + k, Math.round(anchorPipeLengths[k] * 1000) + 'mm');
+          setText('label-pipe-' + k, Math.round(anchorPipeLengths[k] * 1000) + 'mm');
+        });
+        ['left', 'right'].forEach(side => {
+          const keys = LEGACY_POINT_KEYS.map(k => pointDefinition(k).anchorKey).filter(k => k.startsWith(side));
+          const values = keys.map(k => anchorPipeLengths[k]);
+          const same = values.every(v => v === values[0]);
+          setValue('slider-adjust-pipe-' + side, values[0]);
+          setValue('slider-pipe-' + side, values[0]);
+          setText('label-adjust-pipe-' + side, same ? Math.round(values[0] * 1000) + 'mm' : '개별값');
+          setText('label-pipe-' + side, same ? Math.round(values[0] * 1000) + 'mm' : '개별값');
+        });
+      }
     }
 
     // [Phase 31] #3. 건물 외벽면 자동 모따기(Chamfer) 절단 포켓 시스템 & 미리보기 뷰
@@ -18701,7 +18977,7 @@ const WorkbookManager = {
         buildWallChamferPockets();
       }
       if (wallChamferGroup) {
-        wallChamferGroup.visible = isWallChamferEnabled;
+        wallChamferGroup.visible = isWallChamferEnabled && isBuildingStructureVisible;
       }
 
       const btnToggle = document.getElementById('btn-wall-chamfer-toggle');
@@ -18826,6 +19102,56 @@ const WorkbookManager = {
     }
 
     /* =========================================================================
+       [Phase 100] 건축 구조물(외벽·창호·발코니 내부) 임시 숨김 및 난간대 단독 뷰 제어 시스템
+       - 기본값: true (건축물 전체 정상 표시)
+       - 난간대 치수/부재/앙커 조정 시 외벽이나 발코니에 가려진 배면을 선명히 투시할 수 있도록 지원
+       - 난간대 본체, 마커, 베이스 플레이트, 앙커 스터드는 100% 온전히 유지
+       ========================================================================= */
+    function setBuildingStructureVisibility(show, notify = true) {
+      if (show !== undefined) {
+        isBuildingStructureVisible = !!show;
+      } else {
+        isBuildingStructureVisible = !isBuildingStructureVisible;
+      }
+
+      if (archStructureGroup) {
+        archStructureGroup.visible = isBuildingStructureVisible;
+      }
+      if (wallChamferGroup) {
+        wallChamferGroup.visible = isBuildingStructureVisible && isWallChamferEnabled;
+      }
+
+      const btnShow = document.getElementById('btn-building-show');
+      const btnHide = document.getElementById('btn-building-hide');
+      const badge = document.getElementById('badge-building-visibility');
+      if (btnShow) btnShow.classList.toggle('active', isBuildingStructureVisible);
+      if (btnHide) btnHide.classList.toggle('active', !isBuildingStructureVisible);
+      if (badge) {
+        if (isBuildingStructureVisible) {
+          badge.textContent = '전체 표시 (기본)';
+          badge.style.background = 'rgba(16, 185, 129, 0.2)';
+          badge.style.color = '#34d399';
+          badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        } else {
+          badge.textContent = '난간대 단독 뷰 (건축물 숨김)';
+          badge.style.background = 'rgba(245, 158, 11, 0.2)';
+          badge.style.color = '#fbbf24';
+          badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+        }
+      }
+
+      if (typeof RenderScheduler !== 'undefined' && RenderScheduler.request) {
+        RenderScheduler.request();
+      }
+
+      if (notify && typeof showToast === 'function') {
+        showToast(isBuildingStructureVisible 
+          ? '🏢 건축 구조물(외벽·창호·발코니)이 화면에 표시됩니다 (기본 상태).' 
+          : '✨ 난간대 단독 뷰: 외벽·발코니를 임시 숨겨 가려짐 없는 투시 조정을 지원합니다.');
+      }
+    }
+
+    /* =========================================================================
        5-0-1. 상단 우측 전용 플로팅 높이 바 (#quick-height-bar) 표시/숨김 옵션 제어
        - 초기 설정값: 상시 표시되지 않음 (false, 사용자 요청 반영)
        - 하단 도크 드롭다운 메뉴 및 #rot-panel 옵션 버튼을 통해 필요시 자유롭게 토글 가능
@@ -18926,10 +19252,15 @@ const WorkbookManager = {
       }
 
       // [Phase 30] 시공 조립도 또는 분해 조립도 뷰 모드 시 1P~6P 마커 및 타겟 펄스 링 100% 숨김 가드
+      // [Phase 106] 시공 조립도 툴바 마커 매니저 연동
       if ((typeof isAssemblyModeActive !== 'undefined' && isAssemblyModeActive) ||
           (typeof isExplodedViewActive !== 'undefined' && isExplodedViewActive)) {
         if (typeof defectPinGroups !== 'undefined') {
-          defectPinGroups.forEach(g => { if (g) g.visible = false; });
+          if (typeof AssemblyMarkerManager !== 'undefined') {
+            AssemblyMarkerManager.apply();
+          } else {
+            defectPinGroups.forEach(g => { if (g) g.visible = false; });
+          }
         }
         if (typeof targetIndicator !== 'undefined' && targetIndicator) {
           targetIndicator.visible = false;
@@ -19278,10 +19609,9 @@ const WorkbookManager = {
         anchorGhostGroup.add(ghost);
         anchorHitTargets.push(discMesh);
 
-        // 2. [Phase 27 신규] 반달 돔 덮개 캡 가상 위치 링 인디케이터 (캡 숨김 시 직관적 복원 제공)
-        const pLen = anchorPipeLengths[key] || 0.097;
+        // 2. [Phase 105 신규] 반달 돔 덮개 캡 가상 위치 링 인디케이터 (앙카 베이스 깊이 연동 무결성 보장)
         const gBaseZ = anchorBaseZ(key);
-        const gCapBaseZ = gBaseZ + Math.min(0.024 + (pLen - 0.097) * 0.40, pLen - 0.015);
+        const gCapBaseZ = gBaseZ + 0.024;
         const ghostCap = new THREE.Group();
         ghostCap.name = `ghost-cap-${key}`;
         ghostCap.position.set(anchorX, anchorY, gCapBaseZ);
@@ -19820,10 +20150,9 @@ const WorkbookManager = {
         // -------------------------------------------------------------
         // Sub-group 3: 반달 돔(Dome) 회전체 덮개 캡 (Domed Escutcheon Cover Cap)
         // -------------------------------------------------------------
-        const pipeLen = anchorPipeLengths[key] || 0.097;
-        // [Phase 28] 직관 파이프 길이에 연동된 반달 돔 덮개 캡 Z위치 산출
-        // (직관 파이프 중간부에 유격 매달림 상태를 유지하며 파이프 길이에 따라 함께 슬라이딩 연동)
-        const capBaseZ = baseZ + Math.min(0.024 + (pipeLen - 0.097) * 0.40, pipeLen - 0.015);
+        // [Phase 105 무결성 동기화] 깊이(Depth) 및 피벗 변경에 따른 앙카 베이스(baseZ) 100% 완전 연동
+        // 앙카 베이스 위치와 일체화되어 어떠한 깊이 조정(0.08m~0.50m)에서도 덮개 캡이 이탈·고정·매립되지 않고 함께 동기화
+        const capBaseZ = baseZ + 0.024;
 
         const capGroup = new THREE.Group();
         capGroup.name = `flange-cover-cap-${key}`;
@@ -19925,14 +20254,13 @@ const WorkbookManager = {
       assemblyProgress = progress;
       const offsets = getExplosionOffsets(progress);
 
-      // 1. 베이스 플레이트 및 덮개 캡 Z축 변위 (Phase 27 덮개 캡 고스트 Z축 동기화 포함)
-      [...ANCHOR_BASE_KEYS,...BOTTOM_POINT_KEYS.map((key,index)=>'bottom-'+(index+1))].forEach(key => {
+      // 1. 베이스 플레이트 및 덮개 캡 Z축 변위 (Phase 105 덮개 캡 앙카 베이스 완전 연동 및 고스트 동기화)
+      physicalAnchorKeys().forEach(key => {
         if (anchorPlateSubGroups[key]) {
           anchorPlateSubGroups[key].position.z = offsets.deltaPlate;
         }
-        const pL = anchorPipeLengths[key] || 0.097;
         const aBaseZ = anchorBaseZ(key);
-        const cBaseZ = aBaseZ + Math.min(0.024 + (pL - 0.097) * 0.40, pL - 0.015);
+        const cBaseZ = aBaseZ + 0.024;
         if (anchorCapSubGroups[key]) {
           anchorCapSubGroups[key].position.z = cBaseZ + offsets.deltaCap;
         }
@@ -19956,7 +20284,7 @@ const WorkbookManager = {
           if (defectPinGroups[idx]) {
             defectPinGroups[idx].position.z = d.markerPos.z + (d.pointKey === 'Hs' || d.pointKey.startsWith('BP') ? offsets.deltaRail : offsets.deltaPlate);
             if (isAssemblyModeActive || isExplodedViewActive) {
-              defectPinGroups[idx].visible = false;
+              defectPinGroups[idx].visible = typeof AssemblyMarkerManager !== 'undefined' ? AssemblyMarkerManager.isVisible(d.pointKey) : false;
             }
           }
         });
@@ -20328,18 +20656,29 @@ const WorkbookManager = {
     let isAssemblyModeActive = false;
 
     // [Phase 29] #1. '시공 조립도' 모드 전환 시 1P~6P 마커 숨기기 및 #4. 분해 조립도 뷰 자동 전환
+    // [Phase 108] '시공 조립도' 클릭 시 기본값으로 '상세창'(#assembly-panel)은 접힘/숨김 유지하고 상단 슬라이더 바(#assembly-hud-bar)만 표시
     function setAssemblyMode(isOpen, options = {}) {
       isAssemblyModeActive = !!isOpen;
       const panel = document.getElementById('assembly-panel');
       const btn = document.getElementById('btn-dock-assembly');
 
       if (isAssemblyModeActive) {
-        if (panel) panel.style.display = 'flex';
+        // [Phase 108] 기본값으로 상세창(#assembly-panel)은 접힌(숨김) 상태 유지, 상단의 슬라이드바(#assembly-hud-bar)만 단독 표시
+        if (panel) {
+          panel.style.display = options.showPanel ? 'flex' : 'none';
+        }
         setAssemblyHudVisible(true);
         if (btn) btn.classList.add('active');
 
-        // #1. 1P ~ 6P 마커 전수 숨기기
-        if (typeof defectPinGroups !== 'undefined') {
+        // [Phase 109] 활성화 즉시 슬라이더 UI 수치·라벨 및 3D 모델 변환을 선제 동기화하여 수동 클릭 없이도 100% 정상 표시 보장
+        updateAssemblyUI(assemblyStep, assemblyProgress, true);
+        updateAssemblyTransforms(assemblyProgress);
+
+        // #1. 마커 표시 상태: 기본값 숨김 유지 및 UI 동기화
+        if (typeof AssemblyMarkerManager !== 'undefined') {
+          AssemblyMarkerManager.apply();
+          AssemblyMarkerManager.updateUI();
+        } else if (typeof defectPinGroups !== 'undefined') {
           defectPinGroups.forEach(g => { if (g) g.visible = false; });
         }
         if (typeof targetIndicator !== 'undefined' && targetIndicator) {
@@ -20348,7 +20687,7 @@ const WorkbookManager = {
 
         // #4. 유첨 이미지 2의 분해 조립도 뷰(위치, 핸드레일 각도, 원근감)로 카메라 전환
         setCameraView('exploded', true);
-        if(!options.silent)showToast('🏗️ 시공 조립도 모드 활성화 (1P~6P 마커 숨김 및 분해 시점 전환)');
+        if(!options.silent)showToast('🏗️ 시공 조립도 모드 활성화 (상단 슬라이더 바 표시 · 상세창 접힘)');
       } else {
         if (panel) panel.style.display = 'none';
         setAssemblyHudVisible(false);
@@ -20372,15 +20711,22 @@ const WorkbookManager = {
     }
 
     function toggleAssemblyMode() {
-      const panel = document.getElementById('assembly-panel');
-      const isShown = panel && (panel.style.display === 'flex' || window.getComputedStyle(panel).display === 'flex');
-      setAssemblyMode(!isShown);
+      // [Phase 108] 상세창 표시 여부와 무관하게, 시공 조립도 모드 활성화 상태를 직접 1:1 토글
+      setAssemblyMode(!isAssemblyModeActive);
     }
 
     function setAssemblyHudVisible(show) {
       assemblyHudVisible = !!show;
       const hud = document.getElementById('assembly-hud-bar');
       if (hud) hud.style.display = assemblyHudVisible ? 'flex' : 'none';
+      if (assemblyHudVisible) {
+        // [Phase 109] HUD 슬라이더 표시 즉시 UI 동기화
+        updateAssemblyUI(assemblyStep, assemblyProgress, true);
+      }
+      if (typeof AssemblyMarkerManager !== 'undefined') {
+        if (assemblyHudVisible) AssemblyMarkerManager.updateUI();
+        else AssemblyMarkerManager.closeMenu();
+      }
     }
 
     /* =========================================================================
@@ -21281,6 +21627,9 @@ const WorkbookManager = {
         const menu = document.getElementById('view-menu');
         if (menu) menu.classList.remove('show');
       }
+      if (!e.target.closest('#btn-assembly-marker-menu') && !e.target.closest('#assembly-markers-dropdown')) {
+        if (typeof AssemblyMarkerManager !== 'undefined') AssemblyMarkerManager.closeMenu();
+      }
     });
 
     // =========================================================================
@@ -21572,13 +21921,267 @@ const WorkbookManager = {
       if (b0) b0.classList.toggle('active', Math.abs(x) < 0.02);
     }
 
+    // =========================================================================
+    // [Phase 106] 시공 조립도 플로팅 툴바 내 마커(P, BP, Hs) 개별/그룹 표시/숨김 제어 매니저
+    // - 기본값: 분해 조립 시야 확보를 위해 모든 마커 숨김 (false)
+    // - 툴바 상단 원클릭 그룹 토글: [P] (외벽 앙커 P1~P6), [BP] (하부 지주 BP1~BP6), [Hs] (수평 파이프)
+    // - 툴바 세부 드롭다운 팝업: 마커별 개별 토글 칩(고유 테마 색상 닷 및 체크마크), [👁️ 전체 표시], [🙈 전체 숨김 (기본)]
+    // - 시공 조립도 진행률(0%~100%) 애니메이션 및 부재 변위 이동 시 마커 위치 자동 동기화
+    // - 시공 조립도 모드 종료 시 일반 점검 뷰 마커 자동 복원 (100% 정상 표시)
+    // =========================================================================
+    const AssemblyMarkerManager = {
+      visibility: {},
+
+      init() {
+        this.reset(false);
+      },
+
+      reset(val = false) {
+        this.visibility = {};
+        const keys = (typeof INSPECTION_POINT_KEYS !== 'undefined' && Array.isArray(INSPECTION_POINT_KEYS))
+          ? INSPECTION_POINT_KEYS
+          : ['P1','P2','P3','P4','P5','P6','BP1','BP2','BP3','BP4','BP5','BP6','Hs'];
+        keys.forEach(k => { this.visibility[k] = !!val; });
+        this.updateUI();
+      },
+
+      isVisible(pointKey) {
+        return !!this.visibility[pointKey];
+      },
+
+      setMarker(key, visible) {
+        this.visibility[key] = !!visible;
+        this.apply();
+        this.updateUI();
+      },
+
+      toggleMarker(key) {
+        this.setMarker(key, !this.visibility[key]);
+      },
+
+      getGroupKeys(grp) {
+        if (grp === 'P') return (typeof LEGACY_POINT_KEYS !== 'undefined' ? LEGACY_POINT_KEYS : ['P1','P2','P3','P4','P5','P6']);
+        if (grp === 'BP') return (typeof BOTTOM_POINT_KEYS !== 'undefined' ? BOTTOM_POINT_KEYS : ['BP1','BP2','BP3','BP4','BP5','BP6']);
+        if (grp === 'Hs') return ['Hs'];
+        return [];
+      },
+
+      isGroupAllVisible(grp) {
+        const keys = this.getGroupKeys(grp);
+        if (!keys.length) return false;
+        return keys.every(k => !!this.visibility[k]);
+      },
+
+      isGroupAnyVisible(grp) {
+        const keys = this.getGroupKeys(grp);
+        return keys.some(k => !!this.visibility[k]);
+      },
+
+      setGroup(grp, visible) {
+        const keys = this.getGroupKeys(grp);
+        keys.forEach(k => { this.visibility[k] = !!visible; });
+        this.apply();
+        this.updateUI();
+      },
+
+      toggleGroup(grp) {
+        const allVis = this.isGroupAllVisible(grp);
+        this.setGroup(grp, !allVis);
+      },
+
+      setAll(visible) {
+        const keys = (typeof INSPECTION_POINT_KEYS !== 'undefined' && Array.isArray(INSPECTION_POINT_KEYS))
+          ? INSPECTION_POINT_KEYS
+          : Object.keys(this.visibility);
+        keys.forEach(k => { this.visibility[k] = !!visible; });
+        this.apply();
+        this.updateUI();
+      },
+
+      apply() {
+        const inAssembly = !!((typeof isAssemblyModeActive !== 'undefined' && isAssemblyModeActive) ||
+                              (typeof isExplodedViewActive !== 'undefined' && isExplodedViewActive));
+        if (typeof defectPinGroups !== 'undefined' && typeof DEFECT_DATA !== 'undefined') {
+          DEFECT_DATA.forEach((d, idx) => {
+            if (defectPinGroups[idx]) {
+              defectPinGroups[idx].visible = inAssembly ? !!this.visibility[d.pointKey] : true;
+            }
+          });
+        }
+        if (typeof RenderScheduler !== 'undefined' && RenderScheduler.request) {
+          RenderScheduler.request();
+        }
+      },
+
+      toggleMenu(e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        const dd = document.getElementById('assembly-markers-dropdown');
+        if (!dd) return;
+        const isShown = dd.style.display !== 'none';
+        if (isShown) {
+          this.closeMenu();
+        } else {
+          this.renderMenu();
+          dd.style.display = 'block';
+        }
+      },
+
+      closeMenu() {
+        const dd = document.getElementById('assembly-markers-dropdown');
+        if (dd) dd.style.display = 'none';
+      },
+
+      updateUI() {
+        // 1. Group buttons styling
+        const pAll = this.isGroupAllVisible('P');
+        const pAny = this.isGroupAnyVisible('P');
+        const bpAll = this.isGroupAllVisible('BP');
+        const bpAny = this.isGroupAnyVisible('BP');
+        const hsAll = this.isGroupAllVisible('Hs');
+
+        const updateGrpBtn = (btnId, all, any, activeColor) => {
+          const btn = document.getElementById(btnId);
+          if (!btn) return;
+          if (all) {
+            btn.style.background = 'rgba(56, 189, 248, 0.28)';
+            btn.style.borderColor = activeColor || '#38bdf8';
+            btn.style.color = activeColor || '#38bdf8';
+            btn.style.boxShadow = '0 0 6px rgba(56, 189, 248, 0.4)';
+          } else if (any) {
+            btn.style.background = 'rgba(56, 189, 248, 0.12)';
+            btn.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+            btn.style.color = '#7dd3fc';
+            btn.style.boxShadow = 'none';
+          } else {
+            btn.style.background = '';
+            btn.style.borderColor = '';
+            btn.style.color = '#94a3b8';
+            btn.style.boxShadow = 'none';
+          }
+        };
+
+        updateGrpBtn('btn-assembly-grp-p', pAll, pAny, '#38bdf8');
+        updateGrpBtn('btn-assembly-grp-bp', bpAll, bpAny, '#a3e635');
+        updateGrpBtn('btn-assembly-grp-hs', hsAll, hsAll, '#ffffff');
+
+        // 2. Status badge
+        const badge = document.getElementById('badge-assembly-markers-status');
+        if (badge) {
+          const keys = Object.keys(this.visibility);
+          const visibleCount = keys.filter(k => this.visibility[k]).length;
+          if (visibleCount === 0) {
+            badge.textContent = '숨김 (기본)';
+            badge.style.background = 'rgba(148, 163, 184, 0.18)';
+            badge.style.color = '#94a3b8';
+          } else if (keys.length > 0 && visibleCount === keys.length) {
+            badge.textContent = '전체 (' + visibleCount + ')';
+            badge.style.background = 'rgba(16, 185, 129, 0.25)';
+            badge.style.color = '#10b981';
+          } else {
+            badge.textContent = visibleCount + '개 표시';
+            badge.style.background = 'rgba(56, 189, 248, 0.22)';
+            badge.style.color = '#38bdf8';
+          }
+        }
+
+        // 3. Re-render dropdown if currently open
+        const dd = document.getElementById('assembly-markers-dropdown');
+        if (dd && dd.style.display !== 'none') {
+          this.renderMenu();
+        }
+      },
+
+      renderMenu() {
+        const dd = document.getElementById('assembly-markers-dropdown');
+        if (!dd) return;
+
+        const pKeys = this.getGroupKeys('P');
+        const bpKeys = this.getGroupKeys('BP');
+        const hsKeys = this.getGroupKeys('Hs');
+
+        const renderChip = (key) => {
+          const isVis = !!this.visibility[key];
+          const pDef = typeof pointDefinition === 'function' ? pointDefinition(key) : null;
+          const color = pDef ? pDef.color : (key.startsWith('BP') ? '#a3e635' : (key === 'Hs' ? '#ffffff' : '#38bdf8'));
+          const activeStyle = isVis 
+            ? 'background: rgba(56, 189, 248, 0.22); border: 1px solid ' + color + '; color: #ffffff; box-shadow: 0 0 6px ' + color + '55;' 
+            : 'background: rgba(30, 41, 59, 0.65); border: 1px solid rgba(148, 163, 184, 0.25); color: #94a3b8;';
+          const dot = '<span style="width: 7px; height: 7px; border-radius: 50%; background: ' + color + '; display: inline-block; box-shadow: 0 0 4px ' + color + ';"></span>';
+          const check = isVis ? '<span style="color:' + color + '; font-weight:800; font-size:10px; margin-left: 2px;">✓</span>' : '';
+          const title = pDef ? (pDef.badgeText || pDef.name) + ' (' + key + ')' : key;
+          return '<button type="button" class="rooms-btn" data-key="' + key + '" onclick="AssemblyMarkerManager.toggleMarker(this.dataset.key)" style="padding: 2px 7px; font-size: 10.5px; font-weight: 700; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; ' + activeStyle + '" title="' + title + ' 3D 표시/숨김 토글">' + dot + key + check + '</button>';
+        };
+
+        let html = '<div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(148, 163, 184, 0.18); padding-bottom: 6px; margin-bottom: 8px;">'
+          + '<span style="font-weight: 800; font-size: 11.5px; color: #38bdf8; display: flex; align-items: center; gap: 5px;"><span>📍</span> 시공 조립도 마커 제어</span>'
+          + '<div style="display: flex; gap: 4px;">'
+          + '<button type="button" class="rooms-btn" onclick="AssemblyMarkerManager.setAll(true)" style="padding: 2px 6px; font-size: 10px; color: #38bdf8;" title="모든 마커 3D 표시">👁️ 전체 표시</button>'
+          + '<button type="button" class="rooms-btn" onclick="AssemblyMarkerManager.setAll(false)" style="padding: 2px 6px; font-size: 10px; color: #94a3b8;" title="모든 마커 숨김 (기본값)">🙈 전체 숨김</button>'
+          + '</div></div>'
+
+          // Group P
+          + '<div style="margin-bottom: 8px;">'
+          + '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">'
+          + '<span style="font-size: 10.5px; font-weight: 700; color: #cbd5e1;">외벽 앙커 접합부 (P1~P' + pKeys.length + ')</span>'
+          + '<div style="display: flex; gap: 3px;">'
+          + '<button type="button" class="rooms-btn" data-grp="P" onclick="AssemblyMarkerManager.setGroup(this.dataset.grp, true)" style="padding: 1px 5px; font-size: 9.5px;" title="P 마커 전체 표시">ON</button>'
+          + '<button type="button" class="rooms-btn" data-grp="P" onclick="AssemblyMarkerManager.setGroup(this.dataset.grp, false)" style="padding: 1px 5px; font-size: 9.5px;" title="P 마커 전체 숨김">OFF</button>'
+          + '</div></div>'
+          + '<div style="display: flex; flex-wrap: wrap; gap: 4px;">' + pKeys.map(k => renderChip(k)).join('') + '</div>'
+          + '</div>'
+
+          // Group BP
+          + '<div style="margin-bottom: 8px;">'
+          + '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">'
+          + '<span style="font-size: 10.5px; font-weight: 700; color: #cbd5e1;">하부 주 지주 베이스 (BP1~BP' + bpKeys.length + ')</span>'
+          + '<div style="display: flex; gap: 3px;">'
+          + '<button type="button" class="rooms-btn" data-grp="BP" onclick="AssemblyMarkerManager.setGroup(this.dataset.grp, true)" style="padding: 1px 5px; font-size: 9.5px;" title="BP 마커 전체 표시">ON</button>'
+          + '<button type="button" class="rooms-btn" data-grp="BP" onclick="AssemblyMarkerManager.setGroup(this.dataset.grp, false)" style="padding: 1px 5px; font-size: 9.5px;" title="BP 마커 전체 숨김">OFF</button>'
+          + '</div></div>'
+          + '<div style="display: flex; flex-wrap: wrap; gap: 4px;">' + bpKeys.map(k => renderChip(k)).join('') + '</div>'
+          + '</div>'
+
+          // Group Hs
+          + '<div style="margin-bottom: 4px;">'
+          + '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">'
+          + '<span style="font-size: 10.5px; font-weight: 700; color: #cbd5e1;">수평 파이프 부재 (Hs)</span>'
+          + '<div style="display: flex; gap: 3px;">'
+          + '<button type="button" class="rooms-btn" data-grp="Hs" onclick="AssemblyMarkerManager.setGroup(this.dataset.grp, true)" style="padding: 1px 5px; font-size: 9.5px;" title="Hs 마커 표시">ON</button>'
+          + '<button type="button" class="rooms-btn" data-grp="Hs" onclick="AssemblyMarkerManager.setGroup(this.dataset.grp, false)" style="padding: 1px 5px; font-size: 9.5px;" title="Hs 마커 숨김">OFF</button>'
+          + '</div></div>'
+          + '<div style="display: flex; flex-wrap: wrap; gap: 4px;">' + hsKeys.map(k => renderChip(k)).join('') + '</div>'
+          + '</div>'
+
+          // Footer
+          + '<div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(148, 163, 184, 0.14); display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #64748b;">'
+          + '<span>💡 기본값: 숨김 유지 (분해 조립 시야 확보)</span>'
+          + '<button type="button" class="rooms-btn" onclick="AssemblyMarkerManager.closeMenu()" style="padding: 1px 6px; font-size: 10px;">닫기</button>'
+          + '</div>';
+
+        dd.innerHTML = html;
+      }
+    };
+
 // [Phase 72] A normal inspection view always shows every active P/BP/Hs marker.
+// [Phase 106] In assembly mode, marker visibility is dynamically governed by AssemblyMarkerManager (default: hidden).
 let currentViewName='facade';
 function applyInspectionMarkerVisibility() {
- const visible=!(isAssemblyModeActive||isExplodedViewActive);
- defectPinGroups.forEach(group=>{if(group)group.visible=visible;});
- if(targetIndicator){const modal=document.getElementById('defect-modal');targetIndicator.visible=visible&&currentFocusDefect!==null&&!!modal&&getComputedStyle(modal).display!=='none';}
- return visible;
+ const inAssembly = !!((typeof isAssemblyModeActive !== 'undefined' && isAssemblyModeActive) ||
+                       (typeof isExplodedViewActive !== 'undefined' && isExplodedViewActive));
+ if (typeof defectPinGroups !== 'undefined' && typeof DEFECT_DATA !== 'undefined') {
+   DEFECT_DATA.forEach((d, idx) => {
+     if (defectPinGroups[idx]) {
+       defectPinGroups[idx].visible = inAssembly
+         ? (typeof AssemblyMarkerManager !== 'undefined' ? AssemblyMarkerManager.isVisible(d.pointKey) : false)
+         : true;
+     }
+   });
+ }
+ if (targetIndicator) {
+   const modal = document.getElementById('defect-modal');
+   targetIndicator.visible = !inAssembly && currentFocusDefect !== null && !!modal && getComputedStyle(modal).display !== 'none';
+ }
+ return !inAssembly;
 }
 function transitionInspectionView(name) {
  const leavingAssembly=name!=='exploded'&&(isAssemblyModeActive||isExplodedViewActive);
@@ -25195,6 +25798,25 @@ function setCameraView(name, animate = true) {
         <label>시공사 <input id="room-contractor-input" type="text" maxlength="200" autocomplete="off" placeholder="시공사명" onchange="RoomInspectionMetadata.change('contractor',this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();document.getElementById('room-construction-date-input')?.focus();}"></label>
         <label>시공 날짜 (YYYY-MM-DD) <input id="room-construction-date-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="2026-10-28" onchange="RoomInspectionMetadata.change('constructDate',this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"></label>
       </div>
+      <!-- 웹 링크 및 현장 자료 관리 섹션 (다중 웹 링크 삽입/추가/수정/삭제/즉시 이동) : 위치도 바로 상단 배치 -->
+      <div class="room-links-section" style="margin-bottom: 14px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 14px;">🌐</span>
+            <span style="font-weight: 700; color: #f1f5f9; font-size: 12px;">현장 웹 링크 및 관련 점검 자료 관리 (다중 링크)</span>
+            <span id="room-links-count-badge" class="rooms-pill" style="font-size: 10px; padding: 1px 6px; background: #0369a1; color: #fff;">0개</span>
+          </div>
+          <button class="rooms-btn primary" onclick="WorkbookManager.promptAddRoomLink()" style="font-size: 11px; padding: 3px 8px; background: #0284c7; border-color: #38bdf8;">
+            ➕ 새 링크 추가
+          </button>
+        </div>
+        
+        <!-- 링크 목록 컨테이너 -->
+        <div id="room-links-list" style="display: flex; flex-direction: column; gap: 6px;">
+          <!-- JS 동적 렌더링 -->
+        </div>
+      </div>
+
       <!-- 외벽 앙커 6개소 3D 위치 매핑 다이어그램 (Schematic) -->
       <div class="room-schematic-wrap">
         <div class="schematic-head">
@@ -25228,25 +25850,6 @@ function setCameraView(name, animate = true) {
             <!-- JS 동적 렌더링 -->
           </tbody>
         </table>
-      </div>
-
-      <!-- 웹 링크 및 현장 자료 관리 섹션 (다중 웹 링크 삽입/추가/수정/삭제/즉시 이동) -->
-      <div class="room-links-section" style="margin-top: 14px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px 14px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 14px;">🌐</span>
-            <span style="font-weight: 700; color: #f1f5f9; font-size: 12px;">현장 웹 링크 및 관련 점검 자료 관리 (다중 링크)</span>
-            <span id="room-links-count-badge" class="rooms-pill" style="font-size: 10px; padding: 1px 6px; background: #0369a1; color: #fff;">0개</span>
-          </div>
-          <button class="rooms-btn primary" onclick="WorkbookManager.promptAddRoomLink()" style="font-size: 11px; padding: 3px 8px; background: #0284c7; border-color: #38bdf8;">
-            ➕ 새 링크 추가
-          </button>
-        </div>
-        
-        <!-- 링크 목록 컨테이너 -->
-        <div id="room-links-list" style="display: flex; flex-direction: column; gap: 6px;">
-          <!-- JS 동적 렌더링 -->
-        </div>
       </div>
 
       <!-- 모달 하단 워크북 간 연동 액션 바 -->
