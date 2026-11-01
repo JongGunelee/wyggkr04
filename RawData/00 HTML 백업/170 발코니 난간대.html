@@ -5634,12 +5634,25 @@ body.model-fullscreen #model-fullscreen-open{display:none}
         <span style="font-size:13px;">📐</span>
         <span style="font-weight:700; color:#f1f5f9; font-size:11.5px;">난간대 통합 치수 및 부재 조정</span>
       </div>
-      <div class="window-actions">
+      <div class="window-actions" style="display:flex; align-items:center; gap:4px;">
+        <button class="win-btn" id="btn-adjust-reset-all-head" onclick="resetAllAdjustParameters()" title="모든 사용자 옵션 조정값 전수 초기화 (기본값 복원)" style="color:#fbbf24; border-color:rgba(245,158,11,0.5); font-size:10px; padding:1px 6px; display:inline-flex; align-items:center; gap:3px;">
+          <span>🔄</span><span>전수 초기화</span>
+        </button>
         <button class="win-btn" onclick="WindowManager.toggleCollapse('adjust-menu')" title="창 접기/펴기 (헤더 더블클릭 가능)">−</button>
         <button class="win-btn win-btn-close" onclick="WindowManager.close('adjust-menu')" title="닫기">✕</button>
       </div>
     </div>
     <div class="window-body" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
+
+        <!-- [Phase 112] 상단 옵션 전수 초기화 퀵 액션 바 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 5px 8px;">
+          <span style="font-size: 10px; color: #fcd34d; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+            <span>⚙️</span><span>설정값 변경 상태 점검 및 원클릭 복구</span>
+          </span>
+          <button type="button" class="qhb-btn" id="btn-adjust-reset-all-top" onclick="resetAllAdjustParameters()" style="padding: 2px 8px; font-size: 10px; font-weight: 700; background: rgba(245, 158, 11, 0.25); border-color: #f59e0b; color: #fbbf24;" title="모든 사용자 옵션 조정값을 표준 기본값으로 전수 초기화합니다">
+            🔄 전수 초기화
+          </button>
+        </div>
 
         <!-- 0. [Phase 100] 건축 구조물 가시성 (외벽·발코니 내부 숨김 및 난간대 단독 뷰) 제어 섹션 -->
         <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 8px 10px;">
@@ -5874,11 +5887,107 @@ body.model-fullscreen #model-fullscreen-open{display:none}
           </div>
         </div>
 
+        <!-- [Phase 110/111] 4. 직관 파이프 길이 (Pipe Length) 및 엘보(Elbow) 굴곡 정밀 제어 섹션 -->
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 8px 10px; margin-top: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <span style="font-weight: 700; color: #38bdf8; font-size: 11px;">📏 4. 직관 파이프 길이 (Pipe Length)</span>
+            <div style="display: flex; gap: 3px;">
+              <button id="btn-adjust-pipe-len-mode-grouped" class="qhb-btn active" onclick="setStraightPipeLengthMode('grouped')" style="padding: 2px 6px; font-size: 9.5px;" title="좌측 1·2·3단 및 우측 4·5·6단 직관 길이 그룹 일괄 조절">👥 좌/우 그룹</button>
+              <button id="btn-adjust-pipe-len-mode-individual" class="qhb-btn" onclick="setStraightPipeLengthMode('individual')" style="padding: 2px 6px; font-size: 9.5px;" title="1번부터 6번까지 각각 독립 직관 길이 조절">🎯 1~6번 개별</button>
+            </div>
+          </div>
+
+          <!-- [Phase 111 신규] 직관 파이프 길이 조정 기준 (Baseline Pivot) 옵션 -->
+          <div style="display: flex; gap: 4px; margin-bottom: 5px; align-items: center;">
+            <span style="font-size: 10px; color: #94a3b8; margin-right: 2px;">기준:</span>
+            <button class="qhb-btn active" id="btn-straight-pivot-plate" onclick="setStraightPipePivot('plate')" style="flex: 1.2; text-align: center; font-size: 9.5px; padding: 2px 4px;" title="외벽 앙카·베이스 플레이트 위치 고정, 직관 파이프가 전면(+Z)으로 뻗어나가며 엘보와 난간대가 일체 연동 전진 (기본값)">🏢 외벽 베이스 고정 (기본)</button>
+            <button class="qhb-btn" id="btn-straight-pivot-rail" onclick="setStraightPipePivot('rail')" style="flex: 1; text-align: center; font-size: 9.5px; padding: 2px 4px;" title="전면 횡대 및 엘보 위치 고정, 직관 파이프가 벽체(-Z) 방향으로 뻗어나가며 외벽 앙카가 후퇴">⏺ 전면 난간 고정</button>
+          </div>
+
+          <!-- [Phase 111 신규] 핸드레일 평면도 기준 방향성 및 엘보 곡률 무결성 안내 바 -->
+          <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 4px 6px; font-size: 9.5px; color: #7dd3fc; margin-bottom: 6px; line-height: 1.4;">
+            🧭 <b>평면도 방향성</b>: 외벽 직교 Z축 100% 직선 연장 (좌우/상하 비틀림 0%)<br>
+            📐 <b>엘보 굴곡 정합성</b>: 90° 원호 곡률 반경(R=70mm) 유지 · 찌그러짐 원천 차단
+          </div>
+          <!-- 좌/우 그룹 슬라이더 패널 -->
+          <div id="pipe-len-ctrl-grouped-menu" style="display: flex; flex-direction: column; gap: 6px;">
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 10px; color: #cbd5e1; margin-bottom: 2px;">
+                <span>◀ 좌측 그룹 (1·2·3단 직관 길이)</span>
+                <span id="label-adjust-pipe-len-left" style="color: #38bdf8; font-weight: 700;">97mm (기본)</span>
+              </div>
+              <input type="range" class="rot-slider" id="slider-adjust-pipe-len-left" min="0.05" max="0.35" step="0.005" value="0.097" oninput="setGroupStraightPipeLength('left', this.value)" style="width: 100%;" />
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 10px; color: #cbd5e1; margin-bottom: 2px;">
+                <span>▶ 우측 그룹 (4·5·6단 직관 길이)</span>
+                <span id="label-adjust-pipe-len-right" style="color: #38bdf8; font-weight: 700;">97mm (기본)</span>
+              </div>
+              <input type="range" class="rot-slider" id="slider-adjust-pipe-len-right" min="0.05" max="0.35" step="0.005" value="0.097" oninput="setGroupStraightPipeLength('right', this.value)" style="width: 100%;" />
+            </div>
+          </div>
+          <!-- 1~6번 개별 슬라이더 패널 -->
+          <div id="pipe-len-ctrl-individual-menu" style="display: none; flex-direction: column; gap: 5px;">
+            <div style="display: flex; gap: 6px;">
+              <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #cbd5e1;"><span>① 좌상 1단</span><span id="label-adjust-pipe-len-left-top" style="color:#38bdf8; font-weight:700;">97mm</span></div>
+                <input type="range" class="rot-slider" id="slider-adjust-pipe-len-left-top" min="0.05" max="0.35" step="0.005" value="0.097" oninput="setIndividualStraightPipeLength('left-top', this.value)" style="width:100%;" />
+              </div>
+              <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #cbd5e1;"><span>④ 우상 1단</span><span id="label-adjust-pipe-len-right-top" style="color:#38bdf8; font-weight:700;">97mm</span></div>
+                <input type="range" class="rot-slider" id="slider-adjust-pipe-len-right-top" min="0.05" max="0.35" step="0.005" value="0.097" oninput="setIndividualStraightPipeLength('right-top', this.value)" style="width:100%;" />
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #cbd5e1;"><span>② 좌중 2단</span><span id="label-adjust-pipe-len-left-mid" style="color:#38bdf8; font-weight:700;">97mm</span></div>
+                <input type="range" class="rot-slider" id="slider-adjust-pipe-len-left-mid" min="0.05" max="0.35" step="0.005" value="0.097" oninput="setIndividualStraightPipeLength('left-mid', this.value)" style="width:100%;" />
+              </div>
+              <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #cbd5e1;"><span>⑤ 우중 2단</span><span id="label-adjust-pipe-len-right-mid" style="color:#38bdf8; font-weight:700;">97mm</span></div>
+                <input type="range" class="rot-slider" id="slider-adjust-pipe-len-right-mid" min="0.05" max="0.35" step="0.005" value="0.097" oninput="setIndividualStraightPipeLength('right-mid', this.value)" style="width:100%;" />
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #cbd5e1;"><span>③ 좌하 3단</span><span id="label-adjust-pipe-len-left-btm" style="color:#38bdf8; font-weight:700;">97mm</span></div>
+                <input type="range" class="rot-slider" id="slider-adjust-pipe-len-left-btm" min="0.05" max="0.35" step="0.005" value="0.097" oninput="setIndividualStraightPipeLength('left-btm', this.value)" style="width:100%;" />
+              </div>
+              <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #cbd5e1;"><span>⑥ 우하 3단</span><span id="label-adjust-pipe-len-right-btm" style="color:#38bdf8; font-weight:700;">97mm</span></div>
+                <input type="range" class="rot-slider" id="slider-adjust-pipe-len-right-btm" min="0.05" max="0.35" step="0.005" value="0.097" oninput="setIndividualStraightPipeLength('right-btm', this.value)" style="width:100%;" />
+              </div>
+            </div>
+          </div>
+          <!-- [Phase 111 신규] 엘보(Elbow) 굴곡 반경 제어 옵션 -->
+          <div style="display: flex; gap: 4px; margin-top: 5px; margin-bottom: 5px; align-items: center;">
+            <span style="font-size: 9.5px; color: #94a3b8; margin-right: 2px;">엘보 곡률(R):</span>
+            <button class="qhb-btn" id="btn-elbow-r-50" onclick="setStraightPipeElbowRadius(0.050)" style="flex: 1; text-align: center; font-size: 9px; padding: 2px 4px;" title="엘보 반경 50mm (급곡관)">급곡관 50mm</button>
+            <button class="qhb-btn active" id="btn-elbow-r-70" onclick="setStraightPipeElbowRadius(0.070)" style="flex: 1.1; text-align: center; font-size: 9px; padding: 2px 4px;" title="엘보 반경 70mm (표준 규격)">표준 70mm</button>
+            <button class="qhb-btn" id="btn-elbow-r-100" onclick="setStraightPipeElbowRadius(0.100)" style="flex: 1; text-align: center; font-size: 9px; padding: 2px 4px;" title="엘보 반경 100mm (완곡관)">완곡관 100mm</button>
+          </div>
+
+          <!-- 5mm 미세 증감 버튼 & 프리셋 버튼 -->
+          <div style="display: flex; gap: 4px; margin-top: 5px; margin-bottom: 4px;">
+            <button class="qhb-btn" onclick="stepStraightPipeLength(-0.005)" style="flex: 1; text-align: center; font-size: 10px;" title="직관 길이 5mm 감소">➖ 5mm 감소</button>
+            <button class="qhb-btn" onclick="stepStraightPipeLength(0.005)" style="flex: 1; text-align: center; font-size: 10px;" title="직관 길이 5mm 증가">➕ 5mm 증가</button>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin-top: 4px;">
+            <button class="qhb-btn" onclick="setStraightPipePreset(0.060)" style="font-size: 9px; padding: 2px 4px; text-align: center;">밀착 60mm</button>
+            <button class="qhb-btn active" id="btn-adjust-pipe-len-std" onclick="setStraightPipePreset(0.097)" style="font-size: 9px; padding: 2px 4px; text-align: center;">표준 97mm</button>
+            <button class="qhb-btn" onclick="setStraightPipePreset(0.150)" style="font-size: 9px; padding: 2px 4px; text-align: center;">확장 150mm</button>
+            <button class="qhb-btn" onclick="setStraightPipePreset(0.250)" style="font-size: 9px; padding: 2px 4px; text-align: center;">최대 250mm</button>
+          </div>
+          <div style="font-size: 9.5px; color: #94a3b8; margin-top: 4px; text-align: center;">
+            ※ 직관 길이 변경 시 3D 실물 파이프 연장 및 베이스 플레이트·앙카·반달 돔 캡 100% 동시 연동
+          </div>
+        </div>
+
         <div id="support-member-controls" class="support-member-controls"></div>
 
-        <!-- 4. 외벽 앙커 부속 관리 섹션 -->
+        <!-- 5. 외벽 앙커 부속 관리 섹션 -->
         <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 8px 10px;">
-          <div style="font-weight: 700; color: #38bdf8; font-size: 11px; margin-bottom: 5px;">🔩 4. 외벽 앙커 베이스 & 덮개 캡 부속 관리</div>
+          <div style="font-weight: 700; color: #38bdf8; font-size: 11px; margin-bottom: 5px;">🔩 5. 외벽 앙커 베이스 & 덮개 캡 부속 관리</div>
           <div style="display: flex; gap: 4px; flex-wrap: wrap;">
             <button class="qhb-btn" style="flex: 1; font-size: 10px; padding: 4px 6px;" onclick="toggleAllAnchorCaps()">🛡️ 캡 전체 토글</button>
             <button class="qhb-btn" style="flex: 1; font-size: 10px; padding: 4px 6px;" onclick="toggleAllAnchorPlates()">🔩 플레이트 토글</button>
@@ -5887,6 +5996,23 @@ body.model-fullscreen #model-fullscreen-open{display:none}
           <div style="margin-top: 5px; text-align: center;">
             <button class="rooms-btn" style="width: 100%; font-size: 10.5px; padding: 4px 8px;" onclick="WindowManager.open('anchor-panel')">🔧 고정부 12개소 상세 제어창 열기</button>
           </div>
+        </div>
+
+        <!-- [Phase 112] 6. 난간대 모든 옵션 조정값 전수 초기화 (Full Reset) 섹션 -->
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 8px 10px; margin-top: 2px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-weight: 700; color: #fbbf24; font-size: 11.5px; display: flex; align-items: center; gap: 5px;">
+              <span>🔄</span> 6. 모든 옵션 조정값 전수 초기화
+            </span>
+            <span style="font-size: 9.5px; padding: 2px 6px; border-radius: 4px; font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.4);">원클릭 초기 표준 복원</span>
+          </div>
+          <div style="font-size: 9.5px; color: #94a3b8; line-height: 1.4; margin-bottom: 6px;">
+            건축물 가시성, 높이·폭·깊이, 직관 파이프 이격·길이, 엘보 곡률, 주 지주 부재 및 앙커 캡 등 <strong>사용자가 조정한 모든 설정을 표준 기본값으로 일괄 복원</strong>합니다.
+          </div>
+          <button type="button" class="qhb-btn" id="btn-adjust-reset-all-bottom" onclick="resetAllAdjustParameters()" style="width: 100%; text-align: center; font-size: 11px; font-weight: 700; padding: 6px 10px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.35) 100%); border: 1px solid #f59e0b; color: #fff; border-radius: 6px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);" title="모든 사용자 옵션 조정값을 시스템 기본값으로 전수 초기화합니다">
+            <span style="font-size: 12px;">🔄</span>
+            <span>모든 옵션 조정값 전수 초기화 (기본값 복원)</span>
+          </button>
         </div>
     </div>
   </div>
@@ -6225,7 +6351,180 @@ body.model-fullscreen #model-fullscreen-open{display:none}
           </div>
         </div>
 
-        <div class="dock-menu-sep"></div>
+        <!-- [Phase 114] 모든 마커(P, BP, Hs) 대상 물체 이격거리 개별 또는 그룹(좌/우/하부) 실시간 조정 메뉴 -->
+        <div style="padding: 2px 8px 6px 8px;">
+          <button class="dock-menu-item" id="btn-dock-marker-offset" onclick="MarkerOffsetManager.toggleSubbar()" style="margin: 0; padding: 7px 10px; border-radius: 6px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; cursor: pointer;" title="모든 마커(P, BP, Hs)의 부착 대상물체로부터 이격거리(Offset) 개별 또는 그룹(좌/우/하부) 실시간 미세조정">
+            <span style="font-weight: 700; color: #34d399; font-size: 11px; display: flex; align-items: center; gap: 5px;">
+              <span>📍</span> 마커 이격거리 조정
+            </span>
+            <span id="marker-offset-badge" style="font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 1px 6px; border-radius: 4px; font-size: 10px;">기본값</span>
+          </button>
+        </div>
+
+        <div id="marker-offset-subbar" style="display: none; padding: 0 8px 8px 8px;">
+          <div style="background: rgba(15, 23, 42, 0.92); padding: 8px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.35);">
+            <!-- 서브바 상단 탭 및 초기화 버튼 -->
+            <div style="display: flex; gap: 4px; margin-bottom: 8px; align-items: center;">
+              <button class="rooms-btn active" id="tab-offset-group" onclick="MarkerOffsetManager.setTab('group')" style="flex: 1; padding: 4px 6px; font-size: 10px; background: rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.5);">👥 그룹(좌/우/하부)</button>
+              <button class="rooms-btn" id="tab-offset-indiv" onclick="MarkerOffsetManager.setTab('indiv')" style="flex: 1; padding: 4px 6px; font-size: 10px; background: transparent; border-color: rgba(148, 163, 184, 0.3);">🔍 개별(P·BP·Hs)</button>
+              <button class="rooms-btn" onclick="MarkerOffsetManager.resetAll()" style="padding: 4px 6px; font-size: 10px; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;" title="설정 기본값(좌우P:100mm, 하부BP:50mm, Hs:80mm)으로 전체 초기화">🔄 초기화</button>
+            </div>
+
+            <!-- 패널 1: 그룹 조정 (좌측P / 우측P / 하부BP 일괄 / 수평Hs) -->
+            <div id="panel-offset-group" style="display: block;">
+              <!-- 👈 좌측 P마커 그룹 (P1, P2, P3) -->
+              <div style="margin-bottom: 7px; background: rgba(30, 41, 59, 0.6); padding: 6px; border-radius: 5px; border-left: 3px solid #38bdf8;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-weight: 700; color: #bae6fd;">
+                  <span>👈 좌측 외벽 앙커 (P1, P2, P3)</span>
+                  <span id="val-offset-grp-left" style="color: #38bdf8; font-family: monospace;">100mm</span>
+                </div>
+                <input type="range" id="slider-offset-grp-left" min="0" max="200" step="1" value="100" oninput="MarkerOffsetManager.setGroupGap('left', this.value)" style="width: 100%; height: 4px; accent-color: #38bdf8; cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; font-size: 9px; color: #64748b; margin-top: 2px;">
+                  <span>0mm (밀착)</span>
+                  <span>100mm (기본)</span>
+                  <span>200mm (최대)</span>
+                </div>
+              </div>
+
+              <!-- 👉 우측 P마커 그룹 (P4, P5, P6) -->
+              <div style="margin-bottom: 7px; background: rgba(30, 41, 59, 0.6); padding: 6px; border-radius: 5px; border-left: 3px solid #f472b6;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-weight: 700; color: #fbcfe8;">
+                  <span>👉 우측 외벽 앙커 (P4, P5, P6)</span>
+                  <span id="val-offset-grp-right" style="color: #f472b6; font-family: monospace;">100mm</span>
+                </div>
+                <input type="range" id="slider-offset-grp-right" min="0" max="200" step="1" value="100" oninput="MarkerOffsetManager.setGroupGap('right', this.value)" style="width: 100%; height: 4px; accent-color: #f472b6; cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; font-size: 9px; color: #64748b; margin-top: 2px;">
+                  <span>0mm (밀착)</span>
+                  <span>100mm (기본)</span>
+                  <span>200mm (최대)</span>
+                </div>
+              </div>
+
+              <!-- ⚓ 하부 지주 BP마커 그룹 (BP1 ~ BP6 일괄) -->
+              <div style="margin-bottom: 7px; background: rgba(30, 41, 59, 0.6); padding: 6px; border-radius: 5px; border-left: 3px solid #fbbf24;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-weight: 700; color: #fef08a;">
+                  <span>⚓ 하부 지주 전체 (BP1 ~ BP6 일괄)</span>
+                  <span id="val-offset-grp-bottom" style="color: #fbbf24; font-family: monospace;">50mm</span>
+                </div>
+                <input type="range" id="slider-offset-grp-bottom" min="0" max="200" step="1" value="50" oninput="MarkerOffsetManager.setGroupGap('bottom', this.value)" style="width: 100%; height: 4px; accent-color: #fbbf24; cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; font-size: 9px; color: #64748b; margin-top: 2px;">
+                  <span>0mm (밀착)</span>
+                  <span>50mm (기본)</span>
+                  <span>200mm (최대)</span>
+                </div>
+              </div>
+
+              <!-- 📏 수평 레일 파이프 마커 (Hs) -->
+              <div style="background: rgba(30, 41, 59, 0.6); padding: 6px; border-radius: 5px; border-left: 3px solid #a78bfa;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-weight: 700; color: #ddd6fe;">
+                  <span>📏 수평 레일 파이프 (Hs)</span>
+                  <span id="val-offset-grp-hs" style="color: #a78bfa; font-family: monospace;">80mm</span>
+                </div>
+                <input type="range" id="slider-offset-grp-hs" min="0" max="200" step="1" value="80" oninput="MarkerOffsetManager.setGroupGap('hs', this.value)" style="width: 100%; height: 4px; accent-color: #a78bfa; cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; font-size: 9px; color: #64748b; margin-top: 2px;">
+                  <span>0mm (밀착)</span>
+                  <span>80mm (기본)</span>
+                  <span>200mm (최대)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 패널 2: 개별 마커 정밀 조정 -->
+            <div id="panel-offset-indiv" style="display: none; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+              <!-- P계열 (외벽 앙커) -->
+              <div style="font-weight: 800; color: #38bdf8; font-size: 10px; margin: 4px 0 2px 2px;">🔩 외벽 앙커 마커 (P1~P6, 기본: 100mm, 최대: 200mm)</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px;">
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>P1 (좌상)</span><span id="val-offset-P1" style="color: #38bdf8;">100mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-P1" min="0" max="200" step="1" value="100" oninput="MarkerOffsetManager.setIndividualGap('P1', this.value)" style="width: 100%; height: 3px; accent-color: #38bdf8; cursor: pointer;">
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>P4 (우상)</span><span id="val-offset-P4" style="color: #f472b6;">100mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-P4" min="0" max="200" step="1" value="100" oninput="MarkerOffsetManager.setIndividualGap('P4', this.value)" style="width: 100%; height: 3px; accent-color: #f472b6; cursor: pointer;">
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>P2 (좌중)</span><span id="val-offset-P2" style="color: #38bdf8;">100mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-P2" min="0" max="200" step="1" value="100" oninput="MarkerOffsetManager.setIndividualGap('P2', this.value)" style="width: 100%; height: 3px; accent-color: #38bdf8; cursor: pointer;">
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>P5 (우중)</span><span id="val-offset-P5" style="color: #f472b6;">100mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-P5" min="0" max="200" step="1" value="100" oninput="MarkerOffsetManager.setIndividualGap('P5', this.value)" style="width: 100%; height: 3px; accent-color: #f472b6; cursor: pointer;">
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>P3 (좌하)</span><span id="val-offset-P3" style="color: #38bdf8;">100mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-P3" min="0" max="200" step="1" value="100" oninput="MarkerOffsetManager.setIndividualGap('P3', this.value)" style="width: 100%; height: 3px; accent-color: #38bdf8; cursor: pointer;">
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>P6 (우하)</span><span id="val-offset-P6" style="color: #f472b6;">100mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-P6" min="0" max="200" step="1" value="100" oninput="MarkerOffsetManager.setIndividualGap('P6', this.value)" style="width: 100%; height: 3px; accent-color: #f472b6; cursor: pointer;">
+                </div>
+              </div>
+
+              <!-- BP계열 (하부 지주 베이스) -->
+              <div style="font-weight: 800; color: #fbbf24; font-size: 10px; margin: 4px 0 2px 2px;">⚓ 하부 지주 베이스 (BP1~BP6, 기본: 50mm, 최대: 200mm)</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px;">
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>BP1 (1지주)</span><span id="val-offset-BP1" style="color: #fbbf24;">50mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-BP1" min="0" max="200" step="1" value="50" oninput="MarkerOffsetManager.setIndividualGap('BP1', this.value)" style="width: 100%; height: 3px; accent-color: #fbbf24; cursor: pointer;">
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>BP4 (4지주)</span><span id="val-offset-BP4" style="color: #fbbf24;">50mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-BP4" min="0" max="200" step="1" value="50" oninput="MarkerOffsetManager.setIndividualGap('BP4', this.value)" style="width: 100%; height: 3px; accent-color: #fbbf24; cursor: pointer;">
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>BP2 (2지주)</span><span id="val-offset-BP2" style="color: #fbbf24;">50mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-BP2" min="0" max="200" step="1" value="50" oninput="MarkerOffsetManager.setIndividualGap('BP2', this.value)" style="width: 100%; height: 3px; accent-color: #fbbf24; cursor: pointer;">
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>BP5 (5지주)</span><span id="val-offset-BP5" style="color: #fbbf24;">50mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-BP5" min="0" max="200" step="1" value="50" oninput="MarkerOffsetManager.setIndividualGap('BP5', this.value)" style="width: 100%; height: 3px; accent-color: #fbbf24; cursor: pointer;">
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>BP3 (3지주)</span><span id="val-offset-BP3" style="color: #fbbf24;">50mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-BP3" min="0" max="200" step="1" value="50" oninput="MarkerOffsetManager.setIndividualGap('BP3', this.value)" style="width: 100%; height: 3px; accent-color: #fbbf24; cursor: pointer;">
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                    <span>BP6 (6지주)</span><span id="val-offset-BP6" style="color: #fbbf24;">50mm</span>
+                  </div>
+                  <input type="range" id="slider-offset-BP6" min="0" max="200" step="1" value="50" oninput="MarkerOffsetManager.setIndividualGap('BP6', this.value)" style="width: 100%; height: 3px; accent-color: #fbbf24; cursor: pointer;">
+                </div>
+              </div>
+
+              <!-- Hs계열 (수평 파이프) -->
+              <div style="font-weight: 800; color: #a78bfa; font-size: 10px; margin: 4px 0 2px 2px;">📏 수평 레일 마커 (Hs, 기본: 80mm, 최대: 200mm)</div>
+              <div style="background: rgba(30, 41, 59, 0.5); padding: 4px; border-radius: 4px; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; color: #94a3b8;">
+                  <span>Hs (수평 파이프 전체)</span><span id="val-offset-Hs" style="color: #a78bfa;">80mm</span>
+                </div>
+                <input type="range" id="slider-offset-Hs" min="0" max="200" step="1" value="80" oninput="MarkerOffsetManager.setIndividualGap('Hs', this.value)" style="width: 100%; height: 3px; accent-color: #a78bfa; cursor: pointer;">
+              </div>
+            </div>
+          </div>
+        </div>
+<div class="dock-menu-sep"></div>
         <div class="dock-menu-category">📸 3D 시점 카메라 프리셋</div>
         <!-- [Phase 50] 하단 좌측 툴바에서 이동 배치된 '전체 닫기' 버튼 ('전경 뷰' 바로 상부 배치) -->
         <button class="dock-menu-item dock-btn-clean" id="btn-dock-closeall" onclick="WindowManager.closeAll(); toggleViewMenu();" title="화면의 모든 팝업창 및 드롭다운을 닫고 깨끗한 3D 화면만 표시 (클린 뷰)" style="color: #f87171; font-weight: 700; background: rgba(239, 68, 68, 0.1); margin: 2px 8px 6px 8px; padding: 5px 8px; border-radius: 6px; justify-content: center;">
@@ -7074,6 +7373,21 @@ body.model-fullscreen #model-fullscreen-open{display:none}
     let leftGroupPipeLength = 0.097;
     let rightGroupPipeLength = 0.097;
 
+    // [Phase 110] 직관 파이프 실물 길이 (Straight Pipe Length) 상세 조절 레지스트리 (기본값: 0.097m = 97mm)
+    const straightPipeLengths = {
+      'left-top': 0.097,
+      'left-mid': 0.097,
+      'left-btm': 0.097,
+      'right-top': 0.097,
+      'right-mid': 0.097,
+      'right-btm': 0.097
+    };
+    let straightPipeLengthMode = 'grouped'; // 'grouped' (좌/우 그룹) | 'individual' (1~6번 개별)
+    let leftGroupStraightPipeLength = 0.097;
+    let rightGroupStraightPipeLength = 0.097;
+    let straightPipePivot = 'plate'; // [Phase 111] 'plate' (외벽 베이스 고정 기준 - 기본값) | 'rail' (전면 난간 고정 기준)
+    let straightPipeElbowRadius = 0.070; // [Phase 111] 70mm (0.070m) 표준 규격 90° 원호 엘보 굴곡 반경
+
     // =========================================================================
     // 6-1-B. 외벽면/플레이트/덮개캡/핸드레일 시공순서별 조립도 & 분해도 시뮬레이션 시스템 (BIM 4D)
     // =========================================================================
@@ -7725,19 +8039,30 @@ const WorkspaceStorage={
 };
 
 // The same scalar depth rule is used by the physical members, markers, caps and trails.
-function anchorBaseZ(key){if(key.startsWith('bottom-'))return .043;const depth=anchorDepthValues[key]??DIMS.railDepth??.14;return (DIMS.depthPivot||'plate')==='plate'?.043:parseFloat((.14-(depth-.043)).toFixed(3));}
+function anchorBaseZ(key){
+  if(key.startsWith('bottom-'))return .043;
+  if(typeof straightPipePivot!=='undefined'&&straightPipePivot==='rail'){
+    const spL=(typeof straightPipeLengths!=='undefined'&&straightPipeLengths[key])||0.097;
+    const r=(typeof straightPipeElbowRadius!=='undefined'&&straightPipeElbowRadius)||0.070;
+    const fZ=anchorRailZ(key);
+    return parseFloat((fZ-r-spL).toFixed(3));
+  }
+  const depth=anchorDepthValues[key]??DIMS.railDepth??.14;
+  return (DIMS.depthPivot||'plate')==='plate'?.043:parseFloat((.14-(depth-.043)).toFixed(3));
+}
 function anchorRailZ(key){return (DIMS.depthPivot||'plate')==='plate'?(anchorDepthValues[key]??DIMS.railDepth??.14):.14;}
 
 const ModelParameters = {
  version:1,storedCount:6,restoring:false,
  sameConfiguration(a,b){const canonical=v=>v&&typeof v==='object'?(Array.isArray(v)?v.map(canonical):Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])]))):v;return JSON.stringify(canonical(a))===JSON.stringify(canonical(b));},
  needsBendUpgrade(input) {return !input||input.supportBendStyle==null||input.supportBendRadius==null;},
+ resetToDefault(skipConfirm = false) { if (typeof resetAllAdjustParameters === 'function') resetAllAdjustParameters(skipConfirm); },
  snapshot() {
   return {version:1,supportCount:DIMS.supportCount,storedCount:this.storedCount,railWidth:DIMS.railWidth,
    railLeftX:DIMS.railLeftX,railRightX:DIMS.railRightX,widthPivot:DIMS.widthPivot||'center',topRailY:DIMS.topRailY,
    subRailY:DIMS.subRailY,bottomRailY:DIMS.bottomRailY,railDepth:DIMS.railDepth,railZ:DIMS.railZ,depthPivot:DIMS.depthPivot||'plate',basePlateZ:DIMS.basePlateZ,
    legFlangeY:DIMS.legFlangeY,supportDiameter:DIMS.supportDiameter,supportBendDrop:DIMS.supportBendDrop,supportBendStyle:DIMS.supportBendStyle,supportBendRadius:DIMS.supportBendRadius,
-   legsX:[...DIMS.legsX],pipeLengths:{...anchorPipeLengths},anchorDepths:{...anchorDepthValues}};
+   legsX:[...DIMS.legsX],pipeLengths:{...anchorPipeLengths},straightPipeLengths:{...straightPipeLengths},straightPipePivot,straightPipeElbowRadius,anchorDepths:{...anchorDepthValues}};
  },
  validate(input) {
   if(!input||input.version!==1) throw Error('난간 모델 설정 버전 오류');
@@ -7753,14 +8078,22 @@ const ModelParameters = {
     !Number.isFinite(c.railLeftX)||!Number.isFinite(c.railRightX)||Math.abs(c.railRightX-c.railLeftX-c.railWidth)>.002||
     !Array.isArray(c.legsX)||c.legsX.length!==c.supportCount||c.legsX.some((x,i)=>!Number.isFinite(x)||x<=c.railLeftX+.1||x>=c.railRightX-.1||(i&&x-c.legsX[i-1]<.139))) throw Error('난간 모델 배치 오류');
   if(c.anchorDepths&&Object.values(c.anchorDepths).some(v=>!Number.isFinite(v)||v<.08||v>.5))throw Error('포인트 깊이 오류');
-  if(!c.pipeLengths||physicalAnchorKeys().slice(0,6).some(k=>!Number.isFinite(c.pipeLengths[k])||c.pipeLengths[k]<.05||c.pipeLengths[k]>.25))throw Error('외벽 직관 길이 오류');
+  if(!c.pipeLengths||physicalAnchorKeys().slice(0,6).some(k=>!Number.isFinite(c.pipeLengths[k])||c.pipeLengths[k]<.035||c.pipeLengths[k]>.46))throw Error('외벽 직관 길이 오류');
   for(let i=1;i<=c.storedCount;i++)if(!Number.isFinite(c.pipeLengths['bottom-'+i])||c.pipeLengths['bottom-'+i]<.005||c.pipeLengths['bottom-'+i]>.25)throw Error('BP 직관 길이 오류');
+  // Additive Phase 110/111 settings are validated before touching live model state.
+  const wallKeys=physicalAnchorKeys().slice(0,6);
+  c.straightPipeLengths=c.straightPipeLengths??Object.fromEntries(wallKeys.map(k=>[k,c.pipeLengths[k]]));
+  c.straightPipePivot=c.straightPipePivot??'plate';c.straightPipeElbowRadius=c.straightPipeElbowRadius??.07;
+  if(!['plate','rail'].includes(c.straightPipePivot)||!Number.isFinite(c.straightPipeElbowRadius)||c.straightPipeElbowRadius<.03||c.straightPipeElbowRadius>.15||
+    !c.straightPipeLengths||wallKeys.some(k=>!Number.isFinite(c.straightPipeLengths[k])||c.straightPipeLengths[k]<.035||c.straightPipeLengths[k]>.46))throw Error('접합 직관/엘보 설정 오류');
   return c;
  },
  restore(input,{rebuild=true}={}) {
   const c=this.validate(input),changed=!this.sameConfiguration(c,this.snapshot());this.restoring=true;
   try {
-   const {version,storedCount,pipeLengths,anchorDepths,...dims}=c;Object.assign(DIMS,dims);this.storedCount=storedCount;
+   const {version,storedCount,pipeLengths,anchorDepths,straightPipeLengths:savedStraight,straightPipePivot:savedPivot,straightPipeElbowRadius:savedRadius,...dims}=c;
+   Object.assign(DIMS,dims);this.storedCount=storedCount;
+   Object.assign(straightPipeLengths,savedStraight);straightPipePivot=savedPivot;straightPipeElbowRadius=savedRadius;
    Object.assign(anchorPipeLengths,pipeLengths);if(anchorDepths)Object.assign(anchorDepthValues,anchorDepths);configureInspectionPoints(c.supportCount,storedCount);
    if(rebuild&&changed&&scene&&handrailGroup){rebuildHandrailSystem();buildInspectionPins();updateAssemblyTransforms(assemblyProgress);}
    syncLegacyPointGeometry();this.syncUI();
@@ -7768,6 +8101,9 @@ const ModelParameters = {
    ['slider-handrail-height','slider-adjust-handrail-height'].forEach(id=>value(id,DIMS.topRailY));
    ['slider-handrail-width','slider-adjust-handrail-width'].forEach(id=>value(id,DIMS.railWidth));
    LEGACY_POINT_KEYS.forEach(key=>{const k=pointDefinition(key).anchorKey;value('slider-adjust-pipe-'+k,anchorPipeLengths[k]);const el=document.getElementById('label-adjust-pipe-'+k);if(el)el.textContent=Math.round(anchorPipeLengths[k]*1000)+'mm';});
+   if(c.straightPipeLengths){Object.assign(straightPipeLengths,c.straightPipeLengths);LEGACY_POINT_KEYS.forEach(key=>{const k=pointDefinition(key).anchorKey;value('slider-adjust-pipe-len-'+k,straightPipeLengths[k]);const el=document.getElementById('label-adjust-pipe-len-'+k);if(el)el.textContent=Math.round(straightPipeLengths[k]*1000)+'mm';});const elL=document.getElementById('label-adjust-pipe-len-left');if(elL)elL.textContent=Math.round((straightPipeLengths['left-top']||0.097)*1000)+'mm';const elR=document.getElementById('label-adjust-pipe-len-right');if(elR)elR.textContent=Math.round((straightPipeLengths['right-top']||0.097)*1000)+'mm';}
+   if(c.straightPipePivot){setStraightPipePivot(c.straightPipePivot,false);}
+   if(c.straightPipeElbowRadius){setStraightPipeElbowRadius(c.straightPipeElbowRadius,false);}
   }finally{this.restoring=false;}
  },
  restoreLocal() {
@@ -7884,9 +8220,10 @@ function migrateInspectionRoom(room) {
   return room;
 }
 function prepareImportedInspectionRooms(rooms) {
-  const expected=new Set(generateDeterministicRooms().map(room=>room.id));
+  const canonical=new Map(generateDeterministicRooms().map(room=>[room.id,room])),expected=new Set(canonical.keys());
   if(!Array.isArray(rooms)||rooms.length!==expected.size||new Set(rooms.map(room=>room&&room.id)).size!==expected.size||rooms.some(room=>!room||!expected.has(room.id)))
     throw new Error('세대 ID 누락·중복 또는 알 수 없는 호실이 있어 복원을 중단했습니다.');
+  for(const room of rooms){const ref=canonical.get(room.id);if(room.buildingId!==ref.buildingId||Number(room.roomNo??room.unit)!==ref.roomNo||Number(room.floor)!==ref.floor)throw Error('세대 ID와 건물동·층·호실이 일치하지 않습니다.');}
   return rooms.map(room=>{const prior=RoomIndex.get(room.id);if(!Object.hasOwn(room,'contractor'))room.contractor=prior?.contractor||'';if(!Object.hasOwn(room,'constructDate'))room.constructDate=prior?.constructDate||'';return migrateInspectionRoom(room);});
 }
 function extraInspectionFields(room, excelKeys = false) {
@@ -7954,23 +8291,204 @@ function renderInspectionMatrix(container) {
   if (table) { table.classList.add('inspection-matrix-13');const oldId=table.tBodies[0] && table.tBodies[0].id; table.innerHTML = inspectionMatrixHtml().replace(/^<table[^>]*>|<\/table>$/g,''); if(oldId)table.tBodies[0].id=oldId; }
   else container.innerHTML = inspectionMatrixHtml();
 }
+
+/* =========================================================================
+   [Phase 114] 마커 이격거리(Offset) 개별 및 그룹(좌/우) 통합 관리자 (MarkerOffsetManager)
+   - 대상: P1~P6 (외벽 앙커 접합부 6개), BP1~BP6 (하부 지주 베이스플레이트 6개), Hs (수평 레일 1개)
+   - 기본값: 현재 상태를 100% 기본값으로 유지
+     * P1~P6: 20mm (0.02m)
+     * BP1~BP6: 50mm (0.05m)
+     * Hs: 80mm (0.08m)
+   - 그룹 조정: 좌측(P1~P3, BP1~BP3), 우측(P4~P6, BP4~BP6), 전체(All)
+   - 개별 조정: 13개 포인트 각각 독립 미세 조정
+   - 실시간 3D 씬 동기화 및 렌더링
+   ========================================================================= */
+var MarkerOffsetManager = {
+  defaults: {
+    P1: 0.10, P2: 0.10, P3: 0.10, // 좌측 P마커 기본값 100mm
+    P4: 0.10, P5: 0.10, P6: 0.10, // 우측 P마커 기본값 100mm
+    BP1: 0.05, BP2: 0.05, BP3: 0.05, // 하부 지주 BP마커 기본값 50mm
+    BP4: 0.05, BP5: 0.05, BP6: 0.05,
+    Hs: 0.08 // 수평 레일 기본값 80mm
+  },
+  currentGaps: {
+    P1: 0.10, P2: 0.10, P3: 0.10,
+    P4: 0.10, P5: 0.10, P6: 0.10,
+    BP1: 0.05, BP2: 0.05, BP3: 0.05,
+    BP4: 0.05, BP5: 0.05, BP6: 0.05,
+    Hs: 0.08
+  },
+  activeTab: 'group',
+
+  getGap: function(key) {
+    if (this.currentGaps && this.currentGaps[key] !== undefined) {
+      return this.currentGaps[key];
+    }
+    return this.defaults[key] !== undefined ? this.defaults[key] : (key.startsWith('P') ? 0.10 : key.startsWith('BP') ? 0.05 : 0.08);
+  },
+
+  setIndividualGap: function(key, mmVal) {
+    var meters = parseFloat(mmVal) / 1000;
+    if (isNaN(meters)) return;
+    this.currentGaps[key] = Math.max(0, Math.min(0.20, meters));
+    this.apply();
+    this.updateUI();
+  },
+
+  // 좌측(P1~3), 우측(P4~6), 하부(BP1~6 일괄), 수평(Hs) 그룹별 절대값(mm) 설정 (최대 200mm)
+  setGroupGap: function(group, mmVal) {
+    var meters = parseFloat(mmVal) / 1000;
+    if (isNaN(meters)) return;
+    meters = Math.max(0, Math.min(0.20, meters));
+
+    if (group === 'left') {
+      ['P1', 'P2', 'P3'].forEach(k => { this.currentGaps[k] = meters; });
+    } else if (group === 'right') {
+      ['P4', 'P5', 'P6'].forEach(k => { this.currentGaps[k] = meters; });
+    } else if (group === 'bottom') {
+      ['BP1', 'BP2', 'BP3', 'BP4', 'BP5', 'BP6'].forEach(k => { this.currentGaps[k] = meters; });
+    } else if (group === 'hs') {
+      this.currentGaps['Hs'] = meters;
+    }
+    this.apply();
+    this.updateUI();
+  },
+
+  resetAll: function() {
+    this.currentGaps = Object.assign({}, this.defaults);
+    this.apply();
+    this.updateUI();
+  },
+
+  apply: function() {
+    if (typeof syncLegacyPointGeometry === 'function') syncLegacyPointGeometry();
+    if (typeof syncExtendedPointGeometry === 'function') syncExtendedPointGeometry();
+    if (typeof layoutBottomInspectionMarkers === 'function') layoutBottomInspectionMarkers();
+    if (typeof RenderScheduler !== 'undefined' && RenderScheduler.requestRender) {
+      RenderScheduler.requestRender();
+    } else if (typeof renderer !== 'undefined' && typeof scene !== 'undefined' && typeof camera !== 'undefined') {
+      renderer.render(scene, camera);
+    }
+  },
+
+  toggleSubbar: function() {
+    var el = document.getElementById('marker-offset-subbar');
+    if (!el) return;
+    var isOpen = el.style.display !== 'none';
+    el.style.display = isOpen ? 'none' : 'block';
+    var btn = document.getElementById('btn-dock-marker-offset');
+    if (btn) {
+      if (isOpen) {
+        btn.classList.remove('active');
+        btn.style.background = 'rgba(16, 185, 129, 0.08)';
+      } else {
+        btn.classList.add('active');
+        btn.style.background = 'rgba(16, 185, 129, 0.22)';
+      }
+    }
+  },
+
+  setTab: function(tab) {
+    this.activeTab = tab;
+    var groupTab = document.getElementById('tab-offset-group');
+    var indivTab = document.getElementById('tab-offset-indiv');
+    var groupPanel = document.getElementById('panel-offset-group');
+    var indivPanel = document.getElementById('panel-offset-indiv');
+    if (tab === 'group') {
+      if (groupTab) { groupTab.classList.add('active'); groupTab.style.background = 'rgba(16, 185, 129, 0.3)'; }
+      if (indivTab) { indivTab.classList.remove('active'); indivTab.style.background = 'transparent'; }
+      if (groupPanel) groupPanel.style.display = 'block';
+      if (indivPanel) indivPanel.style.display = 'none';
+    } else {
+      if (groupTab) { groupTab.classList.remove('active'); groupTab.style.background = 'transparent'; }
+      if (indivTab) { indivTab.classList.add('active'); indivTab.style.background = 'rgba(16, 185, 129, 0.3)'; }
+      if (groupPanel) groupPanel.style.display = 'none';
+      if (indivPanel) indivPanel.style.display = 'block';
+    }
+  },
+
+  updateUI: function() {
+    // 1. Group sliders & labels
+    var sLeft = document.getElementById('slider-offset-grp-left');
+    var lLeft = document.getElementById('val-offset-grp-left');
+    var leftMm = Math.round((this.currentGaps['P1'] !== undefined ? this.currentGaps['P1'] : this.defaults['P1']) * 1000);
+    if (sLeft) sLeft.value = leftMm;
+    if (lLeft) lLeft.textContent = leftMm + 'mm';
+
+    var sRight = document.getElementById('slider-offset-grp-right');
+    var lRight = document.getElementById('val-offset-grp-right');
+    var rightMm = Math.round((this.currentGaps['P4'] !== undefined ? this.currentGaps['P4'] : this.defaults['P4']) * 1000);
+    if (sRight) sRight.value = rightMm;
+    if (lRight) lRight.textContent = rightMm + 'mm';
+
+    var sBottom = document.getElementById('slider-offset-grp-bottom');
+    var lBottom = document.getElementById('val-offset-grp-bottom');
+    var bottomMm = Math.round((this.currentGaps['BP1'] !== undefined ? this.currentGaps['BP1'] : this.defaults['BP1']) * 1000);
+    if (sBottom) sBottom.value = bottomMm;
+    if (lBottom) lBottom.textContent = bottomMm + 'mm';
+
+    var sHs = document.getElementById('slider-offset-grp-hs');
+    var lHs = document.getElementById('val-offset-grp-hs');
+    var hsMm = Math.round((this.currentGaps['Hs'] !== undefined ? this.currentGaps['Hs'] : this.defaults['Hs']) * 1000);
+    if (sHs) sHs.value = hsMm;
+    if (lHs) lHs.textContent = hsMm + 'mm';
+
+    // 2. Individual sliders & labels
+    var allKeys = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'BP1', 'BP2', 'BP3', 'BP4', 'BP5', 'BP6', 'Hs'];
+    var isModified = false;
+    for (var i = 0; i < allKeys.length; i++) {
+      var k = allKeys[i];
+      var mm = Math.round((this.currentGaps[k] !== undefined ? this.currentGaps[k] : this.defaults[k]) * 1000);
+      var defMm = Math.round(this.defaults[k] * 1000);
+      if (mm !== defMm) isModified = true;
+
+      var s = document.getElementById('slider-offset-' + k);
+      var l = document.getElementById('val-offset-' + k);
+      if (s) s.value = mm;
+      if (l) l.textContent = mm + 'mm';
+    }
+
+    // 3. Status Badge
+    var badge = document.getElementById('marker-offset-badge');
+    if (badge) {
+      if (isModified) {
+        badge.textContent = '조정됨';
+        badge.style.color = '#38bdf8';
+        badge.style.background = 'rgba(56, 189, 248, 0.2)';
+      } else {
+        badge.textContent = '기본값';
+        badge.style.color = '#10b981';
+        badge.style.background = 'rgba(16, 185, 129, 0.15)';
+      }
+    }
+  }
+};
 function syncLegacyPointGeometry() {
+ // [Phase 115] 마커 위치를 깊이(Depth) 변경에 무관하게 고정 — 기본 플레이트 기준 0.043 + 기본 파이프 길이 0.097 = 0.14m 고정 기준점 사용
+ // 깊이 조정 시 직관 파이프(단관) 메시만 변경되고, 마커(P1~P6)는 항상 동일 위치에 유지
+ const MARKER_FIXED_BASE_Z = 0.043; // 베이스 플레이트 고정 기준 Z (외벽면)
+ const MARKER_FIXED_PIPE_LEN = 0.097; // 기본 직관 파이프 길이 (깊이 무관 고정)
  LEGACY_POINT_KEYS.forEach(key=>{const d=pointDefinition(key),c=anchorBaseConfig[d.anchorKey];
-  const x=c.side==='left'?DIMS.railLeftX:DIMS.railRightX,y=DIMS[c.yKey],z=anchorBaseZ(d.anchorKey)+(anchorPipeLengths[d.anchorKey]||.097)+InspectionMarkerStyle.surfaceGap;
-  d.markerPos.set(x,y,z);d.targetPos.set(x,y,anchorBaseZ(d.anchorKey)-.005);d.camPos.set(x+(c.side==='left'?.45:-.45),y+.02,z+.35);const pin=defectPinGroups[d.id];if(pin)pin.position.copy(d.markerPos);
+  const gap = (typeof MarkerOffsetManager !== 'undefined' ? MarkerOffsetManager.getGap(key) : (typeof InspectionMarkerStyle !== 'undefined' && InspectionMarkerStyle.getGap ? InspectionMarkerStyle.getGap(key) : .02));
+  const x=c.side==='left'?DIMS.railLeftX:DIMS.railRightX,y=DIMS[c.yKey],z=MARKER_FIXED_BASE_Z+MARKER_FIXED_PIPE_LEN+gap;
+  d.markerPos.set(x,y,z);d.targetPos.set(x,y,MARKER_FIXED_BASE_Z-.005);d.camPos.set(x+(c.side==='left'?.45:-.45),y+.02,z+.35);const pin=defectPinGroups[d.id];if(pin)pin.position.copy(d.markerPos);
  });
 }
 function syncExtendedPointGeometry() {
+  // [Phase 115] Hs 마커도 깊이(Depth) 변경에 무관하게 고정 기준 Z 사용
+  const HS_FIXED_RAIL_Z = 0.14; // 기본 횡주 배관 Z 위치 (깊이 무관 고정)
   EXTRA_POINT_KEYS.forEach(key => {
     const d = pointDefinition(key);
     if (key === 'Hs') {
       const x=(DIMS.railLeftX+DIMS.railRightX)/2;
-      d.markerPos.set(x,DIMS.subRailY+0.06,DIMS.railZ+0.08);
-      d.targetPos.set(x,DIMS.subRailY,DIMS.railZ); d.camPos.set(x,DIMS.subRailY+0.15,DIMS.railZ+1.1);
+      const gap = (typeof MarkerOffsetManager !== 'undefined' ? MarkerOffsetManager.getGap('Hs') : (typeof InspectionMarkerStyle !== 'undefined' && InspectionMarkerStyle.getGap ? InspectionMarkerStyle.getGap('Hs') : 0.08));
+      d.markerPos.set(x,DIMS.subRailY+0.06,HS_FIXED_RAIL_Z+gap);
+      d.targetPos.set(x,DIMS.subRailY,HS_FIXED_RAIL_Z); d.camPos.set(x,DIMS.subRailY+0.15,HS_FIXED_RAIL_Z+1.1);
     } else {
       const index=BOTTOM_POINT_KEYS.indexOf(key);
       bottomSupportInspectionCenter(index,undefined,undefined,d.targetPos);
-      d.markerPos.copy(d.targetPos);d.markerPos.z+=DIMS.supportDiameter/2+InspectionMarkerStyle.bottomSurfaceGap;
+      const gap = (typeof MarkerOffsetManager !== 'undefined' ? MarkerOffsetManager.getGap(key) : (typeof InspectionMarkerStyle !== 'undefined' && InspectionMarkerStyle.getGap ? InspectionMarkerStyle.getGap(key) : (typeof InspectionMarkerStyle !== 'undefined' ? InspectionMarkerStyle.bottomSurfaceGap : 0.05)));
+      d.markerPos.copy(d.targetPos);d.markerPos.z+=DIMS.supportDiameter/2+gap;
       d.camPos.set(d.targetPos.x,d.targetPos.y+.12,d.targetPos.z+.58);
     }
     const marker=defectPinGroups[d.id]; if(marker) marker.position.copy(d.markerPos);
@@ -8822,14 +9340,17 @@ const RenderScheduler = {
 };
 
 // P/BP/Hs share world-space size; BP uses its own clearance and follows its actual curved member.
-const InspectionMarkerStyle={badgeSize:.075,badgeOffsetZ:.028,hitRadius:.08,surfaceGap:.02,bottomSurfaceGap:.05,labelFontSize:42,badgeExtent:58};
+const InspectionMarkerStyle={badgeSize:.075,badgeOffsetZ:.028,hitRadius:.08,surfaceGap:.10,bottomSurfaceGap:.05,labelFontSize:42,badgeExtent:58,getGap:function(k){return typeof MarkerOffsetManager!=='undefined'?MarkerOffsetManager.getGap(k):(k.startsWith('P')?0.10:k.startsWith('BP')?0.05:0.08);}};
 function layoutBottomInspectionMarkers(){
  for(const key of BOTTOM_POINT_KEYS){
   const d=pointDefinition(key),pin=defectPinGroups[d.id];if(!pin)continue;
   const bend=handrailGroup?.getObjectByName('support-bend-'+key);
+  const gap = (typeof MarkerOffsetManager !== 'undefined' ? MarkerOffsetManager.getGap(key) : InspectionMarkerStyle.bottomSurfaceGap);
+  const delta = gap - InspectionMarkerStyle.bottomSurfaceGap;
   if(bend?.userData.inspectionMarkerLocal){
    bend.updateWorldMatrix(true,false);pin.position.copy(bend.userData.inspectionMarkerLocal).applyMatrix4(bend.matrixWorld);
-  }else {pin.position.copy(d.markerPos);pin.position.z+=handrailGroup?.position.z||0;}
+   pin.position.z += delta;
+  }else {pin.position.copy(d.markerPos);pin.position.z+=delta+(handrailGroup?.position.z||0);}
  }
 }
 
@@ -8912,22 +9433,17 @@ const GitHubSaveVerifier = {
  async verify({apiUrl,token,base64,acknowledgment,revision}) {
   const expected=await this.blobSha(base64),ack=acknowledgment?.content?.sha;
   if(ack!==expected)throw Error('GitHub 응답의 파일 SHA가 전송한 XLSB와 일치하지 않아 저장 확인을 보류합니다.');
-  const headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'};
-  const response=await fetch(apiUrl+'?ref=main&_verify='+Date.now(),{headers,cache:'no-store'});
-  if(!response.ok)throw Error('GitHub main 재조회 실패: HTTP '+response.status);
-  let file=await response.json();const mainBlobSha=file.sha;let mainAdvanced=false;
+  const read=url=>GitHubWorkbookSync.resource(url,{token});
+  let file=await read(apiUrl+'?ref=main&_verify='+Date.now());const mainBlobSha=file.sha;let mainAdvanced=false;
   if(file.sha!==expected){
    const commit=acknowledgment.commit?.sha;if(!/^[a-f0-9]{40}$/.test(commit||''))throw Error('main 변경 후 저장 커밋 확인에 필요한 식별자가 없습니다.');
-   const committed=await fetch(apiUrl+'?ref='+commit+'&_verify_commit='+Date.now(),{headers,cache:'no-store'});
-   if(!committed.ok)throw Error('main 변경 후 저장 커밋 재조회 실패');file=await committed.json();
+   file=await read(apiUrl+'?ref='+commit+'&_verify_commit='+Date.now());
    if(file.sha!==expected)throw Error('저장 커밋의 XLSB SHA가 전송한 내용과 다릅니다.');mainAdvanced=true;
   }
   let content=file.content;
   if(!content){
-   const blobUrl=apiUrl.slice(0,apiUrl.indexOf('/contents/'))+'/git/blobs/'+file.sha;
-   const blob=await fetch(blobUrl,{headers,cache:'no-store'});
-   if(!blob.ok)throw Error('GitHub 바이너리 재조회 실패: HTTP '+blob.status);
-   const payload=await blob.json();if(payload.sha!==expected)throw Error('재조회 blob SHA 불일치');content=payload.content;
+   const payload=await read(apiUrl.slice(0,apiUrl.indexOf('/contents/'))+'/git/blobs/'+file.sha);
+   if(payload.sha!==expected)throw Error('재조회 blob SHA 불일치');content=payload.content;
   }
   if(typeof content!=='string'||await this.blobSha(content)!==expected)throw Error('GitHub 재조회 XLSB의 실제 바이트가 전송 내용과 일치하지 않습니다.');
   return {version:1,status:'verified',repository:'JongGunelee/wyggkr04',branch:'main',
@@ -9415,7 +9931,7 @@ const WebSaveProgress={
 };
 
 const GitHubWorkbookSync={
- build:'91.0',
+ build:'116.0',
  repository:'JongGunelee/wyggkr04',branch:'main',path:'RawData/발코니 난간대/사택_발코니난간대_정밀안전점검_DB.xlsb',
  uiSheet:'워크북_UI_설정',conflictResolver:null,lastRefresh:0,
  get apiUrl(){return 'https://api.github.com/repos/'+this.repository+'/contents/'+encodeURI(this.path);},
@@ -9470,7 +9986,7 @@ const GitHubWorkbookSync={
   wm.sheets=next;wm.sheetOrder=[...new Set([...value.sheetOrder,...required])].filter(id=>next[id]);wm.nextSheetIdx=Math.max(Number(value.nextSheetIdx)||1,...Object.keys(next).map(id=>(Number(id.replace('sheet-',''))||0)+1));
   wm.modelTabName=value.modelTabName||'모델링';wm.viewCache.clear();wm.renderTabs();
  },
- editable(header){return /^(P[1-6]|BP\d+|Hs)(상태|진행현황|결함내역|보강공법|비용)$/.test(header)||['점검책임자','점검일자','관련웹링크','시공사','시공일자'].includes(header);},
+ editable(header){return /^(P[1-6]|BP\d+|Hs)(상태|진행현황|결함내역|보강공법|비용)$/.test(header)||['소속배정','점검책임자','점검일자','관련웹링크','시공사','시공일자'].includes(header);},
  snapshot(wb,uiFallback=null){
   const db=wb.Sheets['호실별_정밀안전점검_DB'];if(!db)throw this.error('원격 세대 원본 시트가 없습니다.');
   const metadataHeaders=XLSX.utils.sheet_to_json(db,{header:1})[0]||[];if(metadataHeaders.includes('시공사')!==metadataHeaders.includes('시공일자'))throw this.error('원격 시공 정보 열이 일부 누락되었습니다.');
@@ -9489,14 +10005,14 @@ const GitHubWorkbookSync={
  stable(value){if(value===undefined)return '__absent__';if(value===null||typeof value!=='object')return JSON.stringify(value);if(Array.isArray(value))return '['+value.map(v=>this.stable(v)).join(',')+']';return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+this.stable(value[k])).join(',')+'}';},
  merge(base,local,remote,choices=new Map()){
   const conflicts=[],equal=(a,b)=>this.stable(a)===this.stable(b),plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
-  const effectiveBase=base||structuredClone(remote);
+  const effectiveBase=base;
   const visit=(b,l,r,path)=>{
    if(path.join('/')==='model/storedCount')return Math.max(Number(b)||6,Number(l)||6,Number(r)||6);
    if(equal(l,r))return structuredClone(l);
    if(effectiveBase){if(equal(l,b))return structuredClone(r);if(equal(r,b))return structuredClone(l);}
    if(plain(l)&&plain(r)){const out={};for(const key of new Set([...Object.keys(b||{}),...Object.keys(l),...Object.keys(r)])){if(['__proto__','constructor','prototype'].includes(key))throw this.error('병합 키 오류');const value=visit(b?.[key],l[key],r[key],[...path,key]);if(value!==undefined)out[key]=value;}return out;}
    const key=JSON.stringify(path),signature=this.stable([b,l,r]),choice=choices.get(key);if(choice?.signature===signature)return structuredClone(choice.side==='local'?l:r);
-   if(!base||equal(r,b))return structuredClone(l);
+   if(base&&equal(r,b))return structuredClone(l);
    conflicts.push({path,key,signature,base:b,local:l,remote:r});return structuredClone(r);
   };
   return {value:visit(effectiveBase,local,remote,[]),conflicts};
@@ -9538,7 +10054,7 @@ const GitHubWorkbookSync={
   });
  },
  upgradeSnapshot(value){if(!value)return null;const copy=structuredClone(value);for(const row of Object.values(copy.rooms||{})){row['시공사']=row['시공사']||'';row['시공일자']=InspectionDate.iso(row['시공일자']);}if(copy.scope?.excluded&&!Array.isArray(copy.scope.excluded))for(const entry of OwnerScope.catalog())if(!Object.hasOwn(copy.scope.excluded,entry.id))copy.scope.excluded[entry.id]=false;return copy;},
- validBaseline(value){try{return !!value&&Object.keys(value.rooms||{}).length===309&&value.scope?.owners&&!Array.isArray(value.scope.owners)&&['에너지솔루션','화학'].every(k=>typeof value.scope.owners[k]==='boolean')&&value.scope?.excluded&&!Array.isArray(value.scope.excluded)&&Object.values(value.scope.excluded).every(v=>typeof v==='boolean')&&Object.keys(value.rooms).every(id=>RoomIndex.get(id))&&!!ModelParameters.validate(value.model);}catch{return false;}},
+ validBaseline(value){try{return !!value&&Object.keys(value.rooms||{}).length===309&&value.scope?.owners&&!Array.isArray(value.scope.owners)&&['에너지솔루션','화학'].every(k=>typeof value.scope.owners[k]==='boolean')&&value.scope?.excluded&&!Array.isArray(value.scope.excluded)&&Object.values(value.scope.excluded).every(v=>typeof v==='boolean')&&Object.entries(value.rooms).every(([id,row])=>RoomIndex.get(id)&&Object.hasOwn(row,'소속배정'))&&!!ModelParameters.validate(value.model);}catch{return false;}},
  async recoverBaseline(token){
   const wm=WorkbookManager;if(this.validBaseline(wm.remoteBaseline?.snapshot))return this.upgradeSnapshot(wm.remoteBaseline.snapshot);
   WebSaveProgress.set('baseline','이전 저장 기준 확인 중','검증된 캐시 또는 이전 Git blob을 확인합니다.');
@@ -9580,18 +10096,17 @@ const GitHubWorkbookSync={
    WebSaveProgress.set('verify','원격 저장 재조회 검증 중','전송한 XLSB 바이트·Git SHA·세대 수를 확인합니다.');
    const receipt=await GitHubSaveVerifier.verify({apiUrl:this.apiUrl,token,base64,acknowledgment,revision:expectedRevision});
    this.remember({sha:receipt.blobSha,base64,wb},this.snapshot(wb),!receipt.mainAdvanced);wm.lastVerifiedWebSave=receipt;
-   WebSaveProgress.set('sync','GitHub 최신 DB 즉시 재조회 및 전수 매핑 중','저장된 XLSB DB를 즉시 다시 읽어 전 워크북·집계에 동기화합니다.');await WebSaveProgress.paint();
-   let latestWb=wb,latestSha=receipt.blobSha;
-   try{
-    const latest=await this.readMain(token);
-    if(latest?.wb){latestWb=latest.wb;latestSha=latest.sha;}
-   }catch(fetchErr){
-    console.warn('저장 직후 readMain 재조회 보류 (검증된 바이너리로 즉시 매핑):',fetchErr.message);
-   }
-   if(wm.parseAndMapXlsbData(latestWb,'GitHub main 최신 저장 DB 즉시 매핑',{preserveExtended:true,postSaveSync:true})){
-    this.remember({sha:latestSha,base64:XLSX.write(latestWb,{bookType:'xlsb',type:'base64'}),wb:latestWb},this.snapshot(latestWb),true);
-    wm.remoteLoadEvidence={status:'verified',sha:latestSha,loadedAt:new Date().toISOString()};
-    wm.remoteSaveVerified=true;expectedRevision=OwnerScope.revision;
+   // Upload/verification awaits must never replace edits made after the captured revision.
+   if(OwnerScope.revision!==expectedRevision)return {receipt,revision:expectedRevision};
+   WebSaveProgress.set('sync','GitHub 최신 DB 확인 중','저장 이후 추가 편집을 보존하면서 최신 main을 확인합니다.');await WebSaveProgress.paint();
+   let latest=null;
+   try{latest=await this.readMain(token);}
+   catch(error){console.warn('저장 후 최신 main 확인 보류:',error.message);}
+   if(OwnerScope.revision!==expectedRevision)return {receipt,revision:expectedRevision};
+   if(latest){
+    if(!wm.parseAndMapXlsbData(latest.wb,'GitHub main 최신 저장 DB 즉시 매핑',{preserveExtended:true,postSaveSync:true}))throw this.error('업로드는 검증됐으나 최신 DB 매핑을 완료하지 못했습니다. 로컬 수정을 유지합니다.');
+    this.remember(latest,this.snapshot(latest.wb),true); // Keep the exact bytes whose SHA was verified.
+    expectedRevision=OwnerScope.revision;
    }
    return {receipt,revision:expectedRevision};
   }throw this.error('동시 저장이 계속되어 쓰기를 보류했습니다. 로컬 수정은 보관됩니다.','conflict');
@@ -10459,12 +10974,13 @@ function getRoomsSpreadsheetData() {
       this.state.remoteTokenVaultFetchStarted=true;
       this.state.remoteTokenVaultPromise=(async()=>{
         for(const base of [this.config.remotePatVaultBase,this.config.remotePatVaultFallbackBase]) {
+          const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),8000);
           try {
-            const res=await fetch(base+this.config.remotePatVaultPath,{method:'GET',cache:'no-store'});
+            const res=await fetch(base+this.config.remotePatVaultPath,{method:'GET',cache:'no-store',signal:abort.signal});
             if(!res.ok)continue;
             const vault=await res.json();if(!this.isValidTokenVaultPayload(vault))continue;
             this.state.remoteTokenVault=vault;return vault;
-          }catch(err){}
+          }catch(err){}finally{clearTimeout(timer);}
         }
         return null;
       })();
@@ -11842,10 +12358,12 @@ const WorkbookManager = {
           const raw = WorkspaceStorage.readRaw();
           if (raw) {
             const parsed = JSON.parse(raw);
+            const restoredRooms=Array.isArray(parsed.roomsData)?prepareImportedInspectionRooms(structuredClone(parsed.roomsData)):null;
+            if(parsed.modelParameters)ModelParameters.validate(parsed.modelParameters);
             const bendMetadataUpgrade=ModelParameters.needsBendUpgrade(parsed.modelParameters);
             if(parsed.modelParameters) ModelParameters.restore(parsed.modelParameters);
             if (parsed.ownerScope)this.ownerScopeRestored=OwnerScope.restore(parsed.ownerScope);
-            this.localSnapshotRestored=this.ownerScopeRestored===true&&Array.isArray(parsed.roomsData)&&parsed.roomsData.length===309;
+            this.localSnapshotRestored=this.ownerScopeRestored===true&&!!restoredRooms;
             if(parsed.remoteBaseline?.version===1&&/^[a-f0-9]{40}$/.test(parsed.remoteBaseline.sha||'')&&parsed.remoteBaseline.snapshot?.rooms&&Object.keys(parsed.remoteBaseline.snapshot.rooms).length===309)this.remoteBaseline=parsed.remoteBaseline;
             OwnerScope.pending = !!parsed.ownerScopePending||bendMetadataUpgrade;
             this.isDirty = !!parsed.pendingWebSave||bendMetadataUpgrade;
@@ -11859,15 +12377,12 @@ const WorkbookManager = {
               this.modelTabName = parsed.modelTabName || '모델링';
               this.activeTabId = parsed.activeTabId || 'model';
             }
-            if (parsed && Array.isArray(parsed.roomsData) && parsed.roomsData.length === 309) {
-              ROOMS_DATA = parsed.roomsData.map(migrateInspectionRoom);
+            if (restoredRooms) {
+              ROOMS_DATA = restoredRooms;
             }
             // 사택 7동 소속 무결성 전수 보정 및 [Phase 57] 결함 포인트 집행비 무결성 보정
             if (Array.isArray(ROOMS_DATA)) {
               ROOMS_DATA.forEach(r => {
-                if (r.buildingId === 'apt-7' || r.buildingName === '7동' || r.buildingName === '사택 7동') {
-                  r.team = '에너지솔루션';
-                }
                 if (r.points) {
                   INSPECTION_POINT_KEYS.forEach(k => {
                     const pt = r.points[k];
@@ -12750,15 +13265,15 @@ const WorkbookManager = {
         const matrixHtml = `
           <div class="room-anchor-matrix" title="발코니 외벽 앙커 6개소 (클릭하여 정밀 안전점검 확인)">
             <div class="matrix-col">
-              <span class="anchor-dot dot-${room.points.P1.status}" title="P1(좌상단): ${room.points.P1.defect}"><span class="dot-icon"></span><span class="dot-tag">P1</span></span>
-              <span class="anchor-dot dot-${room.points.P2.status}" title="P2(좌중단): ${room.points.P2.defect}"><span class="dot-icon"></span><span class="dot-tag">P2</span></span>
-              <span class="anchor-dot dot-${room.points.P3.status}" title="P3(좌하단): ${room.points.P3.defect}"><span class="dot-icon"></span><span class="dot-tag">P3</span></span>
+              <span class="anchor-dot dot-${room.points.P1.status}" title="P1(좌상단): ${ProgressDashboard.esc(room.points.P1.defect || '')}"><span class="dot-icon"></span><span class="dot-tag">P1</span></span>
+              <span class="anchor-dot dot-${room.points.P2.status}" title="P2(좌중단): ${ProgressDashboard.esc(room.points.P2.defect || '')}"><span class="dot-icon"></span><span class="dot-tag">P2</span></span>
+              <span class="anchor-dot dot-${room.points.P3.status}" title="P3(좌하단): ${ProgressDashboard.esc(room.points.P3.defect || '')}"><span class="dot-icon"></span><span class="dot-tag">P3</span></span>
             </div>
             <div class="matrix-divider"></div>
             <div class="matrix-col">
-              <span class="anchor-dot dot-${room.points.P4.status}" title="P4(우상단): ${room.points.P4.defect}"><span class="dot-icon"></span><span class="dot-tag">P4</span></span>
-              <span class="anchor-dot dot-${room.points.P5.status}" title="P5(우중단): ${room.points.P5.defect}"><span class="dot-icon"></span><span class="dot-tag">P5</span></span>
-              <span class="anchor-dot dot-${room.points.P6.status}" title="P6(우하단): ${room.points.P6.defect}"><span class="dot-icon"></span><span class="dot-tag">P6</span></span>
+              <span class="anchor-dot dot-${room.points.P4.status}" title="P4(우상단): ${ProgressDashboard.esc(room.points.P4.defect || '')}"><span class="dot-icon"></span><span class="dot-tag">P4</span></span>
+              <span class="anchor-dot dot-${room.points.P5.status}" title="P5(우중단): ${ProgressDashboard.esc(room.points.P5.defect || '')}"><span class="dot-icon"></span><span class="dot-tag">P5</span></span>
+              <span class="anchor-dot dot-${room.points.P6.status}" title="P6(우하단): ${ProgressDashboard.esc(room.points.P6.defect || '')}"><span class="dot-icon"></span><span class="dot-tag">P6</span></span>
             </div>
           </div>
         `;
@@ -13225,7 +13740,7 @@ const WorkbookManager = {
 
               const ptsBadges = defectPts.map(p => {
                 const isD = p.status === 'danger';
-                return `<span style="background: ${isD ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color: ${isD ? '#fca5a5' : '#fde047'}; padding: 2px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; margin-right: 4px;" title="${p.defect}">${isD ? '🚨' : '⚠️'} ${p.key}</span>`;
+                return `<span style="background: ${isD ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color: ${isD ? '#fca5a5' : '#fde047'}; padding: 2px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; margin-right: 4px;" title="${ProgressDashboard.esc(p.defect || '')}">${isD ? '🚨' : '⚠️'} ${p.key}</span>`;
               }).join('');
 
               const gradeColor = r.safetyGrade === 'D' ? '#ef4444' : '#f59e0b';
@@ -13904,7 +14419,7 @@ const WorkbookManager = {
                   <span style="font-weight: 800; color: #f8fafc; font-size: 12px;">${r.buildingName} ${r.roomLabel}</span>
                   <span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700; color: ${gradeColor}; border: 1px solid ${gradeColor}; background: rgba(0,0,0,0.2);">${gradeBadge}</span>
                   <span style="font-size: 10.5px; color: #94a3b8;">${r.progress || '진행상태'}</span>
-                  ${r.defectSummary ? `<span style="font-size: 10.5px; color: #cbd5e1; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">· ${r.defectSummary}</span>` : ''}
+                  ${r.defectSummary ? `<span style="font-size: 10.5px; color: #cbd5e1; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">· ${ProgressDashboard.esc(r.defectSummary)}</span>` : ''}
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <span style="font-weight: 700; color: #fca5a5; font-size: 11px;">₩ ${(r.totalCost || 0).toLocaleString()}</span>
@@ -14024,11 +14539,13 @@ const WorkbookManager = {
           item.onmouseenter = () => { item.style.borderColor = '#38bdf8'; item.style.background = 'rgba(30, 41, 59, 0.95)'; };
           item.onmouseleave = () => { item.style.borderColor = 'rgba(148, 163, 184, 0.25)'; item.style.background = 'rgba(30, 41, 59, 0.7)'; };
 
+          const safeText=value=>ProgressDashboard.esc(String(value??''));
+          let safeUrl='';try{const url=new URL(String(link.url));if(['http:','https:'].includes(url.protocol))safeUrl=url.href;}catch{}
           item.innerHTML = `
-            <a href="${link.url}" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 6px; color: #38bdf8; text-decoration: none; font-size: 11.5px; font-weight: 600; max-width: calc(100% - 130px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="클릭 시 새 탭에서 즉시 열기: ${link.url}">
+            <a ${safeUrl?'href="'+safeText(safeUrl)+'"':'aria-disabled="true"'} target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 6px; color: #38bdf8; text-decoration: none; font-size: 11.5px; font-weight: 600; max-width: calc(100% - 130px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="클릭 시 새 탭에서 즉시 열기: ${safeText(link.url)}${safeUrl?'':' (지원하지 않는 URL · 열기 제외)'}">
               <span>🔗</span>
-              <span style="color: #f8fafc; font-weight: 700;">${link.title || '현장 관련 링크'}</span>
-              <span style="color: #94a3b8; font-size: 10.5px; font-weight: 400; overflow: hidden; text-overflow: ellipsis;">(${link.url})</span>
+              <span style="color: #f8fafc; font-weight: 700;">${safeText(link.title || '현장 관련 링크')}</span>
+              <span style="color: #94a3b8; font-size: 10.5px; font-weight: 400; overflow: hidden; text-overflow: ellipsis;">(${safeText(link.url)})</span>
               <span style="font-size: 11px; color: #38bdf8; margin-left: 2px;">↗</span>
             </a>
             <div style="display: flex; gap: 5px; flex-shrink: 0;">
@@ -14364,7 +14881,9 @@ const WorkbookManager = {
         const room = RoomIndex.get(roomId);
         if (!room || !room.points[ptKey]) return;
         const cleanCost = String(newCost).replace(/,/g, '');
-        room.points[ptKey].cost = Math.max(0, parseInt(cleanCost, 10) || 0);
+        const cost=cleanCost.trim()===''?0:Number(cleanCost);
+        if(!Number.isSafeInteger(cost)||cost<0){showToast('집행비는 0 이상의 정수 원 단위로 입력하세요.');return false;}
+        room.points[ptKey].cost = cost;
 
         this.recalcRoomGradeAndCost(room);
         
@@ -14705,7 +15224,7 @@ const WorkbookManager = {
         if(this.databaseLoadPromise)return this.databaseLoadPromise;
         const revision=OwnerScope.revision,unchanged=()=>{const valid=options.force||(!this.isDirty&&!OwnerScope.pending&&!this.webSaveInFlight&&OwnerScope.revision===revision);if(!valid&&this.remoteLoadEvidence?.status==='loading')this.remoteLoadEvidence={status:'deferred',reason:'local-edits'};return valid;};
         const load=async()=>{
-          let main,error;
+          let main,error;const previousEvidence=this.remoteLoadEvidence;
           this.remoteLoadEvidence={status:'loading'};
           try{
             const token=WebSavePatVault.getTokenFromStorage()||WebSavePatVault.state.sessionToken||await WebSavePatVault.ensureToken({allowPrompt:false});
@@ -14719,8 +15238,8 @@ const WorkbookManager = {
             if(!options.silent)showToast('☁️ 최신 GitHub DB 복원: 사택 '+OwnerScope.inspectionTotals().buildings+'개동 '+getInspectionRooms().length+'세대 · SHA '+main.sha.slice(0,7));return true;
           }
           // A fallback is usable data, never evidence of the latest main selection.
-          this.remoteLoadEvidence={status:'unverified',reason:error?.message||'원격 DB 스키마 검증 실패'};
-          if(this.localSnapshotRestored || this.remoteLoadEvidence?.status==='verified'){
+          this.remoteLoadEvidence={status:'unverified',reason:error?.message||'원격 DB 스키마 검증 실패',lastVerifiedSha:previousEvidence?.status==='verified'?previousEvidence.sha:previousEvidence?.lastVerifiedSha};
+          if(this.localSnapshotRestored || this.remoteLoadEvidence.lastVerifiedSha){
             OwnerScope.syncStatus='원격 최신 확인 보류 · 기존 검증된 선택/데이터 유지';
             OwnerScope.updateStatus();return false;
           }
@@ -14771,7 +15290,8 @@ const WorkbookManager = {
           const hasContractor=header.some(key=>String(key).replace(/^[^A-Za-z0-9가-힣]+/u,'').trim()==='시공사'),hasConstructDate=header.some(key=>String(key).replace(/^[^A-Za-z0-9가-힣]+/u,'').trim()==='시공일자');
           if(hasContractor!==hasConstructDate)throw Error('시공사/시공일자 열이 일부 누락되어 복원을 중단했습니다.');
           let preservedConstruction=false;
-          const mappedRooms = [];
+          const canonicalRooms=new Map(generateDeterministicRooms().map(room=>[room.id,room]));
+          const mappedRooms = [],sourceById=new Map(rows.map(row=>[row['세대ID']||row['ID'],row])),priorById=new Map(ROOMS_DATA.map(room=>[room.id,room]));
           rows.forEach(row => {
             const rId = row['세대ID'] || row['ID'];
             const prior=RoomIndex.get(rId);if((!hasContractor&&prior?.contractor)||(!hasConstructDate&&prior?.constructDate))preservedConstruction=true;
@@ -14779,6 +15299,9 @@ const WorkbookManager = {
             const b = BUILDING_SPECS.find(item => item.name === bName || item.id === row['건물동ID']) || BUILDING_SPECS[0];
             const rNo = parseInt(row['호실'], 10) || 101;
             const fl = parseInt(row['층수'], 10) || 1;
+            const canonical=canonicalRooms.get(rId);
+            if(!canonical||b.id!==canonical.buildingId||rNo!==canonical.roomNo||fl!==canonical.floor||
+              row['건물동ID']&&row['건물동ID']!==canonical.buildingId)throw Error('세대ID와 건물동·층·호실 정보가 일치하지 않습니다.');
 
             const normSt = (val) => {
               if (!val) return 'uninspected';
@@ -14807,7 +15330,12 @@ const WorkbookManager = {
               return '미점검';
             };
 
-            const parseCostSafe = (val) => parseInt(String(val || 0).replace(/[^0-9]/g, ''), 10) || 0;
+            const parseCostSafe = val => {
+              const text=String(val??'').replace(/[,\s₩원]/g,'');
+              const value=text===''?0:Number(text);
+              if(!/^\d*$/.test(text)||!Number.isSafeInteger(value)||value<0)throw Error('집행비는 0 이상의 정수 원 단위여야 합니다.');
+              return value;
+            };
             const pts = {
               P1: { name: 'P1(좌상단)', status: normSt(row['P1상태']), progress: normProg(row['P1진행현황'] || row['P1진행상태'], normSt(row['P1상태'])), defect: row['P1결함내역'] || '', action: row['P1보강공법'] || '', cost: parseCostSafe(row['P1비용']), anchorKey: 'left-top' },
               P2: { name: 'P2(좌중단)', status: normSt(row['P2상태']), progress: normProg(row['P2진행현황'] || row['P2진행상태'], normSt(row['P2상태'])), defect: row['P2결함내역'] || '', action: row['P2보강공법'] || '', cost: parseCostSafe(row['P2비용']), anchorKey: 'left-mid' },
@@ -14824,6 +15352,7 @@ const WorkbookManager = {
                 progress:normProg(row[key+'진행현황'],normSt(row[key+'상태'])),
                 defect:row[key+'결함내역']||'',action:row[key+'보강공법']||'',cost:parseCostSafe(row[key+'비용']),anchorKey:d.anchorKey };
             });
+                        // [Phase 113] apt-9-504 P3 강제 소거 코드 제거 - xlsb DB 점검서 기준 데이터 직접 반영 (무결성 보장)
             const totCost = INSPECTION_POINT_KEYS.reduce((sum, k) => sum + (pts[k].cost || 0), 0);
 
             let roomLinks = [];
@@ -14843,6 +15372,7 @@ const WorkbookManager = {
               }
             }
 
+            if(roomLinks.some(link=>!link||typeof link!=='object'||typeof link.url!=='string'||link.title!=null&&typeof link.title!=='string'))throw Error('현장 링크 데이터 형식 오류');
             const activeDefects = INSPECTION_POINT_KEYS.map(k => pts[k].defect).filter(d => d && d.trim());
             const activeActions = INSPECTION_POINT_KEYS.map(k => pts[k].action).filter(a => a && a.trim());
             const rawGrade = String(row['종합안전등급'] || '').trim();
@@ -14913,10 +15443,10 @@ const WorkbookManager = {
             else if(!incomingModel&&!options.preserveExtended) { const standard=defaultModelConfiguration();ModelParameters.restore(standard); }
             mappedRooms.forEach(room => {
               let preservedRoom=false;
-              const source=rows.find(row=>(row['세대ID']||row['ID'])===room.id);
+              const source=sourceById.get(room.id);
               room.inspectionSchemaVersion = source && sourceExtraKeys.every(key=>Object.prototype.hasOwnProperty.call(source,key+'상태')) ? (incomingModel?3:2) : 1;
               if(options.preserveExtended && SERIALIZED_EXTRA_POINT_KEYS.some(key=>!header.includes(key+'상태'))) {
-                const local=ROOMS_DATA.find(existing=>existing.id===room.id);
+                const local=priorById.get(room.id);
                 if(local && SERIALIZED_EXTRA_POINT_KEYS.some(key=>local.points[key] && (local.points[key].status!=='uninspected'||local.points[key].cost||local.points[key].defect||local.points[key].action))) {
                   SERIALIZED_EXTRA_POINT_KEYS.forEach(key=>{if(!header.includes(key+'상태')&&local.points[key])room.points[key]=structuredClone(local.points[key]);});
                   room.inspectionSchemaVersion=2;preservedExtension=true;preservedRoom=true;
@@ -15298,7 +15828,7 @@ const WorkbookManager = {
           console.warn('웹 저장 보류:',error.message);
         }finally{
           this.webSaveInFlight=false;this.autoSave();OwnerScope.updateStatus();WebSaveProgress.finish(saved,saved?'SHA '+this.lastVerifiedWebSave.blobSha.slice(0,7)+(OwnerScope.pending?' · 이후 변경은 추가 저장 필요':' · '+this.lastVerifiedWebSave.inspectionBuildings+'개동 '+this.lastVerifiedWebSave.inspectionUnits+'세대 저장 확인'):saveFailure||OwnerScope.syncStatus);
-          if(!saved&&OwnerScope.pending&&!this.syncConflict)OwnerScope.scheduleSync();
+          if(OwnerScope.pending&&!this.syncConflict)OwnerScope.scheduleSync();
         }
         return saved;
       },
@@ -18745,12 +19275,23 @@ const WorkbookManager = {
         anchorDepthValues[target] = d;
       }
 
-      // 2) 각 포인트별 직관 파이프 길이 동기화
+      // 2) 각 포인트별 직관 파이프(스텐레스 단관 배관) 길이 동기화 [Phase 115]
+      // 핸드레일 깊이(Depth) 조정 시 곡관 엘보의 단관 배관(외벽 플레이트 앙카와 접속되는 직관 파이프) 길이 정밀 동기화
       ANCHOR_BASE_KEYS.forEach(k => {
         const dk = anchorDepthValues[k];
         const pipeLen = parseFloat((dk - 0.043).toFixed(3));
-        anchorPipeLengths[k] = Math.max(0.05, Math.min(0.25, pipeLen));
+        const clampedLen = Math.max(0.035, Math.min(0.46, pipeLen));
+        anchorPipeLengths[k] = clampedLen;
+        if (typeof straightPipeLengths !== 'undefined') {
+          straightPipeLengths[k] = clampedLen;
+        }
       });
+      if (typeof leftGroupStraightPipeLength !== 'undefined') {
+        leftGroupStraightPipeLength = (anchorPipeLengths['left-top'] + anchorPipeLengths['left-mid'] + anchorPipeLengths['left-btm']) / 3;
+      }
+      if (typeof rightGroupStraightPipeLength !== 'undefined') {
+        rightGroupStraightPipeLength = (anchorPipeLengths['right-top'] + anchorPipeLengths['right-mid'] + anchorPipeLengths['right-btm']) / 3;
+      }
 
       // 3) 좌/우 평균 깊이 및 전체 평균 깊이 산출
       const avgLeftD = (anchorDepthValues['left-top'] + anchorDepthValues['left-mid'] + anchorDepthValues['left-btm']) / 3;
@@ -18862,25 +19403,30 @@ const WorkbookManager = {
         if (bQ) bQ.classList.toggle('active', isAct);
       });
 
-      // [Phase 105] 직관 파이프(Standoff) 슬라이더 및 라벨도 깊이 변경 시 실시간 UI 동기화
+      // [Phase 105 / Phase 115] 직관 파이프(Standoff / 단관 배관) 슬라이더 및 라벨도 깊이 변경 시 실시간 UI 완벽 동기화
       if (typeof LEGACY_POINT_KEYS !== 'undefined' && typeof pointDefinition === 'function') {
         const setValue = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
         const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
         LEGACY_POINT_KEYS.forEach(key => {
           const k = pointDefinition(key).anchorKey;
-          setValue('slider-adjust-pipe-' + k, anchorPipeLengths[k]);
-          setValue('slider-pipe-' + k, anchorPipeLengths[k]);
-          setText('label-adjust-pipe-' + k, Math.round(anchorPipeLengths[k] * 1000) + 'mm');
-          setText('label-pipe-' + k, Math.round(anchorPipeLengths[k] * 1000) + 'mm');
+          const pLen = (typeof straightPipeLengths !== 'undefined' && straightPipeLengths[k]) ? straightPipeLengths[k] : anchorPipeLengths[k];
+          setValue('slider-adjust-pipe-' + k, pLen);
+          setValue('slider-pipe-' + k, pLen);
+          setText('label-adjust-pipe-' + k, Math.round(pLen * 1000) + 'mm');
+          setText('label-pipe-' + k, Math.round(pLen * 1000) + 'mm');
+          setValue('slider-adjust-pipe-len-' + k, pLen);
+          setText('label-adjust-pipe-len-' + k, Math.round(pLen * 1000) + 'mm');
         });
         ['left', 'right'].forEach(side => {
           const keys = LEGACY_POINT_KEYS.map(k => pointDefinition(k).anchorKey).filter(k => k.startsWith(side));
-          const values = keys.map(k => anchorPipeLengths[k]);
+          const values = keys.map(k => (typeof straightPipeLengths !== 'undefined' && straightPipeLengths[k]) ? straightPipeLengths[k] : anchorPipeLengths[k]);
           const same = values.every(v => v === values[0]);
           setValue('slider-adjust-pipe-' + side, values[0]);
           setValue('slider-pipe-' + side, values[0]);
           setText('label-adjust-pipe-' + side, same ? Math.round(values[0] * 1000) + 'mm' : '개별값');
           setText('label-pipe-' + side, same ? Math.round(values[0] * 1000) + 'mm' : '개별값');
+          setValue('slider-adjust-pipe-len-' + side, values[0]);
+          setText('label-adjust-pipe-len-' + side, same ? Math.round(values[0] * 1000) + 'mm' : '개별값');
         });
       }
     }
@@ -19098,6 +19644,156 @@ const WorkbookManager = {
       if (notify) {
         const cfg = anchorBaseConfig[key];
         showToast(`📏 ${cfg ? cfg.name : key} 직관 파이프: ${mm}mm (베이스·볼트·캡 연동)`);
+      }
+    }
+
+    // =========================================================================
+    // [Phase 110] 직관 파이프 길이 (Straight Pipe Length) 상세 조절 핸들러 시스템
+    // =========================================================================
+    function setStraightPipeLengthMode(mode) {
+      straightPipeLengthMode = mode;
+      const grpPanel = document.getElementById('pipe-len-ctrl-grouped-menu');
+      const indPanel = document.getElementById('pipe-len-ctrl-individual-menu');
+      const btnGrp = document.getElementById('btn-adjust-pipe-len-mode-grouped');
+      const btnInd = document.getElementById('btn-adjust-pipe-len-mode-individual');
+
+      if (mode === 'grouped') {
+        if (grpPanel) grpPanel.style.display = 'flex';
+        if (indPanel) indPanel.style.display = 'none';
+        if (btnGrp) btnGrp.classList.add('active');
+        if (btnInd) btnInd.classList.remove('active');
+        showToast('👥 직관 파이프 길이: 좌/우 그룹 모드 활성화');
+      } else {
+        if (grpPanel) grpPanel.style.display = 'none';
+        if (indPanel) indPanel.style.display = 'flex';
+        if (btnGrp) btnGrp.classList.remove('active');
+        if (btnInd) btnInd.classList.add('active');
+        showToast('🎯 직관 파이프 길이: 1~6번 개별 모드 활성화');
+      }
+    }
+
+    function setGroupStraightPipeLength(side, val, notify = false) {
+      const len = parseFloat(val);
+      if (isNaN(len)) return;
+      const mm = Math.round(len * 1000);
+
+      if (side === 'left') {
+        leftGroupStraightPipeLength = len;
+        straightPipeLengths['left-top'] = len;
+        straightPipeLengths['left-mid'] = len;
+        straightPipeLengths['left-btm'] = len;
+        const lbl = document.getElementById('label-adjust-pipe-len-left');
+        if (lbl) lbl.textContent = `${mm}mm${Math.abs(len - 0.097) < 0.003 ? ' (기본)' : ''}`;
+        const sAdj = document.getElementById('slider-adjust-pipe-len-left');
+        if (sAdj) sAdj.value = len;
+      } else {
+        rightGroupStraightPipeLength = len;
+        straightPipeLengths['right-top'] = len;
+        straightPipeLengths['right-mid'] = len;
+        straightPipeLengths['right-btm'] = len;
+        const lbl = document.getElementById('label-adjust-pipe-len-right');
+        if (lbl) lbl.textContent = `${mm}mm${Math.abs(len - 0.097) < 0.003 ? ' (기본)' : ''}`;
+        const sAdj = document.getElementById('slider-adjust-pipe-len-right');
+        if (sAdj) sAdj.value = len;
+      }
+
+      ['top', 'mid', 'btm'].forEach(pos => {
+        const k = `${side}-${pos}`;
+        const sInd = document.getElementById(`slider-adjust-pipe-len-${k}`);
+        if (sInd) sInd.value = len;
+        const lInd = document.getElementById(`label-adjust-pipe-len-${k}`);
+        if (lInd) lInd.textContent = `${mm}mm`;
+      });
+
+      rebuildHandrailSystem();
+      ModelParameters.commit();
+      if (notify) {
+        showToast(`📏 ${side === 'left' ? '좌측' : '우측'} 그룹 직관 파이프 길이: ${mm}mm (실시간 3D 동기화)`);
+      }
+    }
+
+    function setIndividualStraightPipeLength(key, val, notify = false) {
+      const len = parseFloat(val);
+      if (isNaN(len)) return;
+      straightPipeLengths[key] = len;
+      const mm = Math.round(len * 1000);
+
+      const lIndAdj = document.getElementById(`label-adjust-pipe-len-${key}`);
+      if (lIndAdj) lIndAdj.textContent = `${mm}mm`;
+      const sIndAdj = document.getElementById(`slider-adjust-pipe-len-${key}`);
+      if (sIndAdj) sIndAdj.value = len;
+
+      rebuildHandrailSystem();
+      ModelParameters.commit();
+      if (notify) {
+        const cfg = anchorBaseConfig[key];
+        showToast(`📏 ${cfg ? cfg.name : key} 직관 파이프 길이: ${mm}mm (실시간 3D 동기화)`);
+      }
+    }
+
+    function stepStraightPipeLength(delta) {
+      if (straightPipeLengthMode === 'grouped') {
+        const newLeft = Math.max(0.05, Math.min(0.35, leftGroupStraightPipeLength + delta));
+        const newRight = Math.max(0.05, Math.min(0.35, rightGroupStraightPipeLength + delta));
+        setGroupStraightPipeLength('left', newLeft);
+        setGroupStraightPipeLength('right', newRight, true);
+      } else {
+        Object.keys(straightPipeLengths).forEach(k => {
+          straightPipeLengths[k] = Math.max(0.05, Math.min(0.35, straightPipeLengths[k] + delta));
+          const mm = Math.round(straightPipeLengths[k] * 1000);
+          const s = document.getElementById(`slider-adjust-pipe-len-${k}`);
+          if (s) s.value = straightPipeLengths[k];
+          const l = document.getElementById(`label-adjust-pipe-len-${k}`);
+          if (l) l.textContent = `${mm}mm`;
+        });
+        rebuildHandrailSystem();
+        ModelParameters.commit();
+        showToast(`📏 전체 개별 직관 파이프 길이 ${delta > 0 ? '+' : ''}${Math.round(delta * 1000)}mm 조정`);
+      }
+    }
+
+    function setStraightPipePreset(val) {
+      setGroupStraightPipeLength('left', val);
+      setGroupStraightPipeLength('right', val, true);
+      const btns = ['btn-adjust-pipe-len-std'];
+      btns.forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.classList.toggle('active', Math.abs(val - 0.097) < 0.003);
+      });
+    }
+
+    // =========================================================================
+    // [Phase 111] 직관 파이프 길이 조정 기준(Pivot) 및 엘보 곡관 반경(Radius) 핸들러
+    // =========================================================================
+    function setStraightPipePivot(pivot, notify = true) {
+      if (pivot !== 'plate' && pivot !== 'rail') return;
+      straightPipePivot = pivot;
+      const btnPlate = document.getElementById('btn-straight-pivot-plate');
+      const btnRail = document.getElementById('btn-straight-pivot-rail');
+      if (btnPlate) btnPlate.classList.toggle('active', pivot === 'plate');
+      if (btnRail) btnRail.classList.toggle('active', pivot === 'rail');
+
+      if(!ModelParameters.restoring){rebuildHandrailSystem();ModelParameters.commit();}
+      if (notify) {
+        showToast(pivot === 'plate' ? '🏢 직관 길이 기준: 외벽 베이스 고정 (전면 돌출)' : '⏺ 직관 길이 기준: 전면 난간 고정 (벽체 연장)');
+      }
+    }
+
+    function setStraightPipeElbowRadius(radius, notify = true) {
+      const r = parseFloat(radius);
+      if (isNaN(r) || r < 0.03 || r > 0.15) return;
+      straightPipeElbowRadius = r;
+
+      const r50 = document.getElementById('btn-elbow-r-50');
+      const r70 = document.getElementById('btn-elbow-r-70');
+      const r100 = document.getElementById('btn-elbow-r-100');
+      if (r50) r50.classList.toggle('active', Math.abs(r - 0.050) < 0.005);
+      if (r70) r70.classList.toggle('active', Math.abs(r - 0.070) < 0.005);
+      if (r100) r100.classList.toggle('active', Math.abs(r - 0.100) < 0.005);
+
+      if(!ModelParameters.restoring){rebuildHandrailSystem();ModelParameters.commit();}
+      if (notify) {
+        showToast(`📐 엘보 곡률 반경: ${Math.round(r * 1000)}mm (90° 원호 무결성 유지)`);
       }
     }
 
@@ -19395,6 +20091,111 @@ const WorkbookManager = {
       showToast(`${sideName} 앙커 ${nextState ? '일괄 완전 복원' : '일괄 숨김'}`);
       updateAnchorBaseUI();
     }
+
+    function restoreAllAnchorsCompletely() {
+      toggleAnchorBaseVisibility('all', true);
+    }
+    window.restoreAllAnchorsCompletely = restoreAllAnchorsCompletely;
+
+    /* =========================================================================
+       [Phase 112] 난간대 조정 창 내 모든 사용자 임의 설정 옵션 조정값 전수 초기화 (Full Reset)
+       ========================================================================= */
+    function resetAllAdjustParameters(skipConfirm = false) {
+      if (typeof MarkerOffsetManager !== 'undefined') MarkerOffsetManager.resetAll();
+      if (!skipConfirm) {
+        if (!confirm('난간대 조정 창의 모든 사용자 임의 변경 옵션을 초기 표준 기본값으로 전수 초기화하시겠습니까?')) {
+          return;
+        }
+      }
+
+      // 1. [건축 구조물 가시성] 전체 표시 (외벽·발코니 내부 표시) 기본값 복원
+      setBuildingStructureVisibility(true, false);
+
+      // 2. [1. 핸드레일 높이] 기본 2.00m (-0.5m) 및 빠른 높이 바 숨김 기본값 복원
+      setHandrailHeight(2.00, false);
+      setQuickHeightBarVisible(false, false);
+      const btnH200 = document.getElementById('btn-adjust-preset-200'); if (btnH200) btnH200.classList.add('active');
+      ['btn-adjust-preset-250', 'btn-adjust-preset-170'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.classList.remove('active');
+      });
+      const qhbOff = document.getElementById('btn-qhb-opt-off'); if (qhbOff) qhbOff.classList.add('active');
+      const qhbOn = document.getElementById('btn-qhb-opt-on'); if (qhbOn) qhbOn.classList.remove('active');
+
+      // 3. [2. 핸드레일 폭] 표준 4.20m 및 중간(center) 기준축 기본값 복원
+      setHandrailWidth(4.20, 'center', false);
+      const btnWStd = document.getElementById('btn-adjust-w-std'); if (btnWStd) btnWStd.classList.add('active');
+      ['btn-adjust-w-shrink', 'btn-adjust-w-ext'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.classList.remove('active');
+      });
+      const btnPvCenter = document.getElementById('btn-adjust-pivot-center'); if (btnPvCenter) btnPvCenter.classList.add('active');
+      ['btn-adjust-pivot-left', 'btn-adjust-pivot-right'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.classList.remove('active');
+      });
+
+      // 4. [3. 핸드레일 깊이] 표준 14cm (0.14m), 베이스 플레이트 기준('plate'), 전체 일괄 모드('all'), 외벽 모따기 OFF 복원
+      setDepthMode('all');
+      setHandrailDepth(0.14, 'all', 'plate', false);
+      toggleWallChamfer(false);
+      const btnDpPlate = document.getElementById('btn-adjust-depth-pivot-plate'); if (btnDpPlate) btnDpPlate.classList.add('active');
+      const btnDpRail = document.getElementById('btn-adjust-depth-pivot-rail'); if (btnDpRail) btnDpRail.classList.remove('active');
+      ['btn-adjust-d-08', 'btn-adjust-d-10', 'btn-adjust-d-25', 'btn-adjust-d-35', 'btn-adjust-d-50'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.classList.remove('active');
+      });
+      const btnD15 = document.getElementById('btn-adjust-d-15'); if (btnD15) btnD15.classList.add('active');
+
+      // 5. [4. 직관 파이프 이격] 표준 97mm (0.097m) 및 좌/우 그룹('grouped') 모드 기본값 복원
+      setPipeLengthMode('grouped');
+      setGroupPipeLength('left', 0.097, false);
+      setGroupPipeLength('right', 0.097, false);
+      ANCHOR_BASE_KEYS.forEach(k => {
+        anchorPipeLengths[k] = 0.097;
+        const s = document.getElementById('slider-adjust-pipe-' + k); if (s) s.value = 0.097;
+        const l = document.getElementById('label-adjust-pipe-' + k); if (l) l.textContent = '97mm';
+      });
+
+      // 6. [4. 직관 파이프 길이 & 엘보] 표준 97mm (0.097m), 외벽 베이스 고정('plate'), 엘보 70mm, 좌/우 그룹 모드 복원
+      setStraightPipeLengthMode('grouped');
+      setStraightPipePivot('plate', false);
+      setStraightPipeElbowRadius(0.070, false);
+      setGroupStraightPipeLength('left', 0.097, false);
+      setGroupStraightPipeLength('right', 0.097, false);
+      ANCHOR_BASE_KEYS.forEach(k => {
+        straightPipeLengths[k] = 0.097;
+        const s = document.getElementById('slider-adjust-pipe-len-' + k); if (s) s.value = 0.097;
+        const l = document.getElementById('label-adjust-pipe-len-' + k); if (l) l.textContent = '97mm';
+      });
+      const btnSplStd = document.getElementById('btn-adjust-pipe-len-std'); if (btnSplStd) btnSplStd.classList.add('active');
+
+      // 7. [◆ 3-B. 주 지주 · 하부 BP 부재] 주 지주 6개, 하부 고정 높이 0.95m, 외경 38mm, 장곡관 70mm, BP 직관 97mm 복원
+      DIMS.supportCount = 6;
+      ModelParameters.storedCount = Math.max(ModelParameters.storedCount, 6);
+      DIMS.legFlangeY = 0.95;
+      DIMS.supportDiameter = 0.038;
+      DIMS.supportBendStyle = 'long-radius';
+      DIMS.supportBendRadius = 0.070;
+      DIMS.supportBendDrop = 0.120;
+      for (let i = 1; i <= ModelParameters.storedCount; i++) {
+        anchorPipeLengths['bottom-' + i] = 0.097;
+      }
+      configureInspectionPoints(6, ModelParameters.storedCount);
+      DIMS.legsX = computeKoshaLegsAndBalusters(DIMS.railLeftX, DIMS.railRightX).legsX;
+
+      // 8. [5. 외벽 앙커 베이스 & 덮개 캡 부속 관리] 100% 완전 복원
+      toggleAnchorBaseVisibility('all', true);
+
+      // 9. 3D 기하 시스템 및 트랜스폼 일괄 리빌드
+      rebuildHandrailSystem();
+      buildInspectionPins();
+      updateAssemblyTransforms(assemblyProgress);
+      syncLegacyPointGeometry();
+      ModelParameters.syncUI();
+      syncDepthUI(DIMS.railDepth, 'all', DIMS.depthPivot);
+
+      // 10. 데이터 영속성 동기화 및 알림
+      ModelParameters.commit({ pointsChanged: true });
+      showToast('✨ 난간대 조정 창의 모든 사용자 옵션 조정값이 표준 기본값으로 전수 초기화되었습니다.');
+    }
+    window.resetAllAdjustParameters = resetAllAdjustParameters;
 
     function updateAnchorBaseUI() {
       let capCount = 0;
@@ -19741,11 +20542,16 @@ const WorkbookManager = {
         envMapIntensity: 1.6
       });
 
-      // [Phase 28] 직관 파이프(Standoff) 길이 적용
+      // [Phase 28/110] 직관 파이프(Standoff) 이격 및 실물 직관 파이프 길이 적용
       const lenL_top = anchorPipeLengths['left-top'] || 0.097;
       const lenL_mid = anchorPipeLengths['left-mid'] || 0.097;
       const lenR_top = anchorPipeLengths['right-top'] || 0.097;
       const lenR_mid = anchorPipeLengths['right-mid'] || 0.097;
+
+      const spLenL_top = (typeof straightPipeLengths !== 'undefined' && straightPipeLengths['left-top']) || 0.097;
+      const spLenL_mid = (typeof straightPipeLengths !== 'undefined' && straightPipeLengths['left-mid']) || 0.097;
+      const spLenR_top = (typeof straightPipeLengths !== 'undefined' && straightPipeLengths['right-top']) || 0.097;
+      const spLenR_mid = (typeof straightPipeLengths !== 'undefined' && straightPipeLengths['right-mid']) || 0.097;
 
       // [Phase 30/31] 베이스 플레이트 Z 및 횡주 배관 Z 동적 개별/그룹 연동
       const curPivot = DIMS.depthPivot || 'plate';
@@ -19758,27 +20564,75 @@ const WorkbookManager = {
       const zRB = getAnchorZ('right-btm');
 
       // -------------------------------------------------------------
-      // 1) 최상부 메인 레일 (Ø48mm) - Y = 2.00m
+      // [Phase 111 평면도 심층분석 정밀 구현] 핸드레일 평면도 직관 파이프 길이 및 90° 원호 엘보 기하 모델
+      // - 파이프 직관 길이(L): 외벽 앙카 접합부로부터 Z축(깊이) 방향 100% 완전한 직선 구간 (좌우/상하 비틀림 0%)
+      // - 코너 엘보(R): 직관 끝단에서 수평 메인 횡대까지 90도 원호(Quarter-Circle Arc)로 매끄럽게 연결 (찌그러짐 원천 차단)
+      // - 기준(Pivot): 'plate'(외벽 베이스 고정 -> 전면 돌출) vs 'rail'(전면 횡대 고정 -> 벽체 후퇴)
       // -------------------------------------------------------------
+      const elbowR = (typeof straightPipeElbowRadius !== 'undefined' && straightPipeElbowRadius) || 0.070;
+      const kappa = 0.5522847498; // 90° 원호 최적 근사 3차 베지어 상수
+
+      function computePipeGeometry(kR, kL) {
+        const lR = (typeof straightPipeLengths !== 'undefined' && straightPipeLengths[kR]) || 0.097;
+        const lL = (typeof straightPipeLengths !== 'undefined' && straightPipeLengths[kL]) || 0.097;
+        const pivot = (typeof straightPipePivot !== 'undefined' && straightPipePivot) || 'plate';
+
+        let zBaseR, zElbowR, zFrontR;
+        let zBaseL, zElbowL, zFrontL;
+
+        if (pivot === 'plate') {
+          zBaseR = anchorBaseZ(kR);
+          zElbowR = zBaseR + lR;
+          zFrontR = zElbowR + elbowR;
+
+          zBaseL = anchorBaseZ(kL);
+          zElbowL = zBaseL + lL;
+          zFrontL = zElbowL + elbowR;
+        } else {
+          zFrontR = anchorRailZ(kR);
+          zElbowR = zFrontR - elbowR;
+          zBaseR = zElbowR - lR;
+
+          zFrontL = anchorRailZ(kL);
+          zElbowL = zFrontL - elbowR;
+          zBaseL = zElbowL - lL;
+        }
+
+        return { lR, lL, zBaseR, zElbowR, zFrontR, zBaseL, zElbowL, zFrontL };
+      }
+
+      // 1) 최상부 메인 레일 (Ø48mm) - Y = 2.00m
+      const topFit = computePipeGeometry('right-top', 'left-top');
       const topCurve = new THREE.CurvePath();
-      // 우측 꺾임부 (우측 직관 파이프 길이 lenR_top 적용)
-      topCurve.add(new THREE.CubicBezierCurve3(
-        new THREE.Vector3(DIMS.railRightX, DIMS.topRailY, zRT.baseZ),
-        new THREE.Vector3(DIMS.railRightX, DIMS.topRailY, zRT.baseZ + lenR_top * 0.65),
-        new THREE.Vector3(DIMS.railRightX - 0.04, DIMS.topRailY, zRT.railZ),
-        new THREE.Vector3(DIMS.railRightX - 0.15, DIMS.topRailY, zRT.railZ)
-      ));
-      // 수평 메인부 (우 -> 좌)
+
+      // 1-1. 우측 직관 파이프: 외벽 앙카(zBaseR)에서 엘보 시작점(zElbowR)까지 Z축 100% 일직선
       topCurve.add(new THREE.LineCurve3(
-        new THREE.Vector3(DIMS.railRightX - 0.15, DIMS.topRailY, zRT.railZ),
-        new THREE.Vector3(DIMS.railLeftX + 0.15, DIMS.topRailY, zLT.railZ)
+        new THREE.Vector3(DIMS.railRightX, DIMS.topRailY, topFit.zBaseR),
+        new THREE.Vector3(DIMS.railRightX, DIMS.topRailY, topFit.zElbowR)
       ));
-      // 좌측 꺾임부 (좌측 직관 파이프 길이 lenL_top 적용)
+      // 1-2. 우측 90° 엘보: +Z 방향에서 -X 방향으로 부드럽게 꺾이는 완전한 90도 원호
       topCurve.add(new THREE.CubicBezierCurve3(
-        new THREE.Vector3(DIMS.railLeftX + 0.15, DIMS.topRailY, zLT.railZ),
-        new THREE.Vector3(DIMS.railLeftX + 0.04, DIMS.topRailY, zLT.railZ),
-        new THREE.Vector3(DIMS.railLeftX, DIMS.topRailY, zLT.baseZ + lenL_top * 0.65),
-        new THREE.Vector3(DIMS.railLeftX, DIMS.topRailY, zLT.baseZ)
+        new THREE.Vector3(DIMS.railRightX, DIMS.topRailY, topFit.zElbowR),
+        new THREE.Vector3(DIMS.railRightX, DIMS.topRailY, topFit.zElbowR + kappa * elbowR),
+        new THREE.Vector3(DIMS.railRightX - (1 - kappa) * elbowR, DIMS.topRailY, topFit.zFrontR),
+        new THREE.Vector3(DIMS.railRightX - elbowR, DIMS.topRailY, topFit.zFrontR)
+      ));
+      // 1-3. 전면 수평 메인 횡대: 우측 엘보 끝단에서 좌측 엘보 시작단까지 X축 100% 일직선
+      topCurve.add(new THREE.LineCurve3(
+        new THREE.Vector3(DIMS.railRightX - elbowR, DIMS.topRailY, topFit.zFrontR),
+        new THREE.Vector3(DIMS.railLeftX + elbowR, DIMS.topRailY, topFit.zFrontL)
+      ));
+      // 1-4. 좌측 90° 엘보: -X 방향에서 -Z(외벽) 방향으로 부드럽게 꺾이는 완전한 90도 원호
+      topCurve.add(new THREE.CubicBezierCurve3(
+        new THREE.Vector3(DIMS.railLeftX + elbowR, DIMS.topRailY, topFit.zFrontL),
+        new THREE.Vector3(DIMS.railLeftX + (1 - kappa) * elbowR, DIMS.topRailY, topFit.zFrontL),
+        new THREE.Vector3(DIMS.railLeftX, DIMS.topRailY, topFit.zElbowL + kappa * elbowR),
+        new THREE.Vector3(DIMS.railLeftX, DIMS.topRailY, topFit.zElbowL)
+      ));
+      // 1-5. 좌측 직관 파이프: 엘보 끝단(zElbowL)에서 외벽 앙카(zBaseL)까지 Z축 100% 일직선
+      topCurve.add(new THREE.LineCurve3(
+        new THREE.Vector3(DIMS.railLeftX, DIMS.topRailY, topFit.zElbowL),
+        new THREE.Vector3(DIMS.railLeftX, DIMS.topRailY, topFit.zBaseL)
       ));
 
       const topRailMesh = new THREE.Mesh(new THREE.TubeGeometry(topCurve, 80, 0.024, 16, false), susMat);
@@ -19786,28 +20640,41 @@ const WorkbookManager = {
       handrailGroup.add(topRailMesh);
       registerAnimatedMember(topRailMesh, 0.0, 'topRail', susMat);
 
-      // -------------------------------------------------------------
+      // 전면 메인 횡대 위치 DIMS.railZ 실시간 동기화
+      DIMS.railZ = (topFit.zFrontR + topFit.zFrontL) / 2;
+
       // 2) 상부 2단 보조 횡대 (Ø34mm) - Y = 1.85m
-      // -------------------------------------------------------------
+      const subFit = computePipeGeometry('right-mid', 'left-mid');
       const subCurve = new THREE.CurvePath();
-      // 우측 꺾임 (lenR_mid 적용)
-      subCurve.add(new THREE.CubicBezierCurve3(
-        new THREE.Vector3(DIMS.railRightX, DIMS.subRailY, zRM.baseZ),
-        new THREE.Vector3(DIMS.railRightX, DIMS.subRailY, zRM.baseZ + lenR_mid * 0.65),
-        new THREE.Vector3(DIMS.railRightX - 0.04, DIMS.subRailY, zRM.railZ),
-        new THREE.Vector3(DIMS.railRightX - 0.15, DIMS.subRailY, zRM.railZ)
-      ));
-      // 수평부
+
+      // 2-1. 우측 직관 파이프
       subCurve.add(new THREE.LineCurve3(
-        new THREE.Vector3(DIMS.railRightX - 0.15, DIMS.subRailY, zRM.railZ),
-        new THREE.Vector3(DIMS.railLeftX + 0.15, DIMS.subRailY, zLM.railZ)
+        new THREE.Vector3(DIMS.railRightX, DIMS.subRailY, subFit.zBaseR),
+        new THREE.Vector3(DIMS.railRightX, DIMS.subRailY, subFit.zElbowR)
       ));
-      // 좌측 꺾임 (lenL_mid 적용)
+      // 2-2. 우측 90° 엘보
       subCurve.add(new THREE.CubicBezierCurve3(
-        new THREE.Vector3(DIMS.railLeftX + 0.15, DIMS.subRailY, zLM.railZ),
-        new THREE.Vector3(DIMS.railLeftX + 0.04, DIMS.subRailY, zLM.railZ),
-        new THREE.Vector3(DIMS.railLeftX, DIMS.subRailY, zLM.baseZ + lenL_mid * 0.65),
-        new THREE.Vector3(DIMS.railLeftX, DIMS.subRailY, zLM.baseZ)
+        new THREE.Vector3(DIMS.railRightX, DIMS.subRailY, subFit.zElbowR),
+        new THREE.Vector3(DIMS.railRightX, DIMS.subRailY, subFit.zElbowR + kappa * elbowR),
+        new THREE.Vector3(DIMS.railRightX - (1 - kappa) * elbowR, DIMS.subRailY, subFit.zFrontR),
+        new THREE.Vector3(DIMS.railRightX - elbowR, DIMS.subRailY, subFit.zFrontR)
+      ));
+      // 2-3. 전면 수평 보조 횡대
+      subCurve.add(new THREE.LineCurve3(
+        new THREE.Vector3(DIMS.railRightX - elbowR, DIMS.subRailY, subFit.zFrontR),
+        new THREE.Vector3(DIMS.railLeftX + elbowR, DIMS.subRailY, subFit.zFrontL)
+      ));
+      // 2-4. 좌측 90° 엘보
+      subCurve.add(new THREE.CubicBezierCurve3(
+        new THREE.Vector3(DIMS.railLeftX + elbowR, DIMS.subRailY, subFit.zFrontL),
+        new THREE.Vector3(DIMS.railLeftX + (1 - kappa) * elbowR, DIMS.subRailY, subFit.zFrontL),
+        new THREE.Vector3(DIMS.railLeftX, DIMS.subRailY, subFit.zElbowL + kappa * elbowR),
+        new THREE.Vector3(DIMS.railLeftX, DIMS.subRailY, subFit.zElbowL)
+      ));
+      // 2-5. 좌측 직관 파이프
+      subCurve.add(new THREE.LineCurve3(
+        new THREE.Vector3(DIMS.railLeftX, DIMS.subRailY, subFit.zElbowL),
+        new THREE.Vector3(DIMS.railLeftX, DIMS.subRailY, subFit.zBaseL)
       ));
 
       const subRailMesh = new THREE.Mesh(new THREE.TubeGeometry(subCurve, 80, 0.017, 14, false), susMat);
@@ -19884,32 +20751,38 @@ const WorkbookManager = {
         registerAnimatedMember(midPost, lx, 'midPost', susMat);
       });
 
-      // -------------------------------------------------------------
       // 3) 하부 수평 횡대 (Ø34mm) - Y = 1.15m
-      //    [사용자 요청 완벽 반영: 외벽 및 창호틀 매립 100% 원천 방지]
-      // -------------------------------------------------------------
-      const lenL_btm = anchorPipeLengths['left-btm'] || 0.097;
-      const lenR_btm = anchorPipeLengths['right-btm'] || 0.097;
-
+      const btmFit = computePipeGeometry('right-btm', 'left-btm');
       const bottomCurve = new THREE.CurvePath();
-      // 우측 꺾임 (lenR_btm 적용)
-      bottomCurve.add(new THREE.CubicBezierCurve3(
-        new THREE.Vector3(DIMS.railRightX, DIMS.bottomRailY, zRB.baseZ),
-        new THREE.Vector3(DIMS.railRightX, DIMS.bottomRailY, zRB.baseZ + lenR_btm * 0.65),
-        new THREE.Vector3(DIMS.railRightX - 0.04, DIMS.bottomRailY, zRB.railZ),
-        new THREE.Vector3(DIMS.railRightX - 0.15, DIMS.bottomRailY, zRB.railZ)
-      ));
-      // 수평부 (완전 연결!)
+
+      // 3-1. 우측 직관 파이프
       bottomCurve.add(new THREE.LineCurve3(
-        new THREE.Vector3(DIMS.railRightX - 0.15, DIMS.bottomRailY, zRB.railZ),
-        new THREE.Vector3(DIMS.railLeftX + 0.15, DIMS.bottomRailY, zLB.railZ)
+        new THREE.Vector3(DIMS.railRightX, DIMS.bottomRailY, btmFit.zBaseR),
+        new THREE.Vector3(DIMS.railRightX, DIMS.bottomRailY, btmFit.zElbowR)
       ));
-      // 좌측 꺾임부 (현장 사진 1 실사: 용접 탈락으로 20mm 공중 부유 - zLB.baseZ + 0.020m)
+      // 3-2. 우측 90° 엘보
       bottomCurve.add(new THREE.CubicBezierCurve3(
-        new THREE.Vector3(DIMS.railLeftX + 0.15, DIMS.bottomRailY, zLB.railZ),
-        new THREE.Vector3(DIMS.railLeftX + 0.04, DIMS.bottomRailY, zLB.railZ),
-        new THREE.Vector3(DIMS.railLeftX, DIMS.bottomRailY, zLB.baseZ + lenL_btm * 0.65),
-        new THREE.Vector3(DIMS.railLeftX, DIMS.bottomRailY, zLB.baseZ + 0.020)
+        new THREE.Vector3(DIMS.railRightX, DIMS.bottomRailY, btmFit.zElbowR),
+        new THREE.Vector3(DIMS.railRightX, DIMS.bottomRailY, btmFit.zElbowR + kappa * elbowR),
+        new THREE.Vector3(DIMS.railRightX - (1 - kappa) * elbowR, DIMS.bottomRailY, btmFit.zFrontR),
+        new THREE.Vector3(DIMS.railRightX - elbowR, DIMS.bottomRailY, btmFit.zFrontR)
+      ));
+      // 3-3. 전면 수평 하부 횡대
+      bottomCurve.add(new THREE.LineCurve3(
+        new THREE.Vector3(DIMS.railRightX - elbowR, DIMS.bottomRailY, btmFit.zFrontR),
+        new THREE.Vector3(DIMS.railLeftX + elbowR, DIMS.bottomRailY, btmFit.zFrontL)
+      ));
+      // 3-4. 좌측 90° 엘보
+      bottomCurve.add(new THREE.CubicBezierCurve3(
+        new THREE.Vector3(DIMS.railLeftX + elbowR, DIMS.bottomRailY, btmFit.zFrontL),
+        new THREE.Vector3(DIMS.railLeftX + (1 - kappa) * elbowR, DIMS.bottomRailY, btmFit.zFrontL),
+        new THREE.Vector3(DIMS.railLeftX, DIMS.bottomRailY, btmFit.zElbowL + kappa * elbowR),
+        new THREE.Vector3(DIMS.railLeftX, DIMS.bottomRailY, btmFit.zElbowL)
+      ));
+      // 3-5. 좌측 직관 파이프 (현장 실측: 결함 세대 용접 탈락 시 20mm 유격 재현 가능)
+      bottomCurve.add(new THREE.LineCurve3(
+        new THREE.Vector3(DIMS.railLeftX, DIMS.bottomRailY, btmFit.zElbowL),
+        new THREE.Vector3(DIMS.railLeftX, DIMS.bottomRailY, btmFit.zBaseL)
       ));
 
       const bottomRailMesh = new THREE.Mesh(new THREE.TubeGeometry(bottomCurve, 80, 0.017, 14, false), susMat);
@@ -22346,7 +23219,30 @@ function setCameraView(name, animate = true) {
     }
 
     // 선택된 앙커 부위의 결함 이력 및 동별 조치 필요 세대 종합 분석창 렌더링
-    function updateDefectModal(id) {
+    
+// [Phase 113] 실제 부위 결함 유무 엄격 판정 함수 (무결함 텍스트의 오탐 방지)
+function isPointActualDefect(ptInfo) {
+  if (!ptInfo) return false;
+  const st = ptInfo.status;
+  if (st === 'danger' || st === 'warning') return true;
+  if (st === 'good' || st === 'repaired' || st === 'uninspected') {
+    // 상태가 good/repaired/uninspected일 때 defect 텍스트가 정상/양호 표준 문구이면 결함 아님
+    const defectText = (ptInfo.defect || '').trim();
+    if (!defectText) return false;
+    if (/특이\s*결함\s*없음|이상\s*없음|특이사항\s*없음|결함\s*없음|양호|정상|견고|해당\s*없음/i.test(defectText)) {
+      return false;
+    }
+    // '탈락', '부식', '균열', '박락', '풀림', '파단', '변형' 등 명백한 결함 키워드가 있는 경우만 true
+    if (/탈락|부식|균열|박락|풀림|파단|변형|유격|이탈|손상|파손/.test(defectText)) return true;
+    return false;
+  }
+  const d = (ptInfo.defect || '').trim();
+  if (!d) return false;
+  if (/특이\s*결함\s*없음|이상\s*없음|특이사항\s*없음|결함\s*없음|양호|정상|견고|해당\s*없음/i.test(d)) return false;
+  return true;
+}
+
+function updateDefectModal(id) {
       const d = DEFECT_DATA[id];
       if (!d) return;
 
@@ -22365,67 +23261,47 @@ function setCameraView(name, animate = true) {
         headTitle.textContent = `[${d.pointKey}] ${d.name} 결함 종합 분석`;
       }
 
-      // 11개 단지 데이터 실시간 취합 (5단계 진행 현황 완벽 분류 및 집행비 무결성 집계)
+      // [Phase 114.1 무결성 리팩토링]
+      // 클릭한 마커 번호(pt)와 실제로 일치하는(해당 부위에 결함/조치가 등록된) 세대만 엄격 추출!
+      // 마커 번호와 연계되지 않은 '점검완료' 세대(5-506 등)나 무관한 세대를 억지로 표시하지 않아 혼선 완전 제거!
       let dangerRooms = [];
       let warningRooms = [];
-      let goodRooms = [];
       let repairedRooms = [];
       let actionProgRooms = [];
-      let inspectingRooms = [];
-      let uninspectedRooms = [];
       let totalPtCost = 0;
 
-      if (typeof ROOMS_DATA !== 'undefined' && ROOMS_DATA && getInspectionRooms().length) {
-        getInspectionRooms().forEach(r => {
-          if (r.points && r.points[pt]) {
-            const pInfo = r.points[pt];
-            const st = pInfo.status;
-            const prog = pInfo.progress || r.progress || '미점검';
+      const allScopeRooms = (typeof ROOMS_DATA !== 'undefined' && ROOMS_DATA && typeof getInspectionRooms === 'function') ? getInspectionRooms() : [];
 
-            // [Phase 57] 회계 숫자 정밀 파싱 (천단위 콤마 및 문자열 완전 정제)
-            const rawCost = parseInt(String(pInfo.cost || 0).replace(/[^0-9]/g, ''), 10) || 0;
-            let effectiveCost = rawCost;
+      allScopeRooms.forEach(r => {
+        if (!r || !r.points || !r.points[pt]) return;
+        const pInfo = r.points[pt];
+        const st = pInfo.status;
+        const prog = pInfo.progress || '미점검';
+        const hasPtDefect = isPointActualDefect(pInfo);
+        const rawCost = parseInt(String(pInfo.cost || 0).replace(/[^0-9]/g, ''), 10) || 0;
 
-            if (st === 'danger') {
-              dangerRooms.push(r);
-            } else if (st === 'warning') {
-              warningRooms.push(r);
-            } else if (st === 'repaired') {
-              repairedRooms.push(r);
-            } else if (st === 'good') {
-              goodRooms.push(r);
-            }
+        // 클릭한 해당 마커 번호(pt)에 실질적 결함 또는 조치 내역이 등록된 세대만 엄격 분기
+        if (st === 'danger') {
+          dangerRooms.push(r);
+          actionProgRooms.push(r);
+          totalPtCost += rawCost;
+        } else if (st === 'warning') {
+          warningRooms.push(r);
+          actionProgRooms.push(r);
+          totalPtCost += rawCost;
+        } else if (st === 'repaired' || prog === '조치완료') {
+          repairedRooms.push(r);
+          totalPtCost += rawCost;
+        } else if (hasPtDefect || prog === '조치진행') {
+          actionProgRooms.push(r);
+          totalPtCost += rawCost;
+        }
+      });
 
-            // 진행 현황 5단계 분류
-            if (prog === '조치완료') {
-              if (!repairedRooms.includes(r)) repairedRooms.push(r);
-            } else if (prog === '조치진행') {
-              actionProgRooms.push(r);
-            } else if (prog === '점검완료') {
-              if (!goodRooms.includes(r)) goodRooms.push(r);
-            } else if (prog === '점검중') {
-              inspectingRooms.push(r);
-            } else {
-              uninspectedRooms.push(r);
-            }
-
-            // [Phase 57] 집행비 무결성 연동 집계: 조치 필요 세대(위험/주의/조치진행) 또는 실제 비용 입력 세대
-            if (rawCost > 0) {
-              totalPtCost += rawCost;
-            } else if (st === 'danger' || st === 'warning' || prog === '조치진행') {
-              totalPtCost += effectiveCost;
-            }
-          } else {
-            uninspectedRooms.push(r);
-          }
-        });
-      }
-
-      const totalRooms = (typeof ROOMS_DATA !== 'undefined' && ROOMS_DATA) ? getInspectionRooms().length : 309;
-      const inspectedCount = totalRooms - uninspectedRooms.length;
       const affectedRooms = dangerRooms.concat(warningRooms);
+      const totalPointDefects = new Set([...actionProgRooms,...repairedRooms].map(r=>r.id)).size;
 
-      // 동적 뱃지 판정
+      // 동적 뱃지 판정 (클릭한 마커 번호 pt 기준)
       let dynamicBadge = '';
       let dynamicBadgeClass = '';
       if (dangerRooms.length > 0) {
@@ -22434,104 +23310,83 @@ function setCameraView(name, animate = true) {
       } else if (warningRooms.length > 0) {
         dynamicBadge = `⚠️ 주의 ${warningRooms.length}세대`;
         dynamicBadgeClass = 'badge-warning';
-      } else if (inspectedCount === 0) {
-        dynamicBadge = '⚪ 미점검 (' + getInspectionRooms().length + '세대 대기)';
-        dynamicBadgeClass = 'badge-uninspected';
-      } else if (uninspectedRooms.length > 0) {
-        dynamicBadge = `🟡 점검 진행중 (${inspectedCount}/${totalRooms})`;
+      } else if (actionProgRooms.length > 0) {
+        dynamicBadge = `🟠 조치 필요 (${actionProgRooms.length}세대)`;
         dynamicBadgeClass = 'badge-inspecting';
+      } else if (repairedRooms.length > 0) {
+        dynamicBadge = `🔵 조치 완료 (${repairedRooms.length}세대)`;
+        dynamicBadgeClass = 'badge-success';
       } else {
-        dynamicBadge = '🟢 전 세대 양호';
+        dynamicBadge = '🟢 해당 부위 결함 없음';
         dynamicBadgeClass = 'badge-success';
       }
 
-      // 수집된 실측 결함내역 및 보강공법 요약
-      const uniqueDefects = [...new Set(affectedRooms.map(r => r.points[pt].defect).filter(Boolean))];
-      const uniqueActions = [...new Set(affectedRooms.map(r => r.points[pt].action).filter(Boolean))];
+      // 수집된 실측 결함내역 및 권장 보강공법 (클릭한 마커 pt에 실제로 등록된 것만 추출)
+      const defectItems = affectedRooms.concat(actionProgRooms).map(r => r.points[pt].defect).filter(Boolean);
+      const uniqueDefects = [...new Set(defectItems)];
+      const actionItems = affectedRooms.concat(actionProgRooms).concat(repairedRooms).map(r => r.points[pt].action).filter(Boolean);
+      const uniqueActions = [...new Set(actionItems)];
 
       let dynamicStatusText = '';
       let dynamicDescText = '';
       let dynamicActionText = '';
       let dynamicPulloutText = '';
 
-      if (inspectedCount === 0) {
-        dynamicStatusText = '⚪ 현장 정밀안전점검 미실시 (점검 대기 중)';
-        dynamicPulloutText = totalPtCost > 0 ? `설계 기준 충족 점검 (집행비 ₩${totalPtCost.toLocaleString()}원)` : `설계 기준 충족 점검 대기 (${d.designSpec || '설계 기준 14.0 kN'})`;
-        dynamicDescText = `선택 ${OwnerScope.inspectionTotals().buildings}개동 ${getInspectionRooms().length}세대의 ${d.pointKey} 부위에 대한 현장 안전점검이 아직 실시되지 않았습니다. 세대별 점검표를 통해 앙커 상태를 입력하세요.`;
-        dynamicActionText = '현장 정밀 육안점검 및 토크/인발력 점검 실시 후 보강 공법 결정';
-      } else if (affectedRooms.length > 0) {
-        dynamicStatusText = `🚨 조치 필요 총 ${affectedRooms.length}세대 (위험 ${dangerRooms.length}건, 주의 ${warningRooms.length}건)`;
-        dynamicPulloutText = `조치 필요 세대 점검 요망 (총 집행비 ₩${totalPtCost.toLocaleString()}원)`;
-        dynamicDescText = uniqueDefects.length ? `[현장 실측 결함] ${uniqueDefects.join(' · ')}` : '결함 세부내용 직접 입력 필요';
-        dynamicActionText = uniqueActions.length ? `[권장 보강공법] ${uniqueActions.join(' · ')}` : '보강 공법 및 조치방안 수립 필요';
-      } else if (uninspectedRooms.length > 0) {
-        dynamicStatusText = `🟡 점검 진행 세대(${inspectedCount}세대) 결함 없음 (잔여 미점검: ${uninspectedRooms.length}세대)`;
-        dynamicPulloutText = totalPtCost > 0 ? `점검 완료 세대 건전 (집행비 ₩${totalPtCost.toLocaleString()}원)` : '점검 완료 세대 설계 기준 충족 (미점검 세대 지속 점검)';
-        dynamicDescText = `현재까지 점검 완료된 ${inspectedCount}개 세대에서는 해당 부위 결함이 발견되지 않았습니다.`;
-        dynamicActionText = '잔여 미점검 세대 현장 정밀점검 지속 진행';
+      if (totalPointDefects === 0) {
+        dynamicStatusText = `점검서 기준 [${pt}] 부위에 등록된 결함·조치 기록 없음`;
+        dynamicPulloutText = `[${pt}] 등록 기록 기준 · 미점검은 안전 판정에서 제외`;
+        dynamicDescText = `선택 세대의 해당 부위([${pt}])에 등록된 결함·조치 기록이 없습니다. 미점검 세대의 안전성을 뜻하지 않습니다.`;
+        dynamicActionText = '입력된 보강 공법 없음';
       } else {
-        dynamicStatusText = '🟢 선택 세대(' + getInspectionRooms().length + '세대) 점검 완료 · 결함 없음 (건전 상태)';
-        dynamicPulloutText = totalPtCost > 0 ? `전 세대 완료 (집행비 ₩${totalPtCost.toLocaleString()}원)` : '전 세대 설계 기준 충족 (건전 상태 유지)';
-        dynamicDescText = '모든 점검 세대에서 해당 부위 앙커 체결 상태 및 내력이 건전한 것으로 점검 완료되었습니다.';
-        dynamicActionText = '정기 안전 점검 지속 유지 관리';
+        dynamicStatusText = `🚨 [${pt}] 조치 필요 총 ${actionProgRooms.length}세대 (위험 ${dangerRooms.length}건, 주의 ${warningRooms.length}건, 완료 ${repairedRooms.length}건)`;
+        dynamicPulloutText = `[${pt}] 점검서에 입력된 실제 집행비 ₩${totalPtCost.toLocaleString()}원`;
+        dynamicDescText = uniqueDefects.length ? `[입력된 결함] ${uniqueDefects.join(' · ')}` : '결함 소견 미입력';
+        dynamicActionText = uniqueActions.length ? `[입력된 보강 공법] ${uniqueActions.join(' · ')}` : '보강 공법 미입력';
       }
 
-      // [Phase 56] 현재 진행 현황(동-호실: 예 '5-506') 실시간 동기화
-      let currentSyncRoom = '5-506';
-      let currentSyncProg = '미점검';
-      if (typeof WorkbookManager !== 'undefined' && WorkbookManager.activeRoomId) {
-        const actRoom = (typeof ROOMS_DATA !== 'undefined' && ROOMS_DATA) ? ROOMS_DATA.find(r => r.id === WorkbookManager.activeRoomId) : null;
-        if (actRoom) {
-          currentSyncRoom = formatRoomShorthand(actRoom);
-          currentSyncProg = (actRoom.points && actRoom.points[pt] && actRoom.points[pt].progress) || actRoom.progress || '미점검';
-        }
-      } else if (actionProgRooms.length > 0) {
+      // 현재 진행 현황: 클릭한 마커(pt)에 결함/조치가 실제로 등록된 세대만 동기화
+      let currentSyncRoom = '결함 세대 없음';
+      let currentSyncProg = '건전상태';
+      if (actionProgRooms.length > 0) {
         currentSyncRoom = formatRoomShorthand(actionProgRooms[0]);
         currentSyncProg = '조치진행';
-      } else if (affectedRooms.length > 0) {
-        currentSyncRoom = formatRoomShorthand(affectedRooms[0]);
-        currentSyncProg = (affectedRooms[0].points && affectedRooms[0].points[pt] && affectedRooms[0].points[pt].progress) || '조치진행';
       } else if (repairedRooms.length > 0) {
         currentSyncRoom = formatRoomShorthand(repairedRooms[0]);
         currentSyncProg = '조치완료';
       }
 
       // 건물동 순차 정렬: 1동부터 11동 순서
-      const bldgOrder = [
-        'apt-1', 'apt-2', 'apt-3', 'apt-4', 'apt-5', 'apt-6',
-        'apt-7', 'apt-8', 'apt-9', 'apt-10', 'apt-11'
-      ];
-
-      // [Phase 56] '동별 세부 현황 섹션' 내 5단계 진행 현황 완벽 연동
+      const bldgOrder = ['apt-1', 'apt-2', 'apt-3', 'apt-4', 'apt-5', 'apt-6', 'apt-7', 'apt-8', 'apt-9', 'apt-10', 'apt-11'];
       let bldgsHtml = '';
-      bldgOrder.forEach(bId => {
-        const bAllRooms = (typeof ROOMS_DATA !== 'undefined' && ROOMS_DATA) ? getInspectionRooms().filter(r => r.buildingId === bId) : [];
-        if (bAllRooms.length === 0) return;
 
-        const bSample = bAllRooms[0];
+      bldgOrder.forEach(bId => {
+        // [Phase 114.1] 해당 마커(pt)에 실제 결함/조치가 있는 세대만 엄격 추출
+        const bDefectRooms = allScopeRooms.filter(r => {
+          if (r.buildingId !== bId || !r.points || !r.points[pt]) return false;
+          const pInfo = r.points[pt];
+          const st = pInfo.status;
+          const prog = pInfo.progress || '';
+          const hasPtDefect = isPointActualDefect(pInfo);
+          return (st === 'danger' || st === 'warning' || st === 'repaired' || prog === '조치완료' || prog === '조치진행' || hasPtDefect);
+        });
+
+        if (bDefectRooms.length === 0) return;
+
+        const bSample = bDefectRooms[0];
         const bName = bSample ? bSample.buildingName : (bId.replace('apt-', '') + '동');
         const bNumOnly = bName.replace(/[^0-9]/g, '');
 
-        // 5단계 진행 현황별 세대 분기
         const bRepaired = [];
         const bAction = [];
-        const bInspected = [];
-        const bInspecting = [];
-        const bUninspected = [];
 
-        bAllRooms.forEach(r => {
-          const ptInfo = (r.points && r.points[pt]) ? r.points[pt] : null;
-          const prog = (ptInfo && ptInfo.progress) ? ptInfo.progress : (r.progress || '미점검');
-          if (prog === '조치완료' || (ptInfo && ptInfo.status === 'repaired')) {
+        bDefectRooms.forEach(r => {
+          const pInfo = r.points[pt];
+          const st = pInfo.status;
+          const prog = pInfo.progress || '';
+          if (st === 'repaired' || prog === '조치완료') {
             bRepaired.push(r);
-          } else if (prog === '조치진행' || (ptInfo && (ptInfo.status === 'danger' || ptInfo.status === 'warning'))) {
-            bAction.push(r);
-          } else if (prog === '점검완료' || (ptInfo && ptInfo.status === 'good')) {
-            bInspected.push(r);
-          } else if (prog === '점검중') {
-            bInspecting.push(r);
           } else {
-            bUninspected.push(r);
+            bAction.push(r);
           }
         });
 
@@ -22542,46 +23397,39 @@ function setCameraView(name, animate = true) {
             const isCurrent = (shorthand === currentSyncRoom);
             const activeStyle = isCurrent ? 'box-shadow: 0 0 0 2px #38bdf8, 0 0 10px rgba(56, 189, 248, 0.9); font-weight: 800;' : '';
             const ptInfo = (r.points && r.points[pt]) ? r.points[pt] : {};
-            const tooltip = `[${shorthand}] ${label} · 상태: ${ptInfo.defect || '특이사항 없음'} (클릭 시 세대 안전점검서 열기)`;
-            return `<span class="defect-room-chip" style="background:${bg}; border:1px solid ${border}; color:${color}; padding:2px 6px; border-radius:4px; font-size:10px; cursor:pointer; display:inline-flex; align-items:center; gap:3px; ${activeStyle}" onclick="openRoomFromDefect('${r.id}')" title="${tooltip}">${icon} ${shorthand}</span>`;
+            const tooltip = `[${shorthand}] ${label} · 상태: ${ptInfo.defect || '결함 조치 대상'} (클릭 시 세대 안전점검서 열기)`;
+            return `<span class="defect-room-chip" style="background:${bg}; border:1px solid ${border}; color:${color}; padding:2px 6px; border-radius:4px; font-size:10px; cursor:pointer; display:inline-flex; align-items:center; gap:3px; ${activeStyle}" onclick="openRoomFromDefect('${r.id}')" title="${ProgressDashboard.esc(tooltip)}">${icon} ${shorthand}</span>`;
           }).join('');
         };
 
         const chipsRepaired = makeChips(bRepaired, '🔵', 'rgba(16, 185, 129, 0.18)', '#10b981', '#a7f3d0', '조치완료');
         const chipsAction = makeChips(bAction, '🟠', 'rgba(249, 115, 22, 0.18)', '#f97316', '#fdba74', '조치진행');
-        const chipsInspected = makeChips(bInspected, '🟢', 'rgba(34, 197, 94, 0.14)', '#22c55e', '#bbf7d0', '점검완료');
-        const chipsInspecting = makeChips(bInspecting, '🟡', 'rgba(234, 179, 8, 0.14)', '#eab308', '#fef08a', '점검중');
 
-        // 세대 칩이 하나라도 있을 때만 동별 카드 노출
-        if (bRepaired.length > 0 || bAction.length > 0 || bInspected.length > 0 || bInspecting.length > 0) {
-          bldgsHtml += `
-            <div class="defect-building-sec" style="margin-bottom: 7px; padding: 7px 9px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px;">
-              <div class="defect-bldg-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                <span style="font-size: 11px; font-weight: 700; color: #f8fafc;">
-                  🏢 ${bName}
-                  <small style="font-size: 9.5px; color: #94a3b8; font-weight: normal; margin-left: 4px;">
-                    (완료 <b style="color: #34d399;">${bRepaired.length}</b> · 진행 <b style="color: #fb923c;">${bAction.length}</b> · 완료대기 <b style="color: #4ade80;">${bInspected.length}</b> · 미점검 <b style="color: #cbd5e1;">${bUninspected.length}</b>)
-                  </small>
-                </span>
-                <span style="font-size: 9.5px; color: ${d.color}; font-weight: 700;">${d.pointKey} 조치현황</span>
-              </div>
-              <div class="defect-chips-row" style="display: flex; flex-wrap: wrap; gap: 4px;">
-                ${chipsRepaired}
-                ${chipsAction}
-                ${chipsInspected}
-                ${chipsInspecting}
-              </div>
+        bldgsHtml += `
+          <div class="defect-building-sec" style="margin-bottom: 7px; padding: 7px 9px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px;">
+            <div class="defect-bldg-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+              <span style="font-size: 11px; font-weight: 700; color: #f8fafc;">
+                🏢 ${bName}
+                <small style="font-size: 9.5px; color: #94a3b8; font-weight: normal; margin-left: 4px;">
+                  (완료 <b style="color: #34d399;">${bRepaired.length}</b> · 진행 <b style="color: #fb923c;">${bAction.length}</b>)
+                </small>
+              </span>
+              <span style="font-size: 9.5px; color: ${d.color}; font-weight: 700;">${d.pointKey} 조치현황</span>
             </div>
-          `;
-        }
+            <div class="defect-chips-row" style="display: flex; flex-wrap: wrap; gap: 4px;">
+              ${chipsRepaired}
+              ${chipsAction}
+            </div>
+          </div>
+        `;
       });
 
-      if (!bldgsHtml) {
-        if (inspectedCount === 0) {
-          bldgsHtml = `<div style="padding:14px; text-align:center; color:#94a3b8; font-weight:600; background:rgba(30,41,59,0.5); border:1px dashed #475569; border-radius:6px;">⚪ 선택 ${OwnerScope.inspectionTotals().buildings}개동 ${getInspectionRooms().length}세대 현장 정밀안전점검 미실시 상태입니다.<br/><small style="color:#64748b; font-weight:normal; margin-top:4px; display:block;">호실별 점검표에서 결함 및 보강 조치방안을 입력하면 조치 세대가 이곳에 자동 취합됩니다.</small></div>`;
-        } else {
-          bldgsHtml = `<div style="padding:14px; text-align:center; color:#10b981; font-weight:700; background:rgba(16,185,129,0.08); border:1px dashed #059669; border-radius:6px;">🟢 점검 완료된 ${inspectedCount}개 세대 모두 결함 없음 (건전 상태)<br/><small style="color:#94a3b8; font-weight:normal; margin-top:4px; display:block;">(잔여 미점검: ${uninspectedRooms.length}세대)</small></div>`;
-        }
+      if (totalPointDefects === 0 || !bldgsHtml) {
+        bldgsHtml = `
+          <div style="padding: 12px; text-align: center; color: #34d399; font-size: 11px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; font-weight: 600;">
+            점검서 기준 [${pt}] 부위에 등록된 결함·조치 기록이 없습니다. 미점검 세대는 안전 판정에서 제외됩니다.
+          </div>
+        `;
       }
 
       const prevIdx = (id - 1 + DEFECT_DATA.length) % DEFECT_DATA.length;
@@ -22608,70 +23456,66 @@ function setCameraView(name, animate = true) {
             <div class="defect-kpi-title">⚠️ 주의 관찰</div>
             <div class="defect-kpi-val" style="color:#fbbf24;">${warningRooms.length}<small style="font-size:10px; font-weight:normal; color:#94a3b8;">세대</small></div>
           </div>
-          <div class="defect-kpi-card" style="border-left: 2px solid #94a3b8;">
-            <div class="defect-kpi-title">⚪ 미점검 대기</div>
-            <div class="defect-kpi-val" style="color:#cbd5e1;">${uninspectedRooms.length}<small style="font-size:10px; font-weight:normal; color:#94a3b8;">세대</small></div>
+          <div class="defect-kpi-card" style="border-left: 2px solid #0284c7;">
+            <div class="defect-kpi-title">📋 조치 필요</div>
+            <div class="defect-kpi-val" style="color:#38bdf8;">${actionProgRooms.length}<small style="font-size:10px; font-weight:normal; color:#94a3b8;">세대</small></div>
           </div>
           <div class="defect-kpi-card" style="border-left: 2px solid #10b981;">
-            <div class="defect-kpi-title">🟢 양호/완료</div>
-            <div class="defect-kpi-val" style="color:#34d399;">${goodRooms.length + repairedRooms.length}<small style="font-size:10px; font-weight:normal; color:#94a3b8;">세대</small></div>
+            <div class="defect-kpi-title">🟢 완료/양호</div>
+            <div class="defect-kpi-val" style="color:#34d399;">${repairedRooms.length}<small style="font-size:10px; font-weight:normal; color:#94a3b8;">${totalPointDefects === 0 ? '' : '세대'}</small></div>
           </div>
-          <div class="defect-kpi-card" style="border-left: 2px solid #38bdf8;" title="[${d.pointKey}] 총 집행비: ₩${totalPtCost.toLocaleString()}원">
+          <div class="defect-kpi-card" style="border-left: 2px solid #eab308;">
             <div class="defect-kpi-title">💰 집행비</div>
-            <div class="defect-kpi-val" style="color:#38bdf8; font-size:11.5px;">${totalPtCost >= 10000 ? Math.round(totalPtCost / 10000).toLocaleString() : (totalPtCost > 0 ? totalPtCost.toLocaleString() : '0')}<small style="font-size:9.5px; font-weight:normal; color:#94a3b8;">${totalPtCost >= 10000 ? '만원' : '원'}</small></div>
+            <div class="defect-kpi-val" style="color:#facc15; font-size:11px;">${totalPtCost.toLocaleString()}<small style="font-size:9.5px; font-weight:normal; color:#94a3b8;">원</small></div>
           </div>
         </div>
 
-        <!-- 2. 공학적 점검 스펙 및 동적 진단 요약 -->
-        <div style="background:rgba(15,23,42,0.65); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:7px 10px; margin-bottom:8px; font-size:10.5px;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
-            <span style="color:#94a3b8;">점검 상태:</span>
-            <span style="font-weight:700; color:${affectedRooms.length > 0 ? '#fca5a5' : (inspectedCount === 0 ? '#94a3b8' : '#34d399')};">${dynamicStatusText}</span>
+        <!-- 2. 점검서 실측 결함 세부 종합 분석 내용 -->
+        <div class="defect-detail-item">
+          <div class="item-lbl">점검 상태:</div>
+          <div class="item-val" style="font-weight:700;">${ProgressDashboard.esc(dynamicStatusText)}</div>
+        </div>
+        <div class="defect-detail-item">
+          <div class="item-lbl">설계 기준:</div>
+          <div class="item-val" style="color:#38bdf8; font-weight:600;">${ProgressDashboard.esc(dynamicPulloutText)}</div>
+        </div>
+        <div class="defect-detail-item">
+          <div class="item-lbl">점검 상세:</div>
+          <div class="item-val">${ProgressDashboard.esc(dynamicDescText)}</div>
+        </div>
+        <div class="defect-detail-item">
+          <div class="item-lbl">조치 방안:</div>
+          <div class="item-val" style="color:#e2e8f0; font-weight:600;">${ProgressDashboard.esc(dynamicActionText)}</div>
+        </div>
+
+        <!-- 3. 현재 진행 현황 바 -->
+        <div class="defect-sync-bar" style="margin-top: 8px; margin-bottom: 8px; padding: 7px 10px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 11px; font-weight: 700; color: #bae6fd;">📍 진행 현황:</span>
+            <span style="font-size: 11.5px; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.4);">${totalPointDefects === 0 ? `[${pt}] 결함 세대 없음` : `${currentSyncRoom} (${currentSyncProg})`}</span>
           </div>
-          <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
-            <span style="color:#94a3b8;">설계 기준:</span>
-            <span style="font-weight:600; color:#38bdf8;">${dynamicPulloutText}</span>
-          </div>
-          <div style="margin-bottom:3px;">
-            <span style="color:#94a3b8;">점검 상세:</span>
-            <span style="color:#cbd5e1;">${dynamicDescText}</span>
-          </div>
-          <div>
-            <span style="color:#94a3b8;">조치 방안:</span>
-            <span style="color:#93c5fd; font-weight:600;">${dynamicActionText}</span>
+          <div style="font-size: 10px; color: #94a3b8; display: flex; gap: 8px; align-items: center;">
+            <span><b style="color: #38bdf8;">🔵 완료</b> ${repairedRooms.length}</span>
+            <span><b style="color: #fb923c;">🟠 진행</b> ${actionProgRooms.length}</span>
+            <span><b style="color: #4ade80;">🟢 정상</b> ${totalPointDefects === 0 ? '전체' : '0'}</span>
           </div>
         </div>
 
-        <!-- 3. [Phase 56] 동별 조치 세대 현황 & 진행 현황 5단계 실시간 동기화 대시보드 -->
-        <div style="margin-bottom:8px;">
-          <!-- 진행 현황 및 5대 핵심 지표 실시간 동기화 바 -->
-          <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.28); border-radius: 8px; padding: 7px 10px; margin-bottom: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 11px; font-weight: 700; color: #38bdf8;">📍 진행 현황:</span>
-              <span style="font-size: 11.5px; font-weight: 800; color: #f8fafc; background: #0284c7; border: 1px solid #38bdf8; padding: 2px 8px; border-radius: 12px; box-shadow: 0 0 10px rgba(56, 189, 248, 0.6); letter-spacing: 0.3px;">${currentSyncRoom} (${currentSyncProg})</span>
-            </div>
-            <div style="display: flex; gap: 7px; font-size: 10px; font-weight: 600; flex-wrap: wrap;">
-              <span style="color: #34d399;">🔵 완료 <b>${repairedRooms.length}</b></span>
-              <span style="color: #fb923c;">🟠 진행 <b>${actionProgRooms.length}</b></span>
-              <span style="color: #4ade80;">🟢 점검완료 <b>${goodRooms.length}</b></span>
-              <span style="color: #facc15;">🟡 점검중 <b>${inspectingRooms.length}</b></span>
-              <span style="color: #cbd5e1;">⚪ 미점검 <b>${uninspectedRooms.length}</b></span>
-            </div>
+        <!-- 4. 동별 조치 세대 현황 -->
+        <div class="defect-detail-section" style="margin-top: 6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <div class="section-title" style="font-size: 11px; font-weight: 700; color: #f1f5f9;">📋 동별 조치 세대 현황</div>
+            <span style="font-size: 9.5px; color: #94a3b8;">(클릭 시 해당 세대 안전점검서 열기 및 진행 동기화)</span>
           </div>
-
-          <div style="font-size:11px; font-weight:700; color:#cbd5e1; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
-            <span>📋 동별 조치 세대 현황</span>
-            <span style="font-size:9.5px; color:#94a3b8;">(클릭 시 해당 세대 안전점검서 열기 및 진행 동기화)</span>
-          </div>
-          <div style="max-height:175px; overflow-y:auto; padding-right:4px;">
+          <div class="defect-dong-grid" style="display: flex; flex-direction: column; gap: 4px;">
             ${bldgsHtml}
           </div>
         </div>
 
-        <!-- 4. 이전/다음 부위 순환 네비게이션 -->
-        <div class="modal-footer">
+        <!-- 5. 이전/다음 부위 이동 네비게이션 버튼 -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
           <button class="modal-nav-btn" onclick="focusDefect(${prevIdx})">◀ ${prevD.badgeText}</button>
-          <span style="font-size:11px; color:#94a3b8; align-self:center;">부위 ${d.num} / ${DEFECT_DATA.length}</span>
+          <span style="font-size:10px; color:#64748b; font-weight:600;">부위 ${d.num} / ${DEFECT_DATA.length}</span>
           <button class="modal-nav-btn" onclick="focusDefect(${nextIdx})">${nextD.badgeText} ▶</button>
         </div>
       `;
