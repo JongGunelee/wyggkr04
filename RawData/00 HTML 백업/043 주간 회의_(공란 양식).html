@@ -7369,9 +7369,13 @@
     </script>
     <script>
         // 스크립트 전역 변수 추가
-        const COMPRESSION_THRESHOLD = 200 * 1024;
+        // 스크립트 전역 변수 추가 (모든 스코프 무결성 보증)
+        const COMPRESSION_THRESHOLD = 150 * 1024;
         const MAX_DIMENSION = 1600;
-        const COMPRESSION_QUALITY = 0.7;
+        const COMPRESSION_QUALITY = 0.8;
+        window.COMPRESSION_THRESHOLD = COMPRESSION_THRESHOLD;
+        window.MAX_DIMENSION = MAX_DIMENSION;
+        window.COMPRESSION_QUALITY = COMPRESSION_QUALITY;
         const CARRYOVER_STORAGE_KEY = 'weeklyMeetingCarryoverItems';
         const FEATURE_SUMMARY_ENABLED_KEY = 'featureSummaryEnabled';
         const SCREENSAVER_PAUSED_KEY = 'screensaverPaused';
@@ -17703,7 +17707,7 @@ function ensureImageWrapperStructure(wrapper) {
             }
             // --- END: 전주 회의 복제 기능 구현 ---
 
-            // --- START: 전체 이미지 압축 최적화 기능 구현 ---
+            // --- START: 전체 이미지 압축 최적화 기능 구현 (무결성 보증 전수 스캔 및 다운스케일링 리팩토링) ---
             const compressImagesBtn = document.getElementById('compressImagesBtn');
             const imageCompressOverlay = document.getElementById('imageCompressOverlay');
             const closeImageCompressBtn = document.getElementById('closeImageCompressBtn');
@@ -17717,9 +17721,8 @@ function ensureImageWrapperStructure(wrapper) {
             function openCompressModal() {
                 imageCompressOverlay.classList.add('active');
                 imageCompressOverlay.setAttribute('aria-hidden', 'false');
-                menuPanel.classList.remove('open'); // 메뉴 패널 닫기
+                if (typeof menuPanel !== 'undefined' && menuPanel) menuPanel.classList.remove('open');
                 
-                // 초기화
                 compressProgressContainer.style.display = 'none';
                 compressResultContainer.style.display = 'none';
                 compressProgressBar.style.width = '0%';
@@ -17729,7 +17732,6 @@ function ensureImageWrapperStructure(wrapper) {
 
             function closeCompressModal() {
                 if (startCompressBtn.disabled && startCompressBtn.textContent !== '닫기') {
-                    // 압축 진행 중에는 닫기 방지 (원할 경우 경고창)
                     return;
                 }
                 imageCompressOverlay.classList.remove('active');
@@ -17740,14 +17742,12 @@ function ensureImageWrapperStructure(wrapper) {
             if (closeImageCompressBtn) closeImageCompressBtn.addEventListener('click', closeCompressModal);
             if (imageCompressCancelBtn) imageCompressCancelBtn.addEventListener('click', closeCompressModal);
 
-            // Base64 문자열 크기를 대략적인 바이트(Byte)로 계산
             function getBase64ByteSize(base64Str) {
                 if (!base64Str || !base64Str.includes('base64,')) return 0;
                 const base64Data = base64Str.split('base64,')[1];
                 return Math.round((base64Data.length * 3) / 4);
             }
 
-            // 파일 크기를 사람이 읽기 쉬운 포맷(MB, KB)으로 변환
             function formatBytes(bytes) {
                 if (bytes === 0) return '0 Bytes';
                 const k = 1024;
@@ -17758,15 +17758,14 @@ function ensureImageWrapperStructure(wrapper) {
 
             if (startCompressBtn) {
                 startCompressBtn.addEventListener('click', async () => {
-                    // 압축 완료 후 닫기 모드일 경우
                     if (startCompressBtn.textContent === '닫기') {
                         closeCompressModal();
                         return;
                     }
 
-                    // 1. 대상 이미지 스캔
-                    const images = document.querySelectorAll('.column img');
-                    const targetImages = Array.from(images).filter(img => img.src && img.src.startsWith('data:image/'));
+                    // 1. [무결성 보증 전수 스캔] 요일 열 및 전체 영역(안건, 액션아이템, 인라인 래퍼, 확대창) Base64 이미지 전수 수집
+                    const allCandidateImages = document.querySelectorAll('#contentArea img, .column img, .insert-area img, .resizable-image-wrapper img, #focusedEditorSurface img, .memo-section img, .action-item img, [contenteditable] img');
+                    const targetImages = Array.from(new Set(Array.from(allCandidateImages))).filter(img => img.src && img.src.startsWith('data:image/'));
 
                     if (targetImages.length === 0) {
                         compressResultContainer.style.display = 'block';
@@ -17776,7 +17775,8 @@ function ensureImageWrapperStructure(wrapper) {
 
                     // 2. 옵션 및 UI 준비
                     const qualityInput = document.querySelector('input[name="compressQuality"]:checked');
-                    const quality = qualityInput ? parseFloat(qualityInput.value) : 0.7;
+                    const quality = qualityInput ? parseFloat(qualityInput.value) : 0.8;
+                    const maxDimension = (typeof window.MAX_DIMENSION !== 'undefined' ? window.MAX_DIMENSION : 1600);
                     
                     startCompressBtn.disabled = true;
                     startCompressBtn.textContent = '압축 진행 중...';
@@ -17791,27 +17791,31 @@ function ensureImageWrapperStructure(wrapper) {
                     for (let i = 0; i < targetImages.length; i++) {
                         const img = targetImages[i];
                         
-                        compressStatusText.textContent = `압축 진행 중... (${i + 1} / ${targetImages.length})`;
-                        compressProgressBar.style.width = `${((i + 1) / targetImages.length) * 100}%`;
+                        compressStatusText.textContent = '압축 진행 중... (' + (i + 1) + ' / ' + targetImages.length + ')';
+                        compressProgressBar.style.width = (((i + 1) / targetImages.length) * 100) + '%';
                         
                         const originalBytes = getBase64ByteSize(img.src);
                         totalOriginalBytes += originalBytes;
 
                         try {
-                            // 이미지를 캔버스에 그려 찌꺼기 제거 및 리샘플링
-                            const compressedSrc = await compressImageToWebP(img.src, quality);
+                            // 이미지를 캔버스에 그려 해상도 상한(1600px) 다운스케일링, 찌꺼기 제거 및 WebP 리샘플링
+                            const compressedSrc = await compressImageToWebP(img.src, quality, maxDimension);
                             const compressedBytes = getBase64ByteSize(compressedSrc);
                             
-                            // 용량이 줄어든 경우에만 교체 (매우 작은 이미지는 오히려 커질 수 있음)
                             if (compressedBytes < originalBytes) {
                                 img.src = compressedSrc;
+                                img.setAttribute('src', compressedSrc);
+                                const parentWrapper = img.closest('.resizable-image-wrapper');
+                                if (parentWrapper && parentWrapper.dataset.imageSrc) {
+                                    parentWrapper.dataset.imageSrc = compressedSrc;
+                                }
                                 totalCompressedBytes += compressedBytes;
                             } else {
                                 totalCompressedBytes += originalBytes;
                             }
                         } catch (err) {
                             console.error('이미지 압축 실패:', err);
-                            totalCompressedBytes += originalBytes; // 실패 시 원본 유지
+                            totalCompressedBytes += originalBytes;
                         }
                         processedCount++;
                     }
@@ -17824,20 +17828,20 @@ function ensureImageWrapperStructure(wrapper) {
                     compressResultContainer.style.display = 'block';
                     
                     if (savedBytes > 0) {
-                        compressResultContainer.innerHTML = `
-                            <strong>✅ 최적화 완료!</strong><br><br>
-                            처리된 이미지: <strong>${processedCount}장</strong><br>
-                            압축 전 총 용량: <strong>${formatBytes(totalOriginalBytes)}</strong><br>
-                            압축 후 총 용량: <strong style="color:#0284c7;">${formatBytes(totalCompressedBytes)}</strong><br>
-                            <hr style="border:0; border-top:1px dashed #bbf7d0; margin: 10px 0;">
-                            🎉 총 <strong>${formatBytes(savedBytes)} (${savedPercent}%)</strong>의 불필요한 데이터를 절약했습니다!
-                        `;
+                        compressResultContainer.innerHTML = '<strong>✅ 최적화 완료!</strong><br><br>' +
+                            '처리된 이미지: <strong>' + processedCount + '장</strong><br>' +
+                            '압축 전 총 용량: <strong>' + formatBytes(totalOriginalBytes) + '</strong><br>' +
+                            '압축 후 총 용량: <strong style="color:#0284c7;">' + formatBytes(totalCompressedBytes) + '</strong><br>' +
+                            '<hr style="border:0; border-top:1px dashed #bbf7d0; margin: 10px 0;">' +
+                            '🎉 총 <strong>' + formatBytes(savedBytes) + ' (' + savedPercent + '%)</strong>의 불필요한 데이터를 절약했습니다!<br>' +
+                            '<span style="font-size:12px; color:#15803d; font-weight:600;">(최적화 상태가 문서에 즉시 적용되었습니다. 우측 상단 [저장] 버튼을 누르면 영구 보존됩니다.)</span>';
+                        if (typeof showMessage === 'function') {
+                            showMessage('이미지 최적화 완료: 총 ' + formatBytes(savedBytes) + ' 절감! 상단 [저장]을 눌러 영구 보존하세요.', 'success', 5000);
+                        }
                     } else {
-                        compressResultContainer.innerHTML = `
-                            <strong>✅ 최적화 검사 완료</strong><br>
-                            처리된 이미지: ${processedCount}장<br>
-                            모든 이미지가 이미 최적화되어 있어 추가로 용량을 줄이지 않았습니다.
-                        `;
+                        compressResultContainer.innerHTML = '<strong>✅ 최적화 검사 완료</strong><br>' +
+                            '처리된 이미지: ' + processedCount + '장<br>' +
+                            '모든 이미지가 이미 최적화되어 있어 추가로 용량을 줄이지 않았습니다.';
                     }
 
                     startCompressBtn.textContent = '닫기';
@@ -17845,25 +17849,44 @@ function ensureImageWrapperStructure(wrapper) {
                 });
             }
 
-            // 프로미스를 반환하는 비동기 이미지 캔버스 변환 함수
-            function compressImageToWebP(dataUrl, quality) {
+            // 프로미스를 반환하는 비동기 이미지 캔버스 변환 함수 (무결성 다운스케일링 및 찌꺼기 제거)
+            function compressImageToWebP(dataUrl, quality = 0.8, maxDim = 1600) {
                 return new Promise((resolve, reject) => {
                     const imgObj = new Image();
                     imgObj.onload = () => {
+                        let width = imgObj.naturalWidth || imgObj.width;
+                        let height = imgObj.naturalHeight || imgObj.height;
+
+                        // [무결성 보증 다운스케일링] 4K/초고해상도 이미지의 가로세로 비율 완벽 유지하며 maxDim(1600px) 상한 조정
+                        if (width > maxDim || height > maxDim) {
+                            if (width > height) {
+                                height = Math.round((height * maxDim) / width);
+                                width = maxDim;
+                            } else {
+                                width = Math.round((width * maxDim) / height);
+                                height = maxDim;
+                            }
+                        }
+
                         const canvas = document.createElement('canvas');
-                        canvas.width = imgObj.naturalWidth;
-                        canvas.height = imgObj.naturalHeight;
+                        canvas.width = width;
+                        canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         
-                        // 배경을 투명하게 유지하거나 필요시 흰색으로 처리
-                        // (WebP는 투명도를 지원하므로 drawImage만 수행해도 무방)
-                        ctx.drawImage(imgObj, 0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(imgObj, 0, 0, width, height);
                         
-                        // 찌꺼기 및 메타데이터가 싹 지워진 순수 픽셀 데이터만 WebP로 인코딩
-                        const newDataUrl = canvas.toDataURL('image/webp', quality);
-                        resolve(newDataUrl);
+                        try {
+                            const newDataUrl = canvas.toDataURL('image/webp', quality);
+                            if (newDataUrl && newDataUrl.startsWith('data:image/webp')) {
+                                resolve(newDataUrl);
+                            } else {
+                                resolve(canvas.toDataURL('image/jpeg', quality));
+                            }
+                        } catch (e) {
+                            resolve(dataUrl);
+                        }
                     };
-                    imgObj.onerror = reject;
+                    imgObj.onerror = () => resolve(dataUrl);
                     imgObj.src = dataUrl;
                 });
             }
