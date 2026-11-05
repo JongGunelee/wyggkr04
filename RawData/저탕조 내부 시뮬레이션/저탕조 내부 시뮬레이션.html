@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>급탕용 저탕조 내부 유체 저탕·출렁임 및 배관 흐름 모션 애니메이션</title>
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -99,6 +99,18 @@
     <section class="lg:col-span-8 flex flex-col items-center">
       <div class="canvas-wrapper" id="canvasContainer">
         <canvas id="flowCanvas" width="743" height="691"></canvas>
+      
+        <!-- Floating Zoom Close / Reset Overlay Button ('X' 클릭 시 원래 화면으로 원복) -->
+        <div id="zoomOverlayControl" class="absolute top-3 right-3 hidden flex items-center gap-2 z-20">
+          <div class="px-2.5 py-1 rounded-md bg-slate-900/90 border border-sky-400/40 text-[11px] font-medium text-sky-300 shadow-lg flex items-center gap-1.5 backdrop-blur-sm">
+            <span class="animate-pulse">🔍</span>
+            <span>저탕조 내부 정밀 확대 뷰</span>
+          </div>
+          <button type="button" id="btnCloseZoom" class="px-3 py-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg border border-rose-400 transition cursor-pointer" title="원래 전체 화면으로 복귀 (ESC)">
+            <span class="text-sm font-black">✕</span>
+            <span>원래 화면으로 복귀</span>
+          </button>
+        </div>
       </div>
 
       <!-- Interactive Zone Focus Bar -->
@@ -120,6 +132,18 @@
           <button type="button" data-focus="blue" class="focus-btn px-2.5 py-1 rounded-md text-xs font-medium bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 transition">
             ④ 파란색 급수 배관 (하부 유입·압력 유지)
           </button>
+          <button type="button" id="btnToggleAllLabels" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 transition flex items-center gap-1 shadow-sm" title="배관 인디케이터 라벨 전체를 표시/숨기기 합니다">
+            <span>🏷️</span> 인디케이터 라벨 (OFF)
+          </button>
+          <button type="button" id="btnToggleEngScale" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1 shadow-sm" title="저탕조 열역학 계측 눈금과 층별 온도·M 라벨을 토글합니다">
+            <span>🌡️</span> 열역학 층별 계측 눈금 (OFF)
+          </button>
+          <button type="button" id="btnToggleZoom" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition flex items-center gap-1 shadow-sm" title="저탕조 내부를 정밀 확대하거나 원래 화면으로 복귀합니다">
+            <span>🔍</span> 저탕조 내부 확대 (클릭)
+          </button>
+          <a href="#cardEngCalc" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 transition flex items-center gap-1 shadow-sm" title="열역학·유체역학 공학 계산서로 바로 이동합니다">
+            <span>📐</span> 공학 계산서 바로가기
+          </a>
         </div>
       </div>
     </section>
@@ -178,13 +202,13 @@
           </div>
 
           <!-- Tank Fluid & Top Supply -->
-          <div class="p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30">
-            <div class="flex items-center justify-between font-bold text-indigo-300 mb-1">
-              <span>⑤ 저탕조 내부 저탕 유체 & 상부 공급</span>
-              <span class="px-1.5 py-0.5 rounded bg-indigo-500/20 text-[10px]">수면 출렁임 & 가압 대류</span>
+          <div class="p-2.5 rounded-lg bg-orange-500/15 border border-orange-500/40">
+            <div class="flex items-center justify-between font-bold text-orange-300 mb-1">
+              <span>⑤ 저탕조 4단계 열성층화 & 상부 급탕 토출</span>
+              <span class="px-1.5 py-0.5 rounded bg-orange-500/25 text-[10px] text-orange-200">100% 완전충수 가압 토출</span>
             </div>
             <p class="text-slate-300">
-              하부 급수압에 의해 안정적인 압력이 유지되는 상태에서 온수가 저탕되어 상부 수면이 역동적으로 <strong class="text-white">출렁(Sloshing)</strong>이며, 상부 백색 배관으로 급탕이 토출됩니다.
+              밀폐 가압 상태에서 <strong class="text-white">저탕조 상단 돔부까지 100% 완전 충수</strong>되어 상부 빈 공간 없이 최고온 급탕층(80~85℃)이 상단 노즐(499, 163)과 직접 직결됩니다. 부력에 의해 안정된 <strong class="text-amber-300">4단계 열성층화(고온층→전이층→혼합층→급수완충층)</strong>를 형성하며, 상단 최고온 유체가 수렴 흡입 유선(Sink Flow)을 타고 <strong class="text-white">상부 흰색 급탕 배관</strong>으로 현실 세계와 완벽히 동일하게 연속 토출 공급됩니다.
             </p>
           </div>
         </div>
@@ -196,13 +220,13 @@
           <span>🎛️</span> 유체 모션 및 시각화 제어
         </h2>
 
-        <!-- Water Level Slider -->
+        <!-- Water Level / Thermal Stratification Slider -->
         <div>
           <div class="flex justify-between text-xs mb-1">
-            <label for="sliderLevel" class="text-slate-300 font-medium">저탕조 수위 (Water Level)</label>
-            <span id="valLevel" class="text-sky-400 font-semibold">88%</span>
+            <label for="sliderLevel" class="text-slate-300 font-medium">저탕조 충수도 및 열성층 상태</label>
+            <span id="valLevel" class="text-sky-400 font-semibold">100% (완전 충수)</span>
           </div>
-          <input id="sliderLevel" type="range" min="72" max="95" value="88" class="w-full h-1.5 bg-slate-700 rounded-lg cursor-pointer" />
+          <input id="sliderLevel" type="range" min="80" max="100" value="100" class="w-full h-1.5 bg-slate-700 rounded-lg cursor-pointer" />
         </div>
 
         <!-- Wave Sloshing Amplitude -->
@@ -260,7 +284,7 @@
         <!-- Pipe Flow Indicator Labels Management (Individual Selective Toggles & Drag) -->
         <div class="pt-3 border-t border-slate-800 space-y-2.5 text-xs">
           <div class="flex items-center justify-between gap-1 flex-wrap">
-            <div class="font-bold text-indigo-300 flex items-center gap-1.5">
+            <div id="hdrToggleLabels" class="font-bold text-indigo-300 flex items-center gap-1.5 cursor-pointer hover:text-indigo-200 transition select-none" title="클릭하여 인디케이터 라벨 전체를 토글합니다">
               <span>🏷️</span> 인디케이터 라벨 표시 및 위치 제어
             </div>
             <div class="flex items-center gap-1">
@@ -278,14 +302,14 @@
 
           <div class="p-2 rounded-lg bg-indigo-950/40 border border-indigo-500/20 text-[11px] text-indigo-200 flex items-start gap-1.5 leading-tight">
             <span>✋</span>
-            <span>화면에 표시된 라벨을 <strong>마우스로 드래그</strong>하여 원하는 위치로 자유롭게 이동할 수 있습니다. (기본값: 전체 선택)</span>
+            <span>화면에 표시된 라벨을 <strong>마우스로 드래그</strong>하여 원하는 위치로 자유롭게 이동할 수 있습니다. (기본값: 전체 숨기기)</span>
           </div>
 
-          <!-- Individual Label Checkboxes (Initial: All Checked Default) -->
+          <!-- Individual Label Checkboxes (Initial: All Hidden Default) -->
           <div class="space-y-1.5 pt-1">
             <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 cursor-pointer select-none border border-slate-700/40 transition">
               <div class="flex items-center gap-2">
-                <input type="checkbox" id="chkBadgeYellow" checked class="rounded text-amber-500 focus:ring-0 cursor-pointer" />
+                <input type="checkbox" id="chkBadgeYellow" class="rounded text-amber-500 focus:ring-0 cursor-pointer" />
                 <span class="text-amber-300 font-medium">① 노란색 환탕 배관 라벨 (매립관 O)</span>
               </div>
               <span class="text-[10px] text-slate-400 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700/30">드래그 가능</span>
@@ -293,7 +317,7 @@
 
             <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 cursor-pointer select-none border border-slate-700/40 transition">
               <div class="flex items-center gap-2">
-                <input type="checkbox" id="chkBadgeRed" checked class="rounded text-rose-500 focus:ring-0 cursor-pointer" />
+                <input type="checkbox" id="chkBadgeRed" class="rounded text-rose-500 focus:ring-0 cursor-pointer" />
                 <span class="text-rose-300 font-medium">② 빨간색 보일러 급탕 토출관 라벨 (매립관 O)</span>
               </div>
               <span class="text-[10px] text-slate-400 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700/30">드래그 가능</span>
@@ -301,7 +325,7 @@
 
             <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 cursor-pointer select-none border border-slate-700/40 transition">
               <div class="flex items-center gap-2">
-                <input type="checkbox" id="chkBadgeCloud" checked class="rounded text-emerald-500 focus:ring-0 cursor-pointer" />
+                <input type="checkbox" id="chkBadgeCloud" class="rounded text-emerald-500 focus:ring-0 cursor-pointer" />
                 <span class="text-emerald-300 font-medium">③ 클라우드 마킹 보일러행 흡입구 라벨</span>
               </div>
               <span class="text-[10px] text-slate-400 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700/30">드래그 가능</span>
@@ -309,7 +333,7 @@
 
             <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 cursor-pointer select-none border border-slate-700/40 transition">
               <div class="flex items-center gap-2">
-                <input type="checkbox" id="chkBadgeBlueInflow" checked class="rounded text-sky-400 focus:ring-0 cursor-pointer" />
+                <input type="checkbox" id="chkBadgeBlueInflow" class="rounded text-sky-400 focus:ring-0 cursor-pointer" />
                 <span class="text-sky-300 font-medium">④ 급수 유입·가압 라벨 (압력 유지)</span>
               </div>
               <span class="text-[10px] text-slate-400 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700/30">드래그 가능</span>
@@ -317,11 +341,155 @@
 
             <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 cursor-pointer select-none border border-slate-700/40 transition">
               <div class="flex items-center gap-2">
-                <input type="checkbox" id="chkBadgeBlueGauge" checked class="rounded text-sky-400 focus:ring-0 cursor-pointer" />
-                <span class="text-sky-300 font-medium">⑤ 압력 유지 정상 지침 라벨</span>
+                <input type="checkbox" id="chkBadgeBlueGauge" class="rounded text-sky-400 focus:ring-0 cursor-pointer" />
+                <span class="text-sky-300 font-medium">⑤ 저탕조 상부 급탕 토출 라벨 (흰색 배관 토출측)</span>
               </div>
               <span class="text-[10px] text-slate-400 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700/30">드래그 가능</span>
             </label>
+          </div>
+
+        <!-- Thermal Stratification Labels Management (Individual Selective Toggles & Drag) -->
+        <div class="pt-3 border-t border-slate-800 space-y-2.5 text-xs">
+          <div class="flex items-center justify-between gap-1 flex-wrap">
+            <div id="hdrToggleThermal" class="font-bold text-amber-300 flex items-center gap-1.5 cursor-pointer hover:text-amber-200 transition select-none" title="클릭하여 열성층화 라벨 전체를 토글합니다">
+              <span>🌡️</span> 열성층화 온도·높이(M) 라벨 제어
+            </div>
+            <div class="flex items-center gap-1">
+              <button type="button" id="btnShowAllThermalLabels" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-600 hover:bg-amber-500 text-white transition shadow-sm">
+                전체 표시
+              </button>
+              <button type="button" id="btnHideAllThermalLabels" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+                전체 숨기기
+              </button>
+              <button type="button" id="btnResetThermalLabelPos" class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 transition" title="온도·높이 라벨 위치를 초기 좌표로 복원합니다">
+                ↺ 위치 초기화
+              </button>
+            </div>
+          </div>
+
+          <div class="p-2 rounded-lg bg-amber-950/40 border border-amber-500/20 text-[11px] text-amber-200 flex items-start gap-1.5 leading-tight">
+            <span>✋</span>
+            <span>저탕조 열성층화 온도 및 높이(M) 라벨을 <strong>마우스로 드래그</strong>하여 원하는 위치로 자유롭게 이동할 수 있습니다. (기본값: 전체 숨기기)</span>
+          </div>
+
+          <!-- Individual Thermal Label Checkboxes (Initial: All Hidden Default) -->
+          <div class="space-y-1.5 pt-1">
+            <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 cursor-pointer select-none border border-slate-700/40 transition">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="chkThermal1" class="rounded text-rose-500 focus:ring-0 cursor-pointer" />
+                <span class="text-rose-300 font-medium">① 75.0℃ | H=3.5m (최고온 급탕층)</span>
+              </div>
+              <span class="text-[10px] text-slate-400 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700/30">드래그 가능</span>
+            </label>
+
+            <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 cursor-pointer select-none border border-slate-700/40 transition">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="chkThermal2" class="rounded text-amber-500 focus:ring-0 cursor-pointer" />
+                <span class="text-amber-300 font-medium">② 68.0℃ | H=2.4m (열성층 전이대)</span>
+              </div>
+              <span class="text-[10px] text-slate-400 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700/30">드래그 가능</span>
+            </label>
+
+            <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 cursor-pointer select-none border border-slate-700/40 transition">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="chkThermal3" class="rounded text-yellow-500 focus:ring-0 cursor-pointer" />
+                <span class="text-yellow-300 font-medium">③ 50.0℃ | H=1.4m (환탕 혼합대)</span>
+              </div>
+              <span class="text-[10px] text-slate-400 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700/30">드래그 가능</span>
+            </label>
+
+            <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 cursor-pointer select-none border border-slate-700/40 transition">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="chkThermal4" class="rounded text-emerald-500 focus:ring-0 cursor-pointer" />
+                <span class="text-emerald-300 font-medium">④ 46.8℃ | H=0.5m (보일러 흡입층)</span>
+              </div>
+              <span class="text-[10px] text-slate-400 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700/30">드래그 가능</span>
+            </label>
+
+            <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 cursor-pointer select-none border border-slate-700/40 transition">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="chkThermal5" class="rounded text-sky-400 focus:ring-0 cursor-pointer" />
+                <span class="text-sky-300 font-medium">⑤ 15.0℃ | H=0.0m (시수 완충층)</span>
+              </div>
+              <span class="text-[10px] text-slate-400 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700/30">드래그 가능</span>
+            </label>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <!-- 3. Engineering Calculation Sheet Card (열역학 및 유체역학 열수지·혼합온도 공학 계산서) -->
+      <div id="cardEngCalc" class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg space-y-3 scroll-mt-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>📐</span> 열역학·유체역학 열수지 공학 계산서
+          </h2>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">공학 계산 완료</span>
+        </div>
+
+        <div class="text-[11px] leading-relaxed text-slate-300 space-y-2.5">
+          <!-- A. Tank Specifications -->
+          <div class="p-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50">
+            <div class="font-bold text-sky-300 mb-1 flex items-center justify-between">
+              <span>1. 저탕조 기하학적 규격 및 체적</span>
+              <span class="font-mono text-white">V = 7,500 L (7.5 m³)</span>
+            </div>
+            <p class="text-slate-400">
+              • 탱크 내경: <strong class="text-white">D = 1.80 m (1,800 mm)</strong> (단면적 A = 2.545 m²)<br>
+              • 전고: <strong class="text-white">H = 3.50 m (3,500 mm)</strong> (원통부 2.75 m + 상하 경판 각 0.38 m)<br>
+              • 상용 운전 압력: <strong class="text-sky-300">3.5 ~ 4.5 kgf/cm²</strong> (밀폐 가압 만수 운전)
+            </p>
+          </div>
+
+          <!-- B. Stratified Temperature & Density Table -->
+          <div class="p-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50">
+            <div class="font-bold text-amber-300 mb-1">
+              2. 4단계 열성층 온도 및 밀도 평형표
+            </div>
+            <div class="grid grid-cols-4 gap-1 text-[10px] text-center font-mono py-1 border-b border-slate-700/60 font-semibold text-slate-400">
+              <span>열층 구분</span><span>설계 온도</span><span>밀도(kg/m³)</span><span>체적(L)</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1 text-[10px] text-center font-mono py-1 text-rose-300 border-b border-slate-800">
+              <span class="text-left font-sans pl-1">① 최고온층</span><span>75.0℃</span><span>974.8</span><span>2,400</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1 text-[10px] text-center font-mono py-1 text-amber-300 border-b border-slate-800">
+              <span class="text-left font-sans pl-1">② 전이대</span><span>68.0℃</span><span>979.0</span><span>2,200</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1 text-[10px] text-center font-mono py-1 text-yellow-300 border-b border-slate-800">
+              <span class="text-left font-sans pl-1">③ 혼합대</span><span>50.0℃</span><span>988.0</span><span>2,000</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1 text-[10px] text-center font-mono py-1 text-sky-300">
+              <span class="text-left font-sans pl-1">④ 시수완충</span><span>15.0℃</span><span>999.1</span><span>900</span>
+            </div>
+          </div>
+
+          <!-- C. Heat & Mass Balance Calculation -->
+          <div class="p-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50">
+            <div class="font-bold text-emerald-300 mb-1">
+              3. 열역학 질량 및 열량 수지 (First Law Balance)
+            </div>
+            <p class="text-slate-400 font-mono text-[10.5px]">
+              • 급탕 수요 유량: ṁ_s = 1.00 kg/s (60 L/min, 75.0℃)<br>
+              • 순환 환탕 유량: ṁ_r = 0.40 kg/s (24 L/min, 50.0℃)<br>
+              • 시수 보충 유량: ṁ_c = 0.60 kg/s (36 L/min, 15.0℃)<br>
+              • 보일러 흡입 혼합 온도: <strong class="text-emerald-300">T_suc = 46.8℃</strong><br>
+              &nbsp;&nbsp;T_suc = (0.40×50.0 + 0.60×44.7)/1.00 = 46.8℃<br>
+              • 보일러 가열 부하: <strong class="text-rose-400">Q̇ = 118.0 kW (101,500 kcal/h)</strong><br>
+              &nbsp;&nbsp;Q̇ = 1.00 × 4.186 × (75.0 - 46.8) = 118.0 kW (열평형 일치)
+            </p>
+          </div>
+
+          <!-- D. Fluid Dynamics Dimensionless Numbers -->
+          <div class="p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-500/30">
+            <div class="font-bold text-indigo-300 mb-1">
+              4. 유체역학 성층화 안정도 (무차원수 검증)
+            </div>
+            <p class="text-slate-300 text-[10.5px]">
+              • <strong class="text-white">리차드슨 수 (Ri) = 92.5 &gt;&gt; 1.0</strong> (임계치 0.25의 370배)<br>
+              &nbsp;&nbsp;상하 밀도차(Δρ = 24.3 kg/m³)에 의한 부력 안정화 에너지가 유입 제트의 난류 혼합을 압도하여 4단계 층상 구조 영구 보존.<br>
+              • <strong class="text-white">프루드 수 (Fr) = 0.82 &lt; 1.0</strong> (임계 프루드 수 미만)<br>
+              &nbsp;&nbsp;상단 백색 배관 토출 시 하부 찬물을 끌어올리지 않고 최상단 고온수(75℃)만 선택적 흡입(Selective Withdrawal) 배출.
+            </p>
           </div>
         </div>
       </div>
@@ -345,7 +513,7 @@
         playing: true,
         showOriginalOnly: false,
         focusZone: 'all', // 'all' | 'yellow' | 'red' | 'cloud'
-        waterLevelPct: 88, // 72..95
+        waterLevelPct: 100, // 80..100 (Default: 100% 완전 충수 가압 운전)
         waveIntensity: 1.2,
         flowSpeed: 1.0,
         fluidOpacity: 0.58,
@@ -355,9 +523,25 @@
         showCloud: true,
         showBlue: true,
         showVortex: true,
-        showLabels: true,
+        showLabels: false, // Default: Hidden (인디케이터 라벨 기본값 숨기기)
+        showEngineeringScale: false, // Default: Hidden (열역학 계측 눈금 기본값 숨기기)
+        showThermalLabels: false, // Default: Hidden (열성층화 온도·M 라벨 기본값 숨기기)
+        isZoomed: false, // Default: false (기본값: 원래 전체 화면 뷰)
         time: 0
       };
+      window.state = state;
+
+      // Camera state for smooth Zoom-In & Restore transitions
+      const camera = {
+        currentScale: 1.0,
+        targetScale: 1.0,
+        currentX: 0,
+        targetX: 0,
+        currentY: 0,
+        targetY: 0
+      };
+      window.camera = camera;
+      window.state = state;
 
       // Exact pixel coordinates of the Right Hot Water Storage Tank interior cutaway
       const TANK_POLY = [
@@ -437,10 +621,11 @@
         { x: 416, y: 504 }
       ];
 
-      // 5. Top Hot Water Supply Outlet Pipe (상부 급탕 공급 배관)
+      // 5. Top Hot Water Supply Outlet Pipe (상부 급탕 공급 배관 - 고온수 토출 라인)
       const TOP_SUPPLY_PATH = [
         { x: 499, y: 163 },
         { x: 499, y: 35 },
+        { x: 488, y: 24 },
         { x: 465, y: 0 }
       ];
 
@@ -497,15 +682,17 @@
       }
 
       function createTankParticle(seed) {
-        // 3 behavior types inside the tank:
-        // 'red_plume': erupts upward from red pipe nozzle (600, 298) -> swirls across top -> mid tank
+        // 4 behavior types inside the tank (Thermodynamics & Fluid Dynamics):
+        // 'red_plume': erupts upward from red pipe nozzle (600, 298) -> buoyant thermal plume rises to top
         // 'yellow_jet': exits yellow pipe nozzle (569, 463) -> spreads across bottom & rises/mixes
         // 'suction_draw': circulates in mid/lower tank and converges toward (386, 488) wall port
+        // 'top_discharge': hot fluid in topmost layer drawn into crown nozzle (499, 163) and up white pipe
         const r = (seed % 10) / 10;
         let type = 'red_plume';
-        if (r < 0.38) type = 'red_plume';
-        else if (r < 0.72) type = 'yellow_jet';
-        else type = 'suction_draw';
+        if (r < 0.30) type = 'red_plume';
+        else if (r < 0.55) type = 'yellow_jet';
+        else if (r < 0.75) type = 'suction_draw';
+        else type = 'top_discharge';
 
         return {
           type,
@@ -517,17 +704,19 @@
         };
       }
 
-      // Compute water surface Y coordinate at a given X and time
+      // Compute water surface Y coordinate at a given X and time (for partial level mode)
       function getWaterSurfaceY(x, t) {
-        // Map waterLevelPct (72..95) to Y (265..186)
-        const baseY = 530 - (state.waterLevelPct / 100) * 365;
-        const amp = 4.5 * state.waveIntensity + state.impulseAmp;
+        if (state.waterLevelPct >= 99.5) {
+          // When 100% full, top boundary matches upper dome ceiling exactly (163 at crown)
+          return 160;
+        }
+        // Map waterLevelPct (80..99) to Y (240..170)
+        const baseY = 536 - (state.waterLevelPct / 100) * 373;
+        const amp = 4.0 * state.waveIntensity + state.impulseAmp;
         const k1 = 0.032;
         const k2 = 0.068;
-        // Standing + traveling wave inside tank width (390..620)
         const wave1 = Math.sin((x - 390) * k1 - t * 2.8) * amp;
         const wave2 = Math.cos((x - 400) * k2 + t * 4.3) * (amp * 0.42);
-        // Extra upward surface boil right above the red discharge pipe (x ≈ 595..605)
         const distRed = (x - 598) / 22;
         const plumeBoil = state.showRed
           ? Math.exp(-distRed * distRed) * (-3.5 * Math.sin(t * 6.5) - 3.2) * (state.flowSpeed * 0.8)
@@ -546,7 +735,7 @@
         ctx.clip();
       }
 
-      // Draw stored hot water body with sloshing waves & thermal stratification
+      // Draw stored hot water body with 4-Layer Thermal Stratification & 100% Flooded Top Dome
       function drawTankWaterBody(t) {
         ctx.save();
         clipTankInterior();
@@ -555,83 +744,171 @@
         const minX = 384;
         const maxX = 625;
         const step = 4;
+        const isFull = (state.waterLevelPct >= 99.5);
 
-        // 1. Back wave layer (depth effect for 3D cylindrical water surface)
-        ctx.beginPath();
-        for (let x = minX; x <= maxX; x += step) {
-          const y = getWaterSurfaceY(x, t + 0.9) - 5;
-          if (x === minX) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.lineTo(maxX, 545);
-        ctx.lineTo(minX, 545);
-        ctx.closePath();
-        ctx.fillStyle = `rgba(251, 146, 60, ${alpha * 0.42})`;
-        ctx.fill();
-
-        // 2. Main water body with thermal gradient:
-        // Upper region: hotter orange-red (from boiler discharge & buoyancy)
-        // Middle region: warm amber-orange
-        // Lower region: warm golden-yellow / sky tint (return water mixing & boiler suction zone)
-        ctx.beginPath();
-        for (let x = minX; x <= maxX; x += step) {
-          const y = getWaterSurfaceY(x, t);
-          if (x === minX) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.lineTo(maxX, 545);
-        ctx.lineTo(minX, 545);
-        ctx.closePath();
-
-        const topY = getWaterSurfaceY(500, t);
-        const grad = ctx.createLinearGradient(500, topY, 500, 536);
-        grad.addColorStop(0.0, `rgba(249, 115, 22, ${alpha * 0.88})`);   // Hot orange surface
-        grad.addColorStop(0.35, `rgba(239, 68, 68, ${alpha * 0.78})`);   // High-temp red-orange mid-upper
-        grad.addColorStop(0.74, `rgba(245, 158, 11, ${alpha * 0.76})`);  // Warm amber mid-lower
-        grad.addColorStop(0.91, `rgba(234, 179, 8, ${alpha * 0.78})`);   // Return water mixing lower
-        grad.addColorStop(1.0, state.showBlue ? `rgba(56, 189, 248, ${alpha * 0.85})` : `rgba(234, 179, 8, ${alpha * 0.82})`); // Bottom pressurized cold water supply cushion
-
-        ctx.fillStyle = grad;
-        ctx.fill();
-
-        // 3. Dynamic internal wave caustics / sloshing bands
-        for (let band = 1; band <= 3; band++) {
-          const bandOffset = band * 68;
+        if (isFull) {
+          // =========================================================================
+          // 100% Fully Flooded Closed Pressurized Vessel (현실 세계 밀폐 가압 저탕조)
+          // 저탕조 상단 돔부(y=163)까지 유체가 100% 가득 차서 상부 빈공간 완전 제거
+          // =========================================================================
           ctx.beginPath();
-          for (let x = minX; x <= maxX; x += 6) {
-            const y = getWaterSurfaceY(x, t * (1 - band * 0.12) + band) + bandOffset + Math.sin(x * 0.04 + t * 2) * 4;
+          ctx.rect(minX - 5, 150, (maxX - minX) + 10, 395);
+
+          // 4-Layer Continuous Thermodynamic Temperature Gradient:
+          // Zone 1 (163~260, 80~85°C): 최상부 최고온 급탕층 (루비/스칼렛 레드-오렌지) - 상부 백색 배관 토출과 직접 직결
+          // Zone 2 (260~370, 60~75°C): 열성층 전이층 (비비드 앰버-오렌지) - 보일러 급탕 토출관 부력 상승류 축적
+          // Zone 3 (370~475, 40~55°C): 하부 환탕 혼합층 (골든 옐로우) - 노란색 환탕관 혼합 및 보일러 흡입구 연동
+          // Zone 4 (475~536, 15~25°C): 최하부 급수 가압 완충층 (스카이블루-시안) - 파란색 급수관에 의한 저탕조 정압 유지
+          const grad = ctx.createLinearGradient(500, 163, 500, 536);
+          grad.addColorStop(0.00, `rgba(239, 68, 68, ${alpha * 0.92})`);   // Zone 1: 최고온 급탕층 (85℃, 노즐 직결)
+          grad.addColorStop(0.14, `rgba(249, 115, 22, ${alpha * 0.88})`);  // Zone 1: 상부 고온 성층 (78℃)
+          grad.addColorStop(0.30, `rgba(245, 158, 11, ${alpha * 0.84})`);  // Zone 2: 열성층 상부 전이층 (68℃)
+          grad.addColorStop(0.55, `rgba(251, 191, 36, ${alpha * 0.78})`);  // Zone 2: 온수 완충층 (58℃)
+          grad.addColorStop(0.76, `rgba(234, 179, 8, ${alpha * 0.80})`);   // Zone 3: 환탕 혼합층 (45℃)
+          grad.addColorStop(0.89, state.showBlue ? `rgba(56, 189, 248, ${alpha * 0.86})` : `rgba(234, 179, 8, ${alpha * 0.80})`); // Zone 4: 하부 급수 가압 저온층 (22℃)
+          grad.addColorStop(1.00, state.showBlue ? `rgba(14, 165, 233, ${alpha * 0.92})` : `rgba(234, 179, 8, ${alpha * 0.80})`); // Zone 4: 바닥 완충층 (15℃)
+
+          ctx.fillStyle = grad;
+          ctx.fill();
+
+          // Dynamic Internal Thermocline Wave Interfaces (실제 열성층 계면 중력파 모션)
+          // 계면 1 (y ≈ 258): 고온수층(80℃)과 중온층(65℃) 사이의 부력 계면 파동
+          ctx.beginPath();
+          for (let x = minX; x <= maxX; x += 4) {
+            const y1 = 258 + Math.sin((x - 400) * 0.042 - t * 2.2) * 3.5 + Math.cos((x - 450) * 0.075 + t * 3.5) * 2.0;
+            if (x === minX) ctx.moveTo(x, y1); else ctx.lineTo(x, y1);
+          }
+          ctx.strokeStyle = 'rgba(254, 205, 211, 0.42)';
+          ctx.lineWidth = 2.0;
+          ctx.stroke();
+
+          // 계면 2 (y ≈ 372): 중온층과 하부 환탕 혼합층 사이의 성층 경계면
+          ctx.beginPath();
+          for (let x = minX; x <= maxX; x += 4) {
+            const y2 = 372 + Math.sin((x - 410) * 0.038 + t * 1.8) * 4.0 + Math.cos((x - 430) * 0.068 - t * 2.7) * 2.2;
+            if (x === minX) ctx.moveTo(x, y2); else ctx.lineTo(x, y2);
+          }
+          ctx.strokeStyle = 'rgba(254, 240, 138, 0.38)';
+          ctx.lineWidth = 1.8;
+          ctx.stroke();
+
+          // 계면 3 (y ≈ 475): 혼합층과 최하부 파란색 급수 가압 완충층 사이의 계면
+          if (state.showBlue) {
+            ctx.beginPath();
+            for (let x = minX; x <= maxX; x += 4) {
+              const y3 = 475 + Math.sin((x - 390) * 0.045 - t * 1.5) * 3.0 + Math.cos((x - 420) * 0.062 + t * 2.3) * 1.8;
+              if (x === minX) ctx.moveTo(x, y3); else ctx.lineTo(x, y3);
+            }
+            ctx.strokeStyle = 'rgba(186, 230, 253, 0.52)';
+            ctx.lineWidth = 1.6;
+            ctx.stroke();
+          }
+
+          // Shimmering micro-convective thermal caustics in the top hot layer
+          for (let i = 0; i < 3; i++) {
+            const cy = 180 + i * 26;
+            ctx.beginPath();
+            for (let x = minX; x <= maxX; x += 8) {
+              const y = cy + Math.sin(x * 0.05 + t * 3.2 + i * 1.8) * 2.6;
+              if (x === minX) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = `rgba(255, 241, 242, ${0.18 - i * 0.04})`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+
+          // Glowing dome ceiling contact meniscus (상단 돔부 완전 접촉 경계선)
+          ctx.beginPath();
+          ctx.moveTo(TANK_POLY[0].x, TANK_POLY[0].y);
+          for (let i = 1; i <= 8; i++) {
+            ctx.lineTo(TANK_POLY[i].x, TANK_POLY[i].y);
+          }
+          ctx.strokeStyle = 'rgba(255, 237, 213, 0.65)';
+          ctx.lineWidth = 2.0;
+          ctx.shadowColor = 'rgba(239, 68, 68, 0.75)';
+          ctx.shadowBlur = 6;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // =========================================================================
+          // Real-time Thermodynamic Stratification Depth & Temperature Scale
+          // (저탕조 내부 좌측 정밀 열역학 계측 눈금자 및 층별 온도·밀도 표기)
+          // =========================================================================
+          if (state.showEngineeringScale) {
+            ctx.save();
+            const rulerX = 418;
+
+            // Vertical graduated ruler line along left interior
+            ctx.beginPath();
+            ctx.moveTo(rulerX, 172);
+            ctx.lineTo(rulerX, 526);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([3, 3]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            const rulerTicks = [175, 265, 375, 475, 520];
+            for (let i = 0; i < rulerTicks.length; i++) {
+              ctx.beginPath();
+              ctx.moveTo(rulerX - 5, rulerTicks[i]);
+              ctx.lineTo(rulerX + 5, rulerTicks[i]);
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 1.8;
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+
+        } else {
+          // =========================================================================
+          // Partial Filling Mode (Slider < 100%)
+          // =========================================================================
+          ctx.beginPath();
+          for (let x = minX; x <= maxX; x += step) {
+            const y = getWaterSurfaceY(x, t + 0.9) - 5;
             if (x === minX) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
           }
-          ctx.strokeStyle = `rgba(255, 255, 255, ${0.14 - band * 0.03})`;
-          ctx.lineWidth = 2;
+          ctx.lineTo(maxX, 545);
+          ctx.lineTo(minX, 545);
+          ctx.closePath();
+          ctx.fillStyle = `rgba(251, 146, 60, ${alpha * 0.42})`;
+          ctx.fill();
+
+          ctx.beginPath();
+          for (let x = minX; x <= maxX; x += step) {
+            const y = getWaterSurfaceY(x, t);
+            if (x === minX) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.lineTo(maxX, 545);
+          ctx.lineTo(minX, 545);
+          ctx.closePath();
+
+          const topY = getWaterSurfaceY(500, t);
+          const grad = ctx.createLinearGradient(500, topY, 500, 536);
+          grad.addColorStop(0.0, `rgba(239, 68, 68, ${alpha * 0.88})`);
+          grad.addColorStop(0.35, `rgba(249, 115, 22, ${alpha * 0.82})`);
+          grad.addColorStop(0.74, `rgba(245, 158, 11, ${alpha * 0.78})`);
+          grad.addColorStop(0.91, `rgba(234, 179, 8, ${alpha * 0.78})`);
+          grad.addColorStop(1.0, state.showBlue ? `rgba(56, 189, 248, ${alpha * 0.85})` : `rgba(234, 179, 8, ${alpha * 0.82})`);
+          ctx.fillStyle = grad;
+          ctx.fill();
+
+          ctx.beginPath();
+          for (let x = minX; x <= maxX; x += step) {
+            const y = getWaterSurfaceY(x, t);
+            if (x === minX) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.strokeStyle = 'rgba(255, 237, 213, 0.92)';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = 'rgba(251, 146, 60, 0.9)';
+          ctx.shadowBlur = 8;
           ctx.stroke();
+          ctx.shadowBlur = 0;
         }
-
-        // 4. Crisp glowing meniscus / free-surface sloshing crest line
-        ctx.beginPath();
-        for (let x = minX; x <= maxX; x += step) {
-          const y = getWaterSurfaceY(x, t);
-          if (x === minX) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.strokeStyle = 'rgba(255, 237, 213, 0.92)';
-        ctx.lineWidth = 3;
-        ctx.shadowColor = 'rgba(251, 146, 60, 0.9)';
-        ctx.shadowBlur = 8;
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // Secondary back-rim ellipse ripple on surface
-        ctx.beginPath();
-        for (let x = minX; x <= maxX; x += step) {
-          const y = getWaterSurfaceY(x, t + 0.9) - 5;
-          if (x === minX) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.strokeStyle = 'rgba(254, 215, 170, 0.55)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
 
         ctx.restore();
       }
@@ -666,14 +943,71 @@
           ctx.strokeStyle = 'rgba(254, 240, 138, 0.55)';
           ctx.stroke();
 
-          // Loop 3: Upper hot zone rising into top supply outlet (499, 165)
+          // Loop 3: Upper hot zone rising into top supply outlet (499, 163)
           ctx.beginPath();
           ctx.moveTo(598, 295);
-          ctx.quadraticCurveTo(560, 210, 500, 168);
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+          ctx.quadraticCurveTo(560, 210, 499, 165);
+          ctx.strokeStyle = 'rgba(254, 205, 211, 0.55)';
           ctx.stroke();
 
+          // Converging Suction Streamlines (Sink Flow into Top Nozzle 499, 163)
+          const sinkLines = [
+            { x0: 435, y0: 215, cx: 465, cy: 185 },
+            { x0: 465, y0: 235, cx: 482, cy: 192 },
+            { x0: 499, y0: 245, cx: 499, cy: 200 },
+            { x0: 535, y0: 235, cx: 516, cy: 192 },
+            { x0: 565, y0: 215, cx: 533, cy: 185 }
+          ];
+
+          for (let i = 0; i < sinkLines.length; i++) {
+            const sl = sinkLines[i];
+            ctx.beginPath();
+            ctx.moveTo(sl.x0, sl.y0);
+            ctx.quadraticCurveTo(sl.cx, sl.cy, 499, 163);
+            ctx.strokeStyle = 'rgba(255, 237, 213, 0.55)';
+            ctx.stroke();
+          }
+
           ctx.restore();
+
+          // Converging flow chevrons entering the top crown nozzle (499, 163)
+          for (let i = 0; i < 6; i++) {
+            const sl = sinkLines[i % sinkLines.length];
+            const p = ((t * 0.72 * state.flowSpeed + i / 6) % 1);
+            const omt = 1 - p;
+            const px = omt * omt * sl.x0 + 2 * omt * p * sl.cx + p * p * 499;
+            const py = omt * omt * sl.y0 + 2 * omt * p * sl.cy + p * p * 163;
+            const dx = 2 * omt * (sl.cx - sl.x0) + 2 * p * (499 - sl.cx);
+            const dy = 2 * omt * (sl.cy - sl.y0) + 2 * p * (163 - sl.cy);
+            const angle = Math.atan2(dy, dx);
+
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(4, 0);
+            ctx.lineTo(-3, -2.5);
+            ctx.lineTo(-1.5, 0);
+            ctx.lineTo(-3, 2.5);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(255, 247, 237, ${0.35 + 0.65 * p})`;
+            ctx.shadowColor = '#ea580c';
+            ctx.shadowBlur = 5;
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // Active Suction Intake Funnel Glow at Crown Nozzle (499, 163)
+          const pulseCrown = 0.85 + 0.15 * Math.sin(t * 6.5);
+          const gradFunnel = ctx.createRadialGradient(499, 163, 2, 499, 170, 24 * pulseCrown);
+          gradFunnel.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+          gradFunnel.addColorStop(0.35, 'rgba(254, 215, 170, 0.82)');
+          gradFunnel.addColorStop(0.7, 'rgba(249, 115, 22, 0.40)');
+          gradFunnel.addColorStop(1, 'rgba(239, 68, 68, 0)');
+          ctx.fillStyle = gradFunnel;
+          ctx.beginPath();
+          ctx.ellipse(499, 166, 20 * pulseCrown, 11 * pulseCrown, 0, 0, Math.PI * 2);
+          ctx.fill();
         }
 
         // B. Suction Intake Vortex at Lower-Left Wall Port (386, 488) - Showing NO Embedded Pipe!
@@ -799,7 +1133,7 @@
 
             if (pt.type === 'red_plume') {
               if (!state.showRed) continue;
-              // Rises from (600, 298) up toward water surface, then curves left & down
+              // Rises from (600, 298) up toward water surface / top hot layer, then curves left & down
               if (u < 0.4) {
                 const k = u / 0.4;
                 x = 600 - k * 22 + Math.sin(k * 8 + i) * 8;
@@ -819,7 +1153,7 @@
               x = 535 + Math.cos(angle) * rx + pt.offsetX * 0.6;
               y = 445 - Math.sin(angle) * ry + pt.offsetY * 0.6;
               color = 'rgba(254, 240, 138, 0.85)';
-            } else {
+            } else if (pt.type === 'suction_draw') {
               // 'suction_draw': moves from mid-bottom tank into the non-embedded wall nozzle (388, 488)
               if (!state.showCloud) continue;
               const startX = 520 + pt.offsetX * 2.2;
@@ -827,6 +1161,21 @@
               x = startX + (388 - startX) * Math.pow(u, 1.25);
               y = startY + (488 - startY) * Math.pow(u, 1.1) + Math.sin(u * Math.PI) * 18;
               color = 'rgba(110, 231, 183, 0.88)';
+            } else {
+              // 'top_discharge': Hot fluid in topmost thermal layer drawn into crown nozzle (499, 163) and discharged into white pipe
+              if (!state.showVortex) continue;
+              if (u < 0.62) {
+                const k = u / 0.62;
+                const sx = 499 + pt.offsetX * 2.6;
+                const sy = 235 + pt.offsetY * 1.5;
+                x = sx + (499 - sx) * Math.pow(k, 1.35);
+                y = sy + (163 - sy) * Math.pow(k, 1.15);
+              } else {
+                const k = (u - 0.62) / 0.38;
+                x = 499;
+                y = 163 - k * 128; // Discharges up into vertical white pipe toward y=35!
+              }
+              color = 'rgba(255, 241, 242, 0.95)';
             }
 
             // Keep strictly below current wave surface
@@ -880,7 +1229,7 @@
         ctx.restore();
       }
 
-      // Flow indicator callout badges with interactive mouse & touch dragging support
+      // Flow indicator callout badges with interactive mouse & touch dragging support (Default: Hidden)
       const badges = [
         {
           id: 'yellow',
@@ -896,7 +1245,7 @@
           textColor: '#fef08a',
           zoneKey: 'yellow',
           pipeProp: 'showYellow',
-          visible: true, // Initial default: all selected (전체 선택)
+          visible: false, // Initial default: hidden (기본값: 숨기기)
           boxW: 0,
           boxH: 22,
           x0: 0,
@@ -916,7 +1265,7 @@
           textColor: '#ffe4e6',
           zoneKey: 'red',
           pipeProp: 'showRed',
-          visible: true, // Initial default: all selected (전체 선택)
+          visible: false, // Initial default: hidden (기본값: 숨기기)
           boxW: 0,
           boxH: 22,
           x0: 0,
@@ -936,7 +1285,7 @@
           textColor: '#a7f3d0',
           zoneKey: 'cloud',
           pipeProp: 'showCloud',
-          visible: true, // Initial default: all selected (전체 선택)
+          visible: false, // Initial default: hidden (기본값: 숨기기)
           boxW: 0,
           boxH: 22,
           x0: 0,
@@ -956,7 +1305,7 @@
           textColor: '#e0f2fe',
           zoneKey: 'blue',
           pipeProp: 'showBlue',
-          visible: true, // Initial default: all selected (전체 선택)
+          visible: false, // Initial default: hidden (기본값: 숨기기)
           boxW: 0,
           boxH: 22,
           x0: 0,
@@ -964,27 +1313,187 @@
         },
         {
           id: 'blueGauge',
-          text: '⑤ 압력 유지 정상 (급수 가압 연동)',
-          cx: 642,
-          cy: 118,
-          defaultX: 642,
-          defaultY: 118,
-          targetX: 586,
-          targetY: 186,
+          text: '⑤ 저탕조 상부 급탕 토출 (흰색 배관 토출측)',
+          cx: 620,
+          cy: 65,
+          defaultX: 620,
+          defaultY: 65,
+          targetX: 499,
+          targetY: 105, // 저탕조 상단 수직 흰색 배관 토출 관측 정밀 좌표
           borderColor: '#38bdf8',
           bgColor: 'rgba(15, 23, 42, 0.90)',
-          textColor: '#bae6fd',
-          zoneKey: 'blue',
-          pipeProp: 'showBlue',
-          visible: true, // Initial default: all selected (전체 선택)
+          textColor: '#e0f2fe',
+          zoneKey: 'all',
+          pipeProp: 'showVortex',
+          visible: false, // Initial default: hidden (기본값: 숨기기)
           boxW: 0,
           boxH: 22,
           x0: 0,
           y0: 0
         }
       ];
+      window.badges = badges;
+
+      // Thermal Stratification Callout Badges with Dragging & Selective Toggles (Default: Hidden)
+      const thermalBadges = [
+        {
+          id: 'th1',
+          text: '① 75.0℃ | H=3.5m (최고온 급탕층)',
+          cx: 320,
+          cy: 175,
+          defaultX: 320,
+          defaultY: 175,
+          targetX: 418,
+          targetY: 175,
+          borderColor: '#fda4af',
+          bgColor: 'rgba(225, 29, 72, 0.90)',
+          textColor: '#ffffff',
+          visible: false, // Default: Hidden (기본값 숨기기)
+          boxW: 0,
+          boxH: 22,
+          x0: 0,
+          y0: 0
+        },
+        {
+          id: 'th2',
+          text: '② 68.0℃ | H=2.4m (열성층 전이대)',
+          cx: 320,
+          cy: 265,
+          defaultX: 320,
+          defaultY: 265,
+          targetX: 418,
+          targetY: 265,
+          borderColor: '#fde047',
+          bgColor: 'rgba(217, 119, 6, 0.90)',
+          textColor: '#ffffff',
+          visible: false, // Default: Hidden (기본값 숨기기)
+          boxW: 0,
+          boxH: 22,
+          x0: 0,
+          y0: 0
+        },
+        {
+          id: 'th3',
+          text: '③ 50.0℃ | H=1.4m (환탕 혼합대)',
+          cx: 320,
+          cy: 375,
+          defaultX: 320,
+          defaultY: 375,
+          targetX: 418,
+          targetY: 375,
+          borderColor: '#fef08a',
+          bgColor: 'rgba(161, 98, 7, 0.90)',
+          textColor: '#ffffff',
+          visible: false, // Default: Hidden (기본값 숨기기)
+          boxW: 0,
+          boxH: 22,
+          x0: 0,
+          y0: 0
+        },
+        {
+          id: 'th4',
+          text: '④ 46.8℃ | H=0.5m (보일러 흡입층)',
+          cx: 320,
+          cy: 475,
+          defaultX: 320,
+          defaultY: 475,
+          targetX: 418,
+          targetY: 475,
+          borderColor: '#6ee7b7',
+          bgColor: 'rgba(5, 150, 105, 0.90)',
+          textColor: '#ffffff',
+          visible: false, // Default: Hidden (기본값 숨기기)
+          boxW: 0,
+          boxH: 22,
+          x0: 0,
+          y0: 0
+        },
+        {
+          id: 'th5',
+          text: '⑤ 15.0℃ | H=0.0m (시수 완충층)',
+          cx: 320,
+          cy: 520,
+          defaultX: 320,
+          defaultY: 520,
+          targetX: 418,
+          targetY: 520,
+          borderColor: '#bae6fd',
+          bgColor: 'rgba(2, 132, 199, 0.90)',
+          textColor: '#ffffff',
+          visible: false, // Default: Hidden (기본값 숨기기)
+          boxW: 0,
+          boxH: 22,
+          x0: 0,
+          y0: 0
+        }
+      ];
+      window.thermalBadges = thermalBadges;
+
+      function isThermalBadgeVisible(tb) {
+        if (!state.showThermalLabels) return false;
+        return tb.visible;
+      }
+
+      function drawThermalPillBadge(badge, isDraggingThis) {
+        ctx.save();
+        ctx.font = 'bold 10.5px "Noto Sans KR", monospace';
+        const padX = 8;
+        const textW = ctx.measureText(badge.text).width;
+        badge.boxW = textW + padX * 2;
+        badge.boxH = 22;
+        badge.x0 = badge.cx - badge.boxW / 2;
+        badge.y0 = badge.cy - badge.boxH / 2;
+
+        // Dotted leader line to ruler anchor (418, badge.targetY)
+        ctx.beginPath();
+        ctx.moveTo(badge.cx, badge.cy);
+        ctx.lineTo(badge.targetX, badge.targetY);
+        ctx.strokeStyle = badge.borderColor;
+        ctx.lineWidth = isDraggingThis ? 2.2 : 1.5;
+        ctx.setLineDash([3, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Target tick on tank elevation ruler
+        ctx.beginPath();
+        ctx.moveTo(badge.targetX - 5, badge.targetY);
+        ctx.lineTo(badge.targetX + 5, badge.targetY);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(badge.targetX, badge.targetY, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = badge.borderColor;
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        // Pill background
+        ctx.beginPath();
+        ctx.roundRect(badge.x0, badge.y0, badge.boxW, badge.boxH, 5);
+        ctx.fillStyle = isDraggingThis ? 'rgba(30, 41, 59, 0.96)' : badge.bgColor;
+        ctx.fill();
+        ctx.lineWidth = isDraggingThis ? 2.4 : 1.2;
+        ctx.strokeStyle = isDraggingThis ? '#ffffff' : badge.borderColor;
+        if (isDraggingThis) {
+          ctx.shadowColor = badge.borderColor;
+          ctx.shadowBlur = 10;
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Text
+        ctx.fillStyle = isDraggingThis ? '#ffffff' : badge.textColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(badge.text, badge.cx, badge.cy + 0.5);
+        ctx.restore();
+      }
 
       function isBadgeVisible(b) {
+        if (!state.showLabels) return false;
         if (!b.visible) return false;
         if (b.pipeProp && !state[b.pipeProp]) return false;
         if (state.focusZone !== 'all' && state.focusZone !== b.zoneKey) return false;
@@ -1001,23 +1510,24 @@
         badge.x0 = badge.cx - badge.boxW / 2;
         badge.y0 = badge.cy - badge.boxH / 2;
 
-        // Leader line to nozzle / indicator target
+        // Leader line to nozzle / indicator target (clean dotted leader line)
         ctx.beginPath();
         ctx.moveTo(badge.cx, badge.cy);
         ctx.lineTo(badge.targetX, badge.targetY);
         ctx.strokeStyle = badge.borderColor;
         ctx.lineWidth = isDraggingThis ? 2.2 : 1.5;
-        if (isDraggingThis) {
-          ctx.setLineDash([4, 3]);
-        }
+        ctx.setLineDash([4, 3]);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Target dot
+        // Target dot (point at pipe nozzle/discharge)
         ctx.beginPath();
-        ctx.arc(badge.targetX, badge.targetY, 3.5, 0, Math.PI * 2);
+        ctx.arc(badge.targetX, badge.targetY, 4, 0, Math.PI * 2);
         ctx.fillStyle = badge.borderColor;
         ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
 
         // Pill background
         ctx.beginPath();
@@ -1043,6 +1553,16 @@
 
       // Draw subtle callout badges on canvas when enabled
       function drawFloatingBadges(t) {
+        // A. Thermal Stratification Badges
+        for (let i = 0; i < thermalBadges.length; i++) {
+          const tb = thermalBadges[i];
+          if (isThermalBadgeVisible(tb)) {
+            const isDragging = (draggedBadge === tb);
+            drawThermalPillBadge(tb, isDragging);
+          }
+        }
+
+        // B. Pipe Flow Callout Badges
         for (let i = 0; i < badges.length; i++) {
           const b = badges[i];
           if (isBadgeVisible(b)) {
@@ -1053,13 +1573,15 @@
       }
 
       // Main Render Loop
-      let lastTs = performance.now();
+      let lastTs = 0;
+      let animFrameId = null;
       function render(now) {
-        const dt = Math.min((now - lastTs) / 1000, 0.05);
+        if (!now) now = performance.now();
+        const dt = Math.min((now - (lastTs || now)) / 1000, 0.05);
         lastTs = now;
 
         if (state.playing) {
-          state.time += dt;
+          state.time += (dt > 0 ? dt : 0.016);
           if (state.impulseAmp > 0.05) {
             state.impulseAmp *= Math.exp(-dt * 2.2);
           } else {
@@ -1068,6 +1590,19 @@
         }
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Camera smooth zoom & pan interpolation
+        const lerpFactor = 0.14;
+        camera.currentScale += (camera.targetScale - camera.currentScale) * lerpFactor;
+        camera.currentX += (camera.targetX - camera.currentX) * lerpFactor;
+        camera.currentY += (camera.targetY - camera.currentY) * lerpFactor;
+        if (Math.abs(camera.targetScale - camera.currentScale) < 0.001) camera.currentScale = camera.targetScale;
+        if (Math.abs(camera.targetX - camera.currentX) < 0.05) camera.currentX = camera.targetX;
+        if (Math.abs(camera.targetY - camera.currentY) < 0.05) camera.currentY = camera.targetY;
+
+        ctx.save();
+        ctx.translate(camera.currentX, camera.currentY);
+        ctx.scale(camera.currentScale, camera.currentScale);
 
         // Layer 1: 100% Intact Original Uploaded Image
         if (baseImg.complete && baseImg.naturalWidth > 0) {
@@ -1103,17 +1638,156 @@
             drawPipeFlowStream(blueLowerSampler, 7, '#bae6fd', '#0ea5e9', t, 1.1, false, 'blue');
           }
           if (state.showVortex) {
-            drawPipeFlowStream(topSampler, 6, '#e0f2fe', '#38bdf8', t, 0.85, false, 'all');
+            // Luminous Hot Water Fluid Core through Top White Supply Pipe (상부 흰색 배관 고온 급탕 토출)
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(499, 163);
+            ctx.lineTo(499, 35);
+            ctx.lineTo(488, 24);
+            ctx.lineTo(465, 0);
+            ctx.lineWidth = 5.5;
+            ctx.strokeStyle = 'rgba(249, 115, 22, 0.58)';
+            ctx.stroke();
+            ctx.lineWidth = 2.2;
+            ctx.strokeStyle = 'rgba(255, 247, 237, 0.95)';
+            ctx.setLineDash([8, 8]);
+            ctx.lineDashOffset = -t * 48 * state.flowSpeed;
+            ctx.stroke();
+            ctx.restore();
+
+            // High-temperature hot fluid droplets flowing out to building headers (12 fast chevrons)
+            drawPipeFlowStream(topSampler, 12, '#ffedd5', '#f97316', t, 1.35, false, 'all');
           }
 
           // Layer 6: Floating Callout Badges
           drawFloatingBadges(t);
         }
 
+        ctx.restore();
+
         requestAnimationFrame(render);
       }
 
       // Wire UI Controls
+      // Wire Zoom Controls (X button, toolbar toggle, ESC key)
+      const btnCloseZoom = document.getElementById('btnCloseZoom');
+      if (btnCloseZoom) {
+        btnCloseZoom.addEventListener('click', function (e) {
+          e.stopPropagation();
+          setZoom(false);
+        });
+      }
+
+      const btnToggleZoom = document.getElementById('btnToggleZoom');
+      if (btnToggleZoom) {
+        btnToggleZoom.addEventListener('click', function () {
+          setZoom(!state.isZoomed);
+        });
+      }
+
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && state.isZoomed) {
+          setZoom(false);
+        }
+      });
+
+      // Wire Thermal Stratification Badges
+      const thermalBadgeElements = {
+        th1: document.getElementById('chkThermal1'),
+        th2: document.getElementById('chkThermal2'),
+        th3: document.getElementById('chkThermal3'),
+        th4: document.getElementById('chkThermal4'),
+        th5: document.getElementById('chkThermal5')
+      };
+
+      function updateEngScaleButton() {
+        const btn = document.getElementById('btnToggleEngScale');
+        if (!btn) return;
+        btn.innerHTML = state.showEngineeringScale
+          ? '<span>🌡️</span> 열역학 층별 계측 눈금 (ON)'
+          : '<span>🌡️</span> 열역학 층별 계측 눈금 (OFF)';
+        if (state.showEngineeringScale) {
+          btn.classList.remove('bg-slate-800', 'text-slate-300');
+          btn.classList.add('bg-emerald-600/90', 'text-white');
+        } else {
+          btn.classList.remove('bg-emerald-600/90', 'text-white');
+          btn.classList.add('bg-slate-800', 'text-slate-300');
+        }
+      }
+
+      function syncThermalBadgeCheckbox(id, isChecked) {
+        const tb = thermalBadges.find(function (x) { return x.id === id; });
+        if (tb) tb.visible = isChecked;
+        if (thermalBadgeElements[id]) {
+          thermalBadgeElements[id].checked = isChecked;
+        }
+        if (isChecked) {
+          state.showThermalLabels = true;
+          state.showEngineeringScale = true;
+        } else {
+          const anyVisible = thermalBadges.some(function (x) { return x.visible; });
+          state.showThermalLabels = anyVisible;
+          state.showEngineeringScale = anyVisible;
+        }
+        updateEngScaleButton();
+      }
+
+      Object.keys(thermalBadgeElements).forEach(function (id) {
+        const el = thermalBadgeElements[id];
+        if (el) {
+          el.addEventListener('change', function () {
+            syncThermalBadgeCheckbox(id, el.checked);
+          });
+        }
+      });
+
+      const btnShowAllThermalLabels = document.getElementById('btnShowAllThermalLabels');
+      if (btnShowAllThermalLabels) {
+        btnShowAllThermalLabels.addEventListener('click', function () {
+          state.showThermalLabels = true;
+          state.showEngineeringScale = true;
+          thermalBadges.forEach(function (tb) {
+            syncThermalBadgeCheckbox(tb.id, true);
+          });
+          updateEngScaleButton();
+        });
+      }
+
+      const btnHideAllThermalLabels = document.getElementById('btnHideAllThermalLabels');
+      if (btnHideAllThermalLabels) {
+        btnHideAllThermalLabels.addEventListener('click', function () {
+          state.showThermalLabels = false;
+          state.showEngineeringScale = false;
+          thermalBadges.forEach(function (tb) {
+            syncThermalBadgeCheckbox(tb.id, false);
+          });
+          updateEngScaleButton();
+        });
+      }
+
+      const btnResetThermalLabelPos = document.getElementById('btnResetThermalLabelPos');
+      if (btnResetThermalLabelPos) {
+        btnResetThermalLabelPos.addEventListener('click', function () {
+          thermalBadges.forEach(function (tb) {
+            tb.cx = tb.defaultX;
+            tb.cy = tb.defaultY;
+          });
+        });
+      }
+
+      const btnToggleEngScale = document.getElementById('btnToggleEngScale');
+      if (btnToggleEngScale) {
+        btnToggleEngScale.addEventListener('click', function () {
+          const next = !state.showEngineeringScale;
+          state.showEngineeringScale = next;
+          state.showThermalLabels = next;
+          thermalBadges.forEach(function (tb) {
+            syncThermalBadgeCheckbox(tb.id, next);
+          });
+          updateEngScaleButton();
+        });
+      }
+
       const btnPlayPause = document.getElementById('btnPlayPause');
       const iconPlayPause = document.getElementById('iconPlayPause');
       const txtPlayPause = document.getElementById('txtPlayPause');
@@ -1149,7 +1823,7 @@
         state.playing = true;
         state.showOriginalOnly = false;
         state.focusZone = 'all';
-        state.waterLevelPct = 88;
+        state.waterLevelPct = 100;
         state.waveIntensity = 1.2;
         state.flowSpeed = 1.0;
         state.fluidOpacity = 0.58;
@@ -1159,9 +1833,14 @@
         state.showCloud = true;
         state.showBlue = true;
         state.showVortex = true;
+        state.showLabels = false;
+        state.showThermalLabels = false;
+        state.showEngineeringScale = false;
+        setZoom(false);
 
-        document.getElementById('sliderLevel').value = 88;
-        document.getElementById('valLevel').textContent = '88%';
+        // Sliders DOM
+        document.getElementById('sliderLevel').value = 100;
+        document.getElementById('valLevel').textContent = '100% (완전 충수)';
         document.getElementById('sliderWave').value = 12;
         document.getElementById('valWave').textContent = '1.2x';
         document.getElementById('sliderSpeed').value = 10;
@@ -1169,17 +1848,25 @@
         document.getElementById('sliderOpacity').value = 58;
         document.getElementById('valOpacity').textContent = '58%';
 
+        // Checkboxes DOM
         document.getElementById('chkYellow').checked = true;
         document.getElementById('chkRed').checked = true;
         document.getElementById('chkCloud').checked = true;
         document.getElementById('chkBlue').checked = true;
         document.getElementById('chkVortex').checked = true;
 
-        // Reset badges to initial coordinates and default selected state (기본값: 전체 선택)
+        // Reset badges
         badges.forEach(function (b) {
           b.cx = b.defaultX;
           b.cy = b.defaultY;
-          syncBadgeCheckbox(b.id, true);
+          syncBadgeCheckbox(b.id, false);
+        });
+
+        // Reset thermal badges
+        thermalBadges.forEach(function (tb) {
+          tb.cx = tb.defaultX;
+          tb.cy = tb.defaultY;
+          syncThermalBadgeCheckbox(tb.id, false);
         });
 
         btnCompareOrig.textContent = '👁️ 원본 이미지 단독 보기 (OFF)';
@@ -1188,12 +1875,14 @@
         iconPlayPause.textContent = '⏸';
         txtPlayPause.textContent = '일시정지';
         updateFocusButtons('all');
+        updateLabelToggleButton();
+        updateEngScaleButton();
       });
 
       // Sliders
       document.getElementById('sliderLevel').addEventListener('input', function (e) {
         state.waterLevelPct = Number(e.target.value);
-        document.getElementById('valLevel').textContent = state.waterLevelPct + '%';
+        document.getElementById('valLevel').textContent = state.waterLevelPct === 100 ? '100% (완전 충수)' : state.waterLevelPct + '%';
       });
       document.getElementById('sliderWave').addEventListener('input', function (e) {
         state.waveIntensity = Number(e.target.value) / 10;
@@ -1234,10 +1923,31 @@
         blueGauge: document.getElementById('chkBadgeBlueGauge')
       };
 
+      function updateLabelToggleButton() {
+        const btn = document.getElementById('btnToggleAllLabels');
+        if (!btn) return;
+        btn.innerHTML = state.showLabels
+          ? '<span>🏷️</span> 인디케이터 라벨 (ON)'
+          : '<span>🏷️</span> 인디케이터 라벨 (OFF)';
+        if (state.showLabels) {
+          btn.classList.remove('bg-slate-800', 'text-indigo-300');
+          btn.classList.add('bg-indigo-600', 'text-white');
+        } else {
+          btn.classList.remove('bg-indigo-600', 'text-white');
+          btn.classList.add('bg-slate-800', 'text-indigo-300');
+        }
+      }
+
       function syncBadgeCheckbox(id, isChecked) {
         const b = badges.find(function (x) { return x.id === id; });
         if (b) b.visible = isChecked;
         if (badgeElements[id]) badgeElements[id].checked = isChecked;
+        if (isChecked) {
+          state.showLabels = true;
+        } else {
+          state.showLabels = badges.some(function (x) { return x.visible; });
+        }
+        updateLabelToggleButton();
       }
 
       Object.keys(badgeElements).forEach(function (id) {
@@ -1253,18 +1963,22 @@
       const btnShowAllLabels = document.getElementById('btnShowAllLabels');
       if (btnShowAllLabels) {
         btnShowAllLabels.addEventListener('click', function () {
+          state.showLabels = true;
           badges.forEach(function (b) {
             syncBadgeCheckbox(b.id, true);
           });
+          updateLabelToggleButton();
         });
       }
 
       const btnHideAllLabels = document.getElementById('btnHideAllLabels');
       if (btnHideAllLabels) {
         btnHideAllLabels.addEventListener('click', function () {
+          state.showLabels = false;
           badges.forEach(function (b) {
             syncBadgeCheckbox(b.id, false);
           });
+          updateLabelToggleButton();
         });
       }
 
@@ -1275,6 +1989,47 @@
             b.cx = b.defaultX;
             b.cy = b.defaultY;
           });
+        });
+      }
+
+      // Toolbar btnToggleAllLabels button listener
+      const btnToggleAllLabels = document.getElementById('btnToggleAllLabels');
+      if (btnToggleAllLabels) {
+        btnToggleAllLabels.addEventListener('click', function () {
+          const allVisible = badges.every(function (b) { return b.visible; });
+          const next = !allVisible;
+          state.showLabels = next;
+          badges.forEach(function (b) {
+            syncBadgeCheckbox(b.id, next);
+          });
+          updateLabelToggleButton();
+        });
+      }
+
+      // Sidebar header click listeners
+      const hdrToggleLabels = document.getElementById('hdrToggleLabels');
+      if (hdrToggleLabels) {
+        hdrToggleLabels.addEventListener('click', function () {
+          const allVisible = badges.every(function (b) { return b.visible; });
+          const next = !allVisible;
+          state.showLabels = next;
+          badges.forEach(function (b) {
+            syncBadgeCheckbox(b.id, next);
+          });
+          updateLabelToggleButton();
+        });
+      }
+
+      const hdrToggleThermal = document.getElementById('hdrToggleThermal');
+      if (hdrToggleThermal) {
+        hdrToggleThermal.addEventListener('click', function () {
+          const next = !state.showThermalLabels;
+          state.showThermalLabels = next;
+          state.showEngineeringScale = next;
+          thermalBadges.forEach(function (tb) {
+            syncThermalBadgeCheckbox(tb.id, next);
+          });
+          updateEngScaleButton();
         });
       }
 
@@ -1298,14 +2053,49 @@
           clientX = e.clientX;
           clientY = e.clientY;
         }
+        const rawX = (clientX - rect.left) * scaleX;
+        const rawY = (clientY - rect.top) * scaleY;
+
+        // Transform raw screen coordinates to world coordinates according to camera
+        const worldX = (rawX - camera.currentX) / camera.currentScale;
+        const worldY = (rawY - camera.currentY) / camera.currentScale;
         return {
-          x: (clientX - rect.left) * scaleX,
-          y: (clientY - rect.top) * scaleY
+          x: worldX,
+          y: worldY,
+          rawX: rawX,
+          rawY: rawY
         };
+      };
+
+      function isInsideTank(x, y) {
+        if (x < 410 || x > 620 || y < 155 || y > 555) return false;
+        let inside = false;
+        for (let i = 0, j = TANK_POLY.length - 1; i < TANK_POLY.length; j = i++) {
+          const xi = TANK_POLY[i].x, yi = TANK_POLY[i].y;
+          const xj = TANK_POLY[j].x, yj = TANK_POLY[j].y;
+          const intersect = ((yi > y) !== (yj > y)) &&
+              (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+          if (intersect) inside = !inside;
+        }
+        return inside || (x >= 416 && x <= 615 && y >= 165 && y <= 545);
       }
 
-      function hitTestBadge(pos) {
+      function hitTestAnyBadge(pos) {
         const pad = 6;
+        // 1. Check thermal badges first
+        for (let i = thermalBadges.length - 1; i >= 0; i--) {
+          const tb = thermalBadges[i];
+          if (!isThermalBadgeVisible(tb)) continue;
+          if (
+            pos.x >= tb.x0 - pad &&
+            pos.x <= tb.x0 + tb.boxW + pad &&
+            pos.y >= tb.y0 - pad &&
+            pos.y <= tb.y0 + tb.boxH + pad
+          ) {
+            return tb;
+          }
+        }
+        // 2. Check flow badges
         for (let i = badges.length - 1; i >= 0; i--) {
           const b = badges[i];
           if (!isBadgeVisible(b)) continue;
@@ -1321,9 +2111,58 @@
         return null;
       }
 
+      function setZoom(isZoom) {
+        state.isZoomed = isZoom;
+        const zoomControl = document.getElementById('zoomOverlayControl');
+        const btnToggleZoom = document.getElementById('btnToggleZoom');
+
+        if (isZoom) {
+          const focusX = 490;
+          const focusY = 354;
+          camera.targetScale = 1.62;
+          camera.targetX = canvas.width / 2 - focusX * camera.targetScale;
+          camera.targetY = canvas.height / 2 - focusY * camera.targetScale;
+
+          if (zoomControl) zoomControl.classList.remove('hidden');
+          if (btnToggleZoom) {
+            btnToggleZoom.innerHTML = '<span>✕</span> 원래 화면으로 복귀';
+            btnToggleZoom.classList.remove('bg-slate-800', 'text-amber-300');
+            btnToggleZoom.classList.add('bg-rose-600', 'text-white');
+          }
+        } else {
+          camera.targetScale = 1.0;
+          camera.targetX = 0;
+          camera.targetY = 0;
+
+          if (zoomControl) zoomControl.classList.add('hidden');
+          if (btnToggleZoom) {
+            btnToggleZoom.innerHTML = '<span>🔍</span> 저탕조 내부 확대 (클릭)';
+            btnToggleZoom.classList.remove('bg-rose-600', 'text-white');
+            btnToggleZoom.classList.add('bg-slate-800', 'text-amber-300');
+          }
+        }
+      }
+      window.setZoom = setZoom;
+function updateCursor(pos) {
+        if (draggedBadge) {
+          canvas.style.cursor = 'grabbing';
+          return;
+        }
+        const hit = hitTestAnyBadge(pos);
+        if (hit) {
+          canvas.style.cursor = 'grab';
+          return;
+        }
+        if (!state.isZoomed && isInsideTank(pos.x, pos.y)) {
+          canvas.style.cursor = 'zoom-in';
+          return;
+        }
+        canvas.style.cursor = 'default';
+      }
+
       function onPointerDown(e) {
         const pos = getCanvasCoords(e);
-        const hit = hitTestBadge(pos);
+        const hit = hitTestAnyBadge(pos);
         if (hit) {
           draggedBadge = hit;
           dragOffset.x = pos.x - hit.cx;
@@ -1347,8 +2186,7 @@
           canvas.style.cursor = 'grabbing';
           e.preventDefault();
         } else {
-          const hit = hitTestBadge(pos);
-          canvas.style.cursor = hit ? 'grab' : 'default';
+          updateCursor(pos);
         }
       }
 
@@ -1356,8 +2194,7 @@
         if (draggedBadge) {
           draggedBadge = null;
           const pos = getCanvasCoords(e);
-          const hit = hitTestBadge(pos);
-          canvas.style.cursor = hit ? 'grab' : 'default';
+          updateCursor(pos);
         }
       }
 
@@ -1370,7 +2207,27 @@
       window.addEventListener('touchend', onPointerUp);
       window.addEventListener('touchcancel', onPointerUp);
 
-      // Focus Zone Buttons
+      // Canvas click: Zoom into tank when clicked, or trigger gentle wave ripple
+      canvas.addEventListener('click', function (e) {
+        if (dragDistance > 3) {
+          dragDistance = 0;
+          return;
+        }
+        const pos = getCanvasCoords(e);
+        if (hitTestAnyBadge(pos)) {
+          return;
+        }
+
+        if (isInsideTank(pos.x, pos.y)) {
+          if (!state.isZoomed) {
+            setZoom(true);
+          }
+        } else {
+          state.impulseAmp = Math.min(state.impulseAmp + 8, 16);
+        }
+      });
+
+      // Interactive Focus Zone Buttons (Toolbar Menu Buttons)
       const focusBtns = document.querySelectorAll('.focus-btn');
       function updateFocusButtons(selected) {
         focusBtns.forEach(function (btn) {
@@ -1390,23 +2247,44 @@
           const zone = btn.getAttribute('data-focus');
           state.focusZone = zone;
           updateFocusButtons(zone);
+
+          // Clicking a specific pipe's menu button automatically displays its indicator label!
+          if (zone === 'yellow') {
+            syncBadgeCheckbox('yellow', true);
+          } else if (zone === 'red') {
+            syncBadgeCheckbox('red', true);
+          } else if (zone === 'cloud') {
+            syncBadgeCheckbox('cloud', true);
+          } else if (zone === 'blue') {
+            syncBadgeCheckbox('blueInflow', true);
+          }
         });
       });
 
-      // Click on canvas to trigger a gentle surface ripple (only when not dragging or clicking a badge)
-      canvas.addEventListener('click', function (e) {
-        if (dragDistance > 3) {
-          dragDistance = 0;
-          return;
+      // Immediate Kickoff of Simulation Animation (0ms delay startup)
+      let animStarted = false;
+      function startLoop() {
+        if (!animStarted) {
+          animStarted = true;
+          lastTs = performance.now();
+          render(lastTs);
         }
-        const pos = getCanvasCoords(e);
-        if (hitTestBadge(pos)) {
-          return;
-        }
-        state.impulseAmp = Math.min(state.impulseAmp + 8, 16);
-      });
+      }
 
-      requestAnimationFrame(render);
+      // 1. Synchronously trigger frame 0 immediately
+      startLoop();
+
+      // 2. Decoder promises and load event handlers for immediate execution on all browsers / GitHub Pages
+      if (baseImg.decode) {
+        baseImg.decode().then(startLoop).catch(startLoop);
+      }
+      if (fgImg.decode) {
+        fgImg.decode().then(startLoop).catch(startLoop);
+      }
+      baseImg.addEventListener('load', startLoop);
+      fgImg.addEventListener('load', startLoop);
+      window.addEventListener('DOMContentLoaded', startLoop);
+      window.addEventListener('load', startLoop);
     })();
   </script>
 </body>
