@@ -8082,14 +8082,17 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         }
 
         #year-view {
-            transform: scale(1) translateZ(0);
+            display: flex;
             opacity: 1;
+            transform: scale(1) translateZ(0);
+            pointer-events: auto;
         }
 
         #year-view.hidden {
-            transform: scale(0.1) translateZ(-500px);
-            opacity: 0;
-            pointer-events: none;
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
         }
 
         #year-grid {
@@ -8136,15 +8139,18 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
         #month-view {
             gap: 12px;
-            transform: scale(2) translateZ(500px);
-            opacity: 0;
-            pointer-events: none;
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
         }
 
         #month-view.visible {
-            transform: scale(1) translateZ(0);
-            opacity: 1;
-            pointer-events: auto;
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            transform: scale(1) translateZ(0) !important;
+            pointer-events: auto !important;
         }
 
         #month-view-actions {
@@ -8153,7 +8159,28 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             gap: 12px;
             width: 100%;
             margin-bottom: 4px;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: var(--bg-color);
+            padding: 4px 0;
             animation: slideInCascade 0.5s 0.1s ease-out backwards;
+        }
+
+        body.dark-mode #month-view-actions {
+            background: var(--bg-color);
+        }
+
+        .month-card,
+        #year-grid,
+        #back-to-year-view-btn,
+        #go-to-today-btn,
+        #goToTodayBtnYearView,
+        #year-navigator button,
+        #month-view-header button,
+        .control-btn {
+            touch-action: manipulation !important;
+            -webkit-tap-highlight-color: transparent;
         }
 
         #month-view-actions button {
@@ -15479,12 +15506,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 const card = document.createElement('div');
                 card.className = 'month-card';
                 card.textContent = `${i}월`;
+                card.dataset.month = String(i);
                 const key = `${year}-${i}`;
                 const statusRow = getVisibleMeetingStatusRow(key);
                 const isManuallySkipped = skippedDateSet.has(key);
                 if (isManuallySkipped) {
                     card.classList.add('not-written');
-                    if (statusRow) card.dataset.month = i;
                     card.dataset.tooltip = '수동으로 미작성 처리됨';
                 } else {
                     const isFuture = year > todayYear || (year === todayYear && i > todayMonth);
@@ -15496,7 +15523,6 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                         if (isLegacy) tooltip = '해당 날짜는 지원되지 않습니다. · 공식 집계 제외';
                         card.dataset.tooltip = tooltip;
                     } else {
-                        card.dataset.month = i;
                         if (year < todayYear || (year === todayYear && i < todayMonth)) { card.classList.add('past'); }
                         else if (year === todayYear && i === todayMonth) { card.classList.add('current'); }
                     }
@@ -15515,6 +15541,17 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             document.getElementById('currentYearSpan').textContent = `${year}년`;
             document.getElementById('goToTodayBtnYearView').style.display = 'none';
             document.getElementById('month-view-title').textContent = `${year}년 ${month}월 안건`;
+
+            const yearView = document.getElementById('year-view');
+            const monthView = document.getElementById('month-view');
+            if (yearView) {
+                yearView.classList.add('hidden');
+                yearView.scrollTop = 0;
+            }
+            if (monthView) {
+                monthView.classList.add('visible');
+                monthView.scrollTop = 0;
+            }
             const monthlyCard = document.getElementById('monthly-report-card');
             const monthlyMemoWrapper = document.getElementById('monthly-memo-wrapper');
             const weeklyContainer = document.getElementById('weekly-cards-container');
@@ -15661,8 +15698,6 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 weeklyContainer.appendChild(container);
             });
             renderMeetingProgressInsights(year, month);
-            document.getElementById('year-view').classList.add('hidden');
-            document.getElementById('month-view').classList.add('visible');
 
             // 🎯 오늘이 속한 달인 경우 현재 주차 카드로 자동 포커스 & 스크롤 활성화 (모바일 세로 및 데스크탑 공통)
             if (year === todayYear && month === todayMonth) {
@@ -15953,9 +15988,18 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         }
 
         function showYearView(skippedDates) {
-            document.getElementById('goToTodayBtnYearView').style.display = 'flex';
-            document.getElementById('year-view').classList.remove('hidden');
-            document.getElementById('month-view').classList.remove('visible');
+            const goToTodayBtn = document.getElementById('goToTodayBtnYearView');
+            if (goToTodayBtn) goToTodayBtn.style.display = 'flex';
+            const yearView = document.getElementById('year-view');
+            const monthView = document.getElementById('month-view');
+            if (monthView) {
+                monthView.classList.remove('visible');
+                monthView.scrollTop = 0;
+            }
+            if (yearView) {
+                yearView.classList.remove('hidden');
+                yearView.scrollTop = 0;
+            }
             currentMonth = null;
             renderYearView(currentYear, skippedDates);
         }
@@ -17362,9 +17406,13 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             updateAnalyticsTooltip();
             const now = new Date();
             const isoNow = getISOWeekInfo(now);
-            currentYear = isoNow.isoYear;
-            currentMonth = isoNow.isoMonth;
-            showMonthView(currentMonth, currentYear, tempSkippedDates);
+            if (currentMonth === null) {
+                renderYearView(currentYear || isoNow.isoYear, tempSkippedDates);
+            } else {
+                currentYear = currentYear || isoNow.isoYear;
+                currentMonth = currentMonth || isoNow.isoMonth;
+                showMonthView(currentMonth, currentYear, tempSkippedDates);
+            }
             checkForUnsavedChanges();
         }
 
