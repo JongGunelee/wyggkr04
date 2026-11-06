@@ -263,6 +263,79 @@
     #btnPlayPause { background: #0ea5e9; color: #020617; border-color: transparent; }
     #btnWaveImpulse { background: #4f46e5; color: #ffffff; }
     aside > div { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+
+    /* =========================================================================
+       Standalone Offline Fallback & Usability Enhancement Styles
+       Tailwind CDN 비활성화 시에도 100% 레이아웃 및 직관적 조작성 유지
+       ========================================================================= */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important;
+    }
+    .hud-tooltip {
+      position: absolute;
+      pointer-events: none;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(56, 189, 248, 0.6);
+      border-radius: 8px;
+      padding: 7px 11px;
+      font-size: 11px;
+      color: #f8fafc;
+      box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.85), 0 0 15px rgba(56, 189, 248, 0.25);
+      backdrop-filter: blur(8px);
+      transition: opacity 0.12s ease, transform 0.08s ease;
+      white-space: nowrap;
+      display: none;
+      line-height: 1.4;
+    }
+    .hud-tooltip.active {
+      display: block;
+    }
+    .kbd-shortcut {
+      display: inline-block;
+      padding: 1px 5px;
+      font-size: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 700;
+      color: #94a3b8;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.4);
+    }
+    .toast-notification {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid #38bdf8;
+      border-radius: 10px;
+      padding: 10px 20px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.85);
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .toast-notification.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    .preset-btn {
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .preset-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.15);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
@@ -442,6 +515,21 @@
           </div>
         </div>
 
+        <span class="hdr-sep" style="display:inline-block; width:1px; height:16px; background:#334155; margin:0 3px; vertical-align:middle; flex-shrink:0;"></span>
+
+        <!-- Group 5: 고화질 스냅샷 내보내기 & 단축키 안내 (사용자 편의 극대화) -->
+        <button type="button" id="btnSnapshot" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-sky-600 text-sky-300 hover:text-white border border-sky-500/40 shadow-sm transition flex items-center gap-1 cursor-pointer" style="display:inline-flex; align-items:center; white-space:nowrap;" title="현재 시뮬레이션 진단 화면을 고해상도 PNG 이미지로 저장합니다 (단축키: S)">
+          <span>📷</span>
+          <span>스냅샷</span>
+          <span class="kbd-shortcut hidden sm:inline-block">S</span>
+        </button>
+
+        <button type="button" id="btnShortcutsHelp" class="px-2 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1 cursor-pointer" style="display:inline-flex; align-items:center; white-space:nowrap;" title="키보드 단축키 및 엔지니어링 조작 안내를 확인합니다 (단축키: ?)">
+          <span>⌨️</span>
+          <span class="hidden md:inline">단축키</span>
+          <span class="kbd-shortcut">?</span>
+        </button>
+
       </div>
 
     </div>
@@ -486,6 +574,27 @@
           </button>
           <button type="button" id="btnToggleZoom" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition flex items-center gap-1 shadow-sm cursor-pointer" title="저탕조 내부를 정밀 확대하거나 원래 화면으로 복귀합니다">
             <span>🔍</span> 저탕조 내부 확대
+          </button>
+        </div>
+      </div>
+
+      <!-- ⚡ 원클릭 공학 운전 프리셋 (Quick Operating Presets) -->
+      <div class="w-full mb-2 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 shadow-sm text-xs toolbar-max-box split-mode maximized">
+        <div class="flex items-center gap-1.5 text-slate-400 font-semibold shrink-0">
+          <span class="text-amber-400">⚡</span> <span>원클릭 운전 프리셋:</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button type="button" id="presetStandard" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 font-semibold flex items-center gap-1 shadow-sm" title="수위 100%, 정상 유속, 표준 설계 기준 정상 운전">
+            <span>✅ 표준 급탕 (100% 충수)</span>
+          </button>
+          <button type="button" id="presetPeak" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/40 font-semibold flex items-center gap-1 shadow-sm" title="아침 샤워 피크 타임: 수위 96%, 급수 가압 유입(1.8x), 파동 1.5x">
+            <span>🚿 피크 급탕 집중</span>
+          </button>
+          <button type="button" id="presetNight" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/40 font-semibold flex items-center gap-1 shadow-sm" title="심야 재가열 운전: 보일러 가열수 집중 순환, 환탕 미세 유동">
+            <span>🔥 심야 가열 재생 모드</span>
+          </button>
+          <button type="button" id="presetDefect" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-rose-300 border border-rose-500/40 font-semibold flex items-center gap-1 shadow-sm" title="결함 시나리오 즉시 진단: 매립관 누락 + 진단 라벨 전체 ON + 저탕조 정밀 확대">
+            <span>⚠️ 결함 진단 모드</span>
           </button>
         </div>
       </div>
@@ -538,6 +647,13 @@
             <span class="text-sm font-black">✕</span>
             <span>원래 화면으로 복귀</span>
           </button>
+        </div>
+
+        <!-- 실시간 열유체 물성 인스펙터 HUD 툴팁 (마우스 위치의 국소 수온·압력·배관 실시간 검측) -->
+        <div id="flowHudTooltip" class="hud-tooltip">
+          <div id="hudTitle" class="font-bold text-sky-300 flex items-center gap-1"></div>
+          <div id="hudDesc" class="text-slate-300 text-[10px] mt-0.5"></div>
+          <div id="hudMetrics" class="text-[10px] font-mono text-emerald-400 mt-0.5"></div>
         </div>
       </div>
 
@@ -1250,6 +1366,72 @@
       </div>
     </div>
   </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div id="shortcutModal" class="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4 backdrop-blur-sm hidden" role="dialog" aria-modal="true" aria-labelledby="shortcutModalTitle">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scaleIn">
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+        <div class="flex items-center gap-2.5 text-white font-semibold text-sm" id="shortcutModalTitle">
+          <span class="text-cyan-400 text-base">⌨️</span>
+          <span>시뮬레이터 전역 단축키 가이드</span>
+        </div>
+        <button id="btnCloseShortcutModal" class="text-slate-400 hover:text-white text-lg p-1 hover:bg-slate-800 rounded-lg transition-colors" title="닫기 (Esc)">✕</button>
+      </div>
+      <div class="p-5 space-y-2.5 max-h-[70vh] overflow-y-auto text-xs">
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-800/60">
+          <span class="text-slate-300 font-medium">재생 / 일시정지</span>
+          <span class="kbd-shortcut">Space</span>
+        </div>
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-800/60">
+          <span class="text-slate-300 font-medium">시나리오 즉시 전환 (정상 / 열성층 / 배관부재)</span>
+          <div class="flex gap-1"><span class="kbd-shortcut">1</span><span class="kbd-shortcut">2</span><span class="kbd-shortcut">3</span></div>
+        </div>
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-800/60">
+          <span class="text-slate-300 font-medium">카메라 뷰 모드 순환 전환</span>
+          <span class="kbd-shortcut">V</span>
+        </div>
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-800/60">
+          <span class="text-slate-300 font-medium">고해상도 진단 스냅샷 내보내기 (PNG)</span>
+          <span class="kbd-shortcut">S</span>
+        </div>
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-800/60">
+          <span class="text-slate-300 font-medium">정량 비교 매트릭스 모달 열기/닫기</span>
+          <span class="kbd-shortcut">M</span>
+        </div>
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-800/60">
+          <span class="text-slate-300 font-medium">저탕조 정밀 확대 (Zoom In / Out)</span>
+          <span class="kbd-shortcut">Z</span>
+        </div>
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-800/60">
+          <span class="text-slate-300 font-medium">우측 제어 패널 접기 / 펼치기</span>
+          <span class="kbd-shortcut">P</span>
+        </div>
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-800/60">
+          <span class="text-slate-300 font-medium">시뮬레이션 상태 및 라벨 위치 리셋</span>
+          <span class="kbd-shortcut">R</span>
+        </div>
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-800/60">
+          <span class="text-slate-300 font-medium">단축키 안내 팝업 열기 / 닫기</span>
+          <span class="kbd-shortcut">?</span>
+        </div>
+        <div class="flex items-center justify-between py-1.5">
+          <span class="text-slate-300 font-medium">모달 닫기 / 줌 해제</span>
+          <span class="kbd-shortcut">Esc</span>
+        </div>
+      </div>
+      <div class="px-5 py-3 bg-slate-950/80 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+        <span>💡 마우스로 저탕조 내부를 호버하면 국소 열유체 물성 HUD가 표시됩니다.</span>
+        <button id="btnConfirmShortcuts" class="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-xs transition-colors">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastNotification" class="toast-notification flex items-center gap-2.5 px-4 py-2.5 bg-slate-900/95 border border-cyan-500/40 text-white text-xs rounded-xl shadow-2xl shadow-cyan-950/60 transform translate-y-10 opacity-0 transition-all duration-300 pointer-events-none z-50">
+    <span id="toastIcon" class="text-base text-cyan-400">ℹ️</span>
+    <span id="toastMessage" class="font-medium text-slate-200">알림 내용</span>
+  </div>
+
 
 
   <!-- Hidden source images (inlined as base64 during build) -->
@@ -4456,6 +4638,8 @@
           if (state.playing) {
             btnPlayPause.classList.remove('bg-emerald-600');
             btnPlayPause.classList.add('bg-amber-600');
+            lastTs = performance.now();
+            requestAnimationFrame(render);
           } else {
             btnPlayPause.classList.remove('bg-amber-600');
             btnPlayPause.classList.add('bg-emerald-600');
@@ -4515,7 +4699,7 @@
       if (sliderLevel) {
         sliderLevel.addEventListener('input', function () {
           state.waterLevelPct = parseFloat(sliderLevel.value);
-          if (valLevel) valLevel.textContent = state.waterLevelPct >= 99.5 ? '100% (완전 충수)' : state.waterLevelPct + '%';
+          if (valLevel) valLevel.textContent = state.waterLevelPct >= 99.5 ? '100% (완전 충수)' : state.waterLevelPct + '%'; requestSingleFrameRender();
         });
       }
 
@@ -4524,7 +4708,7 @@
       if (sliderWave) {
         sliderWave.addEventListener('input', function () {
           state.waveIntensity = parseFloat(sliderWave.value) / 10;
-          if (valWave) valWave.textContent = state.waveIntensity.toFixed(1) + 'x';
+          if (valWave) valWave.textContent = state.waveIntensity.toFixed(1) + 'x'; requestSingleFrameRender();
         });
       }
 
@@ -4533,7 +4717,7 @@
       if (sliderSpeed) {
         sliderSpeed.addEventListener('input', function () {
           state.flowSpeed = parseFloat(sliderSpeed.value) / 10;
-          if (valSpeed) valSpeed.textContent = state.flowSpeed.toFixed(1) + 'x';
+          if (valSpeed) valSpeed.textContent = state.flowSpeed.toFixed(1) + 'x'; requestSingleFrameRender();
         });
       }
 
@@ -4542,7 +4726,7 @@
       if (sliderOpacity) {
         sliderOpacity.addEventListener('input', function () {
           state.fluidOpacity = parseFloat(sliderOpacity.value) / 100;
-          if (valOpacity) valOpacity.textContent = Math.round(state.fluidOpacity * 100) + '%';
+          if (valOpacity) valOpacity.textContent = Math.round(state.fluidOpacity * 100) + '%'; requestSingleFrameRender();
         });
       }
 
@@ -4857,6 +5041,399 @@
       }
 
       // Animation Kickoff
+      
+      // Single-frame force rendering helper when paused
+      function requestSingleFrameRender() {
+        if (!state.playing) {
+          render(performance.now());
+        }
+      }
+
+      // Toast Notification Helper
+      let toastTimer = null;
+      function showToast(message, icon = 'ℹ️') {
+        const toastEl = document.getElementById('toastNotification');
+        const msgEl = document.getElementById('toastMessage');
+        const iconEl = document.getElementById('toastIcon');
+        if (!toastEl || !msgEl) return;
+        msgEl.textContent = message;
+        if (iconEl) iconEl.textContent = icon;
+        toastEl.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
+        toastEl.classList.add('opacity-100', 'translate-y-0');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toastEl.classList.remove('opacity-100', 'translate-y-0');
+          toastEl.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
+        }, 2500);
+      }
+
+      // 4 Operational Presets Handler
+      function applyOperatingPreset(presetKey) {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        const btnId = 'preset' + presetKey.charAt(0).toUpperCase() + presetKey.slice(1);
+        const targetBtn = document.getElementById(btnId);
+        if (targetBtn) targetBtn.classList.add('active');
+
+        const sLevel = document.getElementById('sliderLevel');
+        const vLevel = document.getElementById('valLevel');
+        const sWave = document.getElementById('sliderWave');
+        const vWave = document.getElementById('valWave');
+        const sSpeed = document.getElementById('sliderSpeed');
+        const vSpeed = document.getElementById('valSpeed');
+        const sOp = document.getElementById('sliderOpacity');
+        const vOp = document.getElementById('valOpacity');
+
+        if (presetKey === 'standard') {
+          state.waterLevelPct = 100;
+          state.waveIntensity = 1.2;
+          state.flowSpeed = 1.0;
+          state.fluidOpacity = 0.58;
+          state.focusZone = 'all';
+          updateFocusButtons('all');
+          setScenario('normal');
+          if (sLevel) sLevel.value = 100;
+          if (vLevel) vLevel.textContent = '100% (완전 충수)';
+          if (sWave) sWave.value = 12;
+          if (vWave) vWave.textContent = '1.2x';
+          if (sSpeed) sSpeed.value = 10;
+          if (vSpeed) vSpeed.textContent = '1.0x';
+          if (sOp) sOp.value = 58;
+          if (vOp) vOp.textContent = '58%';
+          showToast('운전 프리셋: [표준 정격 운전] (Ri=1.42 열성층 안정화)', '⚡');
+        } else if (presetKey === 'peak') {
+          state.waterLevelPct = 96;
+          state.waveIntensity = 1.8;
+          state.flowSpeed = 1.8;
+          state.fluidOpacity = 0.65;
+          setScenario('normal');
+          if (sLevel) sLevel.value = 96;
+          if (vLevel) vLevel.textContent = '96% (피크 출탕)';
+          if (sWave) sWave.value = 18;
+          if (vWave) vWave.textContent = '1.8x';
+          if (sSpeed) sSpeed.value = 18;
+          if (vSpeed) vSpeed.textContent = '1.8x';
+          if (sOp) sOp.value = 65;
+          if (vOp) vOp.textContent = '65%';
+          showToast('운전 프리셋: [피크 부하 동시급탕] (유속 1.8x, 파동 증가)', '🔥');
+        } else if (presetKey === 'night') {
+          state.waterLevelPct = 100;
+          state.waveIntensity = 0.6;
+          state.flowSpeed = 0.5;
+          state.fluidOpacity = 0.60;
+          state.focusZone = 'red';
+          updateFocusButtons('red');
+          setScenario('normal');
+          if (sLevel) sLevel.value = 100;
+          if (vLevel) vLevel.textContent = '100% (완전 충수)';
+          if (sWave) sWave.value = 6;
+          if (vWave) vWave.textContent = '0.6x';
+          if (sSpeed) sSpeed.value = 5;
+          if (vSpeed) vSpeed.textContent = '0.5x';
+          if (sOp) sOp.value = 60;
+          if (vOp) vOp.textContent = '60%';
+          showToast('운전 프리셋: [심야 보온 순환] (미소유량 열성층 보존)', '🌙');
+        } else if (presetKey === 'defect') {
+          state.waterLevelPct = 100;
+          state.waveIntensity = 1.5;
+          state.flowSpeed = 1.4;
+          state.fluidOpacity = 0.70;
+          setScenario('no_pipes');
+          setZoom(true);
+          if (!state.showLabels) {
+            state.showLabels = true;
+            updateLabelToggleButton();
+          }
+          if (!state.showScenarioBadges) {
+            state.showScenarioBadges = true;
+            updateScenarioBadgeToggleButton();
+          }
+          if (sLevel) sLevel.value = 100;
+          if (sWave) sWave.value = 15;
+          if (sSpeed) sSpeed.value = 14;
+          showToast('운전 프리셋: [배관부재 단락결함] (단락순환 경보 발생)', '⚠️');
+        }
+        requestSingleFrameRender();
+      }
+
+      // Snapshot Capture & Export Helper
+      function captureSimulationSnapshot() {
+        try {
+          const offCanvas = document.createElement('canvas');
+          let srcW = 0, srcH = 0;
+          const bannerH = 68;
+
+          if (state.viewPerspective === 'split') {
+            srcW = frontCanvas.width + canvas.width;
+            srcH = Math.max(frontCanvas.height, canvas.height);
+            offCanvas.width = srcW;
+            offCanvas.height = srcH + bannerH;
+            const oCtx = offCanvas.getContext('2d');
+            oCtx.fillStyle = '#090d16';
+            oCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+            oCtx.drawImage(frontCanvas, 0, 0);
+            oCtx.drawImage(canvas, frontCanvas.width, 0);
+          } else if (state.viewPerspective === 'front') {
+            srcW = frontCanvas.width;
+            srcH = frontCanvas.height;
+            offCanvas.width = srcW;
+            offCanvas.height = srcH + bannerH;
+            const oCtx = offCanvas.getContext('2d');
+            oCtx.fillStyle = '#090d16';
+            oCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+            oCtx.drawImage(frontCanvas, 0, 0);
+          } else {
+            srcW = canvas.width;
+            srcH = canvas.height;
+            offCanvas.width = srcW;
+            offCanvas.height = srcH + bannerH;
+            const oCtx = offCanvas.getContext('2d');
+            oCtx.fillStyle = '#090d16';
+            oCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+            oCtx.drawImage(canvas, 0, 0);
+          }
+
+          const oCtx = offCanvas.getContext('2d');
+          const bY = offCanvas.height - bannerH;
+
+          // Banner Background & Border
+          oCtx.fillStyle = 'rgba(15, 23, 42, 0.98)';
+          oCtx.fillRect(0, bY, offCanvas.width, bannerH);
+          oCtx.strokeStyle = 'rgba(6, 182, 212, 0.6)';
+          oCtx.lineWidth = 2;
+          oCtx.beginPath();
+          oCtx.moveTo(0, bY);
+          oCtx.lineTo(offCanvas.width, bY);
+          oCtx.stroke();
+
+          // Title & Status
+          oCtx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          oCtx.fillStyle = '#38bdf8';
+          oCtx.fillText('저탕조 열유체 및 배관 계통 시뮬레이션 진단 리포트 스냅샷', 20, bY + 24);
+
+          const now = new Date();
+          const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+
+          const scnNames = {
+            normal: '정상 작동 (상부·하부 유공관 정상 설치)',
+            lowered_return: '반송관 하향 인입 (혼합 가속 주의)',
+            no_pipes: '배관 부재 (단락 순환 심각 결함)'
+          };
+          const riVals = {
+            normal: 'Ri = 1.42 (안정적 열성층 형성)',
+            lowered_return: 'Ri = 0.85 (열성층 일부 파괴)',
+            no_pipes: 'Ri = 0.12 (열성층 완전 파괴 / 단락순환)'
+          };
+
+          oCtx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          oCtx.fillStyle = '#cbd5e1';
+          oCtx.fillText(`[시나리오] ${scnNames[state.scenario] || state.scenario}   |   [열유체 진단] ${riVals[state.scenario] || ''}   |   수위: ${state.waterLevelPct}%   |   유속: ${state.flowSpeed.toFixed(1)}x`, 20, bY + 48);
+
+          oCtx.font = '11px monospace';
+          oCtx.fillStyle = '#64748b';
+          oCtx.textAlign = 'right';
+          oCtx.fillText(`캡처 시각: ${dateStr}  |  화면 모드: ${state.viewPerspective}`, offCanvas.width - 20, bY + 48);
+
+          // Download PNG
+          const link = document.createElement('a');
+          link.download = `저탕조_진단스냅샷_${state.scenario}_${now.getTime()}.png`;
+          link.href = offCanvas.toDataURL('image/png');
+          link.click();
+
+          showToast('진단 스냅샷이 PNG 파일로 다운로드되었습니다.', '📷');
+        } catch (err) {
+          console.error('Snapshot error:', err);
+          showToast('스냅샷 생성 중 오류: ' + err.message, '⚠️');
+        }
+      }
+
+      // Shortcut Modal Controller
+      const shortcutModal = document.getElementById('shortcutModal');
+      const btnShortcutsHelp = document.getElementById('btnShortcutsHelp');
+      const btnCloseShortcutModal = document.getElementById('btnCloseShortcutModal');
+      const btnConfirmShortcuts = document.getElementById('btnConfirmShortcuts');
+
+      function toggleShortcutModal(show) {
+        if (!shortcutModal) return;
+        const isCurrentlyOpen = !shortcutModal.classList.contains('hidden');
+        const targetOpen = (typeof show === 'boolean') ? show : !isCurrentlyOpen;
+        if (targetOpen) {
+          shortcutModal.classList.remove('hidden');
+        } else {
+          shortcutModal.classList.add('hidden');
+        }
+      }
+      if (btnShortcutsHelp) btnShortcutsHelp.addEventListener('click', () => toggleShortcutModal(true));
+      if (btnCloseShortcutModal) btnCloseShortcutModal.addEventListener('click', () => toggleShortcutModal(false));
+      if (btnConfirmShortcuts) btnConfirmShortcuts.addEventListener('click', () => toggleShortcutModal(false));
+      if (shortcutModal) {
+        shortcutModal.addEventListener('click', (e) => {
+          if (e.target === shortcutModal) toggleShortcutModal(false);
+        });
+      }
+
+      // Snapshot Button Binding
+      const btnSnapshot = document.getElementById('btnSnapshot');
+      if (btnSnapshot) {
+        btnSnapshot.addEventListener('click', captureSimulationSnapshot);
+      }
+
+      // Preset Buttons Binding
+      const presetStandard = document.getElementById('presetStandard');
+      if (presetStandard) presetStandard.addEventListener('click', () => applyOperatingPreset('standard'));
+
+      const presetPeak = document.getElementById('presetPeak');
+      if (presetPeak) presetPeak.addEventListener('click', () => applyOperatingPreset('peak'));
+
+      const presetNight = document.getElementById('presetNight');
+      if (presetNight) presetNight.addEventListener('click', () => applyOperatingPreset('night'));
+
+      const presetDefect = document.getElementById('presetDefect');
+      if (presetDefect) presetDefect.addEventListener('click', () => applyOperatingPreset('defect'));
+
+      // Realtime Flow Property Inspector HUD Tooltip on Canvas
+      const hudTooltip = document.getElementById('flowHudTooltip');
+      const hudTitle = document.getElementById('hudTitle');
+      const hudDesc = document.getElementById('hudDesc');
+      const hudMetrics = document.getElementById('hudMetrics');
+
+      if (canvas && hudTooltip) {
+        canvas.addEventListener('mousemove', function (e) {
+          const coords = getCanvasCoords(e, canvas, true);
+          const wx = coords.x;
+          const wy = coords.y;
+
+          if (isInsideTank(wx, wy)) {
+            // Determine thermal zone based on wy
+            let title = '', desc = '', metrics = '';
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX;
+            const clientY = e.clientY;
+
+            // Water surface level limit
+            const surfaceY = getWaterSurfaceY(wx, state.time);
+            if (wy < surfaceY - 5) {
+              // Air cushion / vapor space
+              title = '☁️ 상부 공기 쿠션 / 증기 공간';
+              desc = '저탕조 최상부 체류 증기 및 팽창 완충 구역';
+              metrics = '온도: ~52°C | 압력: 0.05 bar (미압) | 상태: 포화 기상';
+            } else if (wy < 180) {
+              // High Temperature Hot Water Supply Zone
+              title = '🔴 상층 고온 급탕수층 (55~60°C)';
+              desc = '상부 유공관을 통해 세대로 공급되는 최고온 수두';
+              metrics = `밀도: 983 kg/m³ | 유속: ${(0.8 * state.flowSpeed).toFixed(2)} m/s | 공급 수두: 4.2 bar`;
+            } else if (wy < 340) {
+              // Upper Middle Buffer Zone
+              title = '🟡 중상층 온도 전이층 (Thermocline, 48~54°C)';
+              desc = '고온수와 중온 환수수가 만나는 열완충 성층 경계면';
+              metrics = `밀도: 988 kg/m³ | 부력 안정도: Ri=1.42 | 동점성계수: 0.61 cSt`;
+            } else if (wy < 500) {
+              // Lower Middle Return / Mixed Zone
+              title = '🟠 중하층 반송 환수층 (40~47°C)';
+              desc = '세대 순환 배관에서 회수된 온수가 유입되는 구역';
+              metrics = `밀도: 992 kg/m³ | 유속: ${(0.5 * state.flowSpeed).toFixed(2)} m/s | 정압: 4.35 bar`;
+            } else {
+              // Cold Water Replenishment Zone
+              title = '🔵 하층 저온 시수 보충층 (15~25°C)';
+              desc = '시수 인입관 및 보일러 가열 환수가 이루어지는 저탕조 기저부';
+              metrics = `밀도: 998 kg/m³ | 정수두: 4.5 bar | 시수 보충압: 3.5 bar`;
+            }
+
+            if (hudTitle) hudTitle.textContent = title;
+            if (hudDesc) hudDesc.textContent = desc;
+            if (hudMetrics) hudMetrics.textContent = metrics;
+
+            hudTooltip.classList.remove('hidden');
+            // Tooltip positioning relative to container
+            const containerRect = canvas.parentElement.getBoundingClientRect();
+            let left = clientX - containerRect.left + 16;
+            let top = clientY - containerRect.top + 16;
+            if (left + 240 > containerRect.width) left = clientX - containerRect.left - 240;
+            if (top + 100 > containerRect.height) top = clientY - containerRect.top - 100;
+            hudTooltip.style.left = left + 'px';
+            hudTooltip.style.top = top + 'px';
+          } else {
+            hudTooltip.classList.add('hidden');
+          }
+        });
+
+        canvas.addEventListener('mouseleave', function () {
+          hudTooltip.classList.add('hidden');
+        });
+      }
+
+      // Global Keyboard Shortcuts
+      window.addEventListener('keydown', function (e) {
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+
+        const key = e.key;
+
+        if (e.code === 'Space') {
+          e.preventDefault();
+          if (btnPlayPause) btnPlayPause.click();
+          showToast(state.playing ? '시뮬레이션 재생 [Space]' : '시뮬레이션 일시 정지 [Space]', state.playing ? '▶' : '⏸');
+        } else if (key === '1') {
+          e.preventDefault();
+          setScenario('normal');
+          showToast('시나리오: [정상 작동 (유공관)] 전환 [1]', '🟢');
+        } else if (key === '2') {
+          e.preventDefault();
+          setScenario('lowered_return');
+          showToast('시나리오: [반송관 하향 인입] 전환 [2]', '🟡');
+        } else if (key === '3') {
+          e.preventDefault();
+          setScenario('no_pipes');
+          showToast('시나리오: [배관 부재 결함] 전환 [3]', '🔴');
+        } else if (key === 'v' || key === 'V') {
+          e.preventDefault();
+          const modes = ['split', 'front', 'rear'];
+          const curIdx = modes.indexOf(state.viewPerspective);
+          const nextMode = modes[(curIdx + 1) % modes.length];
+          switchViewPerspective(nextMode);
+          const modeNames = { split: '3D계통+단면 분할', front: 'CAD 정면 단독', rear: '저탕조 단면 단독' };
+          showToast(`카메라 뷰 전환: [${modeNames[nextMode]}] [V]`, '🎥');
+        } else if (key === 's' || key === 'S') {
+          e.preventDefault();
+          captureSimulationSnapshot();
+        } else if (key === 'm' || key === 'M') {
+          e.preventDefault();
+          const compModal = document.getElementById('comparisonModal');
+          if (compModal && !compModal.classList.contains('hidden')) {
+            const closeBtn = document.getElementById('btnCloseComparisonModal');
+            if (closeBtn) closeBtn.click();
+          } else {
+            openDualCompareModal();
+          }
+        } else if (key === 'z' || key === 'Z') {
+          e.preventDefault();
+          setZoom(!state.isZoomed);
+          showToast(state.isZoomed ? '정밀 확대 활성화 (Zoom In) [Z]' : '정밀 확대 해제 (Zoom Out) [Z]', '🔍');
+        } else if (key === 'p' || key === 'P') {
+          e.preventDefault();
+          const collapseBtn = document.getElementById('btnCollapseSidebar');
+          if (collapseBtn) collapseBtn.click();
+        } else if (key === 'r' || key === 'R') {
+          e.preventDefault();
+          if (btnReset) btnReset.click();
+          showToast('시뮬레이션 파라미터 및 라벨 위치 초기화 [R]', '🔄');
+        } else if (key === '?' || (e.shiftKey && key === '/')) {
+          e.preventDefault();
+          toggleShortcutModal();
+        } else if (key === 'Escape') {
+          toggleShortcutModal(false);
+          const compModal = document.getElementById('comparisonModal');
+          if (compModal && !compModal.classList.contains('hidden')) {
+            const closeBtn = document.getElementById('btnCloseComparisonModal');
+            if (closeBtn) closeBtn.click();
+          }
+          if (state.isZoomed) {
+            setZoom(false);
+          }
+          closeAllDropdowns();
+        }
+      });
+
+
       let animStarted = false;
       function startLoop() {
         if (!animStarted) {
