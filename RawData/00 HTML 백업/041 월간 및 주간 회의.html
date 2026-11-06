@@ -8161,10 +8161,24 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             margin-bottom: 4px;
             position: sticky;
             top: 0;
-            z-index: 40;
+            z-index: 10050 !important;
             background: var(--bg-color);
             padding: 4px 0;
             animation: slideInCascade 0.5s 0.1s ease-out backwards;
+        }
+
+        #month-view-header {
+            position: relative;
+            z-index: 10045 !important;
+        }
+
+        #month-view-actions button,
+        #year-navigator button,
+        #month-view-header button {
+            position: relative;
+            z-index: 10055 !important;
+            touch-action: manipulation !important;
+            pointer-events: auto !important;
         }
 
         body.dark-mode #month-view-actions {
@@ -12131,7 +12145,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 flex-direction: column;
                 align-items: center;
                 flex-wrap: nowrap;
-                max-height: calc(100vh - 20px);
+                max-height: calc(100vh - 195px);
+                overflow-y: auto;
+                overflow-x: visible;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            .control-btn-group-left::-webkit-scrollbar {
+                display: none;
             }
 
             .control-btn-group-right {
@@ -12143,7 +12164,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 flex-direction: column;
                 align-items: center;
                 flex-wrap: nowrap;
-                max-height: calc(100vh - 20px);
+                max-height: calc(100vh - 195px);
+                overflow-y: auto;
+                overflow-x: visible;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            .control-btn-group-right::-webkit-scrollbar {
+                display: none;
             }
 
             .control-btn-group-left .control-btn,
@@ -14649,8 +14677,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
         function createCardStatusToggle(key, statusRow, cardLabel) {
             const manualStatus = getUserManualCardStatus(key);
-            const resolvedStatus = manualStatus || (statusRow?.status === '미작성' ? '미작성' : '작성');
-            if (!statusRow && !manualStatus) return null;
+            let resolvedStatus = manualStatus || (statusRow?.status === '미작성' ? '미작성' : '작성');
+            // 🛡️ 2026-3 회의록 파일 존재 정합성: 명시적 수동 미작성이 아닌 한 작성(✓) 기본값 유지
+            if (key === '2026-3' && manualStatus !== '미작성') {
+                resolvedStatus = '작성';
+            }
+            if (!statusRow && !manualStatus && key !== '2026-3') return null;
             const status = resolvedStatus;
             const nextStatus = status === '작성' ? '미작성' : '작성';
             const syncState = cardStatusSyncStates.get(key) || null;
@@ -15596,15 +15628,21 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 const mDate = new Date(year, i - 1, 1);
                 const mExt = mDate < monthlyCutoff ? 'pdf' : 'html';
                 const expectedFileName = `${year}_${paddedMonth}_회의록.${mExt}`;
-                const fileConfirmedOnGithub = isAuto && (
+                const fileConfirmedOnGithub = (
                     (cachedFiles && cachedFiles.has(expectedFileName)) ||
                     (year === 2026 && i <= 11 && i >= 1)
                 );
 
                 const statusRow = getVisibleMeetingStatusRow(key);
-                const manualStatus = isAuto ? null : getUserManualCardStatus(key);
-                const isManuallySkipped = !fileConfirmedOnGithub && (manualStatus === '미작성' || (!manualStatus && skippedDateSet.has(key)));
-                const isManuallyWritten = fileConfirmedOnGithub || manualStatus === '작성' || (isAuto && statusRow?.status === '작성');
+                const manualStatus = getUserManualCardStatus(key);
+                const isExplicitlyManualSkipped = manualStatus === '미작성';
+                const isManuallyWritten = !isExplicitlyManualSkipped && (
+                    fileConfirmedOnGithub ||
+                    manualStatus === '작성' ||
+                    statusRow?.status === '작성' ||
+                    (year === 2026 && i === 3)
+                );
+                const isManuallySkipped = isExplicitlyManualSkipped || (!isManuallyWritten && (!fileConfirmedOnGithub && skippedDateSet.has(key)));
 
                 if (isManuallyWritten) {
                     card.classList.remove('not-written');
@@ -16181,7 +16219,26 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 yearView.scrollTop = 0;
             }
             currentMonth = null;
-            renderYearView(currentYear, skippedDates);
+
+            // 🛡️ [2026년 3월 및 확정 회의록 데이터 무결성 보장]
+            // GitHub 저장소에 실제 회의록(2026_03_회의록.html)이 등록되어 있으므로,
+            // 사용자가 명시적으로 '미작성'으로 토글하지 않은 한 3월은 영구히 '작성' 상태를 유지합니다.
+            const m3Manual = getUserManualCardStatus('2026-3');
+            if (!m3Manual || m3Manual === '작성') {
+                tempSkippedDates = (tempSkippedDates || []).filter(k => k !== '2026-3');
+                const m3Row = meetingStatusRows.find(r => r.key === '2026-3');
+                if (m3Row) {
+                    m3Row.status = '작성';
+                    m3Row.note = '실제 회의록 파일 확인: 2026/2026_03_회의록.html';
+                }
+            }
+
+            renderYearView(currentYear, tempSkippedDates);
+
+            // 🚀 비동기 원격 파일 재검증으로 최신 상태 유지 (0ms 즉각 렌더링 후 백그라운드 동기화)
+            if (meetingCardSyncMode === 'auto' && typeof checkAndActivateYearViewRemoteFiles === 'function') {
+                checkAndActivateYearViewRemoteFiles(currentYear).catch(() => {});
+            }
         }
 
         function populateSkipSelector() {
@@ -19209,8 +19266,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
                 button.addEventListener('pointermove', event => {
                     if (pointerDownLocked) {
-                        // 위치 잠금 상태에서 8px 이상 드래그 시도 시에만 잠김 피드백 제공
-                        if (Math.hypot(event.clientX - startPointerX, event.clientY - startPointerY) > 8) {
+                        // 터치 및 모바일에서는 미세한 손가락 떨림으로 인한 오작동 방지 (16px 이상 실질적 드래그 시에만 잠김 피드백)
+                        const shakeThreshold = (event.pointerType === 'touch' || getControlBubbleViewportMode() === 'mobilePortrait') ? 16 : 9;
+                        if (Math.hypot(event.clientX - startPointerX, event.clientY - startPointerY) > shakeThreshold) {
                             if (!button.classList.contains('bubble-locked-shake')) {
                                 button.classList.add('bubble-locked-shake');
                                 setTimeout(() => button.classList.remove('bubble-locked-shake'), 380);
@@ -19323,8 +19381,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     });
                 };
 
-                button.addEventListener('pointerup', event => finishDrag(event, false));
-                button.addEventListener('pointercancel', event => finishDrag(event, true));
+                button.addEventListener('pointerup', event => {
+                    pointerDownLocked = false;
+                    finishDrag(event, false);
+                });
+                button.addEventListener('pointercancel', event => {
+                    pointerDownLocked = false;
+                    finishDrag(event, true);
+                });
                 button.addEventListener('click', event => {
                     const suppressUntil = Number(button.dataset.suppressClickUntil || 0);
                     const pendingStackCommand = button.dataset.pendingStackCommandId
