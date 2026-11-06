@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "fcc079fd16c3b2a11d61607c1855a1c3e486ca59dcedf48e74ef8315260c2ef5",
+  "sourceSha256": "dea8eeaa206ced86164d7d0fcc8bc9287fcb849c5c385c32bc5f4a4916823d45",
   "sourceFiles": {
     "status": {
-      "sha256": "a50530a244def3a347057f61317df0e6254acf452108fa90852f6962e55136ef",
-      "byteLength": 121073
+      "sha256": "b6ab303275d1701d0323d14c2de591578c8df8d4c952f5fdd463113cd62aaa43",
+      "byteLength": 121407
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -4641,12 +4641,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 3,
         "week": null,
-        "status": "작성",
+        "status": "미작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-03-01",
-        "updatedAt": "2026-09-02T00:18:05.000Z",
-        "source": "GitHub 회의록 파일 자동 점검",
+        "updatedAt": "2026-11-07T05:48:45.000Z",
+        "source": "카드 원클릭 상태 전환 · client:2cd9d882-d2a · session:6661f4df · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": "실제 회의록 파일 확인: 2026/2026_03_회의록.html"
       },
@@ -9720,6 +9720,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "beforeValue": "미작성",
         "afterValue": "작성",
         "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "e8ab81ec-d8e7-4ed8-b9cf-8ed472cdf4f6",
+        "changedAt": "2026-11-07T05:48:45.000Z",
+        "key": "2026-3",
+        "type": "월간",
+        "beforeValue": "작성",
+        "afterValue": "미작성",
+        "source": "카드 원클릭 상태 전환 · client:2cd9d882-d2a · session:6661f4df · Asia/Seoul UTC+09:00",
         "syncStatus": "완료"
       }
     ]
