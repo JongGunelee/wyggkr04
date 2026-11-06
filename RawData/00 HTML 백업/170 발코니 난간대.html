@@ -535,8 +535,8 @@
     /* 외벽 앙커 부위별 분석 모달 & 6대 고유 색상 뱃지 & 동별 호실 칩(7-101) 스타일 */
     .defect-analysis-kpi-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
       margin-bottom: 8px;
     }
     .defect-kpi-card {
@@ -3628,6 +3628,26 @@
   border-color: #38bdf8;
   box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
 }
+.point-edit-textarea {
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: #f8fafc;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 11px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.point-edit-textarea:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+  background: #1e293b;
+}
+.point-expand-btn:hover {
+  background: rgba(56, 189, 248, 0.25) !important;
+  border-color: #38bdf8 !important;
+}
 .point-status-select {
   background: #0f172a;
   border: 1px solid #334155;
@@ -4778,6 +4798,13 @@
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 5px !important;
       }
+      .defect-analysis-kpi-grid {
+        grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)) !important;
+        gap: 4px !important;
+      }
+      .defect-kpi-card {
+        padding: 5px 3px !important;
+      }
       .room-kpi-card {
         padding: 6px 8px !important;
       }
@@ -4802,6 +4829,14 @@
         display: block;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+      }
+      #point-text-expand-modal {
+        width: 95% !important;
+        max-width: 95% !important;
+        padding: 10px !important;
+      }
+      .point-edit-textarea {
+        font-size: 11.5px !important;
       }
     }
 
@@ -15100,10 +15135,16 @@ const WorkbookManager = {
               </select>
             </td>
             <td style="color: #cbd5e1; font-size: 11px; vertical-align: middle;">
-              <input type="text" class="point-edit-input" style="width: 100%; box-sizing: border-box;" value="${ProgressDashboard.esc(pt.defect || '')}" placeholder="예: 앙커 볼트 부식 및 탈락 / 균열" onchange="WorkbookManager.onPointDefectChange('${room.id}', '${ptKey}', this.value)" title="결함 세부내용 직접 수정">
+              <div style="display: flex; align-items: stretch; gap: 3px;">
+                <textarea class="point-edit-input point-edit-textarea" rows="1" style="flex: 1; min-height: 28px; line-height: 1.35; resize: vertical; word-break: break-all;" placeholder="예: 앙커 볼트 부식 및 탈락 / 균열" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight, 120)+'px'" ondblclick="WorkbookManager.openPointTextEditor('${room.id}', '${ptKey}', 'defect')" onchange="WorkbookManager.onPointDefectChange('${room.id}', '${ptKey}', this.value)" title="현장 결함 및 점검 상세 직접 수정 (더블클릭 또는 우측 ⤢ 버튼 클릭 시 와이드 전체 편집 모달)">${ProgressDashboard.esc(pt.defect || pt.detail || '')}</textarea>
+                <button type="button" class="point-expand-btn" onclick="WorkbookManager.openPointTextEditor('${room.id}', '${ptKey}', 'defect')" title="결함 소견 전체화면 와이드 편집 (⤢)" style="padding: 2px 5px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; height: auto;">⤢</button>
+              </div>
             </td>
             <td style="color: #93c5fd; font-size: 11px; vertical-align: middle;">
-              <input type="text" class="point-edit-input" style="width: 100%; box-sizing: border-box;" value="${ProgressDashboard.esc(pt.action || '')}" placeholder="예: 에폭시 주입 및 M12 앙커 교체 보강" onchange="WorkbookManager.onPointActionChange('${room.id}', '${ptKey}', this.value)" title="보강 조치방안 직접 수정">
+              <div style="display: flex; align-items: stretch; gap: 3px;">
+                <textarea class="point-edit-input point-edit-textarea" rows="1" style="flex: 1; min-height: 28px; line-height: 1.35; resize: vertical; word-break: break-all;" placeholder="예: 에폭시 주입 및 M12 앙커 교체 보강" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight, 120)+'px'" ondblclick="WorkbookManager.openPointTextEditor('${room.id}', '${ptKey}', 'action')" onchange="WorkbookManager.onPointActionChange('${room.id}', '${ptKey}', this.value)" title="보강 조치방안 직접 수정 (더블클릭 또는 우측 ⤢ 버튼 클릭 시 와이드 전체 편집 모달)">${ProgressDashboard.esc(pt.action || '')}</textarea>
+                <button type="button" class="point-expand-btn" onclick="WorkbookManager.openPointTextEditor('${room.id}', '${ptKey}', 'action')" title="보강 공법 전체화면 와이드 편집 (⤢)" style="padding: 2px 5px; background: rgba(147, 197, 253, 0.12); border: 1px solid rgba(147, 197, 253, 0.4); color: #93c5fd; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; height: auto;">⤢</button>
+              </div>
             </td>
             <td style="text-align: right; font-weight: 700; color: #fca5a5; vertical-align: middle;">
               <input type="text" inputmode="numeric" class="point-edit-input accounting-cost-input" style="width: 95px; text-align: right; font-weight: 700; color: #fca5a5;" value="${pt.cost ? pt.cost.toLocaleString() : ''}" placeholder="0" oninput="formatAccountingInput(this, '${room.id}', '${ptKey}')" onchange="WorkbookManager.onPointCostChange('${room.id}', '${ptKey}', this.value)" title="조치 비용(원) 직접 입력 (회계 단위 천단위 콤마 자동 적용)">
@@ -15115,6 +15156,11 @@ const WorkbookManager = {
             </td>
           `;
           tbody.appendChild(tr);
+        });
+        tbody.querySelectorAll('textarea.point-edit-textarea').forEach(ta => {
+          if (ta.scrollHeight > ta.clientHeight) {
+            ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+          }
         });
       },
 
@@ -15278,10 +15324,14 @@ const WorkbookManager = {
         const room = RoomIndex.get(roomId);
         if (!room || !room.points[ptKey]) return;
         room.points[ptKey].defect = newDefect;
+        room.points[ptKey].detail = newDefect;
         this.recalcRoomGradeAndCost(room);
         this.autoSave();
         this.markWebDirty(true);
         this.notifyDataMutation();
+        if (typeof updateDefectModal === 'function' && typeof currentDefectId !== 'undefined') {
+          updateDefectModal(currentDefectId);
+        }
       },
 
       onPointActionChange(roomId, ptKey, newAction) {
@@ -15294,6 +15344,87 @@ const WorkbookManager = {
         this.autoSave();
         this.markWebDirty(true);
         this.notifyDataMutation();
+        if (typeof updateDefectModal === 'function' && typeof currentDefectId !== 'undefined') {
+          updateDefectModal(currentDefectId);
+        }
+      },
+
+      // [Phase 127] 점검서 결함소견 및 보강공법 와이드 정밀 편집기 (좁은 입력란 보완 및 긴 문장 편집 완벽 지원)
+      pointEditorState: null,
+
+      openPointTextEditor(roomId, ptKey, fieldType) {
+        if (!getInspectionRooms().some(r => r.id === roomId)) return;
+        const room = RoomIndex.get(roomId);
+        if (!room || !room.points || !room.points[ptKey]) return;
+        const pt = room.points[ptKey];
+        this.pointEditorState = { roomId, ptKey, fieldType };
+
+        const modal = document.getElementById('point-text-expand-modal');
+        const backdrop = document.getElementById('point-text-expand-backdrop');
+        const title = document.getElementById('point-expand-modal-title');
+        const sub = document.getElementById('point-expand-modal-sub');
+        const textarea = document.getElementById('point-expand-modal-textarea');
+        const badge = document.getElementById('point-expand-modal-badge');
+
+        const isDefect = (fieldType === 'defect');
+        if (badge) {
+          badge.textContent = isDefect ? '📋 결함 소견 정밀 편집' : '🛠️ 보강 공법 정밀 편집';
+          badge.style.background = isDefect ? '#0284c7' : '#d97706';
+        }
+        if (title) {
+          title.textContent = `[${pt.name}] ${isDefect ? '현장 결함 및 점검 상세 소견' : '보강 조치 공법'}`;
+        }
+        if (sub) {
+          sub.innerHTML = `<span>🏢 <b>${room.buildingName} ${room.roomLabel} (${room.roomNo}호)</b> · 안전점검서 연동</span><span id="point-expand-char-count" style="color: #38bdf8;">0자 입력됨</span>`;
+        }
+
+        const curVal = isDefect ? (pt.defect || pt.detail || '') : (pt.action || '');
+        if (textarea) {
+          textarea.value = curVal;
+          textarea.placeholder = isDefect ? '예: 외벽 콘크리트 박락(18mm) 발생, M12 너트 탈락 및 균열 진행' : '예: 에폭시 주입 및 M12 STS316L 앙커 재천공 매립 보강';
+          const updateCount = () => {
+            const el = document.getElementById('point-expand-char-count');
+            if (el) el.textContent = `${textarea.value.length}자 입력됨`;
+          };
+          updateCount();
+          textarea.oninput = updateCount;
+          setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+          }, 60);
+        }
+
+        if (backdrop) backdrop.style.display = 'block';
+        if (modal) modal.style.display = 'flex';
+      },
+
+      closePointTextEditor() {
+        const modal = document.getElementById('point-text-expand-modal');
+        const backdrop = document.getElementById('point-text-expand-backdrop');
+        if (modal) modal.style.display = 'none';
+        if (backdrop) backdrop.style.display = 'none';
+        this.pointEditorState = null;
+      },
+
+      savePointTextEditor() {
+        if (!this.pointEditorState) return;
+        const { roomId, ptKey, fieldType } = this.pointEditorState;
+        const textarea = document.getElementById('point-expand-modal-textarea');
+        const newVal = textarea ? textarea.value.trim() : '';
+
+        if (fieldType === 'defect') {
+          this.onPointDefectChange(roomId, ptKey, newVal);
+        } else {
+          this.onPointActionChange(roomId, ptKey, newVal);
+        }
+
+        const room = RoomIndex.get(roomId);
+        if (room) this.renderRoomPointsTable(room);
+
+        this.closePointTextEditor();
+        if (typeof showToast === 'function') {
+          showToast(`✅ [${ptKey}] ${fieldType === 'defect' ? '점검 상세 소견' : '보강 공법'}이 안전점검서에 반영되었습니다.`);
+        }
       },
 
       recalcRoomGradeAndCost(room) {
@@ -15697,12 +15828,12 @@ const WorkbookManager = {
               return value;
             };
             const pts = {
-              P1: { name: 'P1(좌상단)', status: normSt(row['P1상태']), progress: normProg(row['P1진행현황'] || row['P1진행상태'], normSt(row['P1상태'])), defect: row['P1결함내역'] || '', action: row['P1보강공법'] || '', cost: parseCostSafe(row['P1비용']), anchorKey: 'left-top' },
-              P2: { name: 'P2(좌중단)', status: normSt(row['P2상태']), progress: normProg(row['P2진행현황'] || row['P2진행상태'], normSt(row['P2상태'])), defect: row['P2결함내역'] || '', action: row['P2보강공법'] || '', cost: parseCostSafe(row['P2비용']), anchorKey: 'left-mid' },
-              P3: { name: 'P3(좌하단)', status: normSt(row['P3상태']), progress: normProg(row['P3진행현황'] || row['P3진행상태'], normSt(row['P3상태'])), defect: row['P3결함내역'] || '', action: row['P3보강공법'] || '', cost: parseCostSafe(row['P3비용']), anchorKey: 'left-btm' },
-              P4: { name: 'P4(우상단)', status: normSt(row['P4상태']), progress: normProg(row['P4진행현황'] || row['P4진행상태'], normSt(row['P4상태'])), defect: row['P4결함내역'] || '', action: row['P4보강공법'] || '', cost: parseCostSafe(row['P4비용']), anchorKey: 'right-top' },
-              P5: { name: 'P5(우중단)', status: normSt(row['P5상태']), progress: normProg(row['P5진행현황'] || row['P5진행상태'], normSt(row['P5상태'])), defect: row['P5결함내역'] || '', action: row['P5보강공법'] || '', cost: parseCostSafe(row['P5비용']), anchorKey: 'right-mid' },
-              P6: { name: 'P6(우하단)', status: normSt(row['P6상태']), progress: normProg(row['P6진행현황'] || row['P6진행상태'], normSt(row['P6상태'])), defect: row['P6결함내역'] || '', action: row['P6보강공법'] || '', cost: parseCostSafe(row['P6비용']), anchorKey: 'right-btm' }
+              P1: { name: 'P1(좌상단)', status: normSt(row['P1상태']), progress: normProg(row['P1진행현황'] || row['P1진행상태'], normSt(row['P1상태'])), defect: row['P1결함내역'] || '', detail: row['P1결함내역'] || '', action: row['P1보강공법'] || '', cost: parseCostSafe(row['P1비용']), anchorKey: 'left-top' },
+              P2: { name: 'P2(좌중단)', status: normSt(row['P2상태']), progress: normProg(row['P2진행현황'] || row['P2진행상태'], normSt(row['P2상태'])), defect: row['P2결함내역'] || '', detail: row['P2결함내역'] || '', action: row['P2보강공법'] || '', cost: parseCostSafe(row['P2비용']), anchorKey: 'left-mid' },
+              P3: { name: 'P3(좌하단)', status: normSt(row['P3상태']), progress: normProg(row['P3진행현황'] || row['P3진행상태'], normSt(row['P3상태'])), defect: row['P3결함내역'] || '', detail: row['P3결함내역'] || '', action: row['P3보강공법'] || '', cost: parseCostSafe(row['P3비용']), anchorKey: 'left-btm' },
+              P4: { name: 'P4(우상단)', status: normSt(row['P4상태']), progress: normProg(row['P4진행현황'] || row['P4진행상태'], normSt(row['P4상태'])), defect: row['P4결함내역'] || '', detail: row['P4결함내역'] || '', action: row['P4보강공법'] || '', cost: parseCostSafe(row['P4비용']), anchorKey: 'right-top' },
+              P5: { name: 'P5(우중단)', status: normSt(row['P5상태']), progress: normProg(row['P5진행현황'] || row['P5진행상태'], normSt(row['P5상태'])), defect: row['P5결함내역'] || '', detail: row['P5결함내역'] || '', action: row['P5보강공법'] || '', cost: parseCostSafe(row['P5비용']), anchorKey: 'right-mid' },
+              P6: { name: 'P6(우하단)', status: normSt(row['P6상태']), progress: normProg(row['P6진행현황'] || row['P6진행상태'], normSt(row['P6상태'])), defect: row['P6결함내역'] || '', detail: row['P6결함내역'] || '', action: row['P6보강공법'] || '', cost: parseCostSafe(row['P6비용']), anchorKey: 'right-btm' }
             };
 
             sourceExtraKeys.forEach(key => {
@@ -15710,7 +15841,7 @@ const WorkbookManager = {
               const d=pointDefinition(key);
               pts[key] = { ...newInspectionPoint(key), status:normSt(row[key+'상태']),
                 progress:normProg(row[key+'진행현황'],normSt(row[key+'상태'])),
-                defect:row[key+'결함내역']||'',action:row[key+'보강공법']||'',cost:parseCostSafe(row[key+'비용']),anchorKey:d.anchorKey };
+                defect:row[key+'결함내역']||'',detail:row[key+'결함내역']||'',action:row[key+'보강공법']||'',cost:parseCostSafe(row[key+'비용']),anchorKey:d.anchorKey };
             });
                         // [Phase 113] apt-9-504 P3 강제 소거 코드 제거 - xlsb DB 점검서 기준 데이터 직접 반영 (무결성 보장)
             const totCost = INSPECTION_POINT_KEYS.reduce((sum, k) => sum + (pts[k].cost || 0), 0);
@@ -17831,11 +17962,22 @@ const WorkbookManager = {
         room.safetyGrade = newGrade;
         if (newGrade === '미점검') {
           room.progress = '미점검';
+          INSPECTION_POINT_KEYS.forEach(k => {
+            room.points[k].status = 'uninspected';
+            room.points[k].progress = '미점검';
+          });
         } else if (newGrade === '완료') {
           room.progress = '조치완료';
           INSPECTION_POINT_KEYS.forEach(k => {
-            if (room.points[k].status !== 'good') room.points[k].status = 'repaired';
-            room.points[k].progress=room.points[k].status==='good'?'점검완료':'조치완료';
+            const pt = room.points[k];
+            const hasIssue = pt.status === 'danger' || pt.status === 'warning' || (typeof isPointRecordedDefectOrAction === 'function' ? isPointRecordedDefectOrAction(pt) : isPointActualDefect(pt));
+            if (hasIssue) {
+              pt.status = 'repaired';
+              pt.progress = '조치완료';
+            } else {
+              if (pt.status === 'uninspected') pt.status = 'good';
+              pt.progress = '점검완료';
+            }
           });
         } else if (newGrade === '점검중') {
           room.progress = '점검중';
@@ -17864,19 +18006,30 @@ const WorkbookManager = {
         if (!room) return;
 
         room.progress = newVal;
-        // [Phase 56] 세대 종합 진행 현황 변경 시 6개 앙커 포인트 진행 현황 일괄 동기화
+        // [Phase 126] 세대 종합 진행 현황 변경 시 실제 결함 여부에 근거한 지능형 포인트 동기화 (무결함 포인트의 오염 방지)
         INSPECTION_POINT_KEYS.forEach(k => {
-          room.points[k].progress = newVal;
+          const pt = room.points[k];
+          const hasIssue = pt.status === 'danger' || pt.status === 'warning' || (typeof isPointRecordedDefectOrAction === 'function' ? isPointRecordedDefectOrAction(pt) : isPointActualDefect(pt));
           if (newVal === '조치완료') {
-            if (room.points[k].status !== 'good') room.points[k].status = 'repaired';
-          } else if (newVal === '미점검') {
-            room.points[k].status = 'uninspected';
-          } else if (newVal === '점검완료' && room.points[k].status === 'uninspected') {
-            room.points[k].status='good';
-          } else if (newVal === '조치진행') {
-            if (room.points[k].status === 'uninspected' || room.points[k].status === 'good') {
-              room.points[k].status = 'warning';
+            if (hasIssue) {
+              pt.status = 'repaired';
+              pt.progress = '조치완료';
+            } else {
+              if (pt.status === 'uninspected') pt.status = 'good';
+              pt.progress = '점검완료';
             }
+          } else if (newVal === '미점검') {
+            pt.status = 'uninspected';
+            pt.progress = '미점검';
+          } else if (newVal === '점검완료') {
+            if (pt.status === 'uninspected') pt.status = 'good';
+            pt.progress = '점검완료';
+          } else if (newVal === '조치진행') {
+            if (hasIssue) {
+              pt.progress = '조치진행';
+            }
+          } else if (newVal === '점검중') {
+            pt.progress = '점검중';
           }
         });
         if (newVal === '조치완료') {
@@ -18485,6 +18638,12 @@ const WorkbookManager = {
         }, 100);
       }
     };
+
+    window.WorkbookManager = WorkbookManager;
+    window.ROOMS_DATA = ROOMS_DATA;
+    window.getInspectionRooms = getInspectionRooms;
+    window.updateDefectModal = updateDefectModal;
+    window.RoomIndex = RoomIndex;
 
 
         function init() {
@@ -22603,8 +22762,17 @@ const WorkbookManager = {
           }
         });
 
-        // ESC 키로 라이트박스 모달 닫기
+        // ESC 키로 라이트박스 모달 닫기 및 점검서 텍스트 에디터 단축키
         window.addEventListener('keydown', (e) => {
+          if (typeof WorkbookManager !== 'undefined' && WorkbookManager.pointEditorState) {
+            if (e.key === 'Escape') {
+              WorkbookManager.closePointTextEditor();
+              return;
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+              WorkbookManager.savePointTextEditor();
+              return;
+            }
+          }
           if (e.key === 'Escape') {
             if (this.isLightboxOpen()) {
               this.closeLightbox();
@@ -24234,26 +24402,45 @@ function setCameraView(name, animate = true) {
 
     // 선택된 앙커 부위의 결함 이력 및 동별 조치 필요 세대 종합 분석창 렌더링
     
-// [Phase 113] 실제 부위 결함 유무 엄격 판정 함수 (무결함 텍스트의 오탐 방지)
-function isPointActualDefect(ptInfo) {
-  if (!ptInfo) return false;
-  const st = ptInfo.status;
-  if (st === 'danger' || st === 'warning') return true;
-  if (st === 'good' || st === 'repaired' || st === 'uninspected') {
-    // 상태가 good/repaired/uninspected일 때 defect 텍스트가 정상/양호 표준 문구이면 결함 아님
-    const defectText = (ptInfo.defect || '').trim();
-    if (!defectText) return false;
-    if (/특이\s*결함\s*없음|이상\s*없음|특이사항\s*없음|결함\s*없음|양호|정상|견고|해당\s*없음/i.test(defectText)) {
-      return false;
-    }
-    // '탈락', '부식', '균열', '박락', '풀림', '파단', '변형' 등 명백한 결함 키워드가 있는 경우만 true
-    if (/탈락|부식|균열|박락|풀림|파단|변형|유격|이탈|손상|파손/.test(defectText)) return true;
+// [Phase 127 무결성 리팩토링]
+// 특정 점검 부위(pt)에 실질적 결함·보강공법·집행비가 등록되었는지 7대 감사 기준 기반 엄격 판정
+// - 정상 문구(외벽 고정 앙커 견고, 특이 결함 없음 등) 및 통상 유지관리 문구(정기 안전 점검 지속 유지 등) 철저히 배제
+// - 상태가 good/uninspected인 부위가 조치완료된 타 부위나 호실 상태에 의해 오염되는 현상 100% 원천 차단
+function isPointRecordedDefectOrAction(pInfo) {
+  if (!pInfo) return false;
+  const st = pInfo.status || 'uninspected';
+  const def = (pInfo.defect || pInfo.detail || '').trim();
+  const act = (pInfo.action || '').trim();
+  const cost = parseInt(String(pInfo.cost || 0).replace(/[^0-9]/g, ''), 10) || 0;
+
+  // 1. 정상/양호 표준 문구 및 통상 점검/유지관리 문구인지 정밀 검증
+  const isNormalDefText = !def || /특이\s*결함\s*없음|이상\s*없음|특이사항\s*없음|결함\s*없음|양호|정상|견고|해당\s*없음/i.test(def);
+  const isNormalActText = !act || /정기\s*안전\s*점검|정기\s*점검|지속\s*유지|유지\s*관리|현상태\s*유지|지속\s*관리|모니터링|일상\s*점검|조치\s*불필요|해당\s*없음|특이사항\s*없음|이상\s*없음|없음/i.test(act);
+
+  // 2. 위험/주의/조치필요 등 비정상 결함 상태는 명백한 결함
+  if (st === 'danger' || st === 'warning' || st === 'action') return true;
+
+  // 3. 조치완료(repaired) 상태인 경우:
+  // 상태가 repaired이면서 무결함 문구가 아니거나, 비용이 발생했거나, 유효 보강공법이 있는 경우만 인정
+  if (st === 'repaired') {
+    if (isNormalDefText && isNormalActText && cost === 0) return false;
+    return true;
+  }
+
+  // 4. 상태가 good이나 uninspected인 경우:
+  // 정상(good)이거나 미점검(uninspected) 상태인 부위는 원칙적으로 결함 부위가 아님.
+  // 단, 사용자가 점검서에 명백한 결함 텍스트(비정상)를 기입했거나 실제 공사비(cost > 0)를 기입한 예외 경우만 결함으로 인정.
+  if (st === 'good' || st === 'uninspected') {
+    if (!isNormalDefText && def.length > 0) return true;
+    if (cost > 0 && !isNormalActText) return true;
     return false;
   }
-  const d = (ptInfo.defect || '').trim();
-  if (!d) return false;
-  if (/특이\s*결함\s*없음|이상\s*없음|특이사항\s*없음|결함\s*없음|양호|정상|견고|해당\s*없음/i.test(d)) return false;
-  return true;
+
+  return false;
+}
+
+function isPointActualDefect(ptInfo) {
+  return isPointRecordedDefectOrAction(ptInfo);
 }
 
 function updateDefectModal(id) {
@@ -24275,9 +24462,9 @@ function updateDefectModal(id) {
         headTitle.textContent = `[${d.pointKey}] ${d.name} 결함 종합 분석`;
       }
 
-      // [Phase 114.1 무결성 리팩토링]
-      // 클릭한 마커 번호(pt)와 실제로 일치하는(해당 부위에 결함/조치가 등록된) 세대만 엄격 추출!
-      // 마커 번호와 연계되지 않은 '점검완료' 세대(5-506 등)나 무관한 세대를 억지로 표시하지 않아 혼선 완전 제거!
+      // [Phase 127 무결성 리팩토링]
+      // 클릭한 마커 번호(pt)와 실제로 일치하는(해당 부위에 실질적 결함/공법/비용이 등록된) 세대만 엄격 추출!
+      // 마커 번호와 연계되지 않은 타 부위 세대의 오표시를 100% 원천 차단!
       let dangerRooms = [];
       let warningRooms = [];
       let repairedRooms = [];
@@ -24289,9 +24476,10 @@ function updateDefectModal(id) {
       allScopeRooms.forEach(r => {
         if (!r || !r.points || !r.points[pt]) return;
         const pInfo = r.points[pt];
+        if (!isPointRecordedDefectOrAction(pInfo)) return;
+
         const st = pInfo.status;
         const prog = pInfo.progress || '미점검';
-        const hasPtDefect = isPointActualDefect(pInfo);
         const rawCost = parseInt(String(pInfo.cost || 0).replace(/[^0-9]/g, ''), 10) || 0;
 
         // 클릭한 해당 마커 번호(pt)에 실질적 결함 또는 조치 내역이 등록된 세대만 엄격 분기
@@ -24303,11 +24491,18 @@ function updateDefectModal(id) {
           warningRooms.push(r);
           actionProgRooms.push(r);
           totalPtCost += rawCost;
-        } else if (st === 'repaired' || prog === '조치완료') {
+        } else if (st === 'repaired' || (prog === '조치완료' && st !== 'good' && st !== 'uninspected')) {
           repairedRooms.push(r);
           totalPtCost += rawCost;
-        } else if (hasPtDefect || prog === '조치진행') {
+        } else if (prog === '조치진행' || st === 'action') {
           actionProgRooms.push(r);
+          totalPtCost += rawCost;
+        } else {
+          if (rawCost > 0 || st === 'repaired') {
+            repairedRooms.push(r);
+          } else {
+            actionProgRooms.push(r);
+          }
           totalPtCost += rawCost;
         }
       });
@@ -24335,10 +24530,16 @@ function updateDefectModal(id) {
         dynamicBadgeClass = 'badge-success';
       }
 
-      // 수집된 실측 결함내역 및 권장 보강공법 (클릭한 마커 pt에 실제로 등록된 것만 추출)
-      const defectItems = affectedRooms.concat(actionProgRooms).map(r => r.points[pt].defect).filter(Boolean);
+      // [Phase 127] 수집된 실측 결함내역 및 권장 보강공법
+      const allActivePtRooms = [...new Set([...affectedRooms, ...actionProgRooms, ...repairedRooms])];
+      const defectItems = allActivePtRooms
+        .map(r => (r.points[pt]?.defect || r.points[pt]?.detail || '').trim())
+        .filter(d => d && !/특이\s*결함\s*없음|이상\s*없음|특이사항\s*없음|결함\s*없음|양호|정상|견고|해당\s*없음/i.test(d));
       const uniqueDefects = [...new Set(defectItems)];
-      const actionItems = affectedRooms.concat(actionProgRooms).concat(repairedRooms).map(r => r.points[pt].action).filter(Boolean);
+
+      const actionItems = allActivePtRooms
+        .map(r => (r.points[pt]?.action || '').trim())
+        .filter(a => a && !/정기\s*안전\s*점검|정기\s*점검|지속\s*유지|유지\s*관리|현상태\s*유지|지속\s*관리|모니터링|일상\s*점검|조치\s*불필요|해당\s*없음|특이사항\s*없음|이상\s*없음|없음/i.test(a));
       const uniqueActions = [...new Set(actionItems)];
 
       let dynamicStatusText = '';
@@ -24354,8 +24555,20 @@ function updateDefectModal(id) {
       } else {
         dynamicStatusText = `🚨 [${pt}] 조치 필요 총 ${actionProgRooms.length}세대 (위험 ${dangerRooms.length}건, 주의 ${warningRooms.length}건, 완료 ${repairedRooms.length}건)`;
         dynamicPulloutText = `[${pt}] 점검서에 입력된 실제 집행비 ₩${totalPtCost.toLocaleString()}원`;
-        dynamicDescText = uniqueDefects.length ? `[입력된 결함] ${uniqueDefects.join(' · ')}` : '결함 소견 미입력';
-        dynamicActionText = uniqueActions.length ? `[입력된 보강 공법] ${uniqueActions.join(' · ')}` : '보강 공법 미입력';
+        if (uniqueDefects.length > 0) {
+          dynamicDescText = `[입력된 결함] ${uniqueDefects.join(' · ')}`;
+        } else if (uniqueActions.length > 0) {
+          dynamicDescText = `[보강 조치 연계] ${uniqueActions.join(' · ')} 시행 완료 (점검서 결함 해소)`;
+        } else if (totalPtCost > 0) {
+          dynamicDescText = `[집행 내역 연계] 실 집행비 ₩${totalPtCost.toLocaleString()}원 투입 보강 완료`;
+        } else if (dangerRooms.length > 0 || warningRooms.length > 0) {
+          dynamicDescText = `[현장 점검 소견] ${dangerRooms.length > 0 ? '🚨 긴급 조치(위험) 등록 부위' : '⚠️ 주의 관찰 요망 등록 부위'} (세부 결함 문구 미기입)`;
+        } else if (repairedRooms.length > 0) {
+          dynamicDescText = `[보강 조치 완료] 현장 점검서 상 조치 완료 등록 부위 (점검 상세 문구 미기입)`;
+        } else {
+          dynamicDescText = '결함 소견 미입력';
+        }
+        dynamicActionText = uniqueActions.length ? `[입력된 보강 공법] ${uniqueActions.join(' · ')}` : (repairedRooms.length ? '점검서 보강 공법 시행 완료' : '보강 공법 미입력');
       }
 
       // 현재 진행 현황: 클릭한 마커(pt)에 결함/조치가 실제로 등록된 세대만 동기화
@@ -24374,14 +24587,10 @@ function updateDefectModal(id) {
       let bldgsHtml = '';
 
       bldgOrder.forEach(bId => {
-        // [Phase 114.1] 해당 마커(pt)에 실제 결함/조치가 있는 세대만 엄격 추출
+        // [Phase 127] 해당 마커(pt)에 실질적 결함/조치가 있는 세대만 엄격 추출 (isPointRecordedDefectOrAction)
         const bDefectRooms = allScopeRooms.filter(r => {
           if (r.buildingId !== bId || !r.points || !r.points[pt]) return false;
-          const pInfo = r.points[pt];
-          const st = pInfo.status;
-          const prog = pInfo.progress || '';
-          const hasPtDefect = isPointActualDefect(pInfo);
-          return (st === 'danger' || st === 'warning' || st === 'repaired' || prog === '조치완료' || prog === '조치진행' || hasPtDefect);
+          return isPointRecordedDefectOrAction(r.points[pt]);
         });
 
         if (bDefectRooms.length === 0) return;
@@ -24397,7 +24606,7 @@ function updateDefectModal(id) {
           const pInfo = r.points[pt];
           const st = pInfo.status;
           const prog = pInfo.progress || '';
-          if (st === 'repaired' || prog === '조치완료') {
+          if (st === 'repaired' || (prog === '조치완료' && st !== 'good' && st !== 'uninspected')) {
             bRepaired.push(r);
           } else {
             bAction.push(r);
@@ -24411,7 +24620,8 @@ function updateDefectModal(id) {
             const isCurrent = (shorthand === currentSyncRoom);
             const activeStyle = isCurrent ? 'box-shadow: 0 0 0 2px #38bdf8, 0 0 10px rgba(56, 189, 248, 0.9); font-weight: 800;' : '';
             const ptInfo = (r.points && r.points[pt]) ? r.points[pt] : {};
-            const tooltip = `[${shorthand}] ${label} · 상태: ${ptInfo.defect || '결함 조치 대상'} (클릭 시 세대 안전점검서 열기)`;
+            const defText = ptInfo.defect || ptInfo.detail || ptInfo.action || '결함 조치 대상';
+            const tooltip = `[${shorthand}] ${label} · 상태: ${defText} (클릭 시 세대 안전점검서 열기)`;
             return `<span class="defect-room-chip" style="background:${bg}; border:1px solid ${border}; color:${color}; padding:2px 6px; border-radius:4px; font-size:10px; cursor:pointer; display:inline-flex; align-items:center; gap:3px; ${activeStyle}" onclick="openRoomFromDefect('${r.id}')" title="${ProgressDashboard.esc(tooltip)}">${icon} ${shorthand}</span>`;
           }).join('');
         };
@@ -27698,7 +27908,7 @@ function updateDefectModal(id) {
               <th style="width: 95px;">포인트 (위치)</th>
               <th style="width: 75px;">상태</th>
               <th style="width: 85px;">진행 현황</th>
-              <th>현장 결함 및 문제점</th>
+              <th style="min-width: 140px;">현장 결함 및 점검 상세 (결함소견)</th>
               <th>보강 조치 공법</th>
               <th style="width: 90px;">집행비</th>
               <th style="width: 80px;">3D 연동</th>
@@ -27726,6 +27936,32 @@ function updateDefectModal(id) {
         <button class="room-action-btn secondary" onclick="WorkbookManager.closeRoomDetailModal()">
           닫기
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [Phase 127] 점검서 결함소견 및 보강공법 와이드 정밀 편집 모달 (#point-text-expand-modal) -->
+  <div id="point-text-expand-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(2px); z-index: 10004;" onclick="WorkbookManager.closePointTextEditor()"></div>
+  <div id="point-text-expand-modal" class="app-window" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 92%; max-width: 620px; z-index: 10005; background: #0f172a; border: 1.5px solid #38bdf8; border-radius: 10px; box-shadow: 0 20px 45px rgba(0,0,0,0.85); flex-direction: column;">
+    <div style="padding: 12px 16px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; border-radius: 9px 9px 0 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span id="point-expand-modal-badge" class="rooms-pill" style="background: #0284c7; color: #fff; font-weight: 700; font-size: 11px;">📝 점검 상세 편집</span>
+        <span id="point-expand-modal-title" style="font-size: 13px; font-weight: 800; color: #f8fafc;"></span>
+      </div>
+      <button class="win-btn win-close" onclick="WorkbookManager.closePointTextEditor()" title="닫기 (Esc)">✕</button>
+    </div>
+    <div style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+      <div id="point-expand-modal-sub" style="font-size: 11px; color: #94a3b8; display: flex; justify-content: space-between;">
+        <span>🏢 세대 정보</span>
+        <span id="point-expand-char-count" style="color: #38bdf8;">0자 입력됨</span>
+      </div>
+      <textarea id="point-expand-modal-textarea" rows="6" style="width: 100%; box-sizing: border-box; background: #020617; border: 1.5px solid #475569; border-radius: 6px; padding: 10px 12px; color: #f8fafc; font-size: 12.5px; line-height: 1.6; font-family: inherit; resize: vertical; outline: none;"></textarea>
+      <div style="font-size: 10.5px; color: #64748b; line-height: 1.4;">
+        💡 줄바꿈(Enter)이 자유롭게 지원되며, 긴 문장을 편안하게 검토 및 수정할 수 있습니다. (단축키: <kbd style="background:#1e293b;color:#38bdf8;padding:1px 4px;border-radius:3px;">Ctrl</kbd>+<kbd style="background:#1e293b;color:#38bdf8;padding:1px 4px;border-radius:3px;">Enter</kbd> 저장)
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;">
+        <button class="rooms-btn" onclick="WorkbookManager.closePointTextEditor()" style="padding: 6px 14px; font-size: 11.5px; background: #334155; color: #cbd5e1; border: 1px solid #475569;">취소</button>
+        <button class="rooms-btn primary" onclick="WorkbookManager.savePointTextEditor()" style="padding: 6px 16px; font-size: 11.5px; background: #0284c7; color: #fff; border: 1px solid #38bdf8; font-weight: 700;">💾 점검서 반영 및 저장</button>
       </div>
     </div>
   </div>
