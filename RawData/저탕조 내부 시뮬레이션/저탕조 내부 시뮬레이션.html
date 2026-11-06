@@ -187,7 +187,7 @@
       grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
       gap: 12px !important;
       width: 100% !important;
-      align-items: stretch !important;
+      align-items: start !important;
     }
 
     /* 2. 전면부/후면부 카드 박스 외곽 완벽 일치 */
@@ -201,6 +201,7 @@
       border-radius: 0.5rem !important;
       overflow: hidden !important;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+      transition: width 0.15s ease-out, height 0.15s ease-out !important;
     }
 
     /* 3. 상단 헤더 높이 36px 정밀 일치 */
@@ -607,6 +608,12 @@
           <div id="frontCanvasBox" class="relative w-full h-full bg-slate-950 flex flex-col rounded-lg overflow-hidden border border-slate-800/80 shadow-md">
             <div class="px-3 py-1.5 h-9 min-h-[36px] bg-slate-900/95 border-b border-slate-800 flex items-center justify-between text-xs whitespace-nowrap overflow-hidden">
               <div class="flex items-center gap-1.5 font-bold text-emerald-300 truncate">
+                <!-- 전면부 상단 좌측 10% 축소 [-] 및 원복 [ㅇ] 버튼 -->
+                <div class="inline-flex items-center gap-1 mr-1 shrink-0" title="전면부 이미지 크기 조절 (10% 축소 / 원복)">
+                  <button type="button" id="btnScaleDownFront" class="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-600 font-bold text-xs flex items-center justify-center cursor-pointer transition shadow-sm leading-none" title="클릭 시 10% 축소 [-]">-</button>
+                  <button type="button" id="btnResetScaleFront" class="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-emerald-400 border border-slate-600 font-bold text-[11px] flex items-center justify-center cursor-pointer transition shadow-sm leading-none" title="원래 크기(100%)로 원복 [ㅇ]">ㅇ</button>
+                  <span id="lblScaleFront" class="text-[10px] font-mono px-1 py-0.2 rounded bg-slate-950 text-emerald-300 border border-emerald-500/30">100%</span>
+                </div>
                 <span>🏢</span> 전면부: 3D 기계실 펌프·보일러 계통
                 <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">800×650</span>
               </div>
@@ -615,6 +622,12 @@
               </div>
             </div>
             <div class="relative w-full aspect-[743/691] flex items-center justify-center bg-slate-950 overflow-hidden">
+              <!-- Floating Top-Left Scale Controls directly on Front View Image -->
+              <div class="absolute top-2.5 left-2.5 z-20 flex items-center gap-1 bg-slate-900/90 backdrop-blur-sm px-1.5 py-1 rounded-md border border-slate-700/80 shadow-md select-none" title="전면부 이미지 크기 조절 (10% 축소 / 원복)">
+                <button type="button" id="btnCanvasScaleDownFront" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-100 font-bold text-sm flex items-center justify-center border border-slate-600 cursor-pointer transition leading-none shadow-sm" title="전면부 이미지 10% 축소 [-]">-</button>
+                <button type="button" id="btnCanvasResetScaleFront" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-emerald-400 font-bold text-xs flex items-center justify-center border border-slate-600 cursor-pointer transition leading-none shadow-sm" title="원래 크기(100%)로 원복 [ㅇ]">ㅇ</button>
+                <span id="lblCanvasScaleFront" class="text-[10px] font-mono text-emerald-300 font-semibold px-1">100%</span>
+              </div>
               <canvas id="frontCanvas" width="800" height="650" class="block w-full h-full object-contain cursor-crosshair"></canvas>
             </div>
           </div>
@@ -623,6 +636,12 @@
           <div id="rearCanvasBox" class="relative w-full h-full bg-slate-950 flex flex-col rounded-lg overflow-hidden border border-slate-800/80 shadow-md">
             <div class="px-3 py-1.5 h-9 min-h-[36px] bg-slate-900/95 border-b border-slate-800 flex items-center justify-between text-xs whitespace-nowrap overflow-hidden">
               <div class="flex items-center gap-1.5 font-bold text-sky-300 truncate">
+                <!-- 후면부 상단 좌측 10% 축소 [-] 및 원복 [ㅇ] 버튼 -->
+                <div class="inline-flex items-center gap-1 mr-1 shrink-0" title="후면부 이미지 크기 조절 (10% 축소 / 원복)">
+                  <button type="button" id="btnScaleDownRear" class="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-600 font-bold text-xs flex items-center justify-center cursor-pointer transition shadow-sm leading-none" title="클릭 시 10% 축소 [-]">-</button>
+                  <button type="button" id="btnResetScaleRear" class="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-sky-400 border border-slate-600 font-bold text-[11px] flex items-center justify-center cursor-pointer transition shadow-sm leading-none" title="원래 크기(100%)로 원복 [ㅇ]">ㅇ</button>
+                  <span id="lblScaleRear" class="text-[10px] font-mono px-1 py-0.2 rounded bg-slate-950 text-sky-300 border border-sky-500/30">100%</span>
+                </div>
                 <span>💧</span> 후면부: 저탕조 내부 유체 저탕·매립관
                 <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">743×691</span>
               </div>
@@ -631,6 +650,12 @@
               </div>
             </div>
             <div class="relative w-full aspect-[743/691] flex items-center justify-center bg-slate-950 overflow-hidden">
+              <!-- Floating Top-Left Scale Controls directly on Rear View Image -->
+              <div class="absolute top-2.5 left-2.5 z-20 flex items-center gap-1 bg-slate-900/90 backdrop-blur-sm px-1.5 py-1 rounded-md border border-slate-700/80 shadow-md select-none" title="후면부 이미지 크기 조절 (10% 축소 / 원복)">
+                <button type="button" id="btnCanvasScaleDownRear" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-100 font-bold text-sm flex items-center justify-center border border-slate-600 cursor-pointer transition leading-none shadow-sm" title="후면부 이미지 10% 축소 [-]">-</button>
+                <button type="button" id="btnCanvasResetScaleRear" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-sky-400 font-bold text-xs flex items-center justify-center border border-slate-600 cursor-pointer transition leading-none shadow-sm" title="원래 크기(100%)로 원복 [ㅇ]">ㅇ</button>
+                <span id="lblCanvasScaleRear" class="text-[10px] font-mono text-sky-300 font-semibold px-1">100%</span>
+              </div>
               <canvas id="flowCanvas" width="743" height="691" class="block w-full h-full object-contain cursor-crosshair"></canvas>
             </div>
           </div>
@@ -1504,7 +1529,9 @@
         isZoomed: false,
         scenario: 'normal', // 'normal' | 'no_pipes' | 'lowered_return'
         compareTargetScenario: 'no_pipes',
-        viewPerspective: 'split', // 'split' (전·후면 동시), 'front' (전면부 단독), 'rear' (후면부 단독)
+        viewPerspective: 'split',
+        frontScale: 1.0,
+        rearScale: 1.0, // 'split' (전·후면 동시), 'front' (전면부 단독), 'rear' (후면부 단독)
         modalPerspective: 'rear', // 'rear' (저탕조 내부), 'front' (전면부 펌프 계통)
         showFrontBoiler: false,
         showFrontReturnPump: false,
@@ -4686,6 +4713,10 @@
           const sOp = document.getElementById('sliderOpacity'); if (sOp) sOp.value = 58;
           const vOp = document.getElementById('valOpacity'); if (vOp) vOp.textContent = '58%';
 
+          state.frontScale = 1.0;
+          state.rearScale = 1.0;
+          applyFrontScale();
+          applyRearScale();
           updateFocusButtons('all');
           setZoom(false);
           scenarioBadges.forEach(b => syncScenarioBadgeCheckbox(b.id, true));
@@ -4744,6 +4775,151 @@
       // =========================================================================
       // Perspective View Mode Switching (Split / Front / Rear)
       // =========================================================================
+      
+      // =========================================================================
+      // Image Scaling & Restore Management (10% Step Reduction & 'ㅇ' Reset)
+      // 목적: 노트북 및 모바일 기기에서 이미지가 클 때 10% 단위로 축소 및 원복
+      // =========================================================================
+      const MIN_IMAGE_SCALE = 0.30;
+      const IMAGE_SCALE_STEP = 0.10;
+
+      function applyFrontScale() {
+        const pct = Math.round(state.frontScale * 100);
+        const box = document.getElementById('frontCanvasBox');
+        if (box) {
+          if (state.frontScale >= 0.999) {
+            box.style.setProperty('width', '100%', 'important');
+            box.style.setProperty('max-width', '100%', 'important');
+            box.style.setProperty('height', '100%', 'important');
+            box.style.removeProperty('align-self');
+            box.style.removeProperty('justify-self');
+            box.style.removeProperty('margin');
+            const wrapper = box.querySelector('div:last-child');
+            if (wrapper) wrapper.style.removeProperty('flex');
+          } else {
+            box.style.setProperty('width', pct + '%', 'important');
+            box.style.setProperty('max-width', pct + '%', 'important');
+            box.style.setProperty('height', 'auto', 'important');
+            box.style.setProperty('align-self', 'start', 'important');
+            box.style.setProperty('justify-self', 'center', 'important');
+            box.style.setProperty('margin', '0 auto');
+            const wrapper = box.querySelector('div:last-child');
+            if (wrapper) {
+              wrapper.style.setProperty('flex', 'none', 'important');
+              wrapper.style.setProperty('width', '100%', 'important');
+              wrapper.style.setProperty('aspect-ratio', '743 / 691', 'important');
+            }
+          }
+        }
+        const lbl1 = document.getElementById('lblScaleFront');
+        if (lbl1) lbl1.textContent = pct + '%';
+        const lbl2 = document.getElementById('lblCanvasScaleFront');
+        if (lbl2) lbl2.textContent = pct + '%';
+      }
+
+      function applyRearScale() {
+        const pct = Math.round(state.rearScale * 100);
+        const box = document.getElementById('rearCanvasBox');
+        if (box) {
+          if (state.rearScale >= 0.999) {
+            box.style.setProperty('width', '100%', 'important');
+            box.style.setProperty('max-width', '100%', 'important');
+            box.style.setProperty('height', '100%', 'important');
+            box.style.removeProperty('align-self');
+            box.style.removeProperty('justify-self');
+            box.style.removeProperty('margin');
+            const wrapper = box.querySelector('div:last-child');
+            if (wrapper) wrapper.style.removeProperty('flex');
+          } else {
+            box.style.setProperty('width', pct + '%', 'important');
+            box.style.setProperty('max-width', pct + '%', 'important');
+            box.style.setProperty('height', 'auto', 'important');
+            box.style.setProperty('align-self', 'start', 'important');
+            box.style.setProperty('justify-self', 'center', 'important');
+            box.style.setProperty('margin', '0 auto');
+            const wrapper = box.querySelector('div:last-child');
+            if (wrapper) {
+              wrapper.style.setProperty('flex', 'none', 'important');
+              wrapper.style.setProperty('width', '100%', 'important');
+              wrapper.style.setProperty('aspect-ratio', '743 / 691', 'important');
+            }
+          }
+        }
+        const lbl1 = document.getElementById('lblScaleRear');
+        if (lbl1) lbl1.textContent = pct + '%';
+        const lbl2 = document.getElementById('lblCanvasScaleRear');
+        if (lbl2) lbl2.textContent = pct + '%';
+      }
+
+      function stepDownFrontScale() {
+        state.frontScale = Math.max(MIN_IMAGE_SCALE, Math.round((state.frontScale - IMAGE_SCALE_STEP) * 10) / 10);
+        applyFrontScale();
+        showToast('전면부 이미지 크기: ' + Math.round(state.frontScale * 100) + '% (10% 축소)', '🔍');
+      }
+
+      function resetFrontScale() {
+        state.frontScale = 1.0;
+        applyFrontScale();
+        showToast('전면부 이미지 원래 크기(100%) 원복 완료', '🔄');
+      }
+
+      function stepDownRearScale() {
+        state.rearScale = Math.max(MIN_IMAGE_SCALE, Math.round((state.rearScale - IMAGE_SCALE_STEP) * 10) / 10);
+        applyRearScale();
+        showToast('후면부 이미지 크기: ' + Math.round(state.rearScale * 100) + '% (10% 축소)', '🔍');
+      }
+
+      function resetRearScale() {
+        state.rearScale = 1.0;
+        applyRearScale();
+        showToast('후면부 이미지 원래 크기(100%) 원복 완료', '🔄');
+      }
+
+      // Attach Scale Event Listeners (Header buttons & Canvas Floating Overlay buttons)
+      ['btnScaleDownFront', 'btnCanvasScaleDownFront'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            stepDownFrontScale();
+          });
+        }
+      });
+
+      ['btnResetScaleFront', 'btnCanvasResetScaleFront'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            resetFrontScale();
+          });
+        }
+      });
+
+      ['btnScaleDownRear', 'btnCanvasScaleDownRear'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            stepDownRearScale();
+          });
+        }
+      });
+
+      ['btnResetScaleRear', 'btnCanvasResetScaleRear'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            resetRearScale();
+          });
+        }
+      });
+
       function switchViewPerspective(mode) {
         state.viewPerspective = mode;
         const isSplit = mode === 'split';
@@ -4790,6 +4966,8 @@
             canvasGridContainer.style.setProperty('grid-template-columns', 'repeat(2, minmax(0, 1fr))', 'important');
             if (frontCanvasBox) frontCanvasBox.style.display = 'flex';
             if (rearCanvasBox) rearCanvasBox.style.display = 'flex';
+            applyFrontScale();
+            applyRearScale();
           } else if (isFront) {
             canvasGridContainer.style.setProperty('display', 'grid', 'important');
             canvasGridContainer.style.setProperty('grid-template-columns', '1fr', 'important');
