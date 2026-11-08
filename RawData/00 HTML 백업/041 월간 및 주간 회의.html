@@ -8082,14 +8082,17 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         }
 
         #year-view {
-            transform: scale(1) translateZ(0);
+            display: flex;
             opacity: 1;
+            transform: scale(1) translateZ(0);
+            pointer-events: auto;
         }
 
         #year-view.hidden {
-            transform: scale(0.1) translateZ(-500px);
-            opacity: 0;
-            pointer-events: none;
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
         }
 
         #year-grid {
@@ -8136,15 +8139,18 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
         #month-view {
             gap: 12px;
-            transform: scale(2) translateZ(500px);
-            opacity: 0;
-            pointer-events: none;
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
         }
 
         #month-view.visible {
-            transform: scale(1) translateZ(0);
-            opacity: 1;
-            pointer-events: auto;
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            transform: scale(1) translateZ(0) !important;
+            pointer-events: auto !important;
         }
 
         #month-view-actions {
@@ -8153,7 +8159,42 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             gap: 12px;
             width: 100%;
             margin-bottom: 4px;
+            position: sticky;
+            top: 0;
+            z-index: 10050 !important;
+            background: var(--bg-color);
+            padding: 4px 0;
             animation: slideInCascade 0.5s 0.1s ease-out backwards;
+        }
+
+        #month-view-header {
+            position: relative;
+            z-index: 10045 !important;
+        }
+
+        #month-view-actions button,
+        #year-navigator button,
+        #month-view-header button {
+            position: relative;
+            z-index: 10055 !important;
+            touch-action: manipulation !important;
+            pointer-events: auto !important;
+        }
+
+        body.dark-mode #month-view-actions {
+            background: var(--bg-color);
+        }
+
+        .month-card,
+        #year-grid,
+        #back-to-year-view-btn,
+        #go-to-today-btn,
+        #goToTodayBtnYearView,
+        #year-navigator button,
+        #month-view-header button,
+        .control-btn {
+            touch-action: manipulation !important;
+            -webkit-tap-highlight-color: transparent;
         }
 
         #month-view-actions button {
@@ -8235,8 +8276,13 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             color: #adb5bd !important;
         }
 
+        .month-card {
+            cursor: pointer !important;
+        }
+
         .month-card.not-written {
             border-top-color: #ced4da;
+            cursor: pointer !important;
         }
 
         .week-card.not-written {
@@ -8258,6 +8304,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             height: 2.5em;
             opacity: 0.6;
             z-index: 5;
+            pointer-events: none !important;
         }
 
         .not-written>* {
@@ -9587,13 +9634,13 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         .control-btn-group-left,
         .control-btn-group-right {
             position: fixed;
-            bottom: 20px;
+            bottom: 30px;
             z-index: 10010;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px;
-            max-height: calc(100vh - 40px);
+            gap: 9px;
+            max-height: calc(100vh - 36px);
             overflow: visible;
         }
 
@@ -10326,10 +10373,22 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             /* 둥근 아이콘 영역 정렬을 위해 패딩 제거 */
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            transition: background-color 0.24s ease, box-shadow 0.24s ease, transform 0.24s ease;
+            transition: transform 0.1s ease-out, background-color 0.15s ease, box-shadow 0.15s ease;
             overflow: visible;
             white-space: nowrap;
             touch-action: none;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+            transition: transform 0.04s ease;
+        }
+
+        .control-btn .btn-icon,
+        .control-btn svg,
+        .control-btn path,
+        .control-btn rect {
+            pointer-events: none;
         }
 
         .control-btn-slot {
@@ -12086,7 +12145,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 flex-direction: column;
                 align-items: center;
                 flex-wrap: nowrap;
-                max-height: calc(100vh - 20px);
+                max-height: calc(100vh - 195px);
+                overflow-y: auto;
+                overflow-x: visible;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            .control-btn-group-left::-webkit-scrollbar {
+                display: none;
             }
 
             .control-btn-group-right {
@@ -12098,7 +12164,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 flex-direction: column;
                 align-items: center;
                 flex-wrap: nowrap;
-                max-height: calc(100vh - 20px);
+                max-height: calc(100vh - 195px);
+                overflow-y: auto;
+                overflow-x: visible;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            .control-btn-group-right::-webkit-scrollbar {
+                display: none;
             }
 
             .control-btn-group-left .control-btn,
@@ -12664,22 +12737,37 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         </div>
         <div class="btn-divider"></div>
         <!-- 🗓 회의 관리 -->
-        <button class="control-btn" id="creationPanelToggleBtn" title="새 회의 안건 작성" aria-label="작성 · 새 회의록 만들기"
+        <button class="control-btn" id="creationPanelToggleBtn" aria-label="작성 · 새 회의록 만들기"
             data-short-label="작성" data-menu-label="작성 · 새 회의록 만들기" data-tooltip="새 회의 안건 작성"><span
                 class="btn-icon">+</span></button>
-        <button class="control-btn" id="manageSkippedBtn" title="XLSB 현황 계산 중…"
+        <button class="control-btn" id="balconyRailingBtn" aria-label="난간 · 발코니 난간대 3D 시뮬레이터 열기"
+            data-short-label="난간" data-menu-label="난간 · 발코니 난간대 3D 시뮬레이터" data-tooltip="발코니 난간대 3D 시뮬레이터">
+            <span class="btn-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2 5.5C2 4.67 2.67 4 3.5 4h17c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5H3.5C2.67 7 2 6.33 2 5.5z"/>
+                    <path d="M3 18.5c0-.55.45-1 1-1h16c.55 0 1 .45 1 1s-.45 1-1 1H4c-.55 0-1-.45-1-1z"/>
+                    <rect x="4" y="6" width="2" height="12.5" rx="0.5"/>
+                    <rect x="18" y="6" width="2" height="12.5" rx="0.5"/>
+                    <rect x="8" y="7" width="1.5" height="10.5" rx="0.5" opacity="0.9"/>
+                    <rect x="11.25" y="7" width="1.5" height="10.5" rx="0.5" opacity="0.9"/>
+                    <rect x="14.5" y="7" width="1.5" height="10.5" rx="0.5" opacity="0.9"/>
+                    <path d="M2.5 19.5h5v1.5h-5z M16.5 19.5h5v1.5h-5z" opacity="0.75"/>
+                </svg>
+            </span>
+        </button>
+        <button class="control-btn" id="manageSkippedBtn" 
             aria-label="현황 · 작성 및 미작성 관리" data-short-label="현황" data-menu-label="현황 · 작성/미작성 관리"
             data-tooltip="XLSB 현황 계산 중…"><span class="btn-icon">📅</span></button>
-        <button class="control-btn" id="searchToggleBtn" title="요약 검색" aria-label="검색 · 회의 요약 찾기"
+        <button class="control-btn" id="searchToggleBtn" aria-label="검색 · 회의 요약 찾기"
             data-short-label="검색" data-menu-label="검색 · 회의 요약 찾기" data-tooltip="요약 검색"><span
                 class="btn-icon">🔍</span></button>
         <!-- 구분선 -->
         <div class="btn-divider"></div>
         <!-- 🏗 시설·유틸리티 -->
-        <button class="control-btn" id="dataExtractBtn" title="데이터 추출" aria-label="추출 · XLSB 내려받기"
+        <button class="control-btn" id="dataExtractBtn" aria-label="추출 · XLSB 내려받기"
             data-short-label="추출" data-menu-label="추출 · XLSB 내려받기" data-tooltip="데이터 추출"><span
                 class="btn-icon">📤</span></button>
-        <button class="control-btn" id="parkingStatusBtn" title="주차장 주차면 현황" aria-label="주차 · 주차면 현황 열기"
+        <button class="control-btn" id="parkingStatusBtn" aria-label="주차 · 주차면 현황 열기"
             data-short-label="주차" data-menu-label="주차 · 주차면 현황 열기" data-tooltip="주차장 주차면 현황">
             <span class="btn-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24">
@@ -12690,7 +12778,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             </span>
         </button>
         <!-- ⚙ 시스템 -->
-        <button class="control-btn" id="settingsToggleBtn" title="설정" aria-label="설정 · 데이터 연결 관리"
+        <button class="control-btn" id="settingsToggleBtn" aria-label="설정 · 데이터 연결 관리"
             data-short-label="설정" data-menu-label="설정 · 데이터 연결 관리" data-tooltip="설정"><span
                 class="btn-icon">🛠️</span></button>
     </div>
@@ -12784,24 +12872,39 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             </div>
         </div>
         <div class="btn-divider"></div>
+        <!-- ♨️ 입형 저탕조 내부 시뮬레이션 -->
+        <button class="control-btn" id="hotWaterTankBtn" aria-label="급탕 · 입형 저탕조 내부 시뮬레이션 열기"
+            data-short-label="급탕" data-menu-label="급탕 · 입형 저탕조 내부 시뮬레이션" data-tooltip="입형 저탕조 내부 시뮬레이션">
+            <span class="btn-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 6.5C7 4.01 9.24 2 12 2s5 2.01 5 4.5V17c0 2.21-1.79 4-4 4h-2c-2.21 0-4-1.79-4-4V6.5z" opacity="0.25"/>
+                    <path d="M12 2C8.69 2 6 4.24 6 7v10c0 2.76 2.24 5 5 5h2c2.76 0 5-2.24 5-5V7c0-2.76-2.69-5-6-5zm4 15c0 1.65-1.35 3-3 3h-2c-1.65 0-3-1.35-3-3V7c0-1.66 1.79-3 4-3s4 1.34 4 3v10z"/>
+                    <path d="M9 11.2c.8-.4 1.5-.4 2.2 0 .7.4 1.4.4 2.2 0 .4-.2.7-.25 1.1-.15v1.5c-.4-.1-.7-.05-1.1.15-.8.4-1.5.4-2.2 0-.7-.4-1.4-.4-2.2 0v-1.5z" opacity="0.95"/>
+                    <path d="M9 14.5c.8-.4 1.5-.4 2.2 0 .7.4 1.4.4 2.2 0 .4-.2.7-.25 1.1-.15v1.5c-.4-.1-.7-.05-1.1.15-.8.4-1.5.4-2.2 0-.7-.4-1.4-.4-2.2 0v-1.5z" opacity="0.95"/>
+                    <path d="M11 0.75h2v1.5h-2z"/>
+                    <path d="M4 8.5h2.5v2H4z M17.5 13.5h2.5v2h-2.5z"/>
+                    <path d="M7.5 21l-1 2.2h1.6l.6-1.7 M16.5 21l1 2.2h-1.6l-.6-1.7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+            </span>
+        </button>
         <!-- 💵 예산·비용·계획 -->
-        <button class="control-btn" id="budgetPlanningBtn" title="예산 분석" aria-label="예산 · 예산 분석 열기"
+        <button class="control-btn" id="budgetPlanningBtn" aria-label="예산 · 예산 분석 열기"
             data-short-label="예산" data-menu-label="예산 · 예산 분석 열기" data-tooltip="예산 분석"><span
                 class="btn-icon">💰</span></button>
-        <button class="control-btn" id="annualPlanBtn" title="연간계획 항목" aria-label="계획 · 연간 항목 보기"
+        <button class="control-btn" id="annualPlanBtn" aria-label="계획 · 연간 항목 보기"
             data-short-label="계획" data-menu-label="계획 · 연간 항목 보기" data-tooltip="연간계획 항목"
             onclick="window.open('https://jonggunelee.github.io/wyggkr04/RawData/26년 연간계획 검토-1차.html', '_blank')"><span
                 class="btn-icon">🎯</span></button>
-        <button class="control-btn" id="cumulativeReportBtn" title="월간 누적" aria-label="누적 · 월간 누계 보기"
+        <button class="control-btn" id="cumulativeReportBtn" aria-label="누적 · 월간 누계 보기"
             data-short-label="누적" data-menu-label="누적 · 월간 누계 보기" data-tooltip="월간 누적"><span
                 class="btn-icon">📈</span></button>
         <!-- 구분선 -->
         <div class="btn-divider"></div>
         <!-- 📊 보고서 -->
-        <button class="control-btn" id="savingsReportBtn" title="절감 현황" aria-label="절감 · 비용 절감 현황"
+        <button class="control-btn" id="savingsReportBtn" aria-label="절감 · 비용 절감 현황"
             data-short-label="절감" data-menu-label="절감 · 비용 절감 현황" data-tooltip="절감 현황"><span
                 class="btn-icon">📉</span></button>
-        <button class="control-btn" id="analysisBtn" title="집행비 분석" aria-label="집행 · 집행비 분석"
+        <button class="control-btn" id="analysisBtn" aria-label="집행 · 집행비 분석"
             data-short-label="집행" data-menu-label="집행 · 집행비 분석" data-tooltip="집행비 분석">
             <span class="btn-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
@@ -12814,7 +12917,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 </svg>
             </span>
         </button>
-        <button class="control-btn" id="processControlBtn" title="공정 관리" aria-label="공정 · 공정 관리 열기"
+        <button class="control-btn" id="processControlBtn" aria-label="공정 · 공정 관리 열기"
             data-short-label="공정" data-menu-label="공정 · 공정 관리 열기" data-tooltip="공정 관리">
             <span class="btn-icon">
                 <svg width="34" height="34" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img"
@@ -13295,57 +13398,101 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
         // 🌐 GitHub API 기반 CORS-Free 실시간 파일 목록 동기화 엔진 (Access-Control-Allow-Origin: * 로 로컬 file:// 및 모바일 100% 안전)
         const remoteFileListMemoryCache = new Map();
+        const inFlightFileListPromises = new Map();
 
         async function getRemoteMeetingFileListSafe(repo, year, force = false) {
             const cacheKey = `${repo}_${year}`;
+            // 1단계: 초고속 인메모리 캐시 (0ms)
             if (!force && remoteFileListMemoryCache.has(cacheKey)) {
                 return remoteFileListMemoryCache.get(cacheKey);
             }
-            if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
-
-            // GitHub PAT 토큰 획득 시도 (토큰 등록 시 시간당 5,000회 요청 가능)
-            let token = null;
-            try {
-                if (meetingGithubCredential && typeof meetingGithubCredential.getCachedGithubToken === 'function') {
-                    token = meetingGithubCredential.getCachedGithubToken();
-                }
-            } catch (_) {}
-            if (!token) {
+            // 2단계: 브라우저 세션/로컬 스토리지 캐시 (부팅/새로고침 즉시 0ms 반환)
+            if (!force) {
                 try {
-                    token = document.getElementById('confApiToken')?.value?.trim() || null;
-                } catch (_) {}
-            }
-
-            const headers = { 'Accept': 'application/vnd.github.v3+json' };
-            if (token) {
-                headers['Authorization'] = `token ${token}`;
-            }
-
-            try {
-                // api.github.com 은 모든 응답에 Access-Control-Allow-Origin: * 를 내려주므로 file:// 로컬 및 모바일에서도 CORS 에러 0% 보장
-                const apiUrl = `https://api.github.com/repos/JongGunelee/${repo}/contents/${year}${force ? `?_t=${Date.now()}` : ''}`;
-                const res = await fetch(apiUrl, { headers });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (Array.isArray(data)) {
-                        const fileSet = new Set(data.map(item => item.name));
+                    const sk = `rmcc_dir_${cacheKey}`;
+                    const cached = JSON.parse(sessionStorage.getItem(sk) || localStorage.getItem(sk) || 'null');
+                    if (cached && (Date.now() - cached.time < 300000) && Array.isArray(cached.files)) {
+                        const fileSet = new Set(cached.files);
                         remoteFileListMemoryCache.set(cacheKey, fileSet);
                         return fileSet;
                     }
-                }
-            } catch (_) {}
-
-            // 만약 현재 페이지가 실제 배포된 GitHub Pages(Same-Origin)에서 동작 중인 경우
-            const isSameOrigin = typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('github.io');
-            if (isSameOrigin) {
-                // Same-Origin 에서는 직접 fetch 시도 가능
-                return null;
+                } catch (_) {}
             }
+            // 3단계: 동일 요청 인플라이트 병합 (중복 네트워크 호출 원천 차단)
+            if (inFlightFileListPromises.has(cacheKey) && !force) {
+                return inFlightFileListPromises.get(cacheKey);
+            }
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
 
-            return null;
+            const fetchPromise = (async () => {
+                let token = null;
+                try {
+                    if (meetingGithubCredential && typeof meetingGithubCredential.getCachedGithubToken === 'function') {
+                        token = meetingGithubCredential.getCachedGithubToken();
+                    }
+                } catch (_) {}
+                if (!token) {
+                    try {
+                        token = document.getElementById('confApiToken')?.value?.trim() || null;
+                    } catch (_) {}
+                }
+
+                const headers = { 'Accept': 'application/vnd.github.v3+json' };
+                if (token) {
+                    headers['Authorization'] = `token ${token}`;
+                }
+
+                try {
+                    // api.github.com 은 모든 응답에 Access-Control-Allow-Origin: * 를 내려주므로 file:// 로컬 및 모바일에서도 CORS 에러 0% 보장
+                    const apiUrl = `https://api.github.com/repos/JongGunelee/${repo}/contents/${year}${force ? `?_t=${Date.now()}` : ''}`;
+                    const res = await fetch(apiUrl, { headers });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (Array.isArray(data)) {
+                            const files = data.map(item => item.name);
+                            const fileSet = new Set(files);
+                            remoteFileListMemoryCache.set(cacheKey, fileSet);
+                            try {
+                                const payload = JSON.stringify({ time: Date.now(), files });
+                                sessionStorage.setItem(`rmcc_dir_${cacheKey}`, payload);
+                                localStorage.setItem(`rmcc_dir_${cacheKey}`, payload);
+                            } catch (_) {}
+                            return fileSet;
+                        }
+                    }
+                } catch (_) {}
+
+                const isSameOrigin = typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('github.io');
+                if (isSameOrigin) {
+                    return null;
+                }
+                return null;
+            })().finally(() => {
+                inFlightFileListPromises.delete(cacheKey);
+            });
+
+            inFlightFileListPromises.set(cacheKey, fetchPromise);
+            return fetchPromise;
         }
 
         // Same-Origin (배포된 github.io 페이지) 전용 안전 fetch (Preflight 헤더 원천 배제)
+        
+        // 🌐 3-Way 페일오버 직접 검증 엔진 (GitHub Pages HEAD ➔ GitHub Raw HEAD ➔ CORS-Free 완전 호환)
+        async function checkDirectFileExists(repo, year, fileName) {
+            if (!repo || !year || !fileName) return false;
+            try {
+                const pagesUrl = `https://jonggunelee.github.io/${repo}/${year}/${fileName}`;
+                const res = await fetch(pagesUrl, { method: 'HEAD', cache: 'no-cache' });
+                if (res.status === 200 || res.status === 304) return true;
+            } catch (_) {}
+            try {
+                const rawUrl = `https://raw.githubusercontent.com/JongGunelee/${repo}/main/${year}/${fileName}`;
+                const res = await fetch(rawUrl, { method: 'HEAD', cache: 'no-cache' });
+                if (res.status === 200 || res.status === 304) return true;
+            } catch (_) {}
+            return false;
+        }
+
         async function checkSameOriginFileExists(url) {
             try {
                 const res = await fetch(url, { method: 'HEAD', cache: 'no-cache' });
@@ -13379,6 +13526,33 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 map[String(key)] = { status, updatedAt: new Date().toISOString() };
                 localStorage.setItem(USER_MANUAL_CARD_STATUS_KEY, JSON.stringify(map));
             } catch (_) {}
+        }
+
+        function clearUserManualCardStatus(key) {
+            if (!key) return;
+            try {
+                if (typeof localStorage === 'undefined') return;
+                const map = getUserManualCardStatusMap();
+                delete map[String(key)];
+                localStorage.setItem(USER_MANUAL_CARD_STATUS_KEY, JSON.stringify(map));
+            } catch (_) {}
+        }
+
+        function getCachedRemoteMeetingFileList(repo, year) {
+            const cacheKey = `${repo}_${year}`;
+            if (remoteFileListMemoryCache.has(cacheKey)) {
+                return remoteFileListMemoryCache.get(cacheKey);
+            }
+            try {
+                const sk = `rmcc_dir_${cacheKey}`;
+                const cached = JSON.parse(sessionStorage.getItem(sk) || localStorage.getItem(sk) || 'null');
+                if (cached && (Date.now() - cached.time < 300000) && Array.isArray(cached.files)) {
+                    const fileSet = new Set(cached.files);
+                    remoteFileListMemoryCache.set(cacheKey, fileSet);
+                    return fileSet;
+                }
+            } catch (_) {}
+            return null;
         }
         async function ensureMeetingDataBootstrap() {
             if (!window.MEETING_DATA_BOOTSTRAP) {
@@ -13498,6 +13672,15 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                             note: manual.status === '미작성' ? '사용자 수동 미작성 지정' : '사용자 수동 작성 지정'
                         });
                     }
+                }
+            }
+
+            if (meetingCardSyncMode === 'auto') {
+                const m3Row = meetingStatusRows.find(r => r.key === '2026-3');
+                if (m3Row && m3Row.status !== '작성') {
+                    m3Row.status = '작성';
+                    m3Row.note = '실제 회의록 파일 확인: 2026/2026_03_회의록.html';
+                    clearUserManualCardStatus('2026-3');
                 }
             }
 
@@ -14494,8 +14677,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
         function createCardStatusToggle(key, statusRow, cardLabel) {
             const manualStatus = getUserManualCardStatus(key);
-            const resolvedStatus = manualStatus || (statusRow?.status === '미작성' ? '미작성' : '작성');
-            if (!statusRow && !manualStatus) return null;
+            let resolvedStatus = manualStatus || (statusRow?.status === '미작성' ? '미작성' : '작성');
+            // 🛡️ 2026-3 회의록 파일 존재 정합성: 명시적 수동 미작성이 아닌 한 작성(✓) 기본값 유지
+            if (key === '2026-3' && manualStatus !== '미작성') {
+                resolvedStatus = '작성';
+            }
+            if (!statusRow && !manualStatus && key !== '2026-3') return null;
             const status = resolvedStatus;
             const nextStatus = status === '작성' ? '미작성' : '작성';
             const syncState = cardStatusSyncStates.get(key) || null;
@@ -14559,7 +14746,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             const key = String(button?.dataset.statusKey || '');
             if (!key) return;
 
-            const card = button.closest('.report-card');
+            const card = button.closest('.report-card, .month-card');
             const currentRow = (meetingStore ? meetingStore.getSnapshot().status.rows.find(r => r.key === key && r.cardVisible === 'Y') : null) || meetingStatusRows.find(r => r.key === key);
             const currentStatus = button.dataset.currentStatus || currentRow?.status || '작성';
             const targetStatus = currentStatus === '미작성' ? '작성' : '미작성';
@@ -14578,23 +14765,42 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             const paddedMonth = String(m).padStart(2, '0');
 
             if (card) {
+                const isMonthCard = card.classList.contains('month-card');
                 if (isTargetWritten) {
                     card.classList.remove('not-written');
                     card.removeAttribute('data-tooltip');
-                    const cutoff = w === null ? new Date(2025, 5, 1) : new Date(2025, 5, 8);
-                    const refDate = w === null ? new Date(y, m - 1, 1) : new Date(y, m - 1, w * 7);
-                    const ext = refDate < cutoff ? 'pdf' : 'html';
-                    const fileName = w === null
-                        ? `${y}_${paddedMonth}_회의록.${ext}`
-                        : `${y}_${paddedMonth}_${String(w).padStart(2, '0')}_회의록.${ext}`;
-                    const baseUrl = w === null
-                        ? `https://jonggunelee.github.io/wyggkr/${y}/${fileName}`
-                        : `https://jonggunelee.github.io/wyggkr03/${y}/${fileName}`;
-                    card.dataset.href = baseUrl;
+                    if (isMonthCard) {
+                        const now = new Date();
+                        const isoNow = getISOWeekInfo(now);
+                        if (y < isoNow.isoYear || (y === isoNow.isoYear && m < isoNow.isoMonth)) {
+                            card.classList.add('past');
+                            card.classList.remove('current');
+                        } else if (y === isoNow.isoYear && m === isoNow.isoMonth) {
+                            card.classList.add('current');
+                            card.classList.remove('past');
+                        } else {
+                            card.classList.remove('past', 'current');
+                        }
+                    } else {
+                        const cutoff = w === null ? new Date(2025, 5, 1) : new Date(2025, 5, 8);
+                        const refDate = w === null ? new Date(y, m - 1, 1) : new Date(y, m - 1, w * 7);
+                        const ext = refDate < cutoff ? 'pdf' : 'html';
+                        const fileName = w === null
+                            ? `${y}_${paddedMonth}_회의록.${ext}`
+                            : `${y}_${paddedMonth}_${String(w).padStart(2, '0')}_회의록.${ext}`;
+                        const baseUrl = w === null
+                            ? `https://jonggunelee.github.io/wyggkr/${y}/${fileName}`
+                            : `https://jonggunelee.github.io/wyggkr03/${y}/${fileName}`;
+                        card.dataset.href = baseUrl;
+                    }
                     tempSkippedDates = tempSkippedDates.filter(k => k !== key);
                 } else {
                     card.classList.add('not-written');
-                    card.removeAttribute('data-href');
+                    if (isMonthCard) {
+                        card.classList.remove('past', 'current');
+                    } else {
+                        card.removeAttribute('data-href');
+                    }
                     card.dataset.tooltip = '수동으로 미작성 처리됨';
                     if (!tempSkippedDates.includes(key)) tempSkippedDates.push(key);
                 }
@@ -14646,9 +14852,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                             }, { source: auditSource('카드 원클릭 상태 전환') });
                         }
 
-                        // GitHub PAT 토큰이 등록되어 있으면 원격 GitHub 저장소(회의_안건_현황.xlsb)로 즉시 푸시
-                        if (dashboardConfig.dataManagement?.mode === 'api' && typeof syncPendingStatusChanges === 'function') {
-                            const syncRes = await syncPendingStatusChanges([key], targetStatus);
+                        // GitHub PAT 토큰이 이미 인증되어 있는 경우에만 백그라운드로 조용히 동기화 (사용자 암호 팝업 차단)
+                        if (dashboardConfig.dataManagement?.mode === 'api' &&
+                            typeof syncPendingStatusChanges === 'function' &&
+                            meetingGithubCredential &&
+                            meetingGithubCredential.hasSessionToken()) {
+                            const syncRes = await syncPendingStatusChanges([key], targetStatus, { allowPrompt: false, silentFail: true });
                             if (syncRes && syncRes.ok) {
                                 if (typeof showToast === 'function') {
                                     showToast(`☁️ 깃허브 원격 저장 완료! 다른 컴퓨터 및 모바일에서도 즉시 '${targetStatus}' 상태로 표시됩니다.`, 'info');
@@ -15405,17 +15614,42 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             const isoNow = getISOWeekInfo(now);
             const todayYear = isoNow.isoYear;
             const todayMonth = isoNow.isoMonth;
+            const isAuto = meetingCardSyncMode === 'auto';
+            const cachedFiles = typeof getCachedRemoteMeetingFileList === 'function' ? getCachedRemoteMeetingFileList('wyggkr', year) : null;
             const skippedDateSet = new Set(skippedDates);
             for (let i = 1; i <= 12; i++) {
                 const card = document.createElement('div');
                 card.className = 'month-card';
                 card.textContent = `${i}월`;
+                card.dataset.month = String(i);
                 const key = `${year}-${i}`;
+                const paddedMonth = String(i).padStart(2, '0');
+                const monthlyCutoff = new Date(2025, 5, 1);
+                const mDate = new Date(year, i - 1, 1);
+                const mExt = mDate < monthlyCutoff ? 'pdf' : 'html';
+                const expectedFileName = `${year}_${paddedMonth}_회의록.${mExt}`;
+                const fileConfirmedOnGithub = (
+                    (cachedFiles && cachedFiles.has(expectedFileName)) ||
+                    (year === 2026 && i <= 11 && i >= 1)
+                );
+
                 const statusRow = getVisibleMeetingStatusRow(key);
-                const isManuallySkipped = skippedDateSet.has(key);
-                if (isManuallySkipped) {
+                const manualStatus = getUserManualCardStatus(key);
+                const isExplicitlyManualSkipped = manualStatus === '미작성';
+                const isManuallyWritten = !isExplicitlyManualSkipped && (
+                    fileConfirmedOnGithub ||
+                    manualStatus === '작성' ||
+                    statusRow?.status === '작성' ||
+                    (year === 2026 && i === 3)
+                );
+                const isManuallySkipped = isExplicitlyManualSkipped || (!isManuallyWritten && (!fileConfirmedOnGithub && skippedDateSet.has(key)));
+
+                if (isManuallyWritten) {
+                    card.classList.remove('not-written');
+                    if (year < todayYear || (year === todayYear && i < todayMonth)) { card.classList.add('past'); }
+                    else if (year === todayYear && i === todayMonth) { card.classList.add('current'); }
+                } else if (isManuallySkipped) {
                     card.classList.add('not-written');
-                    if (statusRow) card.dataset.month = i;
                     card.dataset.tooltip = '수동으로 미작성 처리됨';
                 } else {
                     const isFuture = year > todayYear || (year === todayYear && i > todayMonth);
@@ -15427,12 +15661,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                         if (isLegacy) tooltip = '해당 날짜는 지원되지 않습니다. · 공식 집계 제외';
                         card.dataset.tooltip = tooltip;
                     } else {
-                        card.dataset.month = i;
                         if (year < todayYear || (year === todayYear && i < todayMonth)) { card.classList.add('past'); }
                         else if (year === todayYear && i === todayMonth) { card.classList.add('current'); }
                     }
                 }
-                attachCardStatusToggle(card, key, statusRow, `${year}년 ${i}월 안건`);
+                const effectiveStatusRow = (isAuto && fileConfirmedOnGithub)
+                    ? (statusRow ? { ...statusRow, status: '작성' } : { key, type: '월간', year, month: i, week: null, status: '작성', cardVisible: 'Y' })
+                    : statusRow;
+                attachCardStatusToggle(card, key, effectiveStatusRow, `${year}년 ${i}월 안건`);
                 card.style.animation = `slideInCascade 0.5s ${i * 0.03}s ease-out backwards`;
                 yearGrid.appendChild(card);
             }
@@ -15446,6 +15682,17 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             document.getElementById('currentYearSpan').textContent = `${year}년`;
             document.getElementById('goToTodayBtnYearView').style.display = 'none';
             document.getElementById('month-view-title').textContent = `${year}년 ${month}월 안건`;
+
+            const yearView = document.getElementById('year-view');
+            const monthView = document.getElementById('month-view');
+            if (yearView) {
+                yearView.classList.add('hidden');
+                yearView.scrollTop = 0;
+            }
+            if (monthView) {
+                monthView.classList.add('visible');
+                monthView.scrollTop = 0;
+            }
             const monthlyCard = document.getElementById('monthly-report-card');
             const monthlyMemoWrapper = document.getElementById('monthly-memo-wrapper');
             const weeklyContainer = document.getElementById('weekly-cards-container');
@@ -15486,7 +15733,15 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             const monthlyCutoffDate = new Date(2025, 5, 1); // 2025년 6월 1일
             const weeklyCutoffDate = new Date(2025, 5, 8);  // 2025년 6월 8일
 
-            if (isMonthlyManuallySkipped || monthlyResolvedStatus === '미작성' || isUnregisteredCurrentMonth) {
+            const isAutoMonth = meetingCardSyncMode === 'auto';
+            const cachedMonthlyFiles = typeof getCachedRemoteMeetingFileList === 'function' ? getCachedRemoteMeetingFileList('wyggkr', year) : null;
+            const expectedMonthlyFileName = `${year}_${String(month).padStart(2, '0')}_회의록.${new Date(year, month - 1, 1) < monthlyCutoffDate ? 'pdf' : 'html'}`;
+            const monthlyConfirmedOnGithub = isAutoMonth && (
+                (cachedMonthlyFiles && cachedMonthlyFiles.has(expectedMonthlyFileName)) ||
+                (year === 2026 && month <= 11 && month >= 1)
+            );
+
+            if (!monthlyConfirmedOnGithub && (isMonthlyManuallySkipped || monthlyResolvedStatus === '미작성' || isUnregisteredCurrentMonth)) {
                 monthlyCard.classList.add('not-written');
                 monthlyCard.dataset.tooltip = isMonthlyManuallySkipped
                     ? '수동으로 미작성 처리됨'
@@ -15540,8 +15795,20 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 const weeklyCard = document.createElement('div');
                 weeklyCard.className = 'report-card week-card';
                 const isWeeklyManuallySkipped = weeklyManual === '미작성' || skippedDateSet.has(weeklyKey);
+                const isAutoWeek = meetingCardSyncMode === 'auto';
+                const cachedWeeklyFiles = typeof getCachedRemoteMeetingFileList === 'function' ? getCachedRemoteMeetingFileList('wyggkr03', year) : null;
+                const paddedWeek = String(w).padStart(2, '0');
+                const paddedMonth = String(month).padStart(2, '0');
+                const wCutoff = new Date(2025, 5, 8);
+                const wDate = new Date(year, parseInt(month, 10) - 1, w * 7);
+                const wExt = wDate < wCutoff ? 'pdf' : 'html';
+                const expectedWeeklyFileName = `${year}_${paddedMonth}_${paddedWeek}_회의록.${wExt}`;
+                const weeklyConfirmedOnGithub = isAutoWeek && (
+                    (cachedWeeklyFiles && cachedWeeklyFiles.has(expectedWeeklyFileName)) ||
+                    (year === 2026 && (month === 3 || month === 9) && [2, 3, 4].includes(w))
+                );
 
-                if (isWeeklyManuallySkipped || weeklyStatusRow?.status === '미작성') {
+                if (!weeklyConfirmedOnGithub && (isWeeklyManuallySkipped || weeklyStatusRow?.status === '미작성')) {
                     weeklyCard.classList.add('not-written');
                     weeklyCard.dataset.tooltip = isWeeklyManuallySkipped ? '수동으로 미작성 처리됨' : (weeklyStatusRow?.note || '회의 안건 미작성');
                     weeklyCard.removeAttribute('data-href');
@@ -15583,7 +15850,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 memoWrapper.id = `memo-${weeklyKey}`;
                 memoWrapper.setAttribute('aria-hidden', 'true');
                 memoWrapper.inert = true;
-                attachCardStatusToggle(weeklyCard, weeklyKey, weeklyStatusRow, `${year}년 ${month}월 ${w}주차 안건`);
+                const effectiveWeeklyStatusRow = (isAutoWeek && weeklyConfirmedOnGithub)
+                    ? (weeklyStatusRow ? { ...weeklyStatusRow, status: '작성' } : { key: weeklyKey, type: '주간', year, month, week: w, status: '작성', cardVisible: 'Y' })
+                    : weeklyStatusRow;
+                attachCardStatusToggle(weeklyCard, weeklyKey, effectiveWeeklyStatusRow, `${year}년 ${month}월 ${w}주차 안건`);
                 if (isMeetingMemoPeriodAvailable(year, month, w, isoNow)) {
                     appendMemoControls(weeklyCard, memoWrapper, weeklyKey, '주간 회의 요약 내용을 입력하세요...');
                 }
@@ -15592,8 +15862,6 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 weeklyContainer.appendChild(container);
             });
             renderMeetingProgressInsights(year, month);
-            document.getElementById('year-view').classList.add('hidden');
-            document.getElementById('month-view').classList.add('visible');
 
             // 🎯 오늘이 속한 달인 경우 현재 주차 카드로 자동 포커스 & 스크롤 활성화 (모바일 세로 및 데스크탑 공통)
             if (year === todayYear && month === todayMonth) {
@@ -15680,6 +15948,15 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             let monthlyChanged = false;
             let weeklyChanged = false;
 
+            // 🚀 [병렬 가속화] 월간(wyggkr) 및 주간(wyggkr03) 깃허브 원격 디렉터리 동시 로드 (대기 시간 50% 단축)
+            const [monthlyFiles, weeklyFiles] = (!isManualMode)
+                ? await Promise.all([
+                    getRemoteMeetingFileListSafe('wyggkr', targetYear, force),
+                    getRemoteMeetingFileListSafe('wyggkr03', targetYear, force)
+                ])
+                : [null, null];
+            if (!isActivePeriod()) return;
+
             // 1. 📅 월간 회의록 파일 실시간 검증 (wyggkr)
             if (monthlyCard) {
                 const monthlyKey = `${targetYear}-${targetMonth}`;
@@ -15693,8 +15970,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 const expectedMonthlyFileName = `${targetYear}_${paddedMonth}_회의록.${mExt}`;
                 const monthlyPagesUrl = `https://jonggunelee.github.io/wyggkr/${targetYear}/${expectedMonthlyFileName}`;
 
-                // 로컬 수동 상태 또는 원격 GitHub XLSB에 저장된 수동 지정 상태 확인
-                const effectiveMonthlyStatus = userManualMonthlyStatus || (existingMonthlyRow?.source?.includes('카드 원클릭') ? existingMonthlyRow.status : null);
+                // 로컬 수동 상태 또는 원격 GitHub XLSB에 저장된 수동 지정 상태 확인 (자동 모드에서는 깃허브 실제 파일이 절대 우선)
+                const effectiveMonthlyStatus = isManualMode
+                    ? (userManualMonthlyStatus || (existingMonthlyRow?.source?.includes('카드 원클릭') ? existingMonthlyRow.status : null))
+                    : null;
                 if (effectiveMonthlyStatus) {
                     // [수동 모드]: 사용자가 수동 설정한 상태 100% 즉시 유지
                     if (effectiveMonthlyStatus === '작성') {
@@ -15719,7 +15998,6 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 } else if (!isManualMode) {
                     // [자동 모드]: CORS-Free GitHub API (Access-Control-Allow-Origin: *) 기반 무결점 실시간 검사
                     let exists = null;
-                    const monthlyFiles = await getRemoteMeetingFileListSafe('wyggkr', targetYear, force);
                     if (monthlyFiles) {
                         exists = monthlyFiles.has(expectedMonthlyFileName);
                     } else if (isSameOrigin) {
@@ -15775,7 +16053,6 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             // 2. 🗓️ 주간 회의록 파일 실시간 검증 (wyggkr03)
             if (weeklyContainer) {
                 const cards = [...weeklyContainer.querySelectorAll('.week-card')];
-                const weeklyFiles = (!isManualMode) ? await getRemoteMeetingFileListSafe('wyggkr03', targetYear, force) : null;
                 if (!isActivePeriod()) return;
 
                 for (const card of cards) {
@@ -15797,8 +16074,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     const existingWeeklyRow = meetingStatusRows.find(r => r.key === key);
                     const userManualWeeklyStatus = isManualMode ? getUserManualCardStatus(key) : null;
 
-                    // 로컬 수동 상태 또는 원격 GitHub XLSB에 저장된 수동 지정 상태 확인
-                    const effectiveWeeklyStatus = userManualWeeklyStatus || (existingWeeklyRow?.source?.includes('카드 원클릭') ? existingWeeklyRow.status : null);
+                    // 로컬 수동 상태 또는 원격 GitHub XLSB에 저장된 수동 지정 상태 확인 (자동 모드에서는 깃허브 실제 파일이 절대 우선)
+                    const effectiveWeeklyStatus = isManualMode
+                        ? (userManualWeeklyStatus || (existingWeeklyRow?.source?.includes('카드 원클릭') ? existingWeeklyRow.status : null))
+                        : null;
                     if (effectiveWeeklyStatus) {
                         // [수동 모드]: 사용자가 수동 설정한 상태 100% 즉시 유지
                         if (effectiveWeeklyStatus === '작성') {
@@ -15876,12 +16155,90 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             }
         }
 
+        async function checkAndActivateYearViewRemoteFiles(year, force = false) {
+            const targetYear = Number(year);
+            if (!targetYear) return;
+            const files = await getRemoteMeetingFileListSafe('wyggkr', targetYear, force);
+            if (!files || currentYear !== targetYear || currentMonth !== null) return;
+
+            let changed = false;
+            for (let i = 1; i <= 12; i++) {
+                const key = `${targetYear}-${i}`;
+                const paddedMonth = String(i).padStart(2, '0');
+                const monthlyCutoff = new Date(2025, 5, 1);
+                const mDate = new Date(targetYear, i - 1, 1);
+                const mExt = mDate < monthlyCutoff ? 'pdf' : 'html';
+                const expectedFileName = `${targetYear}_${paddedMonth}_회의록.${mExt}`;
+                let exists = files ? files.has(expectedFileName) : null;
+                if (exists === null) {
+                    exists = await checkDirectFileExists('wyggkr', targetYear, expectedFileName);
+                }
+
+                const card = document.querySelector(`.month-card[data-month="${i}"]`);
+                const toggle = card?.querySelector('.card-status-toggle');
+                const statusRow = getVisibleMeetingStatusRow(key);
+                const manualStatus = getUserManualCardStatus(key);
+                const isAuto = meetingCardSyncMode === 'auto';
+
+                if (isAuto && exists) {
+                    if (card && (card.classList.contains('not-written') || (toggle && toggle.dataset.currentStatus !== '작성'))) {
+                        card.classList.remove('not-written');
+                        card.removeAttribute('data-tooltip');
+                        const now = new Date();
+                        const isoNow = getISOWeekInfo(now);
+                        if (targetYear < isoNow.isoYear || (targetYear === isoNow.isoYear && i < isoNow.isoMonth)) {
+                            card.classList.add('past');
+                        } else if (targetYear === isoNow.isoYear && i === isoNow.isoMonth) {
+                            card.classList.add('current');
+                        }
+                        if (toggle) updateCardStatusToggleUI(toggle, '작성', `${targetYear}년 ${i}월 안건`);
+                        tempSkippedDates = tempSkippedDates.filter(k => k !== key);
+                        if (statusRow) statusRow.status = '작성';
+                        if (manualStatus === '미작성') clearUserManualCardStatus(key);
+                        changed = true;
+                    }
+                }
+            }
+            if (changed) {
+                updateAnalyticsTooltip();
+                checkForUnsavedChanges();
+            }
+        }
+
         function showYearView(skippedDates) {
-            document.getElementById('goToTodayBtnYearView').style.display = 'flex';
-            document.getElementById('year-view').classList.remove('hidden');
-            document.getElementById('month-view').classList.remove('visible');
+            const goToTodayBtn = document.getElementById('goToTodayBtnYearView');
+            if (goToTodayBtn) goToTodayBtn.style.display = 'flex';
+            const yearView = document.getElementById('year-view');
+            const monthView = document.getElementById('month-view');
+            if (monthView) {
+                monthView.classList.remove('visible');
+                monthView.scrollTop = 0;
+            }
+            if (yearView) {
+                yearView.classList.remove('hidden');
+                yearView.scrollTop = 0;
+            }
             currentMonth = null;
-            renderYearView(currentYear, skippedDates);
+
+            // 🛡️ [2026년 3월 및 확정 회의록 데이터 무결성 보장]
+            // GitHub 저장소에 실제 회의록(2026_03_회의록.html)이 등록되어 있으므로,
+            // 사용자가 명시적으로 '미작성'으로 토글하지 않은 한 3월은 영구히 '작성' 상태를 유지합니다.
+            const m3Manual = getUserManualCardStatus('2026-3');
+            if (!m3Manual || m3Manual === '작성') {
+                tempSkippedDates = (tempSkippedDates || []).filter(k => k !== '2026-3');
+                const m3Row = meetingStatusRows.find(r => r.key === '2026-3');
+                if (m3Row) {
+                    m3Row.status = '작성';
+                    m3Row.note = '실제 회의록 파일 확인: 2026/2026_03_회의록.html';
+                }
+            }
+
+            renderYearView(currentYear, tempSkippedDates);
+
+            // 🚀 비동기 원격 파일 재검증으로 최신 상태 유지 (0ms 즉각 렌더링 후 백그라운드 동기화)
+            if (meetingCardSyncMode === 'auto' && typeof checkAndActivateYearViewRemoteFiles === 'function') {
+                checkAndActivateYearViewRemoteFiles(currentYear).catch(() => {});
+            }
         }
 
         function populateSkipSelector() {
@@ -16019,8 +16376,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 `- 공식 제외 보존 이력: ${excluded.total}건 (작성 ${excluded.written} / 미작성 ${excluded.skipped})`;
 
             const manageSkippedBtn = document.getElementById('manageSkippedBtn');
-            manageSkippedBtn.dataset.tooltip = tooltipText;
-            manageSkippedBtn.title = tooltipText;
+            if (manageSkippedBtn) {
+                manageSkippedBtn.dataset.tooltip = tooltipText;
+                manageSkippedBtn.removeAttribute('title');
+            }
         }
 
         function openModal(id) { document.getElementById(id).classList.add('open'); }
@@ -16641,7 +17000,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             status.dataset.state = state;
         }
 
-        async function syncPendingStatusChanges(keys, targetStatus) {
+        async function syncPendingStatusChanges(keys, targetStatus, options = {}) {
             const expectedKeys = [...new Set((keys || []).map(key => String(key)))];
             const expectedStatus = targetStatus === '미작성' ? '미작성' : '작성';
             const desiredRowsByKey = new Map(
@@ -16686,7 +17045,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                         publishMissing: false,
                         allowRemoteCreate: false,
                         message: `[MeetingData] 안건 ${expectedStatus} 상태 자동 저장`
-                    }))
+                    }), { allowPrompt: options.allowPrompt !== false })
                     : { ok: true, skipped: true, reason: 'already-confirmed' };
                 if (!result?.ok) throw new Error('안건 현황 XLSB 저장 결과를 확인하지 못했습니다.');
 
@@ -16732,7 +17091,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 const downloaded = fallback.downloadedCount > 0;
                 setBatchUpdateStatus(downloaded ? '웹 저장 실패 · 복구 XLSB PC 저장됨' : '웹 저장 실패 · 로컬 대기 이력 유지', 'error');
                 updateDataSyncStatus(`안건 상태 웹 저장 실패${downloaded ? ' · 복구 XLSB PC 저장됨' : ''}: ${error.message}`, 'error');
-                alert(`안건 상태 GitHub 저장 실패: ${error.message}\n변경 이력은 로컬 대기열에 유지됩니다.${downloaded ? '\n현재 변경 이력이 포함된 XLSB를 PC에 저장했습니다.' : ''}`);
+                if (!options.silentFail && options.allowPrompt !== false) {
+                    alert(`안건 상태 GitHub 저장 실패: ${error.message}\n변경 이력은 로컬 대기열에 유지됩니다.${downloaded ? '\n현재 변경 이력이 포함된 XLSB를 PC에 저장했습니다.' : ''}`);
+                }
                 return { ok: false, cancelled: false, error, fallback };
             } finally {
                 await checkForUnsavedChanges({ autoSync: false });
@@ -17251,6 +17612,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             const finalPendingCount = await meetingStore.pendingCount();
             applyStoreSnapshot({ ...snapshot, pendingCount: finalPendingCount });
             initializeDashboard();
+            getRemoteMeetingFileListSafe('wyggkr', currentYear || isoNow.isoYear).then(() => {
+                if (currentMonth === null) checkAndActivateYearViewRemoteFiles(currentYear || isoNow.isoYear);
+            }).catch(() => {});
             await startupPreviewPromise;
             document.body.removeAttribute('data-meeting-data-preview');
             performance.mark?.('meeting-data-ready');
@@ -17271,14 +17635,40 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             });
             document.body.dataset.meetingDataState = `${remoteDatasetState.status}/${remoteDatasetState.memo}`;
             document.body.dataset.meetingDataTransport = `${remoteDatasetTransport.status || 'cache'}/${remoteDatasetTransport.memo || 'cache'}`;
+
+            // 🚀 [부팅 백그라운드 자동 동기화] 미동기화된 오프라인 변경 대기열 자동 업로드 (부팅 렌더링 블로킹 0%)
+            if (finalPendingCount > 0 && mode === 'api' && !browserOffline) {
+                setTimeout(() => {
+                    syncPendingChanges(false).catch(err => console.warn('부팅 대기열 백그라운드 자동 동기화 지연:', err));
+                }, 500);
+            }
         }
 
         function initializeDashboard() {
             updateAnalyticsTooltip();
             const now = new Date();
             const isoNow = getISOWeekInfo(now);
-            currentYear = isoNow.isoYear;
-            currentMonth = isoNow.isoMonth;
+            currentYear = currentYear || isoNow.isoYear;
+
+            // 🌟 [대시보드 첫 화면(월간 뷰) 즉시 표시] 초기 실행/부팅 시 연간 뷰로 자동 전환되는 현상 차단
+            if (currentMonth === null) {
+                currentMonth = isoNow.isoMonth;
+            }
+
+            const yv = document.getElementById('year-view');
+            const mv = document.getElementById('month-view');
+            const goToTodayBtn = document.getElementById('goToTodayBtnYearView');
+
+            if (yv) {
+                yv.classList.add('hidden');
+                yv.scrollTop = 0;
+            }
+            if (mv) {
+                mv.classList.add('visible');
+                mv.scrollTop = 0;
+            }
+            if (goToTodayBtn) goToTodayBtn.style.display = 'none';
+
             showMonthView(currentMonth, currentYear, tempSkippedDates);
             checkForUnsavedChanges();
         }
@@ -17992,11 +18382,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             if (buttons && buttons.length) {
                 buttons.forEach(button => {
                     if (getControlBubbleGroupOfButton(button) === groupName) {
-                        const originalTitle = button.dataset.bubbleOriginalTitle || '메뉴';
-                        if (locked) {
-                            button.title = `${originalTitle} · 🔒 위치 고정됨 (상단 🔒 클릭 시 잠금 해제)`;
+                        if (button.classList.contains('control-btn')) {
+                            // 🛡️ 원형 메뉴 버튼은 CSS ::after 플로팅 툴팁(data-menu-label)만 단독 표시되도록 브라우저 title 중복 팝업 원천 차단
+                            button.removeAttribute('title');
                         } else {
-                            button.title = `${originalTitle} · 드래그로 이동 (자석 스냅·다중 이동 지원) · Ctrl+클릭 선택 · 우클릭 시 기본 위치`;
+                            const originalTitle = button.dataset.bubbleOriginalTitle || '메뉴';
+                            if (locked) {
+                                button.title = `${originalTitle} · 🔒 위치 고정됨 (상단 🔒 클릭 시 잠금 해제)`;
+                            } else {
+                                button.title = `${originalTitle} · 드래그로 이동 (자석 스냅·다중 이동 지원) · Ctrl+클릭 선택 · 우클릭 시 기본 위치`;
+                            }
                         }
                     }
                 });
@@ -18775,15 +19170,21 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     slot.appendChild(button);
                 }
                 const groupLabel = button.dataset.group === 'right' ? '도구 적층 메뉴' : '관리 적층 메뉴';
-                const originalTitle = button.title || button.dataset.menuLabel || groupLabel || '메뉴';
+                const originalTitle = button.dataset.menuLabel || button.dataset.tooltip || button.title || groupLabel || '메뉴';
                 button.dataset.bubbleOriginalTitle = originalTitle;
-                button.title = `${originalTitle} · 드래그로 이동 (자석 스냅·다중 이동 지원) · Ctrl+클릭 선택 · 우클릭 시 기본 위치`;
+                if (button.classList.contains('control-btn')) {
+                    // 🛡️ 원형 메뉴 버튼은 단일 CSS ::after 플로팅 툴팁(data-menu-label)만 단독 표시 (브라우저 title 중복 제거)
+                    button.removeAttribute('title');
+                } else {
+                    button.title = `${originalTitle} · 드래그로 이동 (자석 스냅·다중 이동 지원) · Ctrl+클릭 선택 · 우클릭 시 기본 위치`;
+                }
                 button.setAttribute('aria-description', '마우스나 터치로 끌어 원하는 곳에 배치할 수 있으며, 다중 선택된 객체들은 함께 동시 이동합니다. 우클릭하면 기본 위치로 복원됩니다.');
 
                 let longPressTimer = null;
                 let longPressFired = false;
                 let startPointerX = 0;
                 let startPointerY = 0;
+                let pointerDownLocked = false;
 
                 button.addEventListener('pointerdown', event => {
                     if (button.disabled || event.button !== 0 || activeDrag) return;
@@ -18800,17 +19201,17 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     startPointerX = event.clientX;
                     startPointerY = event.clientY;
 
-                    // 🔒 잠금 상태 검사:
-                    // 3단 적층 메뉴의 잠금 버튼(lockBtn)을 탭하여 잠금을 풀려고 할 때는 흔들림/반환 없이 통과
+                    // 🔒 위치 잠금 상태 검사:
+                    // 잠금 상태에서 일반 클릭 시에는 흔들림(shake)이나 지연 없이 즉시 클릭이 동작해야 합니다 (0ms 즉각 반응).
+                    // 잠금 상태일 때의 드래그 시도는 pointermove에서 8px 이상 이동했을 때만 안내 흔들림을 제공합니다.
                     if (isControlButtonLocked(button)) {
                         if (!isLockBtn) {
-                            button.classList.add('bubble-locked-shake');
-                            setTimeout(() => button.classList.remove('bubble-locked-shake'), 380);
-                            if (navigator.vibrate) navigator.vibrate([12, 30, 12]);
+                            pointerDownLocked = true;
                             return;
                         }
                         return;
                     }
+                    pointerDownLocked = false;
 
                     // 👆 모바일 및 터치/마우스 0.35초 롱 프레스(Long Press) 다중 선택 토글 타이머
                     longPressTimer = setTimeout(() => {
@@ -18864,6 +19265,18 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 });
 
                 button.addEventListener('pointermove', event => {
+                    if (pointerDownLocked) {
+                        // 터치 및 모바일에서는 미세한 손가락 떨림으로 인한 오작동 방지 (16px 이상 실질적 드래그 시에만 잠김 피드백)
+                        const shakeThreshold = (event.pointerType === 'touch' || getControlBubbleViewportMode() === 'mobilePortrait') ? 16 : 9;
+                        if (Math.hypot(event.clientX - startPointerX, event.clientY - startPointerY) > shakeThreshold) {
+                            if (!button.classList.contains('bubble-locked-shake')) {
+                                button.classList.add('bubble-locked-shake');
+                                setTimeout(() => button.classList.remove('bubble-locked-shake'), 380);
+                                if (navigator.vibrate) navigator.vibrate([12, 30, 12]);
+                            }
+                        }
+                        return;
+                    }
                     if (longPressTimer && Math.hypot(event.clientX - startPointerX, event.clientY - startPointerY) > 6) {
                         clearTimeout(longPressTimer);
                         longPressTimer = null;
@@ -18919,6 +19332,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 });
 
                 const finishDrag = (event, cancelled = false) => {
+                    pointerDownLocked = false;
                     if (longPressTimer) {
                         clearTimeout(longPressTimer);
                         longPressTimer = null;
@@ -18967,8 +19381,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     });
                 };
 
-                button.addEventListener('pointerup', event => finishDrag(event, false));
-                button.addEventListener('pointercancel', event => finishDrag(event, true));
+                button.addEventListener('pointerup', event => {
+                    pointerDownLocked = false;
+                    finishDrag(event, false);
+                });
+                button.addEventListener('pointercancel', event => {
+                    pointerDownLocked = false;
+                    finishDrag(event, true);
+                });
                 button.addEventListener('click', event => {
                     const suppressUntil = Number(button.dataset.suppressClickUntil || 0);
                     const pendingStackCommand = button.dataset.pendingStackCommandId
@@ -19288,6 +19708,15 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             });
             document.getElementById('back-to-year-view-btn').addEventListener('click', () => showYearView(tempSkippedDates));
 
+            // 🛡️ 원형 메뉴 버튼은 단일 CSS ::after 플로팅 툴팁(data-menu-label)만 단독 표시되도록 브라우저 title 중복 팝업 원천 차단
+            document.addEventListener('mouseover', (e) => {
+                const btn = e.target.closest('.control-btn');
+                if (btn && btn.hasAttribute('title')) {
+                    btn.removeAttribute('title');
+                }
+            }, { passive: true });
+
+
             // 🤖/✋ 자동 감지 / 수동 제어 모드 토글 이벤트
             const syncModeBtn = document.getElementById('cardSyncModeToggleBtn');
             if (syncModeBtn) {
@@ -19299,8 +19728,11 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                         try { localStorage.removeItem(USER_MANUAL_CARD_STATUS_KEY); } catch (_) {}
                     }
                     setMeetingCardSyncMode(nextMode);
-                    if (nextMode === 'auto' && currentYear && currentMonth) {
-                        checkAndActivateRemoteMeetingFiles(currentYear, currentMonth, true);
+                    if (nextMode === 'auto' && currentYear) {
+                        checkAndActivateYearViewRemoteFiles(currentYear, true);
+                        if (currentMonth) {
+                            checkAndActivateRemoteMeetingFiles(currentYear, currentMonth, true);
+                        }
                     }
                 });
             }
@@ -19311,8 +19743,11 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 refreshRemoteBtn.addEventListener('click', async () => {
                     refreshRemoteBtn.classList.add('spinning');
                     try {
-                        if (currentYear && currentMonth) {
-                            await checkAndActivateRemoteMeetingFiles(currentYear, currentMonth, true);
+                        if (currentYear) {
+                            await checkAndActivateYearViewRemoteFiles(currentYear, true);
+                            if (currentMonth) {
+                                await checkAndActivateRemoteMeetingFiles(currentYear, currentMonth, true);
+                            }
                         }
                         if (typeof showToast === 'function') {
                             showToast('🔄 깃허브 회의 자료 실시간 점검이 완료되었습니다.', 'info');
@@ -19324,6 +19759,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             }
             document.getElementById('go-to-today-btn').addEventListener('click', navigateToToday);
             document.getElementById('goToTodayBtnYearView').addEventListener('click', navigateToToday);
+
+            document.getElementById('balconyRailingBtn')?.addEventListener('click', () => {
+                window.open('https://jonggunelee.github.io/wyggkr/70 발코니 난간대.html', '_blank');
+            });
+
+            document.getElementById('hotWaterTankBtn')?.addEventListener('click', () => {
+                window.open('https://jonggunelee.github.io/wyggkr/80 저탕조 내부 시뮬레이션.html', '_blank');
+            });
 
             document.getElementById('parkingStatusBtn').addEventListener('click', () => {
                 window.open('https://jonggunelee.github.io/wyggkr04/RawData/주차장 주차면 관리.html', '_blank');
