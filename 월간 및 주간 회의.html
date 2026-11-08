@@ -10590,6 +10590,13 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             font-size: 19px;
         }
 
+        #creationPanelToggleBtn .btn-icon {
+            font-size: 1.2em !important;
+            font-weight: 900 !important;
+            line-height: 1;
+            letter-spacing: 0;
+        }
+
         .control-btn svg {
             width: 27px !important;
             height: 27px !important;
@@ -12737,9 +12744,6 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         </div>
         <div class="btn-divider"></div>
         <!-- 🗓 회의 관리 -->
-        <button class="control-btn" id="creationPanelToggleBtn" aria-label="작성 · 새 회의록 만들기"
-            data-short-label="작성" data-menu-label="작성 · 새 회의록 만들기" data-tooltip="새 회의 안건 작성"><span
-                class="btn-icon">+</span></button>
         <button class="control-btn" id="balconyRailingBtn" aria-label="난간 · 발코니 난간대 3D 시뮬레이터 열기"
             data-short-label="난간" data-menu-label="난간 · 발코니 난간대 3D 시뮬레이터" data-tooltip="발코니 난간대 3D 시뮬레이터">
             <span class="btn-icon">
@@ -12755,6 +12759,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 </svg>
             </span>
         </button>
+        <button class="control-btn" id="creationPanelToggleBtn" aria-label="작성 · 새 회의록 만들기"
+            data-short-label="작성" data-menu-label="작성 · 새 회의록 만들기" data-tooltip="새 회의 안건 작성"><span
+                class="btn-icon">+</span></button>
         <button class="control-btn" id="manageSkippedBtn" 
             aria-label="현황 · 작성 및 미작성 관리" data-short-label="현황" data-menu-label="현황 · 작성/미작성 관리"
             data-tooltip="XLSB 현황 계산 중…"><span class="btn-icon">📅</span></button>
@@ -17526,8 +17533,13 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             let previewRenderedAt = null;
             let previewSource = '';
             const renderStartupPreview = async () => {
-                const preview = meetingStore.getSnapshot();
-                if (preview.status.rows.length) previewSource = 'cache';
+                let preview = meetingStore.getSnapshot();
+                if (preview.status.rows.length) {
+                    previewSource = 'cache';
+                } else if (window.MEETING_DATA_BOOTSTRAP?.status?.rows?.length) {
+                    preview = window.MEETING_DATA_BOOTSTRAP;
+                    previewSource = 'bootstrap';
+                }
                 if (authoritativeMappingApplied || !preview.status.rows.length) return;
                 validateMeetingSnapshotIntegrity(preview);
                 confirmedMeetingMemoRows = preview.memo.rows.map(row => ({ ...row }));
