@@ -1413,7 +1413,7 @@
                 <span class="toggle-text">접기</span>
               </button>
             </div>
-            <div id="noticeContent" class="accordion-content w-full">
+            <div id="noticeContent" class="accordion-content w-full"><div style="padding:5px 12px;background:#172554;color:#fff;font-size:12px">REA 참고 분석 · 도면과 이전 보고서에서 추정한 조건입니다. 움직이는 표식은 시나리오별 점검 위치를 나타냅니다.</div>
               <div class="model-notice rounded-lg w-full" style="padding:8px 12px; font-size:11px; line-height:1.7; background:#172554; border:1px solid #1e3a8a; color:#dbeafe; box-sizing:border-box;">
                 개념 시각화 · 색상은 예제 온도층, 화살표는 흐름 방향이며 이동 속도는 실제 m/s가 아닙니다. 수위 100%는 밀폐 만수이며 출렁이는 자유수면이 없습니다. <button type="button" onclick="openEngineeringReport('case_studies')" style="text-decoration:underline;color:#7dd3fc;cursor:pointer;">실제 사례·사진 원문 ↗</button>
               </div>
@@ -1585,7 +1585,7 @@
     </div>
   </header>
 
-  <div style="padding:5px 12px;background:#172554;color:#fff;font-size:12px">REA 참고 분석 · 도면과 이전 보고서에서 추정한 조건입니다. 움직이는 표식은 시나리오별 점검 위치를 나타냅니다.</div><main class="flex-1 w-full mx-auto p-2 sm:p-3 items-start">
+  <main class="flex-1 w-full mx-auto p-2 sm:p-3 items-start">
 
     <!-- Left/Center Column: Interactive Motion Canvas (상단 툴바를 헤더로 올려 위쪽 공간 100% 확보) -->
     <section id="simulationSection" class="w-full flex flex-col items-center">
@@ -4253,7 +4253,7 @@
           [314,316,-91,55,'보일러 순환펌프','흡입 온도 확인']
         ],
         lowered_return: [
-          [184,155,-44,-49,'환탕 배관 고점','공기 체류 가능'],
+          [184,155,-44,-49,'환탕관 고점 엘보','공기 체류 가능'],
           [311,255,86,-35,'환탕펌프 흡입부','캐비테이션 가능']
         ]
       };
@@ -7155,6 +7155,20 @@ function openEngineeringReport(reportId, initialTab) {
       }
       function renderModalCanvases() {
         drawCompareSide(compareCtxLeft, state.compareViews.left, 'normal');
+        // In a cross-view comparison, locate the right-hand fault on the baseline equipment drawing.
+        if (state.compareViews.left === 'front' && state.compareViews.right === 'rear' &&
+            !state.showOriginalOnly && frontRiskLocations[state.compareTargetScenario]) {
+          drawFrontRiskLocations(compareCtxLeft, state.compareTargetScenario, motionTime);
+          compareCtxLeft.save();
+          compareCtxLeft.font = 'bold 20px sans-serif';
+          compareCtxLeft.textAlign = 'center';
+          compareCtxLeft.fillStyle = '#172034';
+          compareCtxLeft.fillRect(200, 595, 400, 36);
+          compareCtxLeft.fillStyle = '#ffdc88';
+          const fault = state.compareTargetScenario === 'no_pipes' ? '단락류' : '환탕 위치 변경';
+          compareCtxLeft.fillText('우측 '+fault+' 시나리오의 점검 위치',400,620);
+          compareCtxLeft.restore();
+        }
         drawCompareSide(compareCtxRight, state.compareViews.right, state.compareTargetScenario);
       }
       function openDualCompareModal() {
@@ -9443,48 +9457,33 @@ function openEngineeringReport(reportId, initialTab) {
           }
         }
 
-        btn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          isOpen = !isOpen;
+        btn.addEventListener('accordion-collapse', () => {
+          isOpen = false;
           renderAccordion();
-
-          // 사용자 요구사항 100% 반영: 상단 헤더 펴기 클릭 시 2번째 항목(공지·구간강조·프리셋 묶음 아코디언) 자동 펼침
-          if (isHeaderAccordion && isOpen) {
-            const bContent = document.getElementById('bundledSettingsContent');
-            const bBtn = document.getElementById('btnToggleBundleAccordion');
-            if (bContent && bBtn) {
-              bContent.classList.remove('collapsed');
-              bContent.style.display = 'flex';
-              const bIcon = bBtn.querySelector('.toggle-icon');
-              const bText = bBtn.querySelector('.toggle-text');
-              if (bIcon) bIcon.textContent = '▲';
-              if (bText) bText.textContent = '3개 묶음 접기';
-              bBtn.title = '공지·구간강조·프리셋 3개 항목 묶음 접기';
+        });
+        function toggleAccordion() {
+          isOpen = !isOpen;
+          if (isHeaderAccordion) {
+            for (const id of ['btnToggleBundleAccordion','btnToggleNoticeAccordion','btnToggleFocusAccordion','btnTogglePresetAccordion']) {
+              document.getElementById(id)?.dispatchEvent(new Event('accordion-collapse'));
             }
           }
+          renderAccordion();
+        }
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          toggleAccordion();
+
+
         });
 
         if (headerEl) {
           headerEl.addEventListener('click', function (e) {
             if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('select') || e.target.closest('label')) return;
             e.stopPropagation();
-            isOpen = !isOpen;
-            renderAccordion();
+            toggleAccordion();
 
-            // 상단 헤더 펴기 클릭 시 2번째 항목(공지·구간강조·프리셋 묶음 아코디언) 자동 펼침
-            if (isHeaderAccordion && isOpen) {
-              const bContent = document.getElementById('bundledSettingsContent');
-              const bBtn = document.getElementById('btnToggleBundleAccordion');
-              if (bContent && bBtn) {
-                bContent.classList.remove('collapsed');
-                bContent.style.display = 'flex';
-                const bIcon = bBtn.querySelector('.toggle-icon');
-                const bText = bBtn.querySelector('.toggle-text');
-                if (bIcon) bIcon.textContent = '▲';
-                if (bText) bText.textContent = '3개 묶음 접기';
-                bBtn.title = '공지·구간강조·프리셋 3개 항목 묶음 접기';
-              }
-            }
+
           });
         }
 
@@ -9499,10 +9498,10 @@ function openEngineeringReport(reportId, initialTab) {
       // Initialize all 6 Accordions (Main View Top Header & Toolbars & Comparison Modal)
       // 사용자 요구사항 100% 반영: 상단 헤더 및 그 아래의 모든 메뉴를 시스템 부팅 시 "모두 접기(false)" 상태로 초기화하여 캔버스 최대 가시화 확보
       initAccordion('btnToggleHeaderAccordion', 'topHeaderContent', false); // 최상단 마스터 아코디언 (초기 부팅 기본값: 접기 상태 - 오직 타이틀바만 화면 표시)
-      initAccordion('btnToggleBundleAccordion', 'bundledSettingsContent', true); // 2번째 항목 묶음 아코디언 (상단 헤더 펼침 시 함께 자동 펼쳐짐)
-      initAccordion('btnToggleNoticeAccordion', 'noticeContent', true); // 서브 항목 1: 공지사항 (기본 열림)
-      initAccordion('btnToggleFocusAccordion', 'focusZoneContent', true); // 서브 항목 2: 핵심 구간 강조 (기본 열림)
-      initAccordion('btnTogglePresetAccordion', 'presetContent', true); // 서브 항목 3: 운전 프리셋 (기본 열림)
+      initAccordion('btnToggleBundleAccordion', 'bundledSettingsContent', false);
+      initAccordion('btnToggleNoticeAccordion', 'noticeContent', false);
+      initAccordion('btnToggleFocusAccordion', 'focusZoneContent', false);
+      initAccordion('btnTogglePresetAccordion', 'presetContent', false);
       initAccordion('btnToggleModalHeaderAccordion', 'modalHeaderContent', false);
       initAccordion('btnToggleModalFocusAccordion', 'modalFocusZoneContent', false);
       initAccordion('btnToggleModalPresetAccordion', 'modalPresetContent', false);
