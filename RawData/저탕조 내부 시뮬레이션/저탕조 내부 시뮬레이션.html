@@ -427,9 +427,15 @@
       justify-content: flex-start !important; /* Never push top out of viewport */
       overflow-y: auto !important;
       overflow-x: hidden !important;
-      padding: 24px 16px 40px 16px !important;
+      padding: 6px !important;
       box-sizing: border-box !important;
     }
+    @supports (height: 100dvh) {
+      #comparisonModal { height: 100dvh !important; }
+    }
+    #comparisonModal .comparison-panes { gap: 6px !important; }
+    #comparisonModal .comparison-panes > div { min-width: 0; padding: 6px; }
+    #comparisonModal #modalHeaderToolbar { padding: 6px 8px; }
     #comparisonModal.hidden {
       display: none !important;
     }
@@ -478,7 +484,7 @@
     }
     #comparisonModal .modal-container,
     #comparisonModal > div.max-w-7xl {
-      max-width: 80rem !important;
+      max-width: none !important;
       width: 100% !important;
       margin: 0 auto !important;
       display: flex !important;
@@ -898,7 +904,7 @@
 
       /* 5. Comparison Modal on Mobile */
       #comparisonModal {
-        padding: 8px 6px 24px 6px !important;
+        padding: max(4px, env(safe-area-inset-top)) max(4px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left)) !important;
       }
       #comparisonModal .modal-container,
       #comparisonModal > div.max-w-7xl {
@@ -2221,7 +2227,7 @@
 
         <!-- Collapsible Content of Modal Header -->
         <div id="modalHeaderContent" class="accordion-content collapsed flex flex-col gap-2.5 w-full" style="display: none;">
-          <p class="text-xs text-slate-400 m-0">정상 기준 상태(매립관 정상)와 이상 발생 상태를 동일 물리 시간축 상에서 실시간 상호 비교 관찰</p>
+
           
           <div class="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-slate-800">
             <!-- Select Comparison Target -->
@@ -2258,10 +2264,16 @@
               </button>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Modal Accordion 1: 핵심 구간 집중 강조 (비교 창) -->
+          <div class="accordion-header flex flex-wrap items-center justify-between gap-2">
+            <strong class="text-xs">시뮬레이션 공지 및 설정 묶음</strong>
+            <button type="button" id="btnModalBundle" class="accordion-toggle-btn"><span class="toggle-icon">▼</span> <span class="toggle-text">3개 묶음 펼치기</span></button>
+          </div>
+          <div id="modalBundleContent" class="accordion-content collapsed flex-col gap-2" style="display:none">
+            <div class="accordion-header flex items-center justify-between">
+              <strong class="text-xs">비교 안내</strong>
+              <button type="button" id="btnModalNotice" class="accordion-toggle-btn"><span class="toggle-icon">▼</span> <span class="toggle-text">펼치기</span></button>
+            </div>
+            <div id="modalNoticeContent" class="accordion-content collapsed flex-col" style="display:none">          <p class="text-xs text-slate-400 m-0">양쪽 이미지는 선택한 결함을 같은 시간축으로 표시합니다. 좌측 카드에서 점검 위치를, 우측 카드에서 급탕에 미치는 영향을 확인하세요.</p></div>      <!-- Modal Accordion 1: 핵심 구간 집중 강조 (비교 창) -->
       <div id="modalFocusZoneToolbar" class="w-full bg-slate-900/95 border border-slate-700/80 rounded-xl px-3 py-2 flex flex-col gap-2 shadow-lg accordion-toolbar">
         <div class="accordion-header flex items-center justify-between w-full">
           <div class="flex items-center gap-2">
@@ -2344,18 +2356,18 @@
         </div>
       </div>
 
-      <!-- Dual Canvases Container -->
-      <div class="grid grid-cols-2 gap-4">
+          </div></div></div><!-- Dual Canvases Container -->
+      <div class="comparison-panes grid grid-cols-2 gap-4">
         <!-- Left: Normal Reference View -->
         <div class="bg-slate-900/95 border-2 border-emerald-500/50 rounded-xl p-3 shadow-xl flex flex-col">
           <div class="flex items-center justify-between pb-2 mb-2 border-b border-emerald-500/30">
             <div class="flex items-center gap-2">
               <span class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
-              <span class="text-sm font-bold text-emerald-300">[정상 기준 상태] 매립 배관 정상 설치</span>
+              <span class="text-sm font-bold text-emerald-300">선택 결함 · 설비 점검 위치</span>
             </div>
-            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-500/30">4단계 열성층화 정상 (Ri 미산정)</span>
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-500/30">결함 검토</span>
           </div>
-          <label class="compare-view-choice">좌측 시점 <select data-compare-side="left"><option value="rear">후면부 · 저탕조 내부</option><option value="front">전면부 · 펌프 계통</option></select></label>
+          <label class="compare-view-choice">좌측 시점 <select data-compare-side="left"><option value="rear">후면부 · 저탕조 내부</option><option value="front" selected>전면부 · 펌프 계통</option></select></label>
           <div id="compareCanvasLeftBox" class="relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[743/691] border border-slate-800">
             <!-- Floating Top-Left Scale Controls directly on Comparison Left Image -->
             <div class="canvas-scale-control" title="정상 기준 이미지 크기 조절 (10% 축소 / 원복)">
@@ -2368,16 +2380,16 @@
           <!-- Left Telemetry Summary -->
           <div class="mt-2.5 grid grid-cols-3 gap-2 text-center text-xs">
             <div class="bg-slate-800/60 p-1.5 rounded border border-slate-700/60">
-              <div class="text-[10px] text-slate-400">상부 공급 수온</div>
-              <div class="font-bold text-rose-400 font-mono">예제 75℃ · 실측 아님</div>
+              <div class="text-[10px] text-slate-400">결함 조건</div>
+              <div class="font-bold text-rose-400 font-mono" id="faultCondition">—</div>
             </div>
             <div class="bg-slate-800/60 p-1.5 rounded border border-slate-700/60">
-              <div class="text-[10px] text-slate-400">유효 저탕용량</div>
-              <div class="font-bold text-emerald-400 font-mono">명목 예제 7,500 L</div>
+              <div class="text-[10px] text-slate-400">점검 위치</div>
+              <div class="font-bold text-emerald-400 font-mono" id="faultLocation">—</div>
             </div>
             <div class="bg-slate-800/60 p-1.5 rounded border border-slate-700/60">
-              <div class="text-[10px] text-slate-400">세대 온수 대기시간</div>
-              <div class="font-bold text-sky-400 font-mono">3 ~ 5초 (즉시)</div>
+              <div class="text-[10px] text-slate-400">확인 항목</div>
+              <div class="font-bold text-sky-400 font-mono" id="faultCheck">—</div>
             </div>
           </div>
         </div>
@@ -2659,7 +2671,7 @@
         viewPerspective: 'split',
         frontScale: 1.0,
         rearScale: 1.0, // 'split' (전·후면 동시), 'front' (전면부 단독), 'rear' (후면부 단독)
-        compareViews: {left:'rear', right:'rear'}, modalPerspective: 'rear', // 'rear' (저탕조 내부), 'front' (전면부 펌프 계통)
+        compareViews: {left:'front', right:'rear'}, modalPerspective: 'mixed', // 'rear' (저탕조 내부), 'front' (전면부 펌프 계통)
         showFrontBoiler: false,
         showFrontReturnPump: false,
         showFrontBoilerPumps: false,
@@ -4257,6 +4269,33 @@
           [311,255,86,-35,'환탕펌프 흡입부','캐비테이션 가능']
         ]
       };
+      const comparisonRiskBadges = new Map();
+      function riskCaption(ctx, scenario, front, label, cx, cy, width, height) {
+        const canvas = ctx.canvas;
+        if ((canvas !== compareCanvasLeft && canvas !== compareCanvasRight) || !frontRiskLocations[scenario]) return {cx, cy};
+        const key = [canvas.id, scenario, front, label].join('|');
+        if (!comparisonRiskBadges.has(key)) comparisonRiskBadges.set(key, {canvas, scenario, front, cx, cy});
+        const badge = comparisonRiskBadges.get(key);
+        badge.visible = true;
+        badge.boxW = width;
+        badge.boxH = height;
+        const pos = getBadgePos(badge, scenario);
+        pos.cx = Math.max(width/2, Math.min(canvas.width-width/2, pos.cx));
+        pos.cy = Math.max(height/2, Math.min(canvas.height-height/2, pos.cy));
+        return pos;
+      }
+      function hitRiskCaption(canvas, scenario, pos) {
+        if (state.showOriginalOnly || (canvas !== compareCanvasLeft && canvas !== compareCanvasRight)) return null;
+        const side = canvas === compareCanvasLeft ? 'left' : 'right';
+        const front = state.compareViews[side] === 'front';
+        let hit = null;
+        for (const badge of comparisonRiskBadges.values()) {
+          if (!badge.visible || badge.canvas !== canvas || badge.scenario !== scenario || badge.front !== front) continue;
+          const center = getBadgePos(badge, scenario);
+          if (Math.abs(pos.x-center.cx) <= badge.boxW/2+3 && Math.abs(pos.y-center.cy) <= badge.boxH/2+3) hit = badge;
+        }
+        return hit;
+      }
       function drawFrontRiskLocations(ctx, scenario, time) {
         const color = scenario === 'no_pipes' ? '#ff725a' : '#ffc641';
         ctx.save();
@@ -4276,8 +4315,7 @@
           ctx.fillStyle = color;
           ctx.beginPath();ctx.arc(x,y,5,0,2*Math.PI);ctx.fill();
           const width = Math.max(ctx.measureText(equipment).width,ctx.measureText(risk).width)+18;
-          const cx = Math.max(width/2+3,Math.min(797-width/2,x+dx));
-          const cy = y+dy;
+          const {cx,cy} = riskCaption(ctx,scenario,true,equipment,Math.max(width/2+3,Math.min(797-width/2,x+dx)),y+dy,width,2*fontSize+8);
           ctx.lineWidth = 2;
           ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(cx,cy);ctx.stroke();
           ctx.fillStyle = '#101827';
@@ -4305,8 +4343,12 @@
           ctx.globalAlpha=1;
           ctx.font='bold 15px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
           const width=ctx.measureText(label).width+14;
-          ctx.fillStyle='#0f172a';ctx.fillRect(x-width/2,y-40,width,23);
-          ctx.fillStyle='#fff';ctx.fillText(label,x,y-28);
+          const {cx,cy} = riskCaption(ctx,scenario,false,label,x,y-28.5,width,23);
+          if (cx !== x || cy !== y-28.5) {
+            ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(cx,cy);ctx.stroke();
+          }
+          ctx.fillStyle='#0f172a';ctx.fillRect(cx-width/2,cy-11.5,width,23);
+          ctx.fillStyle='#fff';ctx.fillText(label,cx,cy+0.5);
         }
         ctx.restore();
       }
@@ -4389,19 +4431,29 @@
           targetCtx.fill();
           targetCtx.shadowBlur = 0;
 
-          // 6. Badge: 1.5M 하향 (진한 빨간색 인포그래픽 배지)
-          targetCtx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+          const caption = '▼ 1.5M 동반 하향';
+          const mobile = isModalView && matchMedia('(max-width:768px)').matches;
+          targetCtx.font = mobile ? 'bold 18px sans-serif' : 'bold 11px sans-serif';
+          const width = Math.max(88, targetCtx.measureText(caption).width + 12);
+          const height = mobile ? 38 : 24;
+          const {cx, cy} = riskCaption(targetCtx, targetScenario, false, caption, topX, 250, width, height);
           targetCtx.strokeStyle = '#dc2626';
           targetCtx.lineWidth = 1.5;
+          if (cx !== topX || cy !== 250) {
+            targetCtx.beginPath();
+            targetCtx.moveTo(topX, topY);
+            targetCtx.lineTo(cx, cy);
+            targetCtx.stroke();
+          }
+          targetCtx.fillStyle = 'rgba(15, 23, 42, 0.92)';
           targetCtx.beginPath();
-          targetCtx.roundRect(topX - 44, 238, 88, 24, 4);
+          targetCtx.roundRect(cx - width/2, cy - height/2, width, height, 4);
           targetCtx.fill();
           targetCtx.stroke();
           targetCtx.fillStyle = '#fee2e2';
-          targetCtx.font = 'bold 11px sans-serif';
           targetCtx.textAlign = 'center';
           targetCtx.textBaseline = 'middle';
-          targetCtx.fillText('▼ 1.5M 동반 하향', topX, 250);
+          targetCtx.fillText(caption, cx, cy);
 
           // 2. Realistic Lowered Yellow Pipe Outer Casing (308, 338 -> 388, 338 -> 388, 215 -> 415, 215)
           targetCtx.save();
@@ -4750,30 +4802,44 @@
 
             // 6. Badge: 환탕 펌프 2대 및 연결 배관 1.5M 동반 하향 포설 (진한 빨간색 인포그래픽 배지)
             targetCtx.font = 'bold 10px sans-serif';
-            const badgeW = 210, badgeH = 20;
+            const caption = '▼ 환탕 펌프 2대·배관 1.5M 동반 하향 포설';
+            const mobile = isModalView && matchMedia('(max-width:768px)').matches;
+            if (mobile) targetCtx.font = 'bold 18px sans-serif';
+            const badgeW = Math.max(210, targetCtx.measureText(caption).width + 16);
+            const badgeH = mobile ? 38 : 20;
+            const {cx, cy} = riskCaption(targetCtx, targetScenario, true, caption, pTopX, 178, badgeW, badgeH);
+            if (cx !== pTopX || cy !== 178) {
+              targetCtx.strokeStyle = '#dc2626';
+              targetCtx.lineWidth = 2;
+              targetCtx.beginPath();
+              targetCtx.moveTo(pTopX, pTopY);
+              targetCtx.lineTo(cx, cy);
+              targetCtx.stroke();
+            }
             targetCtx.fillStyle = 'rgba(15, 23, 42, 0.92)';
             targetCtx.strokeStyle = '#dc2626';
             targetCtx.lineWidth = 1.5;
             targetCtx.beginPath();
-            targetCtx.roundRect(pTopX - badgeW / 2, 178 - badgeH / 2, badgeW, badgeH, 4);
+            targetCtx.roundRect(cx - badgeW / 2, cy - badgeH / 2, badgeW, badgeH, 4);
             targetCtx.fill();
             targetCtx.stroke();
             targetCtx.fillStyle = '#fee2e2';
             targetCtx.textAlign = 'center';
             targetCtx.textBaseline = 'middle';
-            targetCtx.fillText('▼ 환탕 펌프 2대·배관 1.5M 동반 하향 포설', pTopX, 178);
+            targetCtx.fillText(caption, cx, cy);
 
-            // Warning Badge: 에어락 & 캐비테이션
-            const warnW = 120, warnH = 17;
-            targetCtx.fillStyle = 'rgba(153, 27, 27, 0.90)';
-            targetCtx.strokeStyle = '#ef4444';
-            targetCtx.lineWidth = 1.2;
-            targetCtx.beginPath();
-            targetCtx.roundRect(pTopX - warnW / 2, 200 - warnH / 2, warnW, warnH, 4);
-            targetCtx.fill();
-            targetCtx.stroke();
-            targetCtx.fillStyle = '#ffffff';
-            targetCtx.fillText('국부 고점·흡입압 확인', pTopX, 200);
+            if (!isModalView) {
+              const warnW = 120, warnH = 17;
+              targetCtx.fillStyle = 'rgba(153, 27, 27, 0.90)';
+              targetCtx.strokeStyle = '#ef4444';
+              targetCtx.lineWidth = 1.2;
+              targetCtx.beginPath();
+              targetCtx.roundRect(pTopX - warnW / 2, 200 - warnH / 2, warnW, warnH, 4);
+              targetCtx.fill();
+              targetCtx.stroke();
+              targetCtx.fillStyle = '#ffffff';
+              targetCtx.fillText('국부 고점·흡입압 확인', pTopX, 200);
+            }
 
             targetCtx.restore();
           }
@@ -4822,19 +4888,20 @@
             targetCtx.arc(325, 315, 45, 0, Math.PI * 2);
             targetCtx.fill();
 
-            // Badge
-            targetCtx.font = 'bold 9.5px sans-serif';
-            targetCtx.fillStyle = 'rgba(15, 23, 42, 0.92)';
-            targetCtx.strokeStyle = '#ef4444';
-            targetCtx.lineWidth = 1.2;
-            targetCtx.beginPath();
-            targetCtx.roundRect(325 - 60, 375 - 10, 120, 19, 4);
-            targetCtx.fill();
-            targetCtx.stroke();
-            targetCtx.fillStyle = '#fca5a5';
-            targetCtx.textAlign = 'center';
-            targetCtx.textBaseline = 'middle';
-            targetCtx.fillText('단락 가능 · 제어조건 확인', 325, 375);
+            if (!isModalView) {
+              targetCtx.font = 'bold 9.5px sans-serif';
+              targetCtx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+              targetCtx.strokeStyle = '#ef4444';
+              targetCtx.lineWidth = 1.2;
+              targetCtx.beginPath();
+              targetCtx.roundRect(325 - 60, 375 - 10, 120, 19, 4);
+              targetCtx.fill();
+              targetCtx.stroke();
+              targetCtx.fillStyle = '#fca5a5';
+              targetCtx.textAlign = 'center';
+              targetCtx.textBaseline = 'middle';
+              targetCtx.fillText('단락 가능 · 제어조건 확인', 325, 375);
+            }
             targetCtx.restore();
           }
           targetCtx.restore();
@@ -5273,31 +5340,14 @@
 
         const isNoPipes = (mode === 'no_pipes');
 
-        if (titleEl) {
-          titleEl.textContent = isNoPipes 
-            ? '[가상 결함 시나리오] 내부 매립 배관 부재 (단락류 발생)' 
-            : '[가상 결함 시나리오] 환탕관 1.5m 하향 시공 (에어락·배압)';
-        }
-        if (badgeEl) {
-          if (isNoPipes) {
-            badgeEl.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-200 border border-rose-500/30';
-            badgeEl.textContent = '가상 단락류 가속 열화 모델 (Ri = 0.18)';
-          } else {
-            badgeEl.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/30';
-            badgeEl.textContent = '장기 잠복형 Cl-SCC 부식 모델 (ΔP = 1.8 bar)';
-          }
-        }
-        if (tempEl) {
-          tempEl.textContent = isNoPipes ? '52.3℃ ±14.5℃ (극심한 헌팅)' : '62.0℃ (순환 불균형 정체)';
-        }
-        if (capEl) {
-          capEl.textContent = isNoPipes ? '2,600 L (유효용량 35% 급락)' : '5,400 L (유효용량 72% 수준)';
-        }
-        if (waitEl) {
-          waitEl.textContent = isNoPipes ? '15 ~ 25초 (미온수 방류 요동)' : '120 ~ 240초 (초기 냉수 대기 지연)';
-        }
-
-        if (!tableEl) return;
+        const values = isNoPipes
+          ? ['내부 유도관 부재','탱크 하부 출구·보일러 흡입부','유입·흡입 온도 추세 비교','단락 시 출수 온도 변동 가능','혼합으로 사용 가능 온수량 감소 가능','출수 온도와 사용 유량에 따라 변동']
+          : ['환탕관 1.5 m 하향','환탕관 고점 엘보·펌프 흡입부','고점 배기·흡입압·환탕 유량 확인','환수 혼합 위치에 따라 성층 변화','수온 분포에 따라 유효용량 변동','순환 유량 저하 시 대기 증가 가능'];
+        ['faultCondition','faultLocation','faultCheck','compareRightTemp','compareRightCap','compareRightWait'].forEach((id,index)=>{
+          document.getElementById(id).textContent = values[index];
+        });
+        titleEl.textContent = values[0]+' · 급탕 영향';
+        badgeEl.textContent = '예상 영향 · 현장 측정 전';        if (!tableEl) return;
 
         const tableDisclaimer = `
           <tfoot>
@@ -5314,7 +5364,7 @@
             <thead>
               <tr class="bg-slate-800 text-slate-300 border-b border-slate-700 text-center">
                 <th class="p-2 font-semibold text-left">비교 분석 항목</th>
-                <th class="p-2 font-semibold text-emerald-400">정상 기준 상태 (14년 가동 중 · 내부배관 상시점검 대상)</th>
+                <th class="p-2 font-semibold text-emerald-400">비교용 기준 조건 (결함 적용 전)</th>
                 <th class="p-2 font-semibold text-rose-400">가상 결함 상태 ① 매립 배관 없음</th>
                 <th class="p-2 font-semibold text-sky-400 text-left">엔지니어링 판정 및 피로 수명 예측</th>
               </tr>
@@ -5367,7 +5417,7 @@
             <thead>
               <tr class="bg-slate-800 text-slate-300 border-b border-slate-700 text-center">
                 <th class="p-2 font-semibold text-left">비교 분석 항목</th>
-                <th class="p-2 font-semibold text-emerald-400">정상 기준 상태 (14년 가동 중 · 내부배관 상시점검 대상)</th>
+                <th class="p-2 font-semibold text-emerald-400">비교용 기준 조건 (결함 적용 전)</th>
                 <th class="p-2 font-semibold text-amber-400">가상 결함 상태 ② 환탕관 1.5m 하향</th>
                 <th class="p-2 font-semibold text-sky-400 text-left">엔지니어링 판정 및 피로 수명 예측</th>
               </tr>
@@ -7149,26 +7199,15 @@ function openEngineeringReport(reportId, initialTab) {
         if (!ctx) return;
         const front = view === 'front';
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        for (const badge of comparisonRiskBadges.values()) {
+          if (badge.canvas === ctx.canvas) badge.visible = false;
+        }
         const draw = front ? drawFrontSceneToContext : drawSceneToContext;
         draw(ctx, scenario, motionTime, true);
         drawReaMarker(ctx, scenario, motionTime, front);
       }
       function renderModalCanvases() {
-        drawCompareSide(compareCtxLeft, state.compareViews.left, 'normal');
-        // In a cross-view comparison, locate the right-hand fault on the baseline equipment drawing.
-        if (state.compareViews.left === 'front' && state.compareViews.right === 'rear' &&
-            !state.showOriginalOnly && frontRiskLocations[state.compareTargetScenario]) {
-          drawFrontRiskLocations(compareCtxLeft, state.compareTargetScenario, motionTime);
-          compareCtxLeft.save();
-          compareCtxLeft.font = 'bold 20px sans-serif';
-          compareCtxLeft.textAlign = 'center';
-          compareCtxLeft.fillStyle = '#172034';
-          compareCtxLeft.fillRect(200, 595, 400, 36);
-          compareCtxLeft.fillStyle = '#ffdc88';
-          const fault = state.compareTargetScenario === 'no_pipes' ? '단락류' : '환탕 위치 변경';
-          compareCtxLeft.fillText('우측 '+fault+' 시나리오의 점검 위치',400,620);
-          compareCtxLeft.restore();
-        }
+        drawCompareSide(compareCtxLeft, state.compareViews.left, state.compareTargetScenario);
         drawCompareSide(compareCtxRight, state.compareViews.right, state.compareTargetScenario);
       }
       function openDualCompareModal() {
@@ -7843,7 +7882,7 @@ function openEngineeringReport(reportId, initialTab) {
         function onPointerDown(e) {
           const scn = getScenarioFn();
           const pos = getCanvasCoords(e, tCanvas, useCamera);
-          const hit = hitTestBadgeForScenario(pos, scn);
+          const hit = hitRiskCaption(tCanvas, scn, pos) || hitTestBadgeForScenario(pos, scn);
           if (hit) {
             dragState.draggedBadge = hit;
             dragState.activeCanvas = tCanvas;
@@ -7865,7 +7904,7 @@ function openEngineeringReport(reportId, initialTab) {
           if (dragState.draggedBadge) return;
           const scn = getScenarioFn();
           const pos = getCanvasCoords(e, tCanvas, useCamera);
-          const hit = hitTestBadgeForScenario(pos, scn);
+          const hit = hitRiskCaption(tCanvas, scn, pos) || hitTestBadgeForScenario(pos, scn);
           if (hit) {
             tCanvas.style.cursor = 'grab';
           } else if (useCamera && isInsideTank(pos.x, pos.y)) {
@@ -7883,7 +7922,7 @@ function openEngineeringReport(reportId, initialTab) {
       // Attach pointer events to all 3 Canvases
       setupCanvasPointerEvents(canvas, () => state.scenario, true);
       if (compareCanvasLeft) {
-        setupCanvasPointerEvents(compareCanvasLeft, () => 'normal', false);
+        setupCanvasPointerEvents(compareCanvasLeft, () => state.compareTargetScenario, false);
       }
       if (compareCanvasRight) {
         setupCanvasPointerEvents(compareCanvasRight, () => state.compareTargetScenario, false);
@@ -9419,7 +9458,7 @@ function openEngineeringReport(reportId, initialTab) {
 
         const isHeaderAccordion = (btnId === 'btnToggleHeaderAccordion');
         const isModalHeaderAccordion = (btnId === 'btnToggleModalHeaderAccordion');
-        const isBundleAccordion = (btnId === 'btnToggleBundleAccordion');
+        const isBundleAccordion = (btnId === 'btnToggleBundleAccordion' || btnId === 'btnModalBundle');
         
         // Exact matching header resolution (supports sub-headers and prevents event bubbling)
         let headerEl = btn.closest('.accordion-header, .accordion-sub-header');
@@ -9430,6 +9469,8 @@ function openEngineeringReport(reportId, initialTab) {
 
         let isOpen = defaultOpen;
         function renderAccordion() {
+          btn.setAttribute('aria-expanded',String(isOpen));
+          btn.setAttribute('aria-controls',contentId);
           const iconSpan = btn.querySelector('.toggle-icon');
           const textSpan = btn.querySelector('.toggle-text');
           if (isOpen) {
@@ -9438,7 +9479,7 @@ function openEngineeringReport(reportId, initialTab) {
             if (iconSpan) iconSpan.textContent = '▲';
             if (textSpan) {
               if (isHeaderAccordion) textSpan.textContent = '상단 제어·공지 접기';
-              else if (isModalHeaderAccordion) textSpan.textContent = '비교 안내 접기';
+              else if (isModalHeaderAccordion) textSpan.textContent = '상단 제어·공지 접기';
               else if (isBundleAccordion) textSpan.textContent = '3개 묶음 접기';
               else textSpan.textContent = '접기';
             }
@@ -9449,7 +9490,7 @@ function openEngineeringReport(reportId, initialTab) {
             if (iconSpan) iconSpan.textContent = '▼';
             if (textSpan) {
               if (isHeaderAccordion) textSpan.textContent = '상단 제어·공지 펼치기';
-              else if (isModalHeaderAccordion) textSpan.textContent = '비교 안내 펼치기';
+              else if (isModalHeaderAccordion) textSpan.textContent = '상단 제어·공지 펼치기';
               else if (isBundleAccordion) textSpan.textContent = '3개 묶음 펼치기';
               else textSpan.textContent = '펼치기';
             }
@@ -9463,6 +9504,11 @@ function openEngineeringReport(reportId, initialTab) {
         });
         function toggleAccordion() {
           isOpen = !isOpen;
+          if (isModalHeaderAccordion) {
+            for (const id of ['btnModalBundle','btnModalNotice','btnToggleModalFocusAccordion','btnToggleModalPresetAccordion']) {
+              document.getElementById(id)?.dispatchEvent(new Event('accordion-collapse'));
+            }
+          }
           if (isHeaderAccordion) {
             for (const id of ['btnToggleBundleAccordion','btnToggleNoticeAccordion','btnToggleFocusAccordion','btnTogglePresetAccordion']) {
               document.getElementById(id)?.dispatchEvent(new Event('accordion-collapse'));
@@ -9502,6 +9548,8 @@ function openEngineeringReport(reportId, initialTab) {
       initAccordion('btnToggleNoticeAccordion', 'noticeContent', false);
       initAccordion('btnToggleFocusAccordion', 'focusZoneContent', false);
       initAccordion('btnTogglePresetAccordion', 'presetContent', false);
+      initAccordion('btnModalBundle','modalBundleContent',false);
+      initAccordion('btnModalNotice','modalNoticeContent',false);
       initAccordion('btnToggleModalHeaderAccordion', 'modalHeaderContent', false);
       initAccordion('btnToggleModalFocusAccordion', 'modalFocusZoneContent', false);
       initAccordion('btnToggleModalPresetAccordion', 'modalPresetContent', false);
