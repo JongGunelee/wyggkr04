@@ -1120,7 +1120,7 @@
     @media(min-width:769px) { header .header-inner { gap:5px !important; } header button { font-size:10px !important; padding-left:6px !important; padding-right:6px !important; } }
     .model-notice { flex-shrink:0; }
   </style>
-</head>
+<style>.compare-view-choice{display:flex;align-items:center;gap:.6rem;margin:4px 0 8px;font-size:13px}.compare-view-choice select{background:#172034;color:white;border:1px solid #64748b;border-radius:6px;padding:6px;max-width:100%}@media(max-width:768px){.compare-view-choice select{min-height:44px}}</style></head>
 <body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
 
   <!-- Top Header (아코디언 일체형 구조: 초기 부팅 시 접힘 상태로 얇은 고정 타이틀바 유지, 펼침 시 상세 제어 행 및 공지 바 노출) -->
@@ -1585,7 +1585,7 @@
     </div>
   </header>
 
-  <main class="flex-1 w-full mx-auto p-2 sm:p-3 items-start">
+  <div style="padding:5px 12px;background:#172554;color:#fff;font-size:12px">REA 참고 분석 · 도면과 이전 보고서에서 추정한 조건입니다. 움직이는 표식은 시나리오별 점검 위치를 나타냅니다.</div><main class="flex-1 w-full mx-auto p-2 sm:p-3 items-start">
 
     <!-- Left/Center Column: Interactive Motion Canvas (상단 툴바를 헤더로 올려 위쪽 공간 100% 확보) -->
     <section id="simulationSection" class="w-full flex flex-col items-center">
@@ -2355,6 +2355,7 @@
             </div>
             <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-500/30">4단계 열성층화 정상 (Ri 미산정)</span>
           </div>
+          <label class="compare-view-choice">좌측 시점 <select data-compare-side="left"><option value="rear">후면부 · 저탕조 내부</option><option value="front">전면부 · 펌프 계통</option></select></label>
           <div id="compareCanvasLeftBox" class="relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[743/691] border border-slate-800">
             <!-- Floating Top-Left Scale Controls directly on Comparison Left Image -->
             <div class="canvas-scale-control" title="정상 기준 이미지 크기 조절 (10% 축소 / 원복)">
@@ -2390,6 +2391,7 @@
             </div>
             <span id="compareRightBadge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-200 border border-rose-500/30">단락류 가능성 · 온도장 미해석</span>
           </div>
+          <label class="compare-view-choice">우측 시점 <select data-compare-side="right"><option value="rear">후면부 · 저탕조 내부</option><option value="front">전면부 · 펌프 계통</option></select></label>
           <div id="compareCanvasRightBox" class="relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[743/691] border border-slate-800">
             <!-- Floating Top-Left Scale Controls directly on Comparison Right Image -->
             <div class="canvas-scale-control" title="이상 발생 이미지 크기 조절 (10% 축소 / 원복)">
@@ -2657,7 +2659,7 @@
         viewPerspective: 'split',
         frontScale: 1.0,
         rearScale: 1.0, // 'split' (전·후면 동시), 'front' (전면부 단독), 'rear' (후면부 단독)
-        modalPerspective: 'rear', // 'rear' (저탕조 내부), 'front' (전면부 펌프 계통)
+        compareViews: {left:'rear', right:'rear'}, modalPerspective: 'rear', // 'rear' (저탕조 내부), 'front' (전면부 펌프 계통)
         showFrontBoiler: false,
         showFrontReturnPump: false,
         showFrontBoilerPumps: false,
@@ -4244,6 +4246,76 @@
         return cleanFgCanvas;
       }
 
+      // Anchors use the front equipment drawing's native 800 × 650 coordinates.
+      const frontRiskLocations = {
+        no_pipes: [
+          [555,400,75,48,'탱크 하부 출구','고온수 단락 가능'],
+          [314,316,-91,55,'보일러 순환펌프','흡입 온도 확인']
+        ],
+        lowered_return: [
+          [184,155,-44,-49,'환탕 배관 고점','공기 체류 가능'],
+          [311,255,86,-35,'환탕펌프 흡입부','캐비테이션 가능']
+        ]
+      };
+      function drawFrontRiskLocations(ctx, scenario, time) {
+        const color = scenario === 'no_pipes' ? '#ff725a' : '#ffc641';
+        ctx.save();
+        const fontSize = matchMedia('(max-width:768px)').matches ? 22 : 17;
+        ctx.font = 'bold '+fontSize+'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        frontRiskLocations[scenario].forEach(([x,y,dx,dy,equipment,risk],index) => {
+          const phase = (time * 0.8 + index * 0.5) % 1;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 4;
+          ctx.globalAlpha = 1-phase;
+          ctx.beginPath();
+          ctx.arc(x,y,10+phase*23,0,2*Math.PI);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = color;
+          ctx.beginPath();ctx.arc(x,y,5,0,2*Math.PI);ctx.fill();
+          const width = Math.max(ctx.measureText(equipment).width,ctx.measureText(risk).width)+18;
+          const cx = Math.max(width/2+3,Math.min(797-width/2,x+dx));
+          const cy = y+dy;
+          ctx.lineWidth = 2;
+          ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(cx,cy);ctx.stroke();
+          ctx.fillStyle = '#101827';
+          ctx.fillRect(cx-width/2,cy-fontSize-4,width,2*fontSize+8);
+          ctx.fillStyle = '#fff';ctx.fillText(equipment,cx,cy-fontSize/2);
+          ctx.fillStyle = color;ctx.fillText(risk,cx,cy+fontSize/2+2);
+        });
+        ctx.restore();
+      }
+      function drawReaMarker(ctx, scenario, t, front) {
+        if (state.showOriginalOnly) return;
+        if (front && frontRiskLocations[scenario]) return drawFrontRiskLocations(ctx,scenario,t);
+        const points = scenario === 'lowered_return'
+          ? (front ? [[311,255,'펌프 흡입 · 공동 가능']] : [[388,226,'국부 고점 · 공기 체류 가능']])
+          : scenario === 'no_pipes'
+          ? (front ? [[314,316,'흡입 온도 변화 확인']] : [[600,442,'단락 유입'],[388,488,'근접 흡입']])
+          : (front ? [[546,185,'기준 출수']] : [[499,163,'상층 출수']]);
+        ctx.save();
+        for (const [x,y,label] of points) {
+          const phase=(t*0.75)%1;
+          ctx.strokeStyle=scenario==='normal'?'#34d399':'#fb923c';
+          ctx.lineWidth=3;
+          ctx.globalAlpha=1-phase;
+          ctx.beginPath();ctx.arc(x,y,7+16*phase,0,2*Math.PI);ctx.stroke();
+          ctx.globalAlpha=1;
+          ctx.font='bold 15px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+          const width=ctx.measureText(label).width+14;
+          ctx.fillStyle='#0f172a';ctx.fillRect(x-width/2,y-40,width,23);
+          ctx.fillStyle='#fff';ctx.fillText(label,x,y-28);
+        }
+        ctx.restore();
+      }
+
+      function reaForecast(scenario) {
+        const rows=[[10,'25.4','15.2'],[12,'54.8','39.6'],[14,'78.5–82.0','65.0–70.0'],[16,'94.2','88.5'],[18,'99.8','98.9']];
+        const note=scenario==='lowered_return'?'하향 1.5 m 배치에서 관로 고점에 공기가 모일 가능성과 펌프 흡입부의 공동 가능성을 각각 표시합니다. 공동 발생 조건은 운전 유량에서 흡입압·수온과 펌프 NPSHr로 비교합니다. 연령표는 내부관 열화에만 적용합니다.':scenario==='no_pipes'?'내부관이 이미 탈락했다고 가정한 분기입니다. 하부 유입구와 흡입구 사이의 단락 경로 및 보일러 환수 온도 변화를 추적합니다. 표는 탈락 이전의 경과 기간을 설명합니다.':'기준 구성은 내부 유도관이 유지된 상태입니다. 상부 출수와 하부 유입을 기준으로 변경 구성을 비교합니다.';
+        return '<section class="evidence-card engineering-copy"><strong>REA 역설계 참고 예측</strong><p>2012년 준공, 내부 STS 배관과 용접 지지부가 유지된다는 이전 보고서의 가정을 사용합니다. 아래 백분율은 원 보고서가 제시한 누적 고장 추정값이며 현장 통계로 보정되지 않았습니다.</p><p>'+note+'</p><table style="width:100%;font-size:12px;text-align:left"><caption>준공 후 경과 기간별 원 보고서 추정</caption><thead><tr><th>경과 연도</th><th>보일러 유입관</th><th>환탕관</th></tr></thead><tbody>'+rows.map(([age,a,b])=>'<tr><td>'+(2012+age)+' · '+age+'년</td><td>'+a+'%</td><td>'+b+'%</td></tr>').join('')+'</tbody></table><p>원 보고서의 평균 고장시간은 각각 14.8년과 16.2년입니다. Weibull 형상·척도 모수와 표본 이력이 없어 원표의 기간별 가정값으로 재현했습니다. 두 고장을 독립으로 가정하면 14년차 결합값은 1−(1−P₁)(1−P₂) = 92.5~94.6%로, 원표의 89%와 차이가 있습니다.</p></section>';
+      }
       function drawSceneToContext(targetCtx, targetScenario, t, isModalView) {
         if (!targetCtx) return;
 
@@ -4538,6 +4610,26 @@
       // =========================================================================
       // Front View 3D Mechanical Room & Equipment Scene (800 x 650 Space)
       // =========================================================================
+      function drawPumpRotor(targetCtx, px, py, t, scale, color) {
+          targetCtx.save();
+          // Rotating Impeller Indicator Arrow
+          targetCtx.translate(px, py);
+          targetCtx.scale(scale, scale);
+          const rotSpeed = t * 8.5;
+          targetCtx.rotate(rotSpeed);
+          targetCtx.beginPath();
+          targetCtx.arc(0, 0, 11, -Math.PI * 0.7, Math.PI * 0.7);
+          targetCtx.strokeStyle = color;
+          targetCtx.lineWidth = 2.2;
+          targetCtx.stroke();
+          targetCtx.beginPath();
+          targetCtx.moveTo(6, 10);
+          targetCtx.lineTo(11, 0);
+          targetCtx.lineTo(2, 2);
+          targetCtx.fillStyle = color;
+          targetCtx.fill();
+          targetCtx.restore();
+      }
       function drawFrontSceneToContext(targetCtx, targetScenario, t, isModalView) {
         if (!targetCtx) return;
 
@@ -4597,21 +4689,7 @@
           }
           targetCtx.stroke();
 
-          // Rotating Impeller Indicator Arrow
-          targetCtx.translate(px, py);
-          const rotSpeed = t * 8.5;
-          targetCtx.rotate(rotSpeed);
-          targetCtx.beginPath();
-          targetCtx.arc(0, 0, 11, -Math.PI * 0.7, Math.PI * 0.7);
-          targetCtx.strokeStyle = isLowered ? 'rgba(239, 68, 68, 0.95)' : 'rgba(255, 255, 255, 0.95)';
-          targetCtx.lineWidth = 2.2;
-          targetCtx.stroke();
-          targetCtx.beginPath();
-          targetCtx.moveTo(6, 10);
-          targetCtx.lineTo(11, 0);
-          targetCtx.lineTo(2, 2);
-          targetCtx.fillStyle = isLowered ? 'rgba(239, 68, 68, 0.95)' : 'rgba(255, 255, 255, 0.95)';
-          targetCtx.fill();
+          drawPumpRotor(targetCtx, px, py, t, 1, isLowered ? '#ef4444' : '#fff');
           targetCtx.restore();
 
           // In lowered_return: Draw Pump & Pipe 1.5M Downward Displacement Infographic & Cavitation
@@ -4723,9 +4801,10 @@
             targetCtx.fill();
             targetCtx.stroke();
 
+            drawPumpRotor(targetCtx, px, 305, t, 1.1154, '#7e22ce');
             // Run LED dot
             targetCtx.beginPath();
-            targetCtx.arc(px, 305, 3.0, 0, Math.PI * 2);
+            targetCtx.arc(px, 305, 1.8, 0, Math.PI * 2);
             targetCtx.fillStyle = isNoPipes ? '#ef4444' : (idx === 0 ? '#10b981' : '#64748b');
             targetCtx.fill();
             targetCtx.restore();
@@ -4937,6 +5016,8 @@
 
           drawSceneToContext(ctx, state.scenario, motionTime, false);
 
+          drawReaMarker(ctx, state.scenario, motionTime, false);
+
           ctx.restore();
         }
 
@@ -4944,24 +5025,11 @@
         if ((state.viewPerspective === 'split' || state.viewPerspective === 'front') && frontCtx) {
           frontCtx.clearRect(0, 0, 800, 650);
           drawFrontSceneToContext(frontCtx, state.scenario, motionTime, false);
+          drawReaMarker(frontCtx, state.scenario, motionTime, true);
         }
 
         // 3. Render Synchronized Dual Comparison Modal Canvases if Modal Open
-        if (state.isModalOpen && compareCtxLeft && compareCtxRight) {
-          if (state.modalPerspective === 'front') {
-            compareCtxLeft.clearRect(0, 0, compareCanvasLeft.width, compareCanvasLeft.height);
-            drawFrontSceneToContext(compareCtxLeft, 'normal', motionTime, true);
-
-            compareCtxRight.clearRect(0, 0, compareCanvasRight.width, compareCanvasRight.height);
-            drawFrontSceneToContext(compareCtxRight, state.compareTargetScenario, motionTime, true);
-          } else {
-            compareCtxLeft.clearRect(0, 0, compareCanvasLeft.width, compareCanvasLeft.height);
-            drawSceneToContext(compareCtxLeft, 'normal', motionTime, true);
-
-            compareCtxRight.clearRect(0, 0, compareCanvasRight.width, compareCanvasRight.height);
-            drawSceneToContext(compareCtxRight, state.compareTargetScenario, motionTime, true);
-          }
-        }
+        if (state.isModalOpen) renderModalCanvases();
 
         if (state.playing) {
           scheduleRender();
@@ -6991,7 +7059,7 @@ function openEngineeringReport(reportId, initialTab) {
         if (titleEl) titleEl.textContent = report.title || '';
         if (subEl) subEl.textContent = report.subtitle || '';
         if (contentEl) {
-          contentEl.innerHTML = report.html || '';
+          contentEl.innerHTML = (['2012_submerged_pipe','short_circuit_nopipes','lowered_return_boiler_pipe'].includes(id) ? reaForecast(id==='lowered_return_boiler_pipe'?'lowered_return':id==='short_circuit_nopipes'?'no_pipes':state.scenario) : '') + (report.html || '');
           contentEl.scrollTop = 0;
         }
 
@@ -7077,29 +7145,24 @@ function openEngineeringReport(reportId, initialTab) {
         }
       }, true);
 
-      function renderModalCanvases() {
-        if (!compareCtxLeft || !compareCtxRight) return;
-        if (state.modalPerspective === 'front') {
-          compareCtxLeft.clearRect(0, 0, compareCanvasLeft.width, compareCanvasLeft.height);
-          drawFrontSceneToContext(compareCtxLeft, 'normal', motionTime, true);
-
-          compareCtxRight.clearRect(0, 0, compareCanvasRight.width, compareCanvasRight.height);
-          drawFrontSceneToContext(compareCtxRight, state.compareTargetScenario, motionTime, true);
-        } else {
-          compareCtxLeft.clearRect(0, 0, compareCanvasLeft.width, compareCanvasLeft.height);
-          drawSceneToContext(compareCtxLeft, 'normal', motionTime, true);
-
-          compareCtxRight.clearRect(0, 0, compareCanvasRight.width, compareCanvasRight.height);
-          drawSceneToContext(compareCtxRight, state.compareTargetScenario, motionTime, true);
-        }
+      function drawCompareSide(ctx, view, scenario) {
+        if (!ctx) return;
+        const front = view === 'front';
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        const draw = front ? drawFrontSceneToContext : drawSceneToContext;
+        draw(ctx, scenario, motionTime, true);
+        drawReaMarker(ctx, scenario, motionTime, front);
       }
-
+      function renderModalCanvases() {
+        drawCompareSide(compareCtxLeft, state.compareViews.left, 'normal');
+        drawCompareSide(compareCtxRight, state.compareViews.right, state.compareTargetScenario);
+      }
       function openDualCompareModal() {
         if (!comparisonModal) return;
         comparisonModal.classList.remove('hidden');
         comparisonModal.scrollTop = 0;
         state.isModalOpen = true;
-        switchModalPerspective(state.modalPerspective || 'rear');
+        syncCompareViews();
         setModalCompareMode(state.compareTargetScenario || 'no_pipes');
         renderModalCanvases();
       }
@@ -7116,6 +7179,12 @@ function openEngineeringReport(reportId, initialTab) {
           }
         }
         updateModalComparisonTable(mode);
+        const table=document.getElementById('modalComparisonTable');
+        if(table){
+          let forecast=document.getElementById('comparisonReaForecast');
+          if(!forecast){forecast=document.createElement('details');forecast.id='comparisonReaForecast';table.insertAdjacentElement('beforebegin',forecast);}
+          forecast.innerHTML='<summary style="cursor:pointer;padding:8px">REA 참고 예측 · 기간별 근거 펼치기</summary>'+reaForecast(mode);
+        }
         renderModalCanvases();
       }
 
@@ -8782,46 +8851,41 @@ function openEngineeringReport(reportId, initialTab) {
         }
       }
 
-      function switchModalPerspective(persp) {
-        state.modalPerspective = persp;
-        const isFront = persp === 'front';
-
-        if (btnModalPerspectiveFront) {
-          btnModalPerspectiveFront.className = isFront ? 'px-2.5 py-1 rounded font-semibold bg-sky-500 text-slate-950 transition cursor-pointer' : 'px-2.5 py-1 rounded font-medium text-slate-300 hover:text-white transition cursor-pointer';
-        }
-        if (btnModalPerspectiveRear) {
-          btnModalPerspectiveRear.className = !isFront ? 'px-2.5 py-1 rounded font-semibold bg-sky-500 text-slate-950 transition cursor-pointer' : 'px-2.5 py-1 rounded font-medium text-slate-300 hover:text-white transition cursor-pointer';
-        }
-
-        if (compareCanvasLeft && compareCanvasRight) {
-          if (isFront) {
-            compareCanvasLeft.width = 800;
-            compareCanvasLeft.height = 650;
-            compareCanvasRight.width = 800;
-            compareCanvasRight.height = 650;
-          } else {
-            compareCanvasLeft.width = 743;
-            compareCanvasLeft.height = 691;
-            compareCanvasRight.width = 743;
-            compareCanvasRight.height = 691;
-          }
-          const leftP = compareCanvasLeft.parentElement;
-          const rightP = compareCanvasRight.parentElement;
-          if (leftP) {
-            leftP.className = isFront 
-              ? 'relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[800/650] border border-slate-800'
-              : 'relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[743/691] border border-slate-800';
-          }
-          if (rightP) {
-            rightP.className = isFront 
-              ? 'relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[800/650] border border-slate-800'
-              : 'relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[743/691] border border-slate-800';
-          }
+      function syncCompareViews() {
+        document.querySelectorAll('select[data-compare-side]').forEach(select => {
+          const side = select.dataset.compareSide;
+          select.value = state.compareViews[side];
+          const canvas = side === 'left' ? compareCanvasLeft : compareCanvasRight;
+          const front = select.value === 'front';
+          const width = front ? 800 : 743;
+          const height = front ? 650 : 691;
+          if (canvas.width !== width) canvas.width = width;
+          if (canvas.height !== height) canvas.height = height;
+          canvas.parentElement.style.aspectRatio = width + '/' + height;
+        });
+        const {left,right} = state.compareViews;
+        state.modalPerspective = left === right ? left : 'mixed';
+        for (const [button,view] of [[btnModalPerspectiveFront,'front'],[btnModalPerspectiveRear,'rear']]) {
+          if (!button) continue;
+          const active = state.modalPerspective === view;
+          button.setAttribute('aria-pressed',String(active));
+          button.classList.toggle('bg-sky-500',active);
+          button.classList.toggle('text-slate-950',active);
+          button.classList.toggle('text-slate-300',!active);
+          button.title = '양쪽 모두 ' + (view === 'front' ? '전면부' : '후면부');
         }
         renderModalCanvases();
       }
-
-      if (btnViewSplit) btnViewSplit.addEventListener('click', () => switchViewPerspective('split'));
+      function switchModalPerspective(view) {
+        state.compareViews.left = state.compareViews.right = view;
+        syncCompareViews();
+      }
+      document.querySelectorAll('select[data-compare-side]').forEach(select => {
+        select.addEventListener('change', () => {
+          state.compareViews[select.dataset.compareSide] = select.value;
+          syncCompareViews();
+        });
+      });      if (btnViewSplit) btnViewSplit.addEventListener('click', () => switchViewPerspective('split'));
       if (btnViewFront) btnViewFront.addEventListener('click', () => switchViewPerspective('front'));
       if (btnViewRear) btnViewRear.addEventListener('click', () => switchViewPerspective('rear'));
 

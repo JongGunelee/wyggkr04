@@ -1120,7 +1120,7 @@
     @media(min-width:769px) { header .header-inner { gap:5px !important; } header button { font-size:10px !important; padding-left:6px !important; padding-right:6px !important; } }
     .model-notice { flex-shrink:0; }
   </style>
-</head>
+<style>.compare-view-choice{display:flex;align-items:center;gap:.6rem;margin:4px 0 8px;font-size:13px}.compare-view-choice select{background:#172034;color:white;border:1px solid #64748b;border-radius:6px;padding:6px;max-width:100%}@media(max-width:768px){.compare-view-choice select{min-height:44px}}</style></head>
 <body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
 
   <!-- Top Header (아코디언 일체형 구조: 초기 부팅 시 접힘 상태로 얇은 고정 타이틀바 유지, 펼침 시 상세 제어 행 및 공지 바 노출) -->
@@ -1365,8 +1365,149 @@
         </button>
 
       </div>
-      </div>
 
+      <!-- [유첨 이미지 2번째 항목 수납] 🛠️ 3개 항목 묶음 아코디언 (공지·구간강조·프리셋) -->
+      <!-- 🛠️ [3개 항목 묶음 아코디언] 시뮬레이션 공지 및 제어 설정 묶음 (초기 설정값: 접기 상태) -->
+      <div id="bundledSettingsToolbar" class="w-full mb-2 bg-slate-900/95 border border-slate-800 rounded-xl px-3 py-2 flex flex-col gap-2.5 toolbar-max-box split-mode maximized shadow-md accordion-toolbar">
+        
+        <!-- 1층: 항상 보이는 묶음 마스터 헤더 (Master Accordion Header) -->
+        <div class="accordion-header flex items-center justify-between w-full" id="bundledSettingsAccordionHeader" style="cursor:pointer; min-height:32px;">
+          <!-- Left: 묶음 타이틀 & 3개 항목 상태 요약 배지 -->
+          <div class="flex items-center gap-2 flex-wrap min-w-0">
+            <span class="text-xs font-bold text-sky-300 flex items-center gap-1.5 shrink-0">
+              <span class="text-amber-400 text-sm">🛠️</span>
+              <span>시뮬레이션 공지 및 설정 묶음</span>
+              <span class="text-[10px] text-slate-400 font-normal hidden sm:inline">(공지·구간강조·프리셋 3개 항목 통합):</span>
+              <span class="text-[10px] text-slate-400 font-normal sm:hidden">:</span>
+            </span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span id="bundledNoticePill" class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-medium">ℹ️ 모델 공지 · 만수 밀폐</span>
+              <span id="bundledFocusPill" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">🔍 전체 흐름 (5개)</span>
+              <span id="bundledPresetPill" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">⚡ 표준 급탕</span>
+            </div>
+          </div>
+
+          <!-- Right: 묶음 접기/펴기 마스터 토글 버튼 -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" id="btnToggleBundleAccordion" class="accordion-toggle-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-sky-300 hover:text-white border border-slate-700 transition flex items-center gap-1 cursor-pointer shadow-sm" title="공지·구간강조·프리셋 3개 항목 묶음 접기/펼치기">
+              <span class="toggle-icon">▼</span>
+              <span class="toggle-text">3개 묶음 펼치기</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2층: 묶음 본문 컨텐츠 (기본값: 접기 상태 style="display: none;") -->
+        <div id="bundledSettingsContent" class="accordion-content collapsed flex flex-col gap-2.5 w-full pt-2 border-t border-slate-800/80" style="display: none;">
+          
+          <!-- [항목 1] ℹ️ 시뮬레이션 모델 공지 및 해석 유의사항 -->
+          <div id="noticeToolbar" class="w-full bg-slate-950/60 border border-slate-800/90 rounded-lg p-2.5 flex flex-col gap-2">
+            <div class="accordion-sub-header flex items-center justify-between w-full select-none" id="noticeHeader" style="cursor:pointer;">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5 shrink-0">
+                  <span class="text-sky-400">ℹ️</span> <span>[항목 1] 시뮬레이션 모델 공지 및 해석 유의사항:</span>
+                </span>
+                <span id="noticeStatusPill" class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-medium">개념 시각화 · 만수 밀폐</span>
+              </div>
+              <button type="button" id="btnToggleNoticeAccordion" class="accordion-toggle-btn px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1 cursor-pointer" title="모델 공지 접기/펼치기">
+                <span class="toggle-icon">▲</span>
+                <span class="toggle-text">접기</span>
+              </button>
+            </div>
+            <div id="noticeContent" class="accordion-content w-full">
+              <div class="model-notice rounded-lg w-full" style="padding:8px 12px; font-size:11px; line-height:1.7; background:#172554; border:1px solid #1e3a8a; color:#dbeafe; box-sizing:border-box;">
+                개념 시각화 · 색상은 예제 온도층, 화살표는 흐름 방향이며 이동 속도는 실제 m/s가 아닙니다. 수위 100%는 밀폐 만수이며 출렁이는 자유수면이 없습니다. <button type="button" onclick="openEngineeringReport('case_studies')" style="text-decoration:underline;color:#7dd3fc;cursor:pointer;">실제 사례·사진 원문 ↗</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- [항목 2] 🔍 핵심 구간 집중 강조 (체크박스 개별·다중 선택) -->
+          <div id="focusZoneToolbar" class="w-full bg-slate-950/60 border border-slate-800/90 rounded-lg p-2.5 flex flex-col gap-2">
+            <div class="accordion-sub-header flex items-center justify-between w-full select-none" id="focusHeader" style="cursor:pointer;">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5 shrink-0">
+                  <span>🔍</span> <span>[항목 2] 핵심 구간 집중 강조</span>
+                  <span class="text-[10px] text-slate-400 font-normal hidden sm:inline">(체크박스 개별·다중 선택):</span>
+                  <span class="text-[10px] text-slate-400 font-normal sm:hidden">:</span>
+                </span>
+                <span id="focusZoneStatusPill" class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-medium">전체 흐름 활성 (5개 구간)</span>
+              </div>
+              <button type="button" id="btnToggleFocusAccordion" class="accordion-toggle-btn px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1 cursor-pointer" title="핵심 구간 강조 도구 접기/펼치기">
+                <span class="toggle-icon">▲</span>
+                <span class="toggle-text">접기</span>
+              </button>
+            </div>
+            <div id="focusZoneContent" class="accordion-content flex flex-wrap gap-1.5 items-center w-full">
+              <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-sky-500 text-slate-950 transition cursor-pointer select-none border border-sky-400 shadow-sm" title="전체 흐름을 모두 활성화하거나 해제">
+                <input type="checkbox" id="chkFocusAll" class="w-3.5 h-3.5 rounded accent-sky-600 cursor-pointer" checked>
+                <span>전체 흐름 보기</span>
+              </label>
+              <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-amber-300 border border-amber-500/40 transition cursor-pointer select-none ring-2 ring-sky-400/80 shadow-sm" title="노란색 환탕관 흐름 (개별 또는 다중 체크)">
+                <input type="checkbox" data-focus="yellow" class="focus-zone-chk w-3.5 h-3.5 rounded accent-amber-500 cursor-pointer" checked>
+                <span>① 노란색 환탕관 (매립 O)</span>
+              </label>
+              <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-rose-300 border border-rose-500/40 transition cursor-pointer select-none ring-2 ring-sky-400/80 shadow-sm" title="빨간색 보일러 토출관 흐름 (개별 또는 다중 체크)">
+                <input type="checkbox" data-focus="red" class="focus-zone-chk w-3.5 h-3.5 rounded accent-rose-500 cursor-pointer" checked>
+                <span>② 빨간색 보일러 토출관 (매립 O)</span>
+              </label>
+              <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-cyan-300 border border-cyan-500/40 transition cursor-pointer select-none ring-2 ring-sky-400/80 shadow-sm" title="수증기 운무 방출 및 보일러 흡입 흐름 (개별 또는 다중 체크)">
+                <input type="checkbox" data-focus="cloud" class="focus-zone-chk w-3.5 h-3.5 rounded accent-cyan-500 cursor-pointer" checked>
+                <span>③ 수증기 운무 방출 (저탕조 상부)</span>
+              </label>
+              <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-purple-300 border border-purple-500/40 transition cursor-pointer select-none ring-2 ring-sky-400/80 shadow-sm" title="상부 흡입구 및 토출관 하단 흐름 (개별 또는 다중 체크)">
+                <input type="checkbox" data-focus="intake" class="focus-zone-chk w-3.5 h-3.5 rounded accent-purple-500 cursor-pointer" checked>
+                <span>④ 상부 흡입구 (토출관 하단)</span>
+              </label>
+              <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-emerald-300 border border-emerald-500/40 transition cursor-pointer select-none ring-2 ring-sky-400/80 shadow-sm" title="저탕조 내부 전체 대류 흐름 (개별 또는 다중 체크)">
+                <input type="checkbox" data-focus="tank" class="focus-zone-chk w-3.5 h-3.5 rounded accent-emerald-500 cursor-pointer" checked>
+                <span>⑤ 저탕조 내부 전체</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- [항목 3] ⚡ 원클릭 공학 운전 프리셋 -->
+          <div id="presetToolbar" class="w-full bg-slate-950/60 border border-slate-800/90 rounded-lg p-2.5 flex flex-col gap-2">
+            <div class="accordion-sub-header flex items-center justify-between w-full select-none" id="presetHeader" style="cursor:pointer;">
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 text-slate-300 font-semibold shrink-0">
+                  <span class="text-amber-400">⚡</span> <span>[항목 3] 원클릭 운전 프리셋:</span>
+                </div>
+                <span id="presetStatusPill" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">표준 급탕</span>
+              </div>
+              <button type="button" id="btnTogglePresetAccordion" class="accordion-toggle-btn px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1 cursor-pointer" title="운전 프리셋 도구 접기/펼치기">
+                <span class="toggle-icon">▲</span>
+                <span class="toggle-text">접기</span>
+              </button>
+            </div>
+            <div id="presetContent" class="accordion-content flex flex-wrap items-center gap-1.5 w-full">
+              <button type="button" id="presetStandard" data-preset="standard" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 font-semibold flex items-center gap-1 shadow-sm" title="수위 100%, 정상 유속, 표준 설계 기준 정상 운전">
+                <span>✅ 표준 급탕 (100% 충수)</span>
+              </button>
+              <button type="button" id="presetPeak" data-preset="peak" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/40 font-semibold flex items-center gap-1 shadow-sm" title="아침 샤워 피크 타임: 수위 96%, 급수 가압 유입(1.8x), 파동 1.5x">
+                <span>🚿 피크 급탕 집중</span>
+              </button>
+              <button type="button" id="presetNight" data-preset="night" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/40 font-semibold flex items-center gap-1 shadow-sm" title="심야 재가열 운전: 보일러 가열수 집중 순환, 환탕 미세 유동">
+                <span>🔥 심야 가열 재생 모드</span>
+              </button>
+              <button type="button" id="presetDefect" data-preset="defect" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-rose-300 border border-rose-500/40 font-semibold flex items-center gap-1 shadow-sm" title="결함 시나리오 즉시 진단: 매립관 누락 + 진단 라벨 전체 ON + 저탕조 정밀 확대">
+                <span>⚠️ 단락류 결함 진단</span>
+              </button>
+              <button type="button" id="presetAirlock" data-preset="airlock" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-semibold flex items-center gap-1 shadow-sm" title="환탕관 하향 배치 가정: 고점·배기 및 흡입 조건을 별도 확인">
+                <span>💨 환탕 위치 변경 검토</span>
+              </button>
+              <button type="button" id="presetStratification" data-preset="stratification" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/40 font-semibold flex items-center gap-1 shadow-sm" title="저탕조 내부 4단계 예제 온도층(15℃/29℃/50℃/68℃/75℃) 및 계측 눈금(M) 정밀 검증">
+                <span>⚖️ 열성층화 개념 온도층</span>
+              </button>
+              <button type="button" id="presetTopDischarge" data-preset="topDischarge" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-orange-300 border border-orange-500/40 font-semibold flex items-center gap-1 shadow-sm" title="보일러 가열 후 상부 흰색 급탕 토출관으로 유체가 집중 유출되는 고온 급탕 상태">
+                <span>♨️ 상부 급탕 토출 집중</span>
+              </button>
+              <button type="button" id="presetDualCompare" data-preset="dualCompare" class="preset-btn px-2.5 py-1 rounded-md bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 border border-indigo-400/50 font-bold flex items-center gap-1 shadow-sm" title="정상 기준 상태와 결함 상태를 동일 물리 시간축 상에서 실시간 1:1 대조">
+                <span>🔄 1:1 실시간 시나리오 비교</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
 
     </div>
 
@@ -1444,118 +1585,12 @@
     </div>
   </header>
 
-  <main class="flex-1 w-full mx-auto p-2 sm:p-3 items-start">
+  <div style="padding:5px 12px;background:#172554;color:#fff;font-size:12px">REA 참고 분석 · 도면과 이전 보고서에서 추정한 조건입니다. 움직이는 표식은 시나리오별 점검 위치를 나타냅니다.</div><main class="flex-1 w-full mx-auto p-2 sm:p-3 items-start">
 
     <!-- Left/Center Column: Interactive Motion Canvas (상단 툴바를 헤더로 올려 위쪽 공간 100% 확보) -->
     <section id="simulationSection" class="w-full flex flex-col items-center">
       
-      <!-- ℹ️ 시뮬레이션 모델 공지 및 해석 유의사항 (접기/펴기 아코디언: 초기 설정값 접기 상태) -->
-      <div id="noticeToolbar" class="w-full mb-2 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5 flex flex-col gap-2 shadow-sm text-xs toolbar-max-box split-mode maximized accordion-toolbar">
-        <div class="accordion-header flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5 shrink-0">
-              <span class="text-sky-400">ℹ️</span> <span>시뮬레이션 모델 공지 및 해석 유의사항:</span>
-            </span>
-            <span id="noticeStatusPill" class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-medium">개념 시각화 · 만수 밀폐</span>
-          </div>
-          <button type="button" id="btnToggleNoticeAccordion" class="accordion-toggle-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1 cursor-pointer" title="모델 공지 및 해석 유의사항 접기/펼치기">
-            <span class="toggle-icon">▼</span>
-            <span class="toggle-text">펼치기</span>
-          </button>
-        </div>
-        <div id="noticeContent" class="accordion-content collapsed w-full" style="display: none;">
-          <div class="model-notice rounded-lg w-full" style="padding:8px 12px; font-size:11px; line-height:1.7; background:#172554; border:1px solid #1e3a8a; color:#dbeafe; box-sizing:border-box;">
-            개념 시각화 · 색상은 예제 온도층, 화살표는 흐름 방향이며 이동 속도는 실제 m/s가 아닙니다. 수위 100%는 밀폐 만수이며 출렁이는 자유수면이 없습니다. <button type="button" onclick="openEngineeringReport('case_studies')" style="text-decoration:underline;color:#7dd3fc;cursor:pointer;">실제 사례·사진 원문 ↗</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- [이동 배치] 🔍 핵심 구간 집중 강조 툴바 (접기/펴기 아코디언) -->
-      <div class="w-full mb-2 bg-slate-900/95 border border-slate-800 rounded-xl px-3 py-2 flex flex-col gap-2 toolbar-max-box split-mode maximized shadow-md accordion-toolbar" id="focusZoneToolbar">
-        <div class="accordion-header flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5 shrink-0">
-              <span>🔍</span> <span>핵심 구간 집중 강조</span>
-              <span class="text-[10px] text-slate-400 font-normal hidden sm:inline">(체크박스 개별·다중 선택):</span>
-              <span class="text-[10px] text-slate-400 font-normal sm:hidden">:</span>
-            </span>
-            <span id="focusZoneStatusPill" class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-medium">전체 흐름 활성 (5개 구간)</span>
-          </div>
-          <button type="button" id="btnToggleFocusAccordion" class="accordion-toggle-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1 cursor-pointer" title="핵심 구간 강조 도구 접기/펼치기">
-            <span class="toggle-icon">▼</span>
-            <span class="toggle-text">펼치기</span>
-          </button>
-        </div>
-        <div id="focusZoneContent" class="accordion-content collapsed flex flex-wrap gap-1.5 items-center w-full" style="display: none;">
-          <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-sky-500 text-slate-950 transition cursor-pointer select-none border border-sky-400 shadow-sm" title="전체 흐름을 모두 활성화하거나 해제">
-            <input type="checkbox" id="chkFocusAll" class="w-3.5 h-3.5 rounded accent-sky-600 cursor-pointer" checked>
-            <span>전체 흐름 보기</span>
-          </label>
-          <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-amber-300 border border-amber-500/40 transition cursor-pointer select-none ring-2 ring-sky-400/80 shadow-sm" title="노란색 환탕관 흐름 (개별 또는 다중 체크)">
-            <input type="checkbox" data-focus="yellow" class="focus-zone-chk w-3.5 h-3.5 rounded accent-amber-500 cursor-pointer" checked>
-            <span>① 노란색 환탕관 (매립 O)</span>
-          </label>
-          <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-rose-300 border border-rose-500/40 transition cursor-pointer select-none ring-2 ring-sky-400/80 shadow-sm" title="빨간색 보일러 토출관 흐름 (개별 또는 다중 체크)">
-            <input type="checkbox" data-focus="red" class="focus-zone-chk w-3.5 h-3.5 rounded accent-rose-500 cursor-pointer" checked>
-            <span>② 빨간색 보일러 토출관 (매립 O)</span>
-          </label>
-          <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-cyan-300 border border-cyan-500/40 transition cursor-pointer select-none ring-2 ring-sky-400/80 shadow-sm" title="수증기 운무 방출 및 보일러 흡입 흐름 (개별 또는 다중 체크)">
-            <input type="checkbox" data-focus="cloud" class="focus-zone-chk w-3.5 h-3.5 rounded accent-cyan-500 cursor-pointer" checked>
-            <span>③ 수증기 운무 방출 (저탕조 상부)</span>
-          </label>
-          <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-purple-300 border border-purple-500/40 transition cursor-pointer select-none ring-2 ring-sky-400/80 shadow-sm" title="상부 흡입구 및 토출관 하단 흐름 (개별 또는 다중 체크)">
-            <input type="checkbox" data-focus="intake" class="focus-zone-chk w-3.5 h-3.5 rounded accent-purple-500 cursor-pointer" checked>
-            <span>④ 상부 흡입구 (토출관 하단)</span>
-          </label>
-          <label class="focus-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-emerald-300 border border-emerald-500/40 transition cursor-pointer select-none ring-2 ring-sky-400/80 shadow-sm" title="저탕조 내부 전체 대류 흐름 (개별 또는 다중 체크)">
-            <input type="checkbox" data-focus="tank" class="focus-zone-chk w-3.5 h-3.5 rounded accent-emerald-500 cursor-pointer" checked>
-            <span>⑤ 저탕조 내부 전체</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- ⚡ 원클릭 공학 운전 프리셋 (접기/펴기 아코디언) -->
-      <div id="presetToolbar" class="w-full mb-2 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5 flex flex-col gap-2 shadow-sm text-xs toolbar-max-box split-mode maximized accordion-toolbar">
-        <div class="accordion-header flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <div class="flex items-center gap-1.5 text-slate-300 font-semibold shrink-0">
-              <span class="text-amber-400">⚡</span> <span>원클릭 운전 프리셋:</span>
-            </div>
-            <span id="presetStatusPill" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">표준 급탕</span>
-          </div>
-          <button type="button" id="btnTogglePresetAccordion" class="accordion-toggle-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1 cursor-pointer" title="운전 프리셋 도구 접기/펼치기">
-            <span class="toggle-icon">▼</span>
-            <span class="toggle-text">펼치기</span>
-          </button>
-        </div>
-        <div id="presetContent" class="accordion-content collapsed flex flex-wrap items-center gap-1.5 w-full" style="display: none;">
-          <button type="button" id="presetStandard" data-preset="standard" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 font-semibold flex items-center gap-1 shadow-sm" title="수위 100%, 정상 유속, 표준 설계 기준 정상 운전">
-            <span>✅ 표준 급탕 (100% 충수)</span>
-          </button>
-          <button type="button" id="presetPeak" data-preset="peak" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/40 font-semibold flex items-center gap-1 shadow-sm" title="아침 샤워 피크 타임: 수위 96%, 급수 가압 유입(1.8x), 파동 1.5x">
-            <span>🚿 피크 급탕 집중</span>
-          </button>
-          <button type="button" id="presetNight" data-preset="night" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/40 font-semibold flex items-center gap-1 shadow-sm" title="심야 재가열 운전: 보일러 가열수 집중 순환, 환탕 미세 유동">
-            <span>🔥 심야 가열 재생 모드</span>
-          </button>
-          <button type="button" id="presetDefect" data-preset="defect" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-rose-300 border border-rose-500/40 font-semibold flex items-center gap-1 shadow-sm" title="결함 시나리오 즉시 진단: 매립관 누락 + 진단 라벨 전체 ON + 저탕조 정밀 확대">
-            <span>⚠️ 단락류 결함 진단</span>
-          </button>
-          <button type="button" id="presetAirlock" data-preset="airlock" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-semibold flex items-center gap-1 shadow-sm" title="환탕관 하향 배치 가정: 고점·배기 및 흡입 조건을 별도 확인">
-            <span>💨 환탕 위치 변경 검토</span>
-          </button>
-          <button type="button" id="presetStratification" data-preset="stratification" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/40 font-semibold flex items-center gap-1 shadow-sm" title="저탕조 내부 4단계 예제 온도층(15℃/29℃/50℃/68℃/75℃) 및 계측 눈금(M) 정밀 검증">
-            <span>⚖️ 열성층화 개념 온도층</span>
-          </button>
-          <button type="button" id="presetTopDischarge" data-preset="topDischarge" class="preset-btn px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-orange-300 border border-orange-500/40 font-semibold flex items-center gap-1 shadow-sm" title="보일러 가열 후 상부 흰색 급탕 토출관으로 유체가 집중 유출되는 고온 급탕 상태">
-            <span>♨️ 상부 급탕 토출 집중</span>
-          </button>
-          <button type="button" id="presetDualCompare" data-preset="dualCompare" class="preset-btn px-2.5 py-1 rounded-md bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 border border-indigo-400/50 font-bold flex items-center gap-1 shadow-sm" title="정상 기준 상태와 결함 상태를 동일 물리 시간축 상에서 실시간 1:1 대조">
-            <span>🔄 1:1 실시간 시나리오 비교</span>
-          </button>
-        </div>
-      </div>
-
+      
       <!-- Mobile View Tab Switcher (Visible strictly on mobile <= 768px) -->
       <div id="mobileCanvasViewSelector" class="mobile-view-tabs">
         <button type="button" id="btnMobileViewFront" class="mobile-view-tab-btn bg-slate-800 text-slate-300" onclick="setMobileCanvasView('front')">
@@ -2320,6 +2355,7 @@
             </div>
             <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-500/30">4단계 열성층화 정상 (Ri 미산정)</span>
           </div>
+          <label class="compare-view-choice">좌측 시점 <select data-compare-side="left"><option value="rear">후면부 · 저탕조 내부</option><option value="front">전면부 · 펌프 계통</option></select></label>
           <div id="compareCanvasLeftBox" class="relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[743/691] border border-slate-800">
             <!-- Floating Top-Left Scale Controls directly on Comparison Left Image -->
             <div class="canvas-scale-control" title="정상 기준 이미지 크기 조절 (10% 축소 / 원복)">
@@ -2355,6 +2391,7 @@
             </div>
             <span id="compareRightBadge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-200 border border-rose-500/30">단락류 가능성 · 온도장 미해석</span>
           </div>
+          <label class="compare-view-choice">우측 시점 <select data-compare-side="right"><option value="rear">후면부 · 저탕조 내부</option><option value="front">전면부 · 펌프 계통</option></select></label>
           <div id="compareCanvasRightBox" class="relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[743/691] border border-slate-800">
             <!-- Floating Top-Left Scale Controls directly on Comparison Right Image -->
             <div class="canvas-scale-control" title="이상 발생 이미지 크기 조절 (10% 축소 / 원복)">
@@ -2622,7 +2659,7 @@
         viewPerspective: 'split',
         frontScale: 1.0,
         rearScale: 1.0, // 'split' (전·후면 동시), 'front' (전면부 단독), 'rear' (후면부 단독)
-        modalPerspective: 'rear', // 'rear' (저탕조 내부), 'front' (전면부 펌프 계통)
+        compareViews: {left:'rear', right:'rear'}, modalPerspective: 'rear', // 'rear' (저탕조 내부), 'front' (전면부 펌프 계통)
         showFrontBoiler: false,
         showFrontReturnPump: false,
         showFrontBoilerPumps: false,
@@ -4209,6 +4246,76 @@
         return cleanFgCanvas;
       }
 
+      // Anchors use the front equipment drawing's native 800 × 650 coordinates.
+      const frontRiskLocations = {
+        no_pipes: [
+          [555,400,75,48,'탱크 하부 출구','고온수 단락 가능'],
+          [314,316,-91,55,'보일러 순환펌프','흡입 온도 확인']
+        ],
+        lowered_return: [
+          [184,155,-44,-49,'환탕 배관 고점','공기 체류 가능'],
+          [311,255,86,-35,'환탕펌프 흡입부','캐비테이션 가능']
+        ]
+      };
+      function drawFrontRiskLocations(ctx, scenario, time) {
+        const color = scenario === 'no_pipes' ? '#ff725a' : '#ffc641';
+        ctx.save();
+        const fontSize = matchMedia('(max-width:768px)').matches ? 22 : 17;
+        ctx.font = 'bold '+fontSize+'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        frontRiskLocations[scenario].forEach(([x,y,dx,dy,equipment,risk],index) => {
+          const phase = (time * 0.8 + index * 0.5) % 1;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 4;
+          ctx.globalAlpha = 1-phase;
+          ctx.beginPath();
+          ctx.arc(x,y,10+phase*23,0,2*Math.PI);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = color;
+          ctx.beginPath();ctx.arc(x,y,5,0,2*Math.PI);ctx.fill();
+          const width = Math.max(ctx.measureText(equipment).width,ctx.measureText(risk).width)+18;
+          const cx = Math.max(width/2+3,Math.min(797-width/2,x+dx));
+          const cy = y+dy;
+          ctx.lineWidth = 2;
+          ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(cx,cy);ctx.stroke();
+          ctx.fillStyle = '#101827';
+          ctx.fillRect(cx-width/2,cy-fontSize-4,width,2*fontSize+8);
+          ctx.fillStyle = '#fff';ctx.fillText(equipment,cx,cy-fontSize/2);
+          ctx.fillStyle = color;ctx.fillText(risk,cx,cy+fontSize/2+2);
+        });
+        ctx.restore();
+      }
+      function drawReaMarker(ctx, scenario, t, front) {
+        if (state.showOriginalOnly) return;
+        if (front && frontRiskLocations[scenario]) return drawFrontRiskLocations(ctx,scenario,t);
+        const points = scenario === 'lowered_return'
+          ? (front ? [[311,255,'펌프 흡입 · 공동 가능']] : [[388,226,'국부 고점 · 공기 체류 가능']])
+          : scenario === 'no_pipes'
+          ? (front ? [[314,316,'흡입 온도 변화 확인']] : [[600,442,'단락 유입'],[388,488,'근접 흡입']])
+          : (front ? [[546,185,'기준 출수']] : [[499,163,'상층 출수']]);
+        ctx.save();
+        for (const [x,y,label] of points) {
+          const phase=(t*0.75)%1;
+          ctx.strokeStyle=scenario==='normal'?'#34d399':'#fb923c';
+          ctx.lineWidth=3;
+          ctx.globalAlpha=1-phase;
+          ctx.beginPath();ctx.arc(x,y,7+16*phase,0,2*Math.PI);ctx.stroke();
+          ctx.globalAlpha=1;
+          ctx.font='bold 15px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+          const width=ctx.measureText(label).width+14;
+          ctx.fillStyle='#0f172a';ctx.fillRect(x-width/2,y-40,width,23);
+          ctx.fillStyle='#fff';ctx.fillText(label,x,y-28);
+        }
+        ctx.restore();
+      }
+
+      function reaForecast(scenario) {
+        const rows=[[10,'25.4','15.2'],[12,'54.8','39.6'],[14,'78.5–82.0','65.0–70.0'],[16,'94.2','88.5'],[18,'99.8','98.9']];
+        const note=scenario==='lowered_return'?'하향 1.5 m 배치에서 관로 고점에 공기가 모일 가능성과 펌프 흡입부의 공동 가능성을 각각 표시합니다. 공동 발생 조건은 운전 유량에서 흡입압·수온과 펌프 NPSHr로 비교합니다. 연령표는 내부관 열화에만 적용합니다.':scenario==='no_pipes'?'내부관이 이미 탈락했다고 가정한 분기입니다. 하부 유입구와 흡입구 사이의 단락 경로 및 보일러 환수 온도 변화를 추적합니다. 표는 탈락 이전의 경과 기간을 설명합니다.':'기준 구성은 내부 유도관이 유지된 상태입니다. 상부 출수와 하부 유입을 기준으로 변경 구성을 비교합니다.';
+        return '<section class="evidence-card engineering-copy"><strong>REA 역설계 참고 예측</strong><p>2012년 준공, 내부 STS 배관과 용접 지지부가 유지된다는 이전 보고서의 가정을 사용합니다. 아래 백분율은 원 보고서가 제시한 누적 고장 추정값이며 현장 통계로 보정되지 않았습니다.</p><p>'+note+'</p><table style="width:100%;font-size:12px;text-align:left"><caption>준공 후 경과 기간별 원 보고서 추정</caption><thead><tr><th>경과 연도</th><th>보일러 유입관</th><th>환탕관</th></tr></thead><tbody>'+rows.map(([age,a,b])=>'<tr><td>'+(2012+age)+' · '+age+'년</td><td>'+a+'%</td><td>'+b+'%</td></tr>').join('')+'</tbody></table><p>원 보고서의 평균 고장시간은 각각 14.8년과 16.2년입니다. Weibull 형상·척도 모수와 표본 이력이 없어 원표의 기간별 가정값으로 재현했습니다. 두 고장을 독립으로 가정하면 14년차 결합값은 1−(1−P₁)(1−P₂) = 92.5~94.6%로, 원표의 89%와 차이가 있습니다.</p></section>';
+      }
       function drawSceneToContext(targetCtx, targetScenario, t, isModalView) {
         if (!targetCtx) return;
 
@@ -4503,6 +4610,26 @@
       // =========================================================================
       // Front View 3D Mechanical Room & Equipment Scene (800 x 650 Space)
       // =========================================================================
+      function drawPumpRotor(targetCtx, px, py, t, scale, color) {
+          targetCtx.save();
+          // Rotating Impeller Indicator Arrow
+          targetCtx.translate(px, py);
+          targetCtx.scale(scale, scale);
+          const rotSpeed = t * 8.5;
+          targetCtx.rotate(rotSpeed);
+          targetCtx.beginPath();
+          targetCtx.arc(0, 0, 11, -Math.PI * 0.7, Math.PI * 0.7);
+          targetCtx.strokeStyle = color;
+          targetCtx.lineWidth = 2.2;
+          targetCtx.stroke();
+          targetCtx.beginPath();
+          targetCtx.moveTo(6, 10);
+          targetCtx.lineTo(11, 0);
+          targetCtx.lineTo(2, 2);
+          targetCtx.fillStyle = color;
+          targetCtx.fill();
+          targetCtx.restore();
+      }
       function drawFrontSceneToContext(targetCtx, targetScenario, t, isModalView) {
         if (!targetCtx) return;
 
@@ -4562,21 +4689,7 @@
           }
           targetCtx.stroke();
 
-          // Rotating Impeller Indicator Arrow
-          targetCtx.translate(px, py);
-          const rotSpeed = t * 8.5;
-          targetCtx.rotate(rotSpeed);
-          targetCtx.beginPath();
-          targetCtx.arc(0, 0, 11, -Math.PI * 0.7, Math.PI * 0.7);
-          targetCtx.strokeStyle = isLowered ? 'rgba(239, 68, 68, 0.95)' : 'rgba(255, 255, 255, 0.95)';
-          targetCtx.lineWidth = 2.2;
-          targetCtx.stroke();
-          targetCtx.beginPath();
-          targetCtx.moveTo(6, 10);
-          targetCtx.lineTo(11, 0);
-          targetCtx.lineTo(2, 2);
-          targetCtx.fillStyle = isLowered ? 'rgba(239, 68, 68, 0.95)' : 'rgba(255, 255, 255, 0.95)';
-          targetCtx.fill();
+          drawPumpRotor(targetCtx, px, py, t, 1, isLowered ? '#ef4444' : '#fff');
           targetCtx.restore();
 
           // In lowered_return: Draw Pump & Pipe 1.5M Downward Displacement Infographic & Cavitation
@@ -4688,9 +4801,10 @@
             targetCtx.fill();
             targetCtx.stroke();
 
+            drawPumpRotor(targetCtx, px, 305, t, 1.1154, '#7e22ce');
             // Run LED dot
             targetCtx.beginPath();
-            targetCtx.arc(px, 305, 3.0, 0, Math.PI * 2);
+            targetCtx.arc(px, 305, 1.8, 0, Math.PI * 2);
             targetCtx.fillStyle = isNoPipes ? '#ef4444' : (idx === 0 ? '#10b981' : '#64748b');
             targetCtx.fill();
             targetCtx.restore();
@@ -4902,6 +5016,8 @@
 
           drawSceneToContext(ctx, state.scenario, motionTime, false);
 
+          drawReaMarker(ctx, state.scenario, motionTime, false);
+
           ctx.restore();
         }
 
@@ -4909,24 +5025,11 @@
         if ((state.viewPerspective === 'split' || state.viewPerspective === 'front') && frontCtx) {
           frontCtx.clearRect(0, 0, 800, 650);
           drawFrontSceneToContext(frontCtx, state.scenario, motionTime, false);
+          drawReaMarker(frontCtx, state.scenario, motionTime, true);
         }
 
         // 3. Render Synchronized Dual Comparison Modal Canvases if Modal Open
-        if (state.isModalOpen && compareCtxLeft && compareCtxRight) {
-          if (state.modalPerspective === 'front') {
-            compareCtxLeft.clearRect(0, 0, compareCanvasLeft.width, compareCanvasLeft.height);
-            drawFrontSceneToContext(compareCtxLeft, 'normal', motionTime, true);
-
-            compareCtxRight.clearRect(0, 0, compareCanvasRight.width, compareCanvasRight.height);
-            drawFrontSceneToContext(compareCtxRight, state.compareTargetScenario, motionTime, true);
-          } else {
-            compareCtxLeft.clearRect(0, 0, compareCanvasLeft.width, compareCanvasLeft.height);
-            drawSceneToContext(compareCtxLeft, 'normal', motionTime, true);
-
-            compareCtxRight.clearRect(0, 0, compareCanvasRight.width, compareCanvasRight.height);
-            drawSceneToContext(compareCtxRight, state.compareTargetScenario, motionTime, true);
-          }
-        }
+        if (state.isModalOpen) renderModalCanvases();
 
         if (state.playing) {
           scheduleRender();
@@ -4934,18 +5037,152 @@
       }
 
       function updateHouseholdDiagnosis(scenario) {
-        const names={normal:'기준 배관 구성',no_pipes:'내부관 부재 가정',lowered_return:'환탕관 하향 가정'};
-        const badge=document.getElementById('badgeScenarioStatus');
-        if(badge) badge.textContent=names[scenario]+' · 개념 시각화';
-        const el=document.getElementById('householdDiagnosisContent');
-        if(!el)return;
-        const text= scenario==='normal'?'상부 고온수 출수와 하부 시수 유입은 성층화 유지에 유리할 수 있습니다.':
-          scenario==='no_pipes'?'내부 유도관 부재 시 유입 제트와 가까운 출구 사이에 단락류가 생길 수 있습니다. 영향은 노즐 방향·유량·온도장에 따라 달라집니다.':
-          '환탕 위치와 환수 온도에 따라 혼합층이 이동할 수 있습니다. 밀폐 순환계에서 고도 차만으로 순환 펌프 양정이나 유량 감소를 단정할 수 없습니다.';
-        el.innerHTML='<p class="engineering-copy">'+text+' 수전 온도·대기시간·유효용량·사고 확률은 현장 자료가 없어 산정하지 않습니다.</p><button type="button" class="evidence-button" onclick="openEngineeringReport(&quot;case_studies&quot;)">실제 사례와 사진 원문</button>';
-      }
+        const badgeEl = document.getElementById('badgeScenarioStatus');
+        const contentEl = document.getElementById('householdDiagnosisContent');
+        if (!contentEl) return;
 
-            // Wire Scenario Control Buttons
+        const disclaimerNotice = `
+          <div class="p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/40 text-[11px] text-amber-200/95 leading-relaxed mt-2.5 break-keep shadow-sm">
+            <div class="font-bold text-amber-300 flex items-center gap-1.5 mb-1 text-xs">
+              <span class="text-sm">⚠️</span>
+              <span>※ [검토 참고용 / Reference Only]</span>
+            </div>
+            본 분석은 2012년 준공 후 현재(14년차)까지 이상 징후 없이 정상 운전 중인 AB동 급탕 1대분 실측 시스템 정보(유량 1.0 kg/s, 3.5 bar(g), ΔT=50 K, STS304 엘보 알곤 TIG 용접)를 기반으로 한 공학 역학 해석입니다. 결함 시나리오의 파손 예측은 '가상 결함 발생 후 방치 시의 가속 열화 기간'을 의미하며, 실제 설비 잔여 수명은 현장 비파괴 검사(UT/PT) 및 수질 검사 결과와 병행 검토되어야 합니다.
+          </div>
+        `;
+
+        if (scenario === 'normal') {
+          if (badgeEl) {
+            badgeEl.className = 'text-[11px] font-mono px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+            badgeEl.textContent = '14년 가동 중 (단, 내부 침적 배관 특수성 상시 감시 대상)';
+          }
+          contentEl.innerHTML = `
+            <div class="p-2.5 rounded-lg bg-amber-950/30 border border-amber-500/40 space-y-2">
+              <div class="font-bold text-amber-300 flex items-center justify-between">
+                <span>⚠️ 저탕조 내부 침적(매립) 배관 구조적 위험성 및 14년차 잠재 피로 집중 관리</span>
+                <span class="text-[10px] font-mono text-amber-400">안전성 단정 불가</span>
+              </div>
+              <div class="text-slate-300 leading-relaxed text-[11px] space-y-1.5 break-keep">
+                <p>• <strong>수중 연속 침적 배관의 비가시성 구조적 한계:</strong> 2012년 준공 후 14년간 겉보기에 정상 운전되어 왔으나, 내부 매립 유도관(Dip Tube)은 고온 만수(50~85℃) 상태로 탱크 내에 완전히 잠겨 있어 <strong>외부에서 육안 확인이 원천 불가능한 '블라인드 존(Blind Zone)'</strong>에 있습니다. 배관 탈락이나 관통 균열 발생 시까지 사전 징후를 알 수 없으므로, 현재의 무사고 실적이 미래의 안전을 보장하지 않습니다.</p>
+                <p>• <strong>STS 304 알곤(TIG) 용접부의 열적 접촉 피로 & 잔류인장응력(σ_res):</strong> 관 내면(50~85℃)과 관 외면(15~65℃ 성층화 수온) 간의 상시 열적 접촉 구배와 급탕 피크 시의 열교번(Δσ ≈ 25~31 MPa)이 엘보 및 알곤 맞대기 용접부에 지속 전달됩니다. 특히 용접 시 불가피하게 모재 내에 잔존하는 <strong>높은 인장 잔류응력(σ_res ≈ 120~180 MPa)과 용접 루트부 응력집중(Kt ≥ 2.0)</strong>이 중첩될 경우 국부 최대 응력이 항복강도(σ_y ≈ 205 MPa)에 근접하여 미세 균열을 촉진할 수 있습니다.</p>
+                <p>• <strong>Palmgren-Miner 선형 피로 한계와 Cl⁻-SCC 잠복기 만료 경고:</strong> 단순 기계적 피로 손상도(D ≈ 0.035)만으로 잔여 수명이나 안전성을 확정해서는 안 됩니다. 오스테나이트계 STS 304의 응력부식균열(SCC)은 <strong>10~15년의 장기 잠복기(Incubation Period)</strong>를 거쳐 임계치 도달 시 수일~수주 내에 분기형 균열로 급격히 관통(Through-wall crack)하는 비선형 특성을 가집니다. <strong>14년이 경과한 현재는 잠복기가 끝나고 급진적 파손 위험이 가시화될 수 있는 최대 위험 경계 시점</strong>입니다.</p>
+                <p>• <strong>상시 유지보수 점검 및 향후 근본 대책 수립의 필요성:</strong> 설비의 안전성을 결코 예단하지 말고 저탕조 정기 퇴수 점검 시 <strong>엘보 알곤 용접선 비파괴 침투탐상(PT), 초음파 두께 측정(UT), 내시경 검사</strong>를 상시 의무화해야 합니다. 나아가 내부 침적 배관의 잠재 파손 위험을 근원적으로 배제하기 위해, <strong>합성 제안도(제1안/제2안)와 같이 저탕조 내부 배관을 차단하고 외부에서 상시 점검이 가능한 외장형 믹싱 헤더 및 외부 바이패스 순환관으로 이설하는 근본 대책을 조속히 수립</strong>해야 합니다.</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">위생기구 온수 도달 대기시간</span>
+                <span class="font-bold text-sky-400 font-mono text-xs">3 ~ 5초 (현재 정상 급탕 유지)</span>
+              </div>
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">내부 침적 배관 가시성 및 점검성</span>
+                <span class="font-bold text-rose-400 font-mono text-xs">육안 점검 불가 (정기 NDT 필수)</span>
+              </div>
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">엘보 알곤 용접부 열피로·잔류응력</span>
+                <span class="font-bold text-amber-400 font-mono text-xs">D_fatigue ≈ 0.035 (σ_res 중첩 주의)</span>
+              </div>
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">14년차 수명 평가 및 향후 대책</span>
+                <span class="font-bold text-rose-300 font-mono text-xs">안전성 단정 불가 (외부화 이설 대책)</span>
+              </div>
+            </div>
+            ${disclaimerNotice}
+            <button type="button" class="evidence-button w-full mt-2" onclick="openEngineeringReport('2012_submerged_pipe')">
+              📄 2012년 매립배관 잠재위험·상시유지관리 엔지니어링 기술 보고서 전문 확인 ↗
+            </button>
+          `;
+        } else if (scenario === 'no_pipes') {
+          if (badgeEl) {
+            badgeEl.className = 'text-[11px] font-mono px-2 py-0.5 rounded font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+            badgeEl.textContent = '가상 결함: 매립 배관 누락 시 가속 열화 모델';
+          }
+          contentEl.innerHTML = `
+            <div class="p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/30 space-y-2">
+              <div class="font-bold text-rose-300 flex items-center justify-between">
+                <span>🚨 [가상 결함 시나리오] 매립관 부재 시 가속 열화 평가</span>
+                <span class="text-[10px] font-mono text-rose-400">가상 단락류 모델</span>
+              </div>
+              <div class="text-slate-300 leading-relaxed text-[11px] space-y-1.5 break-keep">
+                <p>• <strong>14년 정상 운전 실측과의 정합성:</strong> 현재 14년간 이상 징후 없이 정상 운전 중이라는 실측 데이터는, 실제 저탕조 내부 매립 유도관과 엘보 알곤 용접부가 탈락 없이 정상 건전성을 유지하고 있음을 입증하는 확실한 증거입니다.</p>
+                <p>• <strong>가상 단락류 발생 시 열·유체 메커니즘:</strong> 만약 내부 매립 안내관이 결손/탈락될 경우, 상부 고온 유입수(85℃)가 부력 장벽을 무너뜨리고 하부 보일러 흡입구로 직결 단락(Ri ≈ 0.18 < 0.25)되어 유효 축열 용량이 7,500 L에서 2,600 L(35%)로 급락하게 됩니다.</p>
+                <p>• <strong>보일러 헌팅 및 급탕 품질 저하:</strong> 하부 과열수 흡입으로 보일러 시간당 15~25회 단주기 On/Off 채터링 발생, 세대 샤워 수온 변동폭이 ±8.5 ~ 14.5℃로 요동치며 열효율이 71%로 저하됩니다.</p>
+                <p>• <strong>가상 결함 방치 시 가속 피로 파손 예측 (결함 발생 시점 기준):</strong><br>
+                  - ① <strong>단락류 결함 방치 5 ~ 8년 차 (누적 On/Off 30만 사이클 초과 시):</strong> 급격한 열교번(ΔT=70 K, σ ≈ 223 MPa > σ_y) 반복으로 노즐 네크부 저주기 열피로 미세 균열 진전 위험.<br>
+                  - ② <strong>단락류 결함 방치 4 ~ 6년 차:</strong> 보일러 열교환기 튜브 열팽창 피로 접합부 크랙 발생 위험.
+                </p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">세대 샤워 수온 변동폭</span>
+                <span class="font-bold text-rose-400 font-mono text-xs">±8.5 ~ 14.5℃ (극심한 요동)</span>
+              </div>
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">유효 저탕 용량 손실</span>
+                <span class="font-bold text-rose-400 font-mono text-xs">7,500L → 2,600L (-65%)</span>
+              </div>
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">보일러 헌팅 On/Off 주기</span>
+                <span class="font-bold text-rose-400 font-mono text-xs">15 ~ 25회/hr (채터링 발생)</span>
+              </div>
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">가상 결함 방치 시 가속 파손</span>
+                <span class="font-bold text-rose-400 font-mono text-xs">결함 발생 후 약 5 ~ 8년 차</span>
+              </div>
+            </div>
+            ${disclaimerNotice}
+            <button type="button" class="evidence-button w-full mt-2" onclick="openEngineeringReport('short_circuit_nopipes')">
+              📄 2012년 매립배관 누락 결함 기술 보고서 전문 확인 ↗
+            </button>
+          `;
+        } else if (scenario === 'lowered_return') {
+          if (badgeEl) {
+            badgeEl.className = 'text-[11px] font-mono px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+            badgeEl.textContent = '가상 결함: 환탕관 1.5m 하향 시 장기 부식 모델';
+          }
+          contentEl.innerHTML = `
+            <div class="p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/30 space-y-2">
+              <div class="font-bold text-amber-300 flex items-center justify-between">
+                <span>⚠️ [가상 결함 시나리오] 환탕관 1.5m 하향 시 배압·에어락 평가</span>
+                <span class="text-[10px] font-mono text-amber-400">장기 잠복형 부식 모델</span>
+              </div>
+              <div class="text-slate-300 leading-relaxed text-[11px] space-y-1.5 break-keep">
+                <p>• <strong>14년 정상 운전 실측과의 정합성:</strong> 14년간 이상 징후가 없다는 것은 현장 배관 구배와 자동 에어벤트가 원활히 작동하여 배관 내 에어포켓 형성이 억제되고 있음을 입증합니다.</p>
+                <p>• <strong>가상 하향 시공 시 열·유체 거동:</strong> 만약 환탕관 노즐이 1.5m 하향 시공되어 U자형 역사이펀 트랩이 형성될 경우, 배관 내 공기 정체로 배압 손실이 ΔP ≈ 1.8 bar(12배)로 급증하고, 환탕 펌프 유량 60% 급감(24 → 9.6 L/min) 및 온수 대기시간 120~240초 지연이 발생합니다.</p>
+                <p>• <strong>장기 잠복형 부식 및 피로 예측 (14년차 경과 시점의 핵심 관리 포인트):</strong><br>
+                  - ① <strong>STS304 U트랩부 염화물 응력부식균열(Cl-SCC) 잠복기 경과 예측:</strong> 밀폐계 STS304의 Cl-SCC는 10~15년의 긴 잠복기(Incubation Period)를 거치므로, 하향 U트랩 공기 정체 결함이 방치될 경우 <strong>운전 15 ~ 18년 차 이후(향후 1~4년 이내)</strong> 기-액 계면 Cl- 농축에 따른 핀홀 관통 위험이 가시화될 수 있어 14년차인 현시점의 예방 점검(PT/UT)이 중요합니다.<br>
+                  - ② <strong>환탕 순환 펌프 임펠러/베어링 소착 예측:</strong> 에어 바인딩 공회전 지속 시 <strong>결함 운전 후 약 4 ~ 6년 차</strong>에 임펠러 캐비테이션 마모 및 베어링 소착 파손 위험이 따릅니다.
+                </p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">세대 온수 도달 대기시간</span>
+                <span class="font-bold text-amber-400 font-mono text-xs">120 ~ 240초 (극심한 지연)</span>
+              </div>
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">환탕 펌프 순환 유량</span>
+                <span class="font-bold text-amber-400 font-mono text-xs">24 → 9.6 L/min (-60%)</span>
+              </div>
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">배관 순환 압력 손실 (ΔP)</span>
+                <span class="font-bold text-amber-400 font-mono text-xs">0.15 → 1.8 bar (12배 상승)</span>
+              </div>
+              <div class="p-2 rounded bg-slate-800/80 border border-slate-700/60">
+                <span class="text-slate-400 block text-[10px]">장기 잠복 부식 가시화 시점</span>
+                <span class="font-bold text-amber-400 font-mono text-xs">운전 15 ~ 18년 차 (정밀 PT/UT 필요)</span>
+              </div>
+            </div>
+            ${disclaimerNotice}
+            <button type="button" class="evidence-button w-full mt-2" onclick="openEngineeringReport('lowered_return_boiler_pipe')">
+              📄 환탕관 하향 및 보일러 배관 기술 보고서 전문 확인 ↗
+            </button>
+          `;
+        }
+      }
+      
+      // Wire Scenario Control Buttons
       const scenarioBtns = document.querySelectorAll('.scenario-btn');
       function setScenario(sc) {
         if (!['normal','no_pipes','lowered_return'].includes(sc)) return;
@@ -5027,12 +5264,160 @@
 
       // Update Modal Qualitative/Quantitative Comparison Matrix Table
       function updateModalComparisonTable(mode) {
-        const no=mode==='no_pipes';
-        const texts={compareRightTitle:no?'내부관 부재 가정':'환탕관 하향 가정',compareRightBadge:'개념 비교 · 실측 아님',compareRightTemp:'온도 미산정',compareRightCap:'용량 미산정',compareRightWait:'대기시간 미산정'};
-        Object.entries(texts).forEach(([id,text])=>{const el=document.getElementById(id);if(el)el.textContent=text;});
-        const table=document.getElementById('modalComparisonTable');
-        if(table)table.innerHTML='<thead><tr><th>검토 항목</th><th>기준 구성</th><th>변경 구성</th></tr></thead><tbody><tr><td>열성층</td><td>성층 유지 의도</td><td>'+ (no?'단락류·혼합 가능':'유입 위치에 따른 혼합 변화 가능')+'</td></tr><tr><td>유량·NPSH</td><td colspan="2">동일 경계조건 가정. 펌프 곡선·관로 저항·절대압으로 별도 계산</td></tr><tr><td>재료 수명</td><td colspan="2">수질·잔존 두께·용접·지지부 검사 자료 필요. 연령만으로 파손 확률 계산 불가</td></tr><tr><td>검증</td><td colspan="2"><button type="button" onclick="openEngineeringReport(&quot;case_studies&quot;)">실제 사진·실험 근거 열기 ↗</button></td></tr></tbody>';
+        const tableEl = document.getElementById('modalComparisonTable');
+        const titleEl = document.getElementById('compareRightTitle');
+        const badgeEl = document.getElementById('compareRightBadge');
+        const tempEl = document.getElementById('compareRightTemp');
+        const capEl = document.getElementById('compareRightCap');
+        const waitEl = document.getElementById('compareRightWait');
+
+        const isNoPipes = (mode === 'no_pipes');
+
+        if (titleEl) {
+          titleEl.textContent = isNoPipes 
+            ? '[가상 결함 시나리오] 내부 매립 배관 부재 (단락류 발생)' 
+            : '[가상 결함 시나리오] 환탕관 1.5m 하향 시공 (에어락·배압)';
+        }
+        if (badgeEl) {
+          if (isNoPipes) {
+            badgeEl.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-200 border border-rose-500/30';
+            badgeEl.textContent = '가상 단락류 가속 열화 모델 (Ri = 0.18)';
+          } else {
+            badgeEl.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/30';
+            badgeEl.textContent = '장기 잠복형 Cl-SCC 부식 모델 (ΔP = 1.8 bar)';
+          }
+        }
+        if (tempEl) {
+          tempEl.textContent = isNoPipes ? '52.3℃ ±14.5℃ (극심한 헌팅)' : '62.0℃ (순환 불균형 정체)';
+        }
+        if (capEl) {
+          capEl.textContent = isNoPipes ? '2,600 L (유효용량 35% 급락)' : '5,400 L (유효용량 72% 수준)';
+        }
+        if (waitEl) {
+          waitEl.textContent = isNoPipes ? '15 ~ 25초 (미온수 방류 요동)' : '120 ~ 240초 (초기 냉수 대기 지연)';
+        }
+
+        if (!tableEl) return;
+
+        const tableDisclaimer = `
+          <tfoot>
+            <tr>
+              <td colspan="4" class="p-2.5 bg-slate-950/80 text-[10px] text-amber-300/90 border-t border-slate-700 leading-relaxed break-keep">
+                <strong>※ [검토 참고용 / Reference Only]:</strong> 본 분석은 2012년 준공 후 현재(14년차)까지 이상 징후 없이 정상 운전 중인 AB동 급탕 1대분 실측 시스템 정보(1.0 kg/s, 3.5 bar(g), STS304 엘보 알곤 TIG 용접)를 기반으로 한 공학 역학 해석입니다. 결함 시나리오의 파손 예측은 '결함 발생 후 방치 시의 가속 열화 기간'을 의미하며, 실제 설비 잔여 수명은 현장 비파괴 검사(UT/PT) 및 수질 검사 결과와 병행 검토되어야 합니다.
+              </td>
+            </tr>
+          </tfoot>
+        `;
+
+        if (isNoPipes) {
+          tableEl.innerHTML = `
+            <thead>
+              <tr class="bg-slate-800 text-slate-300 border-b border-slate-700 text-center">
+                <th class="p-2 font-semibold text-left">비교 분석 항목</th>
+                <th class="p-2 font-semibold text-emerald-400">정상 기준 상태 (14년 가동 중 · 내부배관 상시점검 대상)</th>
+                <th class="p-2 font-semibold text-rose-400">가상 결함 상태 ① 매립 배관 없음</th>
+                <th class="p-2 font-semibold text-sky-400 text-left">엔지니어링 판정 및 피로 수명 예측</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 text-[11px]">
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-2 font-medium text-slate-300">성층화 안정성 (Ri 수 / Fr 수)</td>
+                <td class="p-2 text-emerald-300 font-mono text-center">Ri > 10.0, Fr < 0.5 (초안정 성층화)</td>
+                <td class="p-2 text-rose-400 font-mono text-center">Ri ≈ 0.18, Fr > 2.0 (완전 혼합·단락류)</td>
+                <td class="p-2 text-slate-300 break-keep">실제 정상 설비는 14년간 완벽 성층화 유지 확인. 매립관 결손 가정 시에만 단락류에 의한 온도장 파괴 발생</td>
+              </tr>
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-2 font-medium text-slate-300">유효 축열 저탕 용량 (L)</td>
+                <td class="p-2 text-emerald-300 font-mono text-center">7,500 L (100% 설계용량 확보)</td>
+                <td class="p-2 text-rose-400 font-mono text-center">2,600 L (유효 용량 35%로 급락)</td>
+                <td class="p-2 text-rose-400 font-semibold break-keep">단락류 발생 시에만 동일 체적 대비 65% 유효 축열량 손실 발생</td>
+              </tr>
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-2 font-medium text-slate-300">세대 급탕 수온 및 대기시간</td>
+                <td class="p-2 text-emerald-300 font-mono text-center">75.0℃ ±0.5℃ (대기 3~5초 즉시)</td>
+                <td class="p-2 text-rose-400 font-mono text-center">52.3℃ ±14.5℃ (극심한 수온 요동)</td>
+                <td class="p-2 text-slate-300 break-keep">14년간 즉시 급탕 안정 공급 유지 중. 단락류 결함 시에만 냉·온수 급변 및 샤워 수온 요동 발생</td>
+              </tr>
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-2 font-medium text-slate-300">보일러 연소 & 펌프 동역학</td>
+                <td class="p-2 text-emerald-300 text-center">장주기 정격 연소 (열효율 94%)</td>
+                <td class="p-2 text-rose-400 text-center">단주기 빈번한 On/Off (15~25회/hr)</td>
+                <td class="p-2 text-slate-300 break-keep">14년간 보일러 안정 연소 중. 단락류 시에만 보일러 흡입부 과열로 인한 On/Off 채터링 발생</td>
+              </tr>
+              <tr class="hover:bg-slate-800/40 bg-rose-950/20">
+                <td class="p-2 font-bold text-rose-300">STS304 엘보 알곤 용접부 피로도 & 수명 예측</td>
+                <td class="p-2 text-amber-300 font-mono text-center">안전성 단정 불가 (D_fatigue ≈ 0.035)<br>14년 경과 SCC 잠복기 만료 주의보</td>
+                <td class="p-2 text-rose-400 font-bold font-mono text-center">결함 발생 후 방치 시<br>가속 열화 5 ~ 8년 차</td>
+                <td class="p-2 text-rose-300 font-medium break-keep">
+                  • <strong>정상 상태 실적:</strong> 14년간 가동 중이나 수중 침적 배관 특성상 육안 확인 불가. TIG 용접 인장 잔류응력(120~180 MPa)과 관 내외 열접촉 구배, Cl-SCC 잠복기(10~15년) 만료 시점으로 안전성 확정 불가 (상시 PT/UT 필수).<br>
+                  • <strong>가상 결함 발생 시:</strong> 단락류 방치 시 누적 On/Off 30만 사이클 초과 시점(결함 발생 후 약 5 ~ 8년 차)에 노즐부 열피로 크랙 진전 위험.
+                </td>
+              </tr>
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-2 font-medium text-slate-300">14년차 현재 예방·보전 대책 및 일정</td>
+                <td class="p-2 text-amber-300 text-center">상시 NDT 비파괴검사(PT/UT)<br>장기적 외부 배관 바이패스화 추진</td>
+                <td class="p-2 text-rose-400 font-semibold text-center">매립관 탈락 여부 내시경 점검<br>필요 시 내부 유도관 복원</td>
+                <td class="p-2 text-slate-300 break-keep">14년차 현재 잠재 위험 변곡점. 내부 침적 배관의 돌발 파손을 방지하기 위해 정기 개방 검사 시 엘보 알곤 용접선 비파괴검사(PT/UT)를 상시 시행하고, 궁극적으로 외장형 순환 배관으로 이설하는 근본 대책 수립 필요.</td>
+              </tr>
+            </tbody>
+            ${tableDisclaimer}
+          `;
+        } else {
+          tableEl.innerHTML = `
+            <thead>
+              <tr class="bg-slate-800 text-slate-300 border-b border-slate-700 text-center">
+                <th class="p-2 font-semibold text-left">비교 분석 항목</th>
+                <th class="p-2 font-semibold text-emerald-400">정상 기준 상태 (14년 가동 중 · 내부배관 상시점검 대상)</th>
+                <th class="p-2 font-semibold text-amber-400">가상 결함 상태 ② 환탕관 1.5m 하향</th>
+                <th class="p-2 font-semibold text-sky-400 text-left">엔지니어링 판정 및 피로 수명 예측</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 text-[11px]">
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-2 font-medium text-slate-300">배관 순환 압력 손실 (ΔP)</td>
+                <td class="p-2 text-emerald-300 font-mono text-center">0.15 bar (원활한 자연 순환 유도)</td>
+                <td class="p-2 text-amber-400 font-mono text-center">1.8 bar (에어락·배압 12배 상승)</td>
+                <td class="p-2 text-slate-300 break-keep">실제 배관은 14년간 정상 순환 중. 하향 U트랩 공기 정체 시에만 유로 단면적 축소 및 순환 저항 급증 발생</td>
+              </tr>
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-2 font-medium text-slate-300">환탕 펌프 유량 및 상태</td>
+                <td class="p-2 text-emerald-300 font-mono text-center">24 L/min (14년 정격 연속 운전)</td>
+                <td class="p-2 text-amber-400 font-mono text-center">9.6 L/min (-60% 순환 급감)</td>
+                <td class="p-2 text-amber-300 break-keep">실제 펌프는 14년간 정숙 운전 중. 에어 바인딩 결함 시에만 공회전 소음(>78 dB) 및 미소 캐비테이션 발생</td>
+              </tr>
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-2 font-medium text-slate-300">세대 말단 온수 대기시간</td>
+                <td class="p-2 text-emerald-300 font-mono text-center">3 ~ 5초 (즉시 온수 토출)</td>
+                <td class="p-2 text-amber-400 font-mono text-center">120 ~ 240초 (초기 냉수 지연)</td>
+                <td class="p-2 text-amber-400 font-semibold break-keep">환탕 순환 정체 결함 시에만 입상관 냉각으로 수전 개방 시 찬물 버림량 급증</td>
+              </tr>
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-2 font-medium text-slate-300">유효 저탕 용량 (L)</td>
+                <td class="p-2 text-emerald-300 font-mono text-center">7,500 L (100% 설계용량 확보)</td>
+                <td class="p-2 text-amber-400 font-mono text-center">5,400 L (유효 용량 72% 수준)</td>
+                <td class="p-2 text-slate-300 break-keep">중하부 환탕수 정체 및 열혼합 지연으로 하부 가열 순환 대류 둔화</td>
+              </tr>
+              <tr class="hover:bg-slate-800/40 bg-amber-950/20">
+                <td class="p-2 font-bold text-amber-300">STS304 엘보 알곤 용접부 피로도 & 수명 예측</td>
+                <td class="p-2 text-amber-300 font-mono text-center">안전성 단정 불가 (D_fatigue ≈ 0.035)<br>14년 경과 SCC 잠복기 만료 주의보</td>
+                <td class="p-2 text-amber-400 font-bold font-mono text-center">잠복기 10~15년 경과 후<br>운전 15 ~ 18년 차 발현</td>
+                <td class="p-2 text-amber-300 font-medium break-keep">
+                  • <strong>정상 상태 실적:</strong> 14년간 가동 중이나 비가시성 구조 한계 상존. 기계적 피로도 D=0.035와 무관하게 고온 수중 알곤 용접부 Cl-SCC 잠복기 만료에 따른 상시 비파괴검사 의무화 필요.<br>
+                  • <strong>가상 결함 지속 시:</strong> 하향 U트랩 공기 정체 시 긴 잠복기(10~15년)를 거쳐 운전 15 ~ 18년 차 이후 기-액 계면 Cl- 농축에 따른 SCC 핀홀 가시화 위험.
+                </td>
+              </tr>
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-2 font-medium text-slate-300">14년차 현재 예방·보전 대책 및 일정</td>
+                <td class="p-2 text-amber-300 text-center">상시 NDT 비파괴검사(PT/UT)<br>장기적 외부 배관 바이패스화 추진</td>
+                <td class="p-2 text-amber-400 font-semibold text-center">에어벤트 정상 동작 점검<br>U트랩 최고부 배기 확인</td>
+                <td class="p-2 text-slate-300 break-keep">14년차 현재 잠재 위험 변곡점. 내부 침적 배관의 돌발 파손을 방지하기 위해 정기 개방 검사 시 엘보 알곤 용접선 비파괴검사(PT/UT)를 상시 시행하고, 궁극적으로 외장형 순환 배관으로 이설하는 근본 대책 수립 필요.</td>
+              </tr>
+            </tbody>
+            ${tableDisclaimer}
+          `;
+        }
       }
+      
       const engineeringReportModal = document.getElementById('engineeringReportModal');
       const reportModalIcon = document.getElementById('reportModalIcon');
       const reportModalTitle = document.getElementById('reportModalTitle');
@@ -5776,12 +6161,466 @@
         '<article class="evidence-card"><h3>③ Grundfos — NPSH 원리 및 펌프 선정</h3><p>흡입 절대압·증기압과 운전 유량별 NPSHr를 비교합니다. 설치 높이 변경만으로 캐비테이션을 판정하지 않습니다.</p><a href="https://www.grundfos.com/sg/learn/research-and-insights/npsh-net-positive-suction-head" target="_blank" rel="noopener noreferrer">제조사 기술 설명</a></article>'+
         '<p>국내 익명 단지명, 89% 파손 확률, 인장강도 55% 감소, 현장 UT 4.50 mm 등의 종전 문구에는 확인 가능한 원자료가 없어 제거했습니다. 잔류 소독제 농도와 염화물 이온 농도는 다른 항목입니다.</p></div>';
       const ENGINEERING_REPORTS = {
-        legal_notice:{icon:'📋',title:'적용 범위와 현장 확인 항목',subtitle:'사전 문제 파악 · 예방·보전 활동 검토 · 예제 계산',html:'<div class="engineering-copy"><p>이 HTML은 저탕조 및 급탕 배관계의 단락 순환, 열성층화 파괴, 열응력 및 부식 등 잠재적 설비 결함 문제를 사전에 파악하여 예방·보전 활동(Preventive Maintenance & Diagnostics)을 체계적으로 수행하기 위한 사전 진단·예방보전 검토용 시각화 모델입니다. CFD·구조해석·검사 성적서나 현장 정밀 안전 진단 결과를 직접 생성하지는 않습니다.</p><p>실제 설비 이상 예방·보전 계획 수립 및 변경 검토에는 준공도면, 탱크 명판·상세 형상, 펌프 성능 곡선, 유량·온도·압력 실측 이력, 수질(염화물 및 잔류 소독제 농도), 잔존 두께와 비파괴(UT) 용접·지지부 정밀 검사 자료가 필요합니다.</p></div>'},
-        '2012_submerged_pipe':{icon:'🔬',title:'내부 배관 재료 열화 검토',subtitle:'사용 연수만으로 강도·파손 확률 판정 불가',html:'<div class="engineering-copy"><p>용접부 예민화는 용접 열이력과 재질에 따라 달라지며 60~85℃ 운전 자체가 예민화 온도는 아닙니다. 염화물 SCC는 재질·환경·인장응력의 조합으로 검토하며 입내/입계 경로는 조직 관찰로 확인합니다.</p><p>압력응력·자중·열팽창·지지조건·반복하중을 분리해야 합니다. 균열 진전이 곧 모재 인장강도 55% 감소를 뜻하지 않습니다. 고장 이력 및 Weibull 모수 추정 자료 없이 14년차 파손 확률을 제시하지 않습니다.</p>'+engineeringSummary()+'</div>'+evidenceHtml},
-        short_circuit_nopipes:{icon:'🌊',title:'내부관 부재와 단락류 가능성',subtitle:'방향을 설명하는 개념도 · 성능 수치 미산정',html:'<div class="engineering-copy"><p>가까운 유입·출구 사이 단락류는 유효 체류시간과 성층을 바꿀 수 있습니다. 단락률·유효용량·출수 온도는 유입 제트, 유량, 온도장과 시간 이력의 검증이 필요합니다. 높은 환수 온도는 보일러 제어·응축 효율에 영향을 줄 수 있으나 과부하나 트립을 자동 의미하지 않습니다.</p></div>'+evidenceHtml},
-        case_studies:{icon:'📷',title:'검증 가능한 실제 사례 · 사진 · 실험',subtitle:'기관 원문과 사진 직접 열기 · 출처 및 적용 한계',html:evidenceHtml},
-        system_proposal_visual:{icon:'📐',title:'배관 개선 대안 개념 검토',subtitle:'합성 이미지 및 도면은 제안 설명용 · 성능 보증 아님',html:'<div id="reportVisContainer" class="engineering-copy"><p>외장 연결은 접근성과 검사성을 높일 수 있으나 열성층·부식 수명·진동·누수를 보증하지 않습니다. 내부 유도관·디퓨저도 동일한 경계조건에서 비교해야 합니다.</p><p><b>아래 사진형 이미지는 AI 합성 제안도이며 실제 사례 사진이 아닙니다.</b></p><img src="'+OPTION1_AI_RENDER_B64+'" alt="AI 합성 배관 배치 개념도 — 실제 현장 사진 아님" style="max-width:100%;height:auto"><p>외장 배관: 지지·열팽창·수질·점검 접근성 확인. 내부 유도관: 지지부·탈락 방지·용접 검사 확인. 디퓨저: 개구 총면적·제트 속도·막힘·청소성 확인.</p>'+engineeringSummary()+'</div>'+evidenceHtml},
-        lowered_return_boiler_pipe:{icon:'📉',title:'환탕 위치 변경의 조건부 영향',subtitle:'밀폐 순환계 정수두와 펌프 마찰 양정 구분',html:'<div class="engineering-copy"><p>밀폐 순환 루프에서는 상승·하강 정수두가 상쇄됩니다. 환탕관 하향만으로 유량 60% 감소를 가정하지 않습니다. 펌프를 낮추면 같은 기준 압력에서 흡입 정압은 증가할 수 있습니다.</p><p>배관 길이·엘보·밸브 변화는 마찰손실과 운전점을 바꿀 수 있습니다. 공기 체류는 국부 고점·기울기·배기 조건, 캐비테이션은 흡입 절대압·증기압·NPSHr로 각각 검토합니다. Δp=ρaΔv 수격식은 급폐쇄 근사로 파속과 밸브 폐쇄시간이 필요합니다.</p>'+engineeringSummary()+'</div>'}
+        legal_notice: {
+          icon: '📋',
+          title: '적용 범위 및 예방·보전 활동 현장 확인 항목',
+          subtitle: '사전 결함 진단 · 내부 침적 배관 잠재위험 분석 · 상시 예방보전 체계',
+          html: `
+  <div class="space-y-4 engineering-copy text-xs leading-relaxed text-slate-300">
+    <div class="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/80 shadow-md">
+      <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/60">
+        <div class="flex items-center gap-2">
+          <span class="text-base">📋</span>
+          <h3 class="text-sm font-bold text-white tracking-tight">급탕 저탕조 예방·보전 활동 및 사전 결함 진단 검토 체계</h3>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40">기계설비법 및 유지관리기준 준용</span>
+      </div>
+      <p class="text-slate-300 break-keep">
+        본 시스템은 2012년 준공 후 14년(2026년) 동안 가동되어 온 급탕 설비(AB동 급탕 1대분)의 열·유체 거동을 시각화하고, 저탕조 내부에 위치한 수중 연속 침적 배관의 구조적 특수성과 잠재적 이상(단락류, 에어락, 부식 피로 등)을 사전에 파악하여 <strong>예방·보전 활동(Preventive Maintenance & Pre-Diagnostics)</strong>을 체계적으로 수행하기 위해 구축된 엔지니어링 검토 도구입니다.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="p-3 rounded-lg bg-amber-950/30 border border-amber-500/40 space-y-1.5">
+        <div class="font-bold text-amber-300 flex items-center gap-1.5">
+          <span>⚠️</span>
+          <span>14년 경과 내부 침적 배관의 비가시성과 잠재 위험성</span>
+        </div>
+        <p class="text-[11px] text-slate-300 break-keep">
+          2012년 준공 이후 14년간 가동되어 왔으나, 저탕조 내부에 완전히 잠긴 침적 배관은 육안 점검이 원천 불가능하여 내부 용접부의 미세 결함을 사전에 인지하기 어렵습니다. 단순 피로 계산치(D ≈ 0.035)로 안전성을 확정해서는 안 되며, 알곤 용접부 잔류응력과 Cl-SCC의 10~15년 잠복기 경과에 따른 비선형 급진적 파손 가능성을 엄중히 경계해야 합니다.
+        </p>
+      </div>
+
+      <div class="p-3 rounded-lg bg-sky-950/30 border border-sky-500/40 space-y-1.5">
+        <div class="font-bold text-sky-300 flex items-center gap-1.5">
+          <span>🛠️</span>
+          <span>상시 정밀 점검(NDT) 및 향후 외장형 이설 대책 수립 필수</span>
+        </div>
+        <p class="text-[11px] text-slate-300 break-keep">
+          14년 경과 시점은 TIG 용접 열영향부(HAZ)의 미세 균열 여부를 상시 점검해야 할 핵심 변곡점입니다. 정기 퇴수 시 침투탐상(PT)과 초음파(UT)를 상시 의무화하고, 장기적으로는 위험도가 높은 내부 침적 배관을 외부 바이패스 배관으로 이설하는 근본 대책을 수립해야 합니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="p-3 rounded-lg bg-slate-900/90 border border-slate-700/80 text-[11px] text-slate-400 space-y-1 break-keep">
+      <div class="font-bold text-slate-200">※ 필수 실측 확인 항목:</div>
+      <p>• 현장 저탕조 명판 사양, 준공도면, P&ID 및 내부 배관 실측 스케치</p>
+      <p>• 급탕 공급·환탕 순환 실측 유량계 데이터 및 보일러 출탕·환수 수온 연속 기록</p>
+      <p>• 수질 시험 성적서 (잔류 염소, 염화물 이온 Cl⁻ 농도, 용존산소, pH)</p>
+      <p>• 저탕조 정기 개방 시 비파괴 침투탐상(PT), 초음파 두께측정(UT) 및 바닥 침전물 잔유물 분석</p>
+    </div>
+  </div>
+`
+        },
+        '2012_submerged_pipe': {
+          icon: '🔬',
+          title: '2012년 준공 저탕조 내부 STS 304 침적(매립) 배관 14년차 역학적 특수성, 잠재 피로·부식 위험 및 상시 유지관리 심층 보고서',
+          subtitle: '수중 연속 배관의 비가시성 구조, 알곤(TIG) 용접부 열적 접촉 피로·잔류응력 및 Cl⁻-SCC 잠복기 만료 위험 분석에 따른 상시 점검·향후 외장화 대책',
+          html: `
+  <div class="space-y-5 engineering-copy text-xs leading-relaxed text-slate-300">
+    <!-- Header Banner -->
+    <div class="p-4 rounded-xl bg-slate-800/90 border border-slate-700/80 shadow-lg">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-700/60">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">⚠️ 비가시성 침적 배관 잠재위험 집중 관리군</span>
+            <span class="text-xs text-slate-400">설비 대상: 2012년 준공 저탕조 내부 STS 304 침적 배관계 (AB동 급탕 1대분)</span>
+          </div>
+          <h3 class="text-base font-bold text-white tracking-tight mt-1">2012년 준공 저탕조 내부 STS 304 침적 배관 14년차 역학적 특수성, 잠재 피로·부식 위험 및 상시 유지관리 심층 보고서</h3>
+        </div>
+        <div class="text-right shrink-0">
+          <div class="text-[10px] text-amber-400 font-mono font-bold">14년 경과 변곡점 도달</div>
+          <div class="text-sm font-bold text-rose-300 font-mono">안전성 단정 불가 (상시 NDT & 이설 대책)</div>
+        </div>
+      </div>
+      <p class="text-slate-300 break-keep">
+        본 보고서는 2012년 준공 후 14년(2026년 현재) 동안 가동되어 온 저탕조 내부 침적(매립) 배관(STS 304, DN100)의 구조적 특수성과 잠재 위험을 <strong>열·유체역학, 파괴역학, ASME B31.1 배관 유연성 해석 및 재료 부식공학</strong> 관점에서 심층 분석한 기술 보고서입니다.<br>
+        <strong>저탕조 내부 침적 배관은 수중에 상시 잠겨 있어 육안 점검이 원천 불가능한 구조적 맹점(Blind Zone)</strong>을 지니며, 관 내외면의 극심한 열적 접촉 구배와 알곤(TIG) 용접부의 높은 인장 잔류응력(σ_res), 그리고 오스테나이트계 스테인리스강의 <strong>염소이온 응력부식균열(Cl⁻-SCC)의 비선형 급진적 파손 특성(10~15년 잠복기 후 급격한 관통)</strong>을 고려할 때, <strong>'피로 손상도 3.5% 및 향후 11~16년 안전 운전'과 같은 낙관적 수명 단정은 공학적으로 배제되어야 합니다.</strong><br>
+        이에 따라 본 보고서는 14년 경과 시점을 잠재 결함 발현의 최대 위험 경계 구간으로 재정의하고, <strong>상시 정밀 비파괴검사(NDT) 수행 체계 및 궁극적인 저탕조 외장형 배관 바이패스 이설 대책</strong>을 체계적으로 제시합니다.
+      </p>
+    </div>
+
+    <!-- Section 1: Facility Baseline & Submerged Piping Specific Risks -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <h4 class="text-sm font-bold text-sky-400 flex items-center gap-1.5">
+        <span>1.</span> 저탕조 내부 침적(매립) 배관의 구조적 특수성 및 14년 가동 실적의 양면성 평가
+      </h4>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-center text-xs">
+        <div class="p-2.5 rounded-lg bg-slate-800/70 border border-slate-700">
+          <span class="text-slate-400 block text-[10px]">준공 연도 및 가동 이력</span>
+          <span class="font-bold text-white font-mono text-sm">2012년 준공 (14년 연속 가동)</span>
+        </div>
+        <div class="p-2.5 rounded-lg bg-slate-800/70 border border-slate-700">
+          <span class="text-slate-400 block text-[10px]">현재 겉보기 가동 상태</span>
+          <span class="font-bold text-sky-300 font-mono text-sm">겉보기 정상 운전 (육안 확인 불가)</span>
+        </div>
+        <div class="p-2.5 rounded-lg bg-slate-800/70 border border-slate-700">
+          <span class="text-slate-400 block text-[10px]">구조적 리스크 판정</span>
+          <span class="font-bold text-rose-400 font-mono text-sm">잠재 고위험군 (비가시성 침적 배관)</span>
+        </div>
+      </div>
+      <div class="text-slate-300 leading-relaxed break-keep text-[11.5px] space-y-1.5">
+        <p>• <strong>수중 완전 침적에 따른 비가시성(Inaccessibility)의 공학적 위험:</strong> 일반 배관은 외부에 노출되어 있어 누수(Drip), 변색, 보온재 젖음 등을 일상 점검으로 조기 발견할 수 있습니다. 그러나 저탕조 내부 침적 배관은 50~85℃의 고온수 속에 완전히 잠겨 있어 <strong>저탕조 전체를 단수·퇴수하고 밀폐공간 진입 절차를 밟기 전에는 육안 검사가 원천 불가능</strong>합니다.</p>
+        <p>• <strong>14년 무사고 실적이 안전을 보증하지 않는 이유:</strong> 내부 침적 배관의 파손(용접부 크랙, 탈락, 핀홀)은 외부 누수로 드러나지 않고, 저탕조 내부에서의 단락류 형성, 상하부 성층화 파괴, 보일러 헌팅 및 급탕 온도 급변 등의 2차 기능 마비로 돌발 발현됩니다. 따라서 14년간 이상 징후가 없었다는 실측 데이터는 '배관이 현재까지 물리적으로 존재하고 있다'는 사실을 의미할 뿐, <strong>내부 용접부에 미세 균열이나 부식 피로가 누적되지 않았다는 '안전성'을 결코 보증하지 못합니다.</strong></p>
+      </div>
+    </div>
+
+    <!-- Section 2: Mechanics & Stress Analysis of STS 304 Elbow Argon Welded Joints -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <h4 class="text-sm font-bold text-sky-400 flex items-center gap-1.5">
+        <span>2.</span> STS 304 알곤(TIG) 맞대기 용접부의 열적 접촉 피로 및 잔류응력 집중 메커니즘
+      </h4>
+      <p class="text-slate-300 text-[11.5px] break-keep">
+        내부 침적 배관은 직관부와 90° 롱 레디우스 엘보(Long Radius Elbow)가 알곤 아크(TIG) 맞대기 용접으로 체결되어 수중에 캔틸레버 형태로 매립되어 있습니다. 배관에 가해지는 내압, 열하중 및 용접 잔류응력을 복합 분석합니다.
+      </p>
+
+      <!-- Calculation Card 1: Hoop Stress -->
+      <div class="p-3 bg-slate-950/90 border border-slate-700/80 rounded-lg space-y-1.5">
+        <div class="font-bold text-amber-300 text-[11px] flex items-center justify-between">
+          <span>(1) 내압 둘레응력 (Hoop Stress, σ_θ) 산출</span>
+          <span class="text-sky-300 font-mono">기계적 내압 응력 σ_θ = 5.37 MPa</span>
+        </div>
+        <div class="p-2 bg-slate-900 rounded font-mono text-xs text-sky-300 overflow-x-auto">
+          σ_θ = (P × D_i) / (2 × t)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;= (0.35 MPa × 107.3 mm) / (2 × 3.5 mm) = 37.555 / 7.0 = <b>5.365 MPa</b>
+        </div>
+        <p class="text-[10.5px] text-slate-400 break-keep">
+          • 설계 내압(3.5 bar)에 의한 순수 내압 응력은 허용인장응력(S = 115 MPa) 대비 4.67%로 매우 작으나, 이는 정적(Static) 내압에 한정된 수치입니다.
+        </p>
+      </div>
+
+      <!-- Calculation Card 2: Elbow Flexibility & Stress Intensification -->
+      <div class="p-3 bg-slate-950/90 border border-slate-700/80 rounded-lg space-y-1.5">
+        <div class="font-bold text-amber-300 text-[11px] flex items-center justify-between">
+          <span>(2) 90° 롱 레디우스 엘보 유연성 계수(k) 및 응력증대계수(SIF, i) (ASME B31.1)</span>
+          <span class="text-sky-300 font-mono">유연성 계수 k = 8.44 / 응력증대계수 i = 2.67</span>
+        </div>
+        <div class="p-2 bg-slate-900 rounded font-mono text-xs text-sky-300 overflow-x-auto">
+          배관 특성치 h = (t × R) / (r_m²)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (3.5 mm × 171.45 mm) / (55.4 mm)² = 600.075 / 3069.16 ≈ <b>0.1955</b><br>
+          유연성 계수 k = 1.65 / h = 1.65 / 0.1955 ≈ <b>8.44</b><br>
+          응력증대계수 i = 0.9 / (h^(2/3)) = 0.9 / (0.1955^(2/3)) = 0.9 / 0.3368 ≈ <b>2.67</b>
+        </div>
+        <p class="text-[10.5px] text-slate-400 break-keep">
+          • 90° 엘보는 직관 대비 유연성이 높아 변위를 흡수하지만, <strong>응력증대계수(i = 2.67)로 인해 외력 모멘트 작용 시 용접 경계부에 집중 응력이 발생</strong>합니다.
+        </p>
+      </div>
+
+      <!-- Calculation Card 3: Thermal Contact Fatigue & Residual Stress Superposition (CRITICAL DEEP DIVE) -->
+      <div class="p-3 bg-slate-950/90 border border-rose-500/50 rounded-lg space-y-2">
+        <div class="font-bold text-rose-300 text-[11.5px] flex items-center justify-between">
+          <span>(3) 이중 열접촉 응력 구배 및 알곤 용접 인장 잔류응력(σ_res) 중첩 메커니즘</span>
+          <span class="text-rose-400 font-mono font-bold">국부 응력 항복강도(205 MPa) 초과 위험</span>
+        </div>
+        <div class="p-2.5 bg-slate-900 rounded font-mono text-xs text-rose-300 space-y-1 overflow-x-auto">
+          <div>① 열교번 공칭 진폭: Δσ_thermal = (E × α × ΔT_eff / k) × i ≈ <b>25.21 MPa</b></div>
+          <div>② TIG 맞대기 용접부 잔류 인장응력: σ_res ≈ <b>120 ~ 180 MPa</b> (항복강도의 60~85%)</div>
+          <div>③ 용접 비드 루트부 노치 응력집중계수: K_t ≥ <b>2.0 ~ 2.5</b></div>
+          <div class="text-amber-300 font-bold pt-1 border-t border-slate-800">
+            ④ 국부 피크 합성 응력: σ_peak = K_t × (S_a + σ_res) ≥ 2.0 × (30.58 + 150) ≈ <b>361 MPa ≫ σ_y (205 MPa)</b>
+          </div>
+        </div>
+        <div class="text-[11px] text-slate-300 leading-relaxed break-keep space-y-1">
+          <p>• <strong>이중 열적 접촉 구배(Bilateral Thermal Contact):</strong> 배관 내부에는 50℃(환탕수) 또는 85℃(보일러수)가 흐르는 반면, 배관 외부는 저탕조 내 성층화 수온(하부 15℃ ~ 상부 85℃)과 직접 접촉합니다. 이로 인해 관벽 두께 방향으로 상시 급격한 온도경사(ΔT_wall)가 형성되어 반경방향/축방향 열응력이 유발됩니다.</p>
+          <p>• <strong>용접 잔류응력과 소성 변형 위험:</strong> 알곤 TIG 맞대기 용접 시 급랭 응고로 인해 용접 비드 및 열영향부(HAZ)에 120~180 MPa의 높은 인장 잔류응력이 영구 고착됩니다. 여기에 일일 온수 사용에 따른 열교번 응력이 중첩되면, <strong>용접 루트부 미세 노치에서의 국부 합성 응력이 STS 304 항복강도(205 MPa)를 초과하여 미세 소성 변형 및 슬립 밴드(Slip Band)가 누적</strong>될 수 있습니다.</p>
+          <p>• <strong>열영향부(HAZ) 예민화(Sensitization):</strong> TIG 용접열(500~800℃ 구간)에 의해 결정립계에 크롬 탄화물(Cr₂₃C₆)이 석출되면서 결정립계 인근의 크롬 고갈층이 형성되어 입계 부식 및 균열에 취약해집니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Palmgren-Miner Linear Rule Limits vs Nonlinear SCC Rupture -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <h4 class="text-sm font-bold text-sky-400 flex items-center gap-1.5">
+        <span>3.</span> Palmgren-Miner 선형 피로 계산의 한계와 Cl⁻-SCC 비선형 파괴역학 위험 분석
+      </h4>
+      <div class="p-3 bg-slate-950/90 border border-slate-700/80 rounded-lg font-mono text-xs text-sky-300 space-y-1 overflow-x-auto">
+        <div>14년 누적 사이클 수 n = 2회/일 × 365일 × 14년 = <b>10,220 사이클</b></div>
+        <div>설계 피로 곡선 상 허용 사이클 수 N_f ≥ <b>500,000 사이클</b> (Sa=30.6 MPa 기준)</div>
+        <div class="text-amber-400 font-bold mt-1">
+          이론상 Miner's Rule 누적 손상도 D_14yr = 10,220 / 500,000 ≈ <b>0.035 ≪ 1.0 (순수 기계적 피로 한정)</b>
+        </div>
+      </div>
+      <div class="p-3.5 rounded-lg bg-rose-950/40 border border-rose-500/50 text-[11px] text-slate-200 leading-relaxed break-keep space-y-2">
+        <div class="font-bold text-rose-300 flex items-center gap-1.5">
+          <span>🚨</span> <span>선형 피로 모델(D=0.035)의 맹점과 비선형 염소이온 응력부식균열(Cl⁻-SCC)의 파손 메커니즘</span>
+        </div>
+        <p>• <strong>순수 피로 모델의 한계:</strong> Miner's Rule의 누적 손상도 D=0.035(피로 소모율 3.5%)는 부식이 배제된 건조한 대기 환경에서의 이상적인 선형 피로 수명에 불과합니다. 부식성 유체(온수)에 침적된 배관에서는 피로 한도(Endurance Limit) 자체가 소멸합니다.</p>
+        <p>• <strong>Cl⁻-SCC의 비선형 잠복기(10~15년) 만료 위험:</strong> 오스테나이트계 STS 304의 응력부식균열은 선형적으로 진행되지 않습니다. 수온 50℃ 이상, 잔류염소 및 염화물(Cl⁻)이 존재하는 환경에서 <strong>10~15년 동안 표면에는 아무런 변화가 보이지 않는 '잠복기(Incubation Period)'를 유지</strong>합니다.</p>
+        <p>• <strong>돌발적 급진 관통 파단:</strong> 잠복기가 끝나는 순간, 용접부 잔류 인장응력 부위에서 미세 피팅(Pitting)이 발생하고, <strong>분기형 입계/입내 균열(Branching Cracks)이 수일~수주 이내에 배관 두께(3.5mm)를 순식간에 관통</strong>하는 취성적 급진 파손(Sudden Rupture)이 발생합니다. 따라서 <strong>14년이 경과한 현재는 안전한 것이 아니라, 잠복기가 만료되어 급격한 파손으로 이어질 수 있는 최고 위험 경계 시점</strong>입니다.</p>
+      </div>
+    </div>
+
+    <!-- Section 4: Prohibition of Safety Assertion & True Risk Evaluation -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <h4 class="text-sm font-bold text-rose-400 flex items-center gap-1.5">
+        <span>4.</span> 저탕조 내부 침적 배관의 잠재 위험성 평가 및 잔여 수명 단정 금지 (Safety Indeterminacy)
+      </h4>
+      <div class="p-3 rounded-lg bg-rose-950/30 border border-rose-500/40 text-[11px] text-rose-200 leading-relaxed break-keep">
+        <strong>⚠️ [엔지니어링 안전성 단정 금지 원칙]:</strong><br>
+        수중 침적 배관의 비가시성, TIG 용접부 잔류응력, 열적 접촉 피로 및 Cl⁻-SCC의 비선형 급진 파손 특성을 종합할 때, <strong>"피로 손상도 3.5%이므로 향후 11~16년 이상 안전 운전이 가능하다"는 식의 잔여 수명 단정은 공학적으로 허용될 수 없으며 전면 배제</strong>합니다.
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+        <div class="p-3 rounded-lg bg-slate-800/80 border border-slate-700 space-y-1">
+          <span class="text-slate-400 block text-[10px]">구조적 잠재 위험도 평가</span>
+          <span class="text-base font-bold text-rose-400 font-mono">고위험 경계 단계 (14년 잠복기 만료 구간)</span>
+          <p class="text-[10.5px] text-slate-300 break-keep">14년간 축적된 TIG 용접 열교번 및 잠복기 경과로 인해, 외관상 정상 운전 중임에도 수중 배관 용접부의 미세 크랙 진전 위험이 최고조에 달한 변곡점입니다.</p>
+        </div>
+        <div class="p-3 rounded-lg bg-slate-800/80 border border-slate-700 space-y-1">
+          <span class="text-slate-400 block text-[10px]">설비 수명 판정 원칙</span>
+          <span class="text-base font-bold text-amber-300 font-mono">안전성 확정 불가 (상시 NDT & 이설 대책)</span>
+          <p class="text-[10.5px] text-slate-300 break-keep">이론적 피로 계산만으로 수명을 단정할 수 없으며, 저탕조 정기 개방 비파괴검사(PT/UT)와 수질 시험을 상시 실시하여 결함을 감시해야 합니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 5: Long-term Action Plan & External Bypass Redirection -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <h4 class="text-sm font-bold text-sky-400 flex items-center gap-1.5">
+        <span>5.</span> 상시 유지보수 점검 체계 및 향후 근본 대책(외장형 바이패스 이설) 수립 방안
+      </h4>
+      <p class="text-slate-300 text-[11.5px] break-keep">
+        저탕조 내부 수중 침적 배관의 구조적 취약성을 극복하고 급탕 설비의 무중단 신뢰성을 확보하기 위해 아래의 3단계 상시 점검 및 근본 대책을 수립·시행해야 합니다:
+      </p>
+      <div class="space-y-2 text-[11px]">
+        <div class="p-3 rounded-lg bg-slate-800 border-l-4 border-rose-500 space-y-1">
+          <span class="font-bold text-rose-300 text-xs">① 저탕조 정기 개방 정밀 비파괴검사 (상시 의무화)</span>
+          <p class="text-slate-300 break-keep">
+            <strong>왜 상시 점검해야 하는가?:</strong> 내부 침적 배관은 파손 시까지 전조 증상이 외부로 드러나지 않으므로, 정기 퇴수 시 <strong>90° 엘보 알곤 TIG 맞대기 용접선 전 길이에 대한 액체침투탐상(PT)</strong>과 <strong>모재 및 열영향부(HAZ) 초음파 두께 측정(UT), 위상배열 초음파(PAUT)</strong>를 의무적으로 실시하여 잠복 중인 미세 균열을 조기에 포착해야 합니다.
+          </p>
+        </div>
+        <div class="p-3 rounded-lg bg-slate-800 border-l-4 border-amber-500 space-y-1">
+          <span class="font-bold text-amber-300 text-xs">② 급탕수 수질 및 부식 환경 엄격 통제</span>
+          <p class="text-slate-300 break-keep">
+            수중 염화물(Cl⁻) 농도를 50 ppm 이하(권장 20 ppm 미만), 잔류염소 0.1~0.4 ppm, pH 6.8~7.8 범위로 상시 감시하고, 탱크 바닥 슬러지 정기 드레인 플러싱을 통해 틈새부식 환경을 원천 억제해야 합니다.
+          </p>
+        </div>
+        <div class="p-3 rounded-lg bg-slate-800 border-l-4 border-emerald-500 space-y-1">
+          <span class="font-bold text-emerald-300 text-xs">③ 향후 근본 대책: 저탕조 내부 침적 배관 폐지 및 외장형 배관 바이패스 이설</span>
+          <p class="text-slate-300 break-keep">
+            <strong>영구 안전성 확보 방안:</strong> 14년 이상 경과한 수중 침적 배관을 유지하는 것은 언제 터질지 모르는 잠재 폭탄을 안고 운전하는 것과 같습니다. 따라서 <strong>본 시스템의 '합성 제안도(제1안/제2안)'에 제시된 바와 같이, 저탕조 내부 침적 배관을 전면 폐지(차단/철거)하고, 외부에서 100% 육안 점검 및 유지보수가 가능한 '저탕조 외장형 믹싱 헤더 및 외부 바이패스 순환관'으로 전면 이설·개보수하는 중장기 대책을 조속히 수립</strong>해야 합니다.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disclaimer Banner -->
+    <div class="p-3.5 rounded-lg bg-amber-950/40 border border-amber-500/40 text-[10.5px] text-amber-200/90 leading-relaxed break-keep">
+      <strong>⚠️ ※ [엔지니어링 검토 참고용 / Reference Only]:</strong> 본 분석은 2012년 준공 후 14년간 가동 중인 AB동 급탕 1대분 실측 설비 사양(STS 304, DN100, 3.5 bar, ΔT=50 K)을 기반으로 한 재료·유체·파괴역학적 검토 결과입니다. 본 보고서는 설비의 안전성을 보증하거나 확정하지 않으며, 실제 설비의 최종 안전성 판정은 현장 초음파 두께 측정(UT), 용접선 침투탐상(PT), 수질 시험 성적서 및 외장형 배관 이설 타당성 검토와 함께 종합적으로 수행되어야 합니다.
+    </div>
+  </div>
+`
+        },
+        short_circuit_nopipes: {
+          icon: '🌊',
+          title: '저탕조 내부 매립 배관 탈락 시 단락류 결함 열·유체역학 심층 영향성 평가 보고서',
+          subtitle: 'Richardson 수(Ri=0.18) 성층화 붕괴, 보일러 On/Off 채터링(15~25회/hr) 및 결함 방치 시 가속 열화 모델',
+          html: `
+  <div class="space-y-5 engineering-copy text-xs leading-relaxed text-slate-300">
+    <!-- Header Banner -->
+    <div class="p-4 rounded-xl bg-slate-800/90 border border-slate-700/80 shadow-lg">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-700/60">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">가상 결함 시나리오</span>
+            <span class="text-xs text-slate-400">연구 대상: 저탕조 내부 매립 안내관 결손/탈락 가정 시 가속 열화 모델</span>
+          </div>
+          <h3 class="text-base font-bold text-white tracking-tight mt-1">저탕조 내부 매립 배관 탈락 시 단락류 결함 열·유체역학 심층 영향성 평가 보고서</h3>
+        </div>
+        <div class="text-right shrink-0">
+          <div class="text-[10px] text-slate-400 font-mono">가상 결함 모델</div>
+          <div class="text-sm font-bold text-rose-400 font-mono">결함 방치 시 5~8년 가속 파손</div>
+        </div>
+      </div>
+      <p class="text-slate-300 break-keep">
+        본 보고서는 내부 매립 안내관(Dip Tube)이 부재하거나 피로 탈락될 경우 발생하는 <strong>단락류(Short-Circuit Flow)의 열·유체역학적 메커니즘, Richardson 수 붕괴, 보일러 On/Off 채터링 헌팅, 그리고 결함 발생 시점 기준 가속 열화 진행 모델</strong>을 규명합니다.
+      </p>
+    </div>
+
+    <!-- Section 1: Consistency with 14-Year Normal Operation -->
+    <div class="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/40 space-y-2">
+      <div class="font-bold text-emerald-300 flex items-center gap-1.5 text-sm">
+        <span>✓</span> 14년 정상 운전 실측 사실과의 논리적 정합성
+      </div>
+      <p class="text-slate-300 text-[11.5px] leading-relaxed break-keep">
+        현장 설비가 2012년 준공 후 14년간 이상 징후 없이 정상 운전되어 왔다는 실측 데이터는, <strong>"실제 저탕조 내부 매립 유도관과 엘보 알곤 용접부가 현재까지 파손이나 탈락 없이 정상적으로 제 기능을 100% 수행하고 있음"을 입증하는 가장 확실한 물리적 증거</strong>입니다. 만약 초기 시공 시 매립관이 없었다면 진작에 단락류 문제가 발생했을 것이므로, 본 시나리오는 미래의 잠재적 배관 이탈을 가정한 가상 결함 모델입니다.
+      </p>
+    </div>
+
+    <!-- Section 2: Fluid Mechanics & Stratification Destruction -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <h4 class="text-sm font-bold text-rose-400 flex items-center gap-1.5">
+        <span>1.</span> 단락류 발생 시 열·유체 수리학 및 성층화 붕괴 (Richardson 수 해석)
+      </h4>
+      <div class="p-3 bg-slate-950/90 border border-slate-700/80 rounded-lg space-y-1.5">
+        <div class="font-bold text-amber-300 text-[11px] flex items-center justify-between">
+          <span>Richardson 수 (Ri) 지배 방정식 및 판정 기준</span>
+          <span class="text-rose-400 font-mono">Ri ≈ 0.18 &lt; 0.25 (성층화 파괴)</span>
+        </div>
+        <div class="p-2 bg-slate-900 rounded font-mono text-xs text-sky-300 overflow-x-auto">
+          Ri = (g × β × ΔT × L) / (v²)<br>
+          • 정상 매립관 시: Ri &gt; 10.0, Fr &lt; 0.5 (부력 지배 초안정 성층화 유지)<br>
+          • 가상 매립관 부재 시: Ri ≈ <b>0.18 &lt; 0.25</b>, Fr &gt; 2.0 (전단 와류 혼합 지배, 부력 장벽 붕괴)
+        </div>
+        <p class="text-[10.5px] text-slate-400 break-keep">
+          • 내부 유도관 부재 시 상부 고온 유입수(85℃) 제트가 부력 장벽을 뚫고 하부 보일러 흡입구로 직결 단락(Short-Circuit Flow) 흡입됩니다. 유효 축열 용량이 7,500 L에서 2,600 L(35%)로 급락하여 동일 탱크 대비 <b>65% 유효 축열 손실</b>이 발생합니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- Section 3: Boiler Chattering & Shower Temperature Fluctuations -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <h4 class="text-sm font-bold text-rose-400 flex items-center gap-1.5">
+        <span>2.</span> 기계실 보일러 On/Off 채터링 헌팅 및 세대 급탕 수온 요동
+      </h4>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+        <div class="p-3 rounded-lg bg-slate-800/80 border border-slate-700 space-y-1">
+          <span class="font-bold text-rose-300">보일러 시간당 15~25회 단주기 On/Off 채터링</span>
+          <p class="text-[10.5px] text-slate-300 break-keep">탱크 하부로 유입된 고온수를 보일러 센서가 감지하여 버너 소화(Off) 후, 급냉 시수 유입 시 재점화(On)되는 헌팅이 발생하여 버너 열효율이 94%에서 71%로 급락합니다.</p>
+        </div>
+        <div class="p-3 rounded-lg bg-slate-800/80 border border-slate-700 space-y-1">
+          <span class="font-bold text-rose-300">세대 샤워 수온 요동폭 ±8.5 ~ 14.5℃</span>
+          <p class="text-[10.5px] text-slate-300 break-keep">보일러 잦은 소화·점화로 인해 세대 샤워 중 찬물과 뜨거운 물이 급격히 교차 토출되어 입주민 화상 위험 및 집단 민원이 유발됩니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Accelerated Degradation Timeline (Defect-Triggered) -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <h4 class="text-sm font-bold text-rose-400 flex items-center gap-1.5">
+        <span>3.</span> 가상 결함 방치 시 가속 열화 진행 모델 (결함 발생 시점 기준)
+      </h4>
+      <p class="text-slate-300 text-[11.5px] break-keep">
+        과거 준공 절대연차로 오인되었던 수치를 바로잡고, <strong>"결함 발생 후 방치 시 가속 피로 파손 진행 기간"</strong>으로 재정의합니다:
+      </p>
+      <div class="space-y-2 text-[11px]">
+        <div class="p-2.5 rounded bg-slate-800 border-l-4 border-rose-500 space-y-0.5">
+          <span class="font-bold text-rose-300">• 결함 방치 5 ~ 8년 차 (누적 On/Off 30만 사이클 초과 시): 저탕조 노즐 네크부 열피로 관통 위험</span>
+          <p class="text-slate-300">급격한 열교번(ΔT=70 K, σ ≈ 223 MPa &gt; σ_y) 반복으로 용접 열영향부(HAZ)에 저주기 열피로 미세 균열이 진전되어 온수 누설 위험 고조.</p>
+        </div>
+        <div class="p-2.5 rounded bg-slate-800 border-l-4 border-amber-500 space-y-0.5">
+          <span class="font-bold text-amber-300">• 결함 방치 4 ~ 6년 차: 보일러 열교환기 튜브 열팽창 피로 크랙 위험</span>
+          <p class="text-slate-300">시간당 15~25회의 급격한 팽창·수축 열충격으로 동관 및 스테인리스 튜브 접합부 팽창 피로 크랙 누수 위험.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 5: Mitigation Plan -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+      <h4 class="text-sm font-bold text-sky-400">4. 사전 예방·보전 대책 (결함 징후 시)</h4>
+      <p class="text-slate-300 text-[11px] break-keep">
+        보일러 헌팅 주기가 증가하거나 수온 편차가 발생할 경우 즉시 저탕조 내시경 검사를 실시하여 매립 배관 건전성을 확인하고, 결손 시 내부 유도 안내관(Dip Tube) 및 유입 디퓨저 복원 시공을 시행해야 합니다.
+      </p>
+    </div>
+
+    <div class="p-3 rounded-lg bg-amber-950/40 border border-amber-500/40 text-[10.5px] text-amber-200/90 leading-relaxed break-keep">
+      <strong>⚠️ ※ [검토 참고용 / Reference Only]:</strong> 상기 단락류 해석은 내부 안내관이 완전히 탈락되었을 때의 거동을 가정한 가속 열화 모델이며, 실제 14년 정상 운전 중인 현장 설비는 내부 배관이 건전하게 성층화를 보호하고 있습니다.
+    </div>
+  </div>
+`
+        },
+        case_studies: {
+          icon: '📷',
+          title: '검증 가능한 실제 사례 · 사진 · 실험 및 공인 증빙',
+          subtitle: '기관 원문과 사진 직접 열기 · 출처 및 적용 한계',
+          html: evidenceHtml
+        },
+        system_proposal_visual: {
+          icon: '🎨',
+          title: '[제1안·제2안] 저탕조 내·외부 개선 검토 시스템 합성 제안도 및 심층 공학 비교 분석 보고서',
+          subtitle: 'External Direct Circulation vs Advanced Submerged Retrofit | Photorealistic Engineering CAD & P&ID Blueprints',
+          html: `<div class="p-3 bg-slate-800 rounded">제안도 로딩 중...</div>`
+        },
+        lowered_return_boiler_pipe: {
+          icon: '📉',
+          title: '환탕관 1.5M 하향 고도별 열·유체역학 영향도 및 보일러행 흡입 배관계 건전성 진단 보고서',
+          subtitle: '하향 U트랩 거대 에어포켓 체류, 순환 배압 손실(ΔP=1.8 bar) 및 Cl-SCC 장기 잠복기(10~15년) 분석',
+          html: `
+  <div class="space-y-5 engineering-copy text-xs leading-relaxed text-slate-300">
+    <!-- Header Banner -->
+    <div class="p-4 rounded-xl bg-slate-800/90 border border-slate-700/80 shadow-lg">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-700/60">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">가상 결함 시나리오</span>
+            <span class="text-xs text-slate-400">연구 대상: 환탕관 1.5m 하향 시공 시 수리학적 배압 및 장기 부식 잠복기 모델</span>
+          </div>
+          <h3 class="text-base font-bold text-white tracking-tight mt-1">환탕관 1.5M 하향 고도별 열·유체역학 영향도 및 보일러행 흡입 배관계 건전성 진단 보고서</h3>
+        </div>
+        <div class="text-right shrink-0">
+          <div class="text-[10px] text-slate-400 font-mono">가상 결함 모델</div>
+          <div class="text-sm font-bold text-amber-400 font-mono">10~15년 잠복기 후 15~18년차 발현</div>
+        </div>
+      </div>
+      <p class="text-slate-300 break-keep">
+        본 보고서는 환탕관 노즐이 1.5m 하향 시공되어 하향 U자형 역사이펀 트랩이 형성될 경우 발생하는 <strong>거대 에어포켓 체류, 순환 배압 손실(ΔP ≈ 1.8 bar), 펌프 에어 바인딩 공회전 및 STS 304 염화물 응력부식균열(Cl-SCC)의 10~15년 장기 잠복기 메커니즘</strong>을 규명합니다.
+      </p>
+    </div>
+
+    <!-- Section 1: Consistency with 14-Year Normal Operation -->
+    <div class="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/40 space-y-2">
+      <div class="font-bold text-emerald-300 flex items-center gap-1.5 text-sm">
+        <span>✓</span> 14년 정상 운전 실측 사실과의 논리적 정합성
+      </div>
+      <p class="text-slate-300 text-[11.5px] leading-relaxed break-keep">
+        현장 설비가 14년간 소음, 캐비테이션, 수온 저하 없이 정상 운전되어 온 것은 현장 배관 구배가 완만하고 자동 공기빼기 밸브(Air Vent)가 정상 작동하여 에어포켓 형성이 억제되었음을 증명합니다. 본 시나리오는 하향 굴곡부에 공기 체류가 지속될 때의 가상 이상 조건입니다.
+      </p>
+    </div>
+
+    <!-- Section 2: Fluid Dynamics & Head Loss in Lowered Return U-Trap -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <h4 class="text-sm font-bold text-amber-400 flex items-center gap-1.5">
+        <span>1.</span> 하향 U트랩 공기 체류 및 관로 순환 저항 수리학
+      </h4>
+      <div class="p-3 bg-slate-950/90 border border-slate-700/80 rounded-lg space-y-1.5">
+        <div class="font-bold text-amber-300 text-[11px] flex items-center justify-between">
+          <span>Darcy-Weisbach 관로 손실 및 펌프 작동점 이동</span>
+          <span class="text-amber-400 font-mono">순환 배압 ΔP ≈ 1.8 bar (12배 상승)</span>
+        </div>
+        <div class="p-2 bg-slate-900 rounded font-mono text-xs text-sky-300 overflow-x-auto">
+          Δh_L = f × (L/D) × (v² / 2g) + Σ K × (v² / 2g)<br>
+          • 정상 배관: ΔP ≈ 0.15 bar, 순환 유량 24 L/min (정격 연속 운전)<br>
+          • 하향 U트랩 공기 체류: 통수 단면적 축소로 <b>ΔP ≈ 1.8 bar (12배 급증)</b>, 펌프 유량 <b>9.6 L/min (-60% 급감)</b>
+        </div>
+        <p class="text-[10.5px] text-slate-400 break-keep">
+          • 환탕 펌프 흡입구 공기 혼입(Air Binding)으로 유효수두가 급감하여 Q-H 체절점에 근접 운전되며, 공회전 맥동 소음(&gt; 78 dB) 및 세대 말단 수전 온수 대기시간이 120~240초(최대 4분) 동안 지연됩니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- Section 3: Material Science - Long Incubation Period of Cl-SCC -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <h4 class="text-sm font-bold text-amber-400 flex items-center gap-1.5">
+        <span>2.</span> STS 304 염화물 응력부식균열(Cl-SCC) 장기 잠복기 모델 및 14년차 변곡점
+      </h4>
+      <p class="text-slate-300 text-[11.5px] break-keep">
+        밀폐 급탕계($3.5	ext{ bar(g)}$)의 오스테나이트계 STS 304 재질은 대기압 부식과 달리 매우 긴 잠복기를 거칩니다:
+      </p>
+      <div class="space-y-2 text-[11px]">
+        <div class="p-2.5 rounded bg-slate-800 border-l-4 border-amber-400 space-y-0.5">
+          <span class="font-bold text-amber-300">• Cl-SCC 10~15년 잠복기(Incubation Period) 경과 후 운전 15 ~ 18년 차 발현 위험</span>
+          <p class="text-slate-300">하향 U트랩 상부의 기-액 계면(Liquid-Vapor Interface)은 수중 용존산소와 염화물 이온(Cl⁻)이 증발·농축되는 슬러지 환경을 형성합니다. 용접 잔류응력과 결합 시 10~15년의 잠복기를 거쳐 운전 15~18년 차 이후 핀홀 균열 관통 위험이 고조됩니다.</p>
+        </div>
+        <div class="p-2.5 rounded bg-slate-800 border-l-4 border-rose-500 space-y-0.5">
+          <span class="font-bold text-rose-300">• 환탕 순환 펌프 임펠러 및 베어링 소착 파손: 결함 운전 후 약 4 ~ 6년 차</span>
+          <p class="text-slate-300">에어 바인딩에 의한 무윤활 공회전 마찰열 및 맥동 전단하중으로 임펠러 침식 마모 및 베어링 소착 위험.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Golden Time Action Plan -->
+    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+      <h4 class="text-sm font-bold text-sky-400">3. 14년차 현재 예방·보전 핵심 권고사항 (골든타임)</h4>
+      <p class="text-slate-300 text-[11px] break-keep">
+        14년이 경과한 현시점이 바로 향후 15~18년 차에 발생할 수 있는 잠재 부식을 선제 차단해야 할 <strong>예방·보전의 골든타임</strong>입니다. 자동 에어벤트 동작을 점검하고, 저탕조 정기 개방 검사 시 U트랩 및 엘보 알곤 용접선에 대한 비파괴 침투탐상(PT) 검사를 사전에 실시할 것을 권고합니다.
+      </p>
+    </div>
+
+    <div class="p-3 rounded-lg bg-amber-950/40 border border-amber-500/40 text-[10.5px] text-amber-200/90 leading-relaxed break-keep">
+      <strong>⚠️ ※ [검토 참고용 / Reference Only]:</strong> 상기 분석은 하향 U트랩 배관 내 공기 체류가 지속될 때의 가상 이상 조건 해석이며, 실제 14년 정상 운전 중인 현장 설비는 원활한 순환을 유지하고 있습니다.
+    </div>
+  </div>
+`
+        }
       };
 
       Object.assign(ENGINEERING_REPORTS, {
@@ -5916,7 +6755,7 @@
       <text x="10" y="45" fill="#fca5a5" font-size="10">• 탄소량 C ≈ 0.06% (높음)</text>
       <text x="10" y="65" fill="#fca5a5" font-size="10">• 결정립계 Cr23C6 탄화물 석출</text>
       <text x="10" y="85" fill="#fca5a5" font-size="10">• Cr 고갈층(&lt;12%) 부식 발생</text>
-      <text x="10" y="105" fill="#ef4444" font-size="10" font-weight="bold">결과: 14년차 용접부 전단 파단</text>
+      <text x="10" y="105" fill="#38bdf8" font-size="10" font-weight="bold">실적: 14년 무사고 정상 운전 (D=0.035 건전)</text>
     </g>
 
     <!-- Right Subbox: Retrofit STS316L -->
@@ -6220,7 +7059,7 @@ function openEngineeringReport(reportId, initialTab) {
         if (titleEl) titleEl.textContent = report.title || '';
         if (subEl) subEl.textContent = report.subtitle || '';
         if (contentEl) {
-          contentEl.innerHTML = report.html || '';
+          contentEl.innerHTML = (['2012_submerged_pipe','short_circuit_nopipes','lowered_return_boiler_pipe'].includes(id) ? reaForecast(id==='lowered_return_boiler_pipe'?'lowered_return':id==='short_circuit_nopipes'?'no_pipes':state.scenario) : '') + (report.html || '');
           contentEl.scrollTop = 0;
         }
 
@@ -6306,29 +7145,24 @@ function openEngineeringReport(reportId, initialTab) {
         }
       }, true);
 
-      function renderModalCanvases() {
-        if (!compareCtxLeft || !compareCtxRight) return;
-        if (state.modalPerspective === 'front') {
-          compareCtxLeft.clearRect(0, 0, compareCanvasLeft.width, compareCanvasLeft.height);
-          drawFrontSceneToContext(compareCtxLeft, 'normal', motionTime, true);
-
-          compareCtxRight.clearRect(0, 0, compareCanvasRight.width, compareCanvasRight.height);
-          drawFrontSceneToContext(compareCtxRight, state.compareTargetScenario, motionTime, true);
-        } else {
-          compareCtxLeft.clearRect(0, 0, compareCanvasLeft.width, compareCanvasLeft.height);
-          drawSceneToContext(compareCtxLeft, 'normal', motionTime, true);
-
-          compareCtxRight.clearRect(0, 0, compareCanvasRight.width, compareCanvasRight.height);
-          drawSceneToContext(compareCtxRight, state.compareTargetScenario, motionTime, true);
-        }
+      function drawCompareSide(ctx, view, scenario) {
+        if (!ctx) return;
+        const front = view === 'front';
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        const draw = front ? drawFrontSceneToContext : drawSceneToContext;
+        draw(ctx, scenario, motionTime, true);
+        drawReaMarker(ctx, scenario, motionTime, front);
       }
-
+      function renderModalCanvases() {
+        drawCompareSide(compareCtxLeft, state.compareViews.left, 'normal');
+        drawCompareSide(compareCtxRight, state.compareViews.right, state.compareTargetScenario);
+      }
       function openDualCompareModal() {
         if (!comparisonModal) return;
         comparisonModal.classList.remove('hidden');
         comparisonModal.scrollTop = 0;
         state.isModalOpen = true;
-        switchModalPerspective(state.modalPerspective || 'rear');
+        syncCompareViews();
         setModalCompareMode(state.compareTargetScenario || 'no_pipes');
         renderModalCanvases();
       }
@@ -6345,6 +7179,12 @@ function openEngineeringReport(reportId, initialTab) {
           }
         }
         updateModalComparisonTable(mode);
+        const table=document.getElementById('modalComparisonTable');
+        if(table){
+          let forecast=document.getElementById('comparisonReaForecast');
+          if(!forecast){forecast=document.createElement('details');forecast.id='comparisonReaForecast';table.insertAdjacentElement('beforebegin',forecast);}
+          forecast.innerHTML='<summary style="cursor:pointer;padding:8px">REA 참고 예측 · 기간별 근거 펼치기</summary>'+reaForecast(mode);
+        }
         renderModalCanvases();
       }
 
@@ -7417,9 +8257,11 @@ function openEngineeringReport(reportId, initialTab) {
         const fPill = document.getElementById('focusZoneStatusPill');
         const mfPill = document.getElementById('modalFocusStatusPill');
         const txtFocusSelected = document.getElementById('txtFocusSelected');
+        const bFocusPill = document.getElementById('bundledFocusPill');
         if (fPill) fPill.textContent = statusText;
         if (mfPill) mfPill.textContent = statusText;
         if (txtFocusSelected) txtFocusSelected.textContent = statusText;
+        if (bFocusPill) bFocusPill.textContent = '🔍 ' + statusText;
 
         // 4. Mobile drawer select box sync
         const selMobileFocus = document.getElementById('selMobileFocus');
@@ -8002,48 +8844,48 @@ function openEngineeringReport(reportId, initialTab) {
           if (isSplit) focusZoneToolbar.classList.add('split-mode');
           else focusZoneToolbar.classList.remove('split-mode');
         }
+        const bundledSettingsToolbar = document.getElementById('bundledSettingsToolbar');
+        if (bundledSettingsToolbar) {
+          if (isSplit) bundledSettingsToolbar.classList.add('split-mode');
+          else bundledSettingsToolbar.classList.remove('split-mode');
+        }
       }
 
-      function switchModalPerspective(persp) {
-        state.modalPerspective = persp;
-        const isFront = persp === 'front';
-
-        if (btnModalPerspectiveFront) {
-          btnModalPerspectiveFront.className = isFront ? 'px-2.5 py-1 rounded font-semibold bg-sky-500 text-slate-950 transition cursor-pointer' : 'px-2.5 py-1 rounded font-medium text-slate-300 hover:text-white transition cursor-pointer';
-        }
-        if (btnModalPerspectiveRear) {
-          btnModalPerspectiveRear.className = !isFront ? 'px-2.5 py-1 rounded font-semibold bg-sky-500 text-slate-950 transition cursor-pointer' : 'px-2.5 py-1 rounded font-medium text-slate-300 hover:text-white transition cursor-pointer';
-        }
-
-        if (compareCanvasLeft && compareCanvasRight) {
-          if (isFront) {
-            compareCanvasLeft.width = 800;
-            compareCanvasLeft.height = 650;
-            compareCanvasRight.width = 800;
-            compareCanvasRight.height = 650;
-          } else {
-            compareCanvasLeft.width = 743;
-            compareCanvasLeft.height = 691;
-            compareCanvasRight.width = 743;
-            compareCanvasRight.height = 691;
-          }
-          const leftP = compareCanvasLeft.parentElement;
-          const rightP = compareCanvasRight.parentElement;
-          if (leftP) {
-            leftP.className = isFront 
-              ? 'relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[800/650] border border-slate-800'
-              : 'relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[743/691] border border-slate-800';
-          }
-          if (rightP) {
-            rightP.className = isFront 
-              ? 'relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[800/650] border border-slate-800'
-              : 'relative w-full rounded-lg overflow-hidden bg-slate-950 aspect-[743/691] border border-slate-800';
-          }
+      function syncCompareViews() {
+        document.querySelectorAll('select[data-compare-side]').forEach(select => {
+          const side = select.dataset.compareSide;
+          select.value = state.compareViews[side];
+          const canvas = side === 'left' ? compareCanvasLeft : compareCanvasRight;
+          const front = select.value === 'front';
+          const width = front ? 800 : 743;
+          const height = front ? 650 : 691;
+          if (canvas.width !== width) canvas.width = width;
+          if (canvas.height !== height) canvas.height = height;
+          canvas.parentElement.style.aspectRatio = width + '/' + height;
+        });
+        const {left,right} = state.compareViews;
+        state.modalPerspective = left === right ? left : 'mixed';
+        for (const [button,view] of [[btnModalPerspectiveFront,'front'],[btnModalPerspectiveRear,'rear']]) {
+          if (!button) continue;
+          const active = state.modalPerspective === view;
+          button.setAttribute('aria-pressed',String(active));
+          button.classList.toggle('bg-sky-500',active);
+          button.classList.toggle('text-slate-950',active);
+          button.classList.toggle('text-slate-300',!active);
+          button.title = '양쪽 모두 ' + (view === 'front' ? '전면부' : '후면부');
         }
         renderModalCanvases();
       }
-
-      if (btnViewSplit) btnViewSplit.addEventListener('click', () => switchViewPerspective('split'));
+      function switchModalPerspective(view) {
+        state.compareViews.left = state.compareViews.right = view;
+        syncCompareViews();
+      }
+      document.querySelectorAll('select[data-compare-side]').forEach(select => {
+        select.addEventListener('change', () => {
+          state.compareViews[select.dataset.compareSide] = select.value;
+          syncCompareViews();
+        });
+      });      if (btnViewSplit) btnViewSplit.addEventListener('click', () => switchViewPerspective('split'));
       if (btnViewFront) btnViewFront.addEventListener('click', () => switchViewPerspective('front'));
       if (btnViewRear) btnViewRear.addEventListener('click', () => switchViewPerspective('rear'));
 
@@ -8266,8 +9108,10 @@ function openEngineeringReport(reportId, initialTab) {
         function updatePresetStatus(title) {
           const pPill = document.getElementById('presetStatusPill');
           const mpPill = document.getElementById('modalPresetStatusPill');
+          const bPresetPill = document.getElementById('bundledPresetPill');
           if (pPill) pPill.textContent = title;
           if (mpPill) mpPill.textContent = title;
+          if (bPresetPill) bPresetPill.textContent = '⚡ ' + title;
         }
 
         const sLevel = document.getElementById('sliderLevel');
@@ -8561,8 +9405,14 @@ function openEngineeringReport(reportId, initialTab) {
 
         const isHeaderAccordion = (btnId === 'btnToggleHeaderAccordion');
         const isModalHeaderAccordion = (btnId === 'btnToggleModalHeaderAccordion');
-        const parentToolbar = btn.closest('.accordion-toolbar');
-        const headerEl = parentToolbar ? parentToolbar.querySelector('.accordion-header') : null;
+        const isBundleAccordion = (btnId === 'btnToggleBundleAccordion');
+        
+        // Exact matching header resolution (supports sub-headers and prevents event bubbling)
+        let headerEl = btn.closest('.accordion-header, .accordion-sub-header');
+        if (!headerEl) {
+          const parentToolbar = btn.closest('.accordion-toolbar');
+          headerEl = parentToolbar ? parentToolbar.querySelector('.accordion-header') : null;
+        }
 
         let isOpen = defaultOpen;
         function renderAccordion() {
@@ -8575,9 +9425,10 @@ function openEngineeringReport(reportId, initialTab) {
             if (textSpan) {
               if (isHeaderAccordion) textSpan.textContent = '상단 제어·공지 접기';
               else if (isModalHeaderAccordion) textSpan.textContent = '비교 안내 접기';
+              else if (isBundleAccordion) textSpan.textContent = '3개 묶음 접기';
               else textSpan.textContent = '접기';
             }
-            btn.title = '클릭하여 내용 접기';
+            btn.title = isBundleAccordion ? '공지·구간강조·프리셋 3개 항목 묶음 접기' : '클릭하여 내용 접기';
           } else {
             content.classList.add('collapsed');
             content.style.display = 'none';
@@ -8585,9 +9436,10 @@ function openEngineeringReport(reportId, initialTab) {
             if (textSpan) {
               if (isHeaderAccordion) textSpan.textContent = '상단 제어·공지 펼치기';
               else if (isModalHeaderAccordion) textSpan.textContent = '비교 안내 펼치기';
+              else if (isBundleAccordion) textSpan.textContent = '3개 묶음 펼치기';
               else textSpan.textContent = '펼치기';
             }
-            btn.title = '클릭하여 내용 펼치기';
+            btn.title = isBundleAccordion ? '공지·구간강조·프리셋 3개 항목 묶음 펼치기' : '클릭하여 내용 펼치기';
           }
         }
 
@@ -8595,13 +9447,44 @@ function openEngineeringReport(reportId, initialTab) {
           e.stopPropagation();
           isOpen = !isOpen;
           renderAccordion();
+
+          // 사용자 요구사항 100% 반영: 상단 헤더 펴기 클릭 시 2번째 항목(공지·구간강조·프리셋 묶음 아코디언) 자동 펼침
+          if (isHeaderAccordion && isOpen) {
+            const bContent = document.getElementById('bundledSettingsContent');
+            const bBtn = document.getElementById('btnToggleBundleAccordion');
+            if (bContent && bBtn) {
+              bContent.classList.remove('collapsed');
+              bContent.style.display = 'flex';
+              const bIcon = bBtn.querySelector('.toggle-icon');
+              const bText = bBtn.querySelector('.toggle-text');
+              if (bIcon) bIcon.textContent = '▲';
+              if (bText) bText.textContent = '3개 묶음 접기';
+              bBtn.title = '공지·구간강조·프리셋 3개 항목 묶음 접기';
+            }
+          }
         });
 
         if (headerEl) {
           headerEl.addEventListener('click', function (e) {
-            if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('select')) return;
+            if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('select') || e.target.closest('label')) return;
+            e.stopPropagation();
             isOpen = !isOpen;
             renderAccordion();
+
+            // 상단 헤더 펴기 클릭 시 2번째 항목(공지·구간강조·프리셋 묶음 아코디언) 자동 펼침
+            if (isHeaderAccordion && isOpen) {
+              const bContent = document.getElementById('bundledSettingsContent');
+              const bBtn = document.getElementById('btnToggleBundleAccordion');
+              if (bContent && bBtn) {
+                bContent.classList.remove('collapsed');
+                bContent.style.display = 'flex';
+                const bIcon = bBtn.querySelector('.toggle-icon');
+                const bText = bBtn.querySelector('.toggle-text');
+                if (bIcon) bIcon.textContent = '▲';
+                if (bText) bText.textContent = '3개 묶음 접기';
+                bBtn.title = '공지·구간강조·프리셋 3개 항목 묶음 접기';
+              }
+            }
           });
         }
 
@@ -8615,10 +9498,11 @@ function openEngineeringReport(reportId, initialTab) {
 
       // Initialize all 6 Accordions (Main View Top Header & Toolbars & Comparison Modal)
       // 사용자 요구사항 100% 반영: 상단 헤더 및 그 아래의 모든 메뉴를 시스템 부팅 시 "모두 접기(false)" 상태로 초기화하여 캔버스 최대 가시화 확보
-      initAccordion('btnToggleHeaderAccordion', 'topHeaderContent', false);
-      initAccordion('btnToggleNoticeAccordion', 'noticeContent', false);
-      initAccordion('btnToggleFocusAccordion', 'focusZoneContent', false);
-      initAccordion('btnTogglePresetAccordion', 'presetContent', false);
+      initAccordion('btnToggleHeaderAccordion', 'topHeaderContent', false); // 최상단 마스터 아코디언 (초기 부팅 기본값: 접기 상태 - 오직 타이틀바만 화면 표시)
+      initAccordion('btnToggleBundleAccordion', 'bundledSettingsContent', true); // 2번째 항목 묶음 아코디언 (상단 헤더 펼침 시 함께 자동 펼쳐짐)
+      initAccordion('btnToggleNoticeAccordion', 'noticeContent', true); // 서브 항목 1: 공지사항 (기본 열림)
+      initAccordion('btnToggleFocusAccordion', 'focusZoneContent', true); // 서브 항목 2: 핵심 구간 강조 (기본 열림)
+      initAccordion('btnTogglePresetAccordion', 'presetContent', true); // 서브 항목 3: 운전 프리셋 (기본 열림)
       initAccordion('btnToggleModalHeaderAccordion', 'modalHeaderContent', false);
       initAccordion('btnToggleModalFocusAccordion', 'modalFocusZoneContent', false);
       initAccordion('btnToggleModalPresetAccordion', 'modalPresetContent', false);
