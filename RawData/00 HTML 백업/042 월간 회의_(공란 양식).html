@@ -4244,20 +4244,27 @@
             width: auto;
             max-width: calc(100vw - 36px);
             padding: 10px 14px;
-            border: 1px solid #2f6fed;
+            border: 1.5px solid #2563eb;
             border-radius: 999px;
-            background: #fff;
+            background: #ffffff;
             color: #1d4ed8;
             font-weight: 700;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
-            z-index: 10008;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
+            z-index: 99998 !important;
             display: none;
             user-select: none;
-            touch-action: none;
+            touch-action: manipulation;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .image-edit-btn-open.visible {
-            display: block;
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
         }
 
         .image-edit-btn-open.is-dragging {
@@ -16073,22 +16080,22 @@ function clampImagesToContainers(scope = contentArea) {
                     if (!source?.closest) return null;
 
                     const flowSpan = source.closest('[data-editable-type="flow-span"], .flow > span');
-                    if (flowSpan && appContainer.contains(flowSpan) && flowSpan.isContentEditable) {
+                    if (flowSpan && appContainer.contains(flowSpan)) {
                         return flowSpan;
                     }
 
                     const insertArea = source.closest('.insert-area');
-                    if (insertArea && appContainer.contains(insertArea) && insertArea.isContentEditable) {
+                    if (insertArea && appContainer.contains(insertArea)) {
                         return insertArea;
                     }
 
                     const box = source.closest('.box');
-                    if (box && appContainer.contains(box) && box.isContentEditable) {
+                    if (box && appContainer.contains(box)) {
                         return box;
                     }
 
                     const candidate = source.closest('.section-title, .section-subtitle, .item, .action-item-text, .action-item-assignee, .action-item-duedate, #page-title');
-                    if (!candidate || !appContainer.contains(candidate) || !candidate.isContentEditable) return null;
+                    if (!candidate || !appContainer.contains(candidate)) return null;
                     if (candidate.id === 'content') return null;
                     if (candidate.classList.contains('image-annotation-text')) return null;
                     if (candidate.dataset.editableType === 'button-text-label') return null;
@@ -16213,7 +16220,7 @@ function clampImagesToContainers(scope = contentArea) {
                         const isFocusedActive = overlay && overlay.classList.contains('active');
 
                         const kWidth = kBtn.offsetWidth || 82;
-                        const kHeight = kBtn.offsetHeight || 44;
+                        const kHeight = kBtn.offsetHeight || 40;
 
                         if (isFocusedActive) {
                             // 확대 편집 모드: 화면 하단 푸터 바로 위 우측에 고정 플로팅
@@ -16232,24 +16239,23 @@ function clampImagesToContainers(scope = contentArea) {
                             return;
                         }
 
-                        const targetRect = focusedEditorTarget.getBoundingClientRect();
                         const fBtn = document.getElementById('openFocusedEditorBtn');
-                        const fRect = fBtn && fBtn.classList.contains('visible') ? fBtn.getBoundingClientRect() : null;
+                        const isFBtnVisible = fBtn && fBtn.classList.contains('visible');
+                        const fRect = isFBtnVisible ? fBtn.getBoundingClientRect() : null;
 
                         let left, top;
                         if (fRect && fRect.width > 0) {
-                            left = fRect.right + 6;
+                            // 확대 편집 버튼 바로 좌측에 나란히 배치 (통합 제어 툴바 형태)
+                            left = fRect.left - kWidth - 6;
                             top = fRect.top;
-                            if (left + kWidth > window.innerWidth - 6) {
-                                left = fRect.left - kWidth - 6;
-                            }
                             if (left < 6) {
                                 left = Math.max(6, window.innerWidth - kWidth - 10);
                                 top = fRect.bottom + 6;
                             }
                         } else {
-                            left = Math.max(8, targetRect.right - kWidth);
-                            top = Math.max(50, targetRect.top - kHeight - 6);
+                            const targetRect = focusedEditorTarget.getBoundingClientRect();
+                            left = Math.max(8, window.innerWidth - kWidth - 12);
+                            top = Math.max(54, targetRect.top - kHeight - 6);
                         }
 
                         left = Math.max(6, Math.min(window.innerWidth - kWidth - 6, left));
@@ -16380,23 +16386,31 @@ function clampImagesToContainers(scope = contentArea) {
                     requestAnimationFrame(() => {
                         if (focusedEditorTarget) {
                             const rect = focusedEditorTarget.getBoundingClientRect();
-                            const btnRect = button.getBoundingClientRect();
-                            const btnWidth = btnRect.width || button.offsetWidth || 96;
-                            const btnHeight = btnRect.height || button.offsetHeight || 42;
+                            const btnWidth = button.offsetWidth || 96;
+                            const btnHeight = button.offsetHeight || 42;
                             
-                            // Position to the left of the input window with 10px spacing
-                            let left = rect.left - btnWidth - 10;
-                            let top = rect.top + (rect.height - btnHeight) / 2;
-                            
-                            // If not enough space on left, position to the right
-                            if (left < 10) {
-                                left = rect.right + 10;
+                            if (isMobilePortraitForKeyboard()) {
+                                // 📱 모바일 세로 모드: 터치한 입력 영역 상단 우측에 깔끔하고 선명하게 플로팅
+                                let left = window.innerWidth - btnWidth - 12;
+                                let top = rect.top - btnHeight - 8;
+                                if (top < 56) {
+                                    top = Math.max(56, rect.top + 6);
+                                }
+                                top = Math.min(window.innerHeight - btnHeight - 16, Math.max(52, top));
+                                left = Math.max(8, Math.min(window.innerWidth - btnWidth - 8, left));
+                                setFocusedEditorButtonPosition(button, left, top, false);
+                                positionMobileKeyboardTriggerButton();
+                            } else {
+                                // 🖥️ 데스크탑/가로 모드: 기존 좌측(여유 없을시 우측) 배치 원본 무결성 유지
+                                let left = rect.left - btnWidth - 10;
+                                let top = rect.top + (rect.height - btnHeight) / 2;
+                                if (left < 10) {
+                                    left = rect.right + 10;
+                                }
+                                const pos = clampFocusedEditorButtonPosition(button, left, top);
+                                setFocusedEditorButtonPosition(button, pos.left, pos.top, false);
+                                positionMobileKeyboardTriggerButton();
                             }
-                            
-                            const pos = clampFocusedEditorButtonPosition(button, left, top);
-                            setFocusedEditorButtonPosition(button, pos.left, pos.top, false);
-                            // ⌨️ 작은 자판 버튼 위치도 함께 동기화
-                            positionMobileKeyboardTriggerButton();
                         } else {
                             const stored = getStoredFocusedEditorButtonPosition();
                             const targetPos = stored || getDefaultFocusedEditorButtonPosition(button);
@@ -16453,31 +16467,49 @@ function clampImagesToContainers(scope = contentArea) {
                             startX: e.clientX,
                             startY: e.clientY,
                             left: rect.left,
-                            top: rect.top
+                            top: rect.top,
+                            isDragging: false
                         };
-                        button.classList.add('is-dragging');
-                        button.setPointerCapture?.(e.pointerId);
-                        e.preventDefault();
+                        // 중요: pointerdown에서 e.preventDefault()를 무조건 호출하면 W3C 명세상 click 이벤트가 차단되므로,
+                        // 실제 드래그 거리(> 10px)가 감지되었을 때만 pointer capture 및 위치 이동을 적용합니다.
                     });
 
                     button.addEventListener('pointermove', e => {
                         if (!dragState || dragState.pointerId !== e.pointerId) return;
                         const dx = e.clientX - dragState.startX;
                         const dy = e.clientY - dragState.startY;
-                        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) focusedEditorButtonWasDragged = true;
-                        setFocusedEditorButtonPosition(button, dragState.left + dx, dragState.top + dy, false);
-                        e.preventDefault();
+                        if (!dragState.isDragging && (Math.hypot(dx, dy) > 10)) {
+                            dragState.isDragging = true;
+                            focusedEditorButtonWasDragged = true;
+                            button.classList.add('is-dragging');
+                            try { button.setPointerCapture?.(e.pointerId); } catch(err) {}
+                        }
+                        if (dragState.isDragging) {
+                            setFocusedEditorButtonPosition(button, dragState.left + dx, dragState.top + dy, false);
+                            e.preventDefault();
+                        }
                     });
 
                     const finishDrag = e => {
                         if (!dragState || dragState.pointerId !== e.pointerId) return;
-                        const rect = button.getBoundingClientRect();
-                        setFocusedEditorButtonPosition(button, rect.left, rect.top, true);
-                        button.classList.remove('is-dragging');
-                        button.releasePointerCapture?.(e.pointerId);
+                        const wasDragging = dragState.isDragging;
+                        if (wasDragging) {
+                            const rect = button.getBoundingClientRect();
+                            setFocusedEditorButtonPosition(button, rect.left, rect.top, true);
+                            button.classList.remove('is-dragging');
+                            try { button.releasePointerCapture?.(e.pointerId); } catch(err) {}
+                            setTimeout(() => { focusedEditorButtonWasDragged = false; }, 100);
+                        } else {
+                            // 터치 탭 또는 클릭 시 즉시 확대 편집 모드 진입 보장
+                            if (typeof openFocusedEditor === 'function') {
+                                if (typeof openMultiSelectedImagesIfAvailable === 'function' && openMultiSelectedImagesIfAvailable()) {
+                                    hideFocusedEditorButton();
+                                } else {
+                                    openFocusedEditor();
+                                }
+                            }
+                        }
                         dragState = null;
-                        setTimeout(() => { focusedEditorButtonWasDragged = false; }, 0);
-                        e.preventDefault();
                     };
 
                     button.addEventListener('pointerup', finishDrag);
@@ -17786,13 +17818,12 @@ function finishFocusedEditorSession(overlay, surface) {
 
                     if (openBtn) {
                         initializeFocusedEditorButtonDrag(openBtn);
-                        openBtn.addEventListener('pointerdown', e => e.preventDefault());
                         openBtn.addEventListener('click', e => {
                             if (focusedEditorButtonWasDragged) {
                                 e.preventDefault();
                                 return;
                             }
-                            if (openMultiSelectedImagesIfAvailable()) {
+                            if (typeof openMultiSelectedImagesIfAvailable === 'function' && openMultiSelectedImagesIfAvailable()) {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 hideFocusedEditorButton();
@@ -18113,6 +18144,12 @@ function finishFocusedEditorSession(overlay, surface) {
                 : e.target.closest('.insert-area, .item, [data-editable-type], [contenteditable="true"]');
             
             if (targetNode && !targetNode.matches('.resizable-image-wrapper') && !targetNode.closest('.resizable-image-wrapper')) {
+                // 📱 모바일 세로 모드: 터치 시 가상 자판이 무조건 튀어나오는 것을 원천 차단 (사용자가 '자판' 버튼을 누른 경우에만 허용)
+                if (isMobilePortraitForKeyboard() && targetNode.dataset.keyboardExplicitOpen !== 'true') {
+                    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                        document.activeElement.blur();
+                    }
+                }
                 if (typeof showFocusedEditorButton === 'function') {
                     showFocusedEditorButton(targetNode);
                 }
@@ -18141,6 +18178,10 @@ document.addEventListener('focusin', e => {
                         }
                         const target = getFocusedEditableTarget(e.target);
                         if (target) {
+                            // 📱 모바일 세로 모드: 명시적 자판 요청이 없을 때는 focusin 시 즉시 blur하여 시스템 가상 자판 자동 팝업 차단
+                            if (isMobilePortraitForKeyboard() && target.dataset.keyboardExplicitOpen !== 'true') {
+                                target.blur();
+                            }
                             showFocusedEditorButton(target);
                             if (typeof showMobileKeyboardTriggerButton === 'function') {
                                 showMobileKeyboardTriggerButton(target);
