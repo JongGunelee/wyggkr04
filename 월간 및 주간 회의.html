@@ -17107,8 +17107,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             }
         }
 
-        async function syncPendingChanges(showAlert = false) {
+        async function syncPendingChanges(showAlert = false, options = {}) {
             if (!meetingStore) return;
+            const allowPrompt = options.allowPrompt !== undefined ? options.allowPrompt : Boolean(showAlert);
+
+            // 🛡️ [PAT 팝업 방어] 토큰이 없고 프롬프트가 허용되지 않은 경우 (부팅/백그라운드 동기화 또는 다운로드 전용망):
+            // 사용자에게 불필요한 PAT 팝업창을 띄우지 않고 조용히 로컬 대기열을 유지한 채 패스 (0ms 지연 없음)
+            if (!allowPrompt && meetingGithubCredential && typeof meetingGithubCredential.hasSessionToken === 'function' && !meetingGithubCredential.hasSessionToken()) {
+                return { ok: false, skipped: true, reason: 'NO_SESSION_TOKEN_NO_PROMPT' };
+            }
+
             await flushMemoChanges();
             const saveBtn = document.getElementById('saveAllChangesBtn');
             const originalBtnText = saveBtn.textContent;
@@ -17121,7 +17129,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     publishMissing: false,
                     allowRemoteCreate,
                     memoConflictStrategy: 'fail'
-                }));
+                }), { allowPrompt });
                 let result = await runSync(false);
                 const missingDatasets = Object.entries(result.results || {})
                     .filter(([, item]) => item?.error?.code === 'REMOTE_DATASET_MISSING')
@@ -17158,7 +17166,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             } catch (error) {
                 let fallback = { downloadedCount: 0, files: [], errors: [] };
                 const cancelled = error?.code === 'CREDENTIAL_CANCELLED';
-                if (!cancelled) console.error('GitHub 동기화 실패:', error);
+                if (!cancelled && !options.silentFail) console.error('GitHub 동기화 실패:', error);
                 if (showAlert && !cancelled) {
                     fallback = await downloadPendingXlsbFallback({
                         changedAt: new Date().toISOString(),
@@ -17648,11 +17656,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             document.body.dataset.meetingDataState = `${remoteDatasetState.status}/${remoteDatasetState.memo}`;
             document.body.dataset.meetingDataTransport = `${remoteDatasetTransport.status || 'cache'}/${remoteDatasetTransport.memo || 'cache'}`;
 
-            // 🚀 [부팅 백그라운드 자동 동기화] 미동기화된 오프라인 변경 대기열 자동 업로드 (부팅 렌더링 블로킹 0%)
+            // 🚀 [부팅 백그라운드 자동 동기화] PAT 토큰이 사전에 등록된 관리자 환경에서만 조용히 백그라운드 업로드 시도 (PAT 팝업 원천 차단)
+            // 다운로드 전용망 또는 타 컴퓨터/조회 전용 환경에서는 어떠한 경우에도 PAT 입력창을 띄우지 않습니다 (부팅 지연 0ms 보장).
             if (finalPendingCount > 0 && mode === 'api' && !browserOffline) {
-                setTimeout(() => {
-                    syncPendingChanges(false).catch(err => console.warn('부팅 대기열 백그라운드 자동 동기화 지연:', err));
-                }, 500);
+                if (meetingGithubCredential && typeof meetingGithubCredential.hasSessionToken === 'function' && meetingGithubCredential.hasSessionToken()) {
+                    setTimeout(() => {
+                        syncPendingChanges(false, { allowPrompt: false, silentFail: true }).catch(err => console.warn('부팅 대기열 백그라운드 자동 동기화 지연:', err));
+                    }, 500);
+                }
             }
         }
 
