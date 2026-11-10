@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "d46d985634a57a0799c2ed427941bdcca70980050e2e15247158720cbd96ee42",
+  "sourceSha256": "63d515e312e582c2b1158cb2d4da6a4d41e22f4d8d4f964e4e780164fb2d5fc7",
   "sourceFiles": {
     "status": {
-      "sha256": "fd7e2418436a7b05c19ea696d0420940cf3bf0724e10e5d6364a4aacd166986d",
-      "byteLength": 121988
+      "sha256": "06be45bb1b8fcddc48c62e6d559196d842284dde740d092f84d1d053d28d74ad",
+      "byteLength": 122311
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -5211,12 +5211,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 10,
         "week": 1,
-        "status": "미작성",
+        "status": "작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-10-01",
-        "updatedAt": "2026-09-27T18:28:42.000Z",
-        "source": "GitHub 회의록 파일 자동 점검",
+        "updatedAt": "2026-11-10T12:27:14.000Z",
+        "source": "미작성 안건 수동 관리 · client:d50d5441-ee2 · session:b820603c · Asia/Seoul UTC+09:00",
         "exceptionCode": "",
         "note": "2026-09-28 기준 회의록 파일 없음"
       },
@@ -5316,11 +5316,11 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "year": 2026,
         "month": 11,
         "week": 2,
-        "status": "미작성",
+        "status": "작성",
         "counterIncluded": "Y",
         "cardVisible": "Y",
         "referenceDate": "2026-11-12",
-        "updatedAt": "2026-11-08T18:52:02.000Z",
+        "updatedAt": "2026-11-10T03:27:40.000Z",
         "source": "GitHub 회의록 파일 자동 점검",
         "exceptionCode": "",
         "note": "2026-11-09 기준 회의록 파일 없음"
@@ -9775,6 +9775,26 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "beforeValue": "미작성",
         "afterValue": "작성",
         "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "ee019dbd-25ed-4679-b38e-ebeb4ff2e07d",
+        "changedAt": "2026-11-10T03:27:40.000Z",
+        "key": "2026-11-2",
+        "type": "주간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
+        "source": "GitHub 회의록 파일 자동 점검",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "368544d7-0d3f-45b2-a225-e2262ca0afcc",
+        "changedAt": "2026-11-10T12:27:14.000Z",
+        "key": "2026-10-1",
+        "type": "주간",
+        "beforeValue": "미작성",
+        "afterValue": "작성",
+        "source": "미작성 안건 수동 관리 · client:d50d5441-ee2 · session:b820603c · Asia/Seoul UTC+09:00",
         "syncStatus": "완료"
       }
     ]
