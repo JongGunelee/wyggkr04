@@ -4831,22 +4831,73 @@
         -webkit-overflow-scrolling: touch;
       }
       #point-text-expand-modal {
-        width: 95% !important;
-        max-width: 95% !important;
-        padding: 10px !important;
+        width: min(96vw, 620px) !important;
+        max-width: 96vw !important;
+        top: max(12px, calc(8px + env(safe-area-inset-top, 0px))) !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        max-height: calc(100vh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+        box-sizing: border-box !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 0 !important;
+      }
+      #point-text-expand-modal .rooms-btn {
+        min-height: 38px !important;
+        font-size: 12px !important;
       }
       .point-edit-textarea {
         font-size: 11.5px !important;
+        min-height: 28px !important;
+        touch-action: pan-y !important;
+      }
+      .summary-table-body-wrap,
+      .rooms-summary-table-section,
+      .elevation-grid-body,
+      .elevation-rows-wrap,
+      #room-points-table,
+      #bulk-points-table,
+      #bldg-summary-points-table {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
       }
     }
 
-/* [Phase 71] Small context line, no pulse or saturated accent. */
+/* [Phase 71 / Phase 128] Small context line & Sheet workspace top alignment: Safe-area aware */
 #scope-context-strip{position:fixed;top:38px;left:0;right:0;height:26px;box-sizing:border-box;z-index:999;display:flex;align-items:center;gap:10px;padding:0 14px;background:#131e30;color:#a6b4c7;border-bottom:1px solid #29364a;font-size:11px;font-family:inherit}
 #scope-context-summary{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:1}.scope-context-label{color:#71839a;flex-shrink:0}
 #scope-context-details summary{cursor:pointer;white-space:nowrap;color:#a6b4c7}.scope-context-popover{position:absolute;right:12px;top:29px;padding:12px 14px;max-width:calc(100vw - 48px);background:#182437;border:1px solid #3a475c;border-radius:7px;box-shadow:0 6px 18px #0005;line-height:1.8;color:#d1d9e5;z-index:1001}
 #scope-context-breakdown{white-space:pre-line}.scope-context-popover button{margin-top:7px;background:#263449;border:1px solid #475569;color:#cbd5e1;border-radius:4px;padding:3px 8px;cursor:pointer}
-#sheet-workspace{top:64px!important;height:calc(100vh - 64px)!important}
+#sheet-workspace{top:64px;height:calc(100vh - 64px)}
 .support-member-controls{background:rgba(15,23,42,.6);border:1px solid rgba(56,189,248,.2);border-radius:8px;padding:8px 10px}.support-section-title{font-weight:700;color:#38bdf8;font-size:11px;margin-bottom:6px}.support-control-row{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10px;color:#cbd5e1;margin:5px 0}.support-control-row input{width:75px}.support-control-row select{width:110px}.support-control-row input,.support-control-row select{background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:4px;padding:3px}.support-control-hint{font-size:9.5px;color:#94a3b8;line-height:1.6;margin-top:5px}
+
+/* [Phase 128] 데스크탑 및 모바일 세로 모드 Safe-Area 및 뷰 계층 완전 정합 반응형 */
+@media(max-width:768px){
+  #workbook-bottom-bar {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: auto !important;
+    height: calc(38px + env(safe-area-inset-top, 0px)) !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+  }
+  #scope-context-strip {
+    top: calc(38px + env(safe-area-inset-top, 0px)) !important;
+    padding: 0 8px !important;
+    gap: 6px !important;
+    font-size: 10px !important;
+  }
+  .scope-context-label { display: none !important; }
+  .scope-context-popover { right: 6px !important; }
+  #sheet-workspace {
+    top: calc(64px + env(safe-area-inset-top, 0px)) !important;
+    bottom: 0 !important;
+    height: calc(100vh - (64px + env(safe-area-inset-top, 0px))) !important;
+  }
+  #model-view-controls {
+    top: calc(72px + env(safe-area-inset-top, 0px)) !important;
+    right: max(8px, env(safe-area-inset-right, 8px)) !important;
+  }
+}
 @media(max-width:760px){#scope-context-strip{padding:0 8px;gap:6px;font-size:10px}.scope-context-label{display:none}.scope-context-popover{right:6px}}
 
 /* Dynamic BP maps keep their own height, including inside scrollable room dialogs. */
@@ -9748,7 +9799,12 @@ function layoutBottomInspectionMarkers(){
 function renderFirstModelFrame(){
  RenderScheduler.highQualityUntil=performance.now()+5000;
  const start=performance.now();
- renderer.render(scene,camera);
+ if (renderer && scene && camera) {
+   if (typeof renderer.compile === 'function') {
+     try { renderer.compile(scene, camera); } catch(e) {}
+   }
+   renderer.render(scene, camera);
+ }
  RenderScheduler.highQualityUntil=0;
  window.RAIL_STARTUP_METRICS={firstGeometryMs:performance.now()-start,firstGeometryAt:performance.now(),firstCompleteAt:performance.now(),quality:'detailed',singleStage:true};
 }
@@ -18650,12 +18706,16 @@ const WorkbookManager = {
       ModelParameters.restoreLocal();
       if (typeof AssemblyMarkerManager !== 'undefined') AssemblyMarkerManager.init();
       const canvas = document.getElementById('webgl-canvas');
+      if (!canvas) return;
       scene = new THREE.Scene();
+      window.scene = scene;
       scene.background = new THREE.Color(0xa2bad2);
       scene.fog = new THREE.FogExp2(0xa2bad2, 0.015);
 
       camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.05, 80);
+      window.camera = camera;
       renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: false, powerPreference: 'high-performance' });
+      window.renderer = renderer;
       // [Phase 60] 스마트폰/모바일 디바이스 감지 및 초고해상도 DPR GPU 부하 최적화
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768 && 'ontouchstart' in window);
       renderer.setPixelRatio(isMobileDevice ? Math.min(window.devicePixelRatio || 1, 1.25) : Math.min(window.devicePixelRatio || 1, 1.5));
@@ -21250,6 +21310,7 @@ const WorkbookManager = {
     function buildHandrail() {
       if (!handrailGroup) {
         handrailGroup = new THREE.Group();
+        window.handrailGroup = handrailGroup;
         scene.add(handrailGroup);
       }
       const susMat = new THREE.MeshStandardMaterial({
@@ -24444,7 +24505,7 @@ function isPointActualDefect(ptInfo) {
 }
 
 function updateDefectModal(id) {
-      const d = DEFECT_DATA[id];
+      const d = (typeof id === 'number') ? DEFECT_DATA[id] : (DEFECT_DATA.find(item => item.pointKey === id || item.id === id) || DEFECT_DATA[id]);
       if (!d) return;
 
       const modal = document.getElementById('defect-modal');
@@ -24656,10 +24717,11 @@ function updateDefectModal(id) {
         `;
       }
 
-      const prevIdx = (id - 1 + DEFECT_DATA.length) % DEFECT_DATA.length;
-      const nextIdx = (id + 1) % DEFECT_DATA.length;
-      const prevD = DEFECT_DATA[prevIdx];
-      const nextD = DEFECT_DATA[nextIdx];
+      const currentIdx = (typeof d.id === 'number') ? d.id : (typeof id === 'number' ? id : DEFECT_DATA.indexOf(d));
+      const prevIdx = (currentIdx - 1 + DEFECT_DATA.length) % DEFECT_DATA.length;
+      const nextIdx = (currentIdx + 1) % DEFECT_DATA.length;
+      const prevD = DEFECT_DATA[prevIdx] || d;
+      const nextD = DEFECT_DATA[nextIdx] || d;
 
       wrap.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
@@ -27795,11 +27857,23 @@ function updateDefectModal(id) {
       if (!e.shiftKey) walkKeys.shift = false;
     }
 
-    // [Phase 68.2 OPTIMIZED] DOM 상태 즉각 감지 0ms 즉시 구동 (불필요한 대기 지연 박멸)
-    if (document.readyState === 'loading') {
-      window.addEventListener('DOMContentLoaded', init);
-    } else {
+    // [Phase 128 OPTIMIZED] 0.0ms 즉시 부팅 가드 & Three.js CDN/로컬 비동기 로드 안전 회랑 보장
+    function bootWhenReady() {
+      if (typeof THREE === 'undefined' || typeof THREE.OrbitControls === 'undefined') {
+        if (typeof window.requestAnimationFrame === 'function') {
+          requestAnimationFrame(bootWhenReady);
+        } else {
+          setTimeout(bootWhenReady, 16);
+        }
+        return;
+      }
       init();
+    }
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', bootWhenReady);
+    } else {
+      bootWhenReady();
     }
   </script>
 
