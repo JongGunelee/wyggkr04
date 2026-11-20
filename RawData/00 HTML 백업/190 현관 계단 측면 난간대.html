@@ -4904,6 +4904,53 @@ void main() {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
+
+/* [성능 최적화 v2026.11 - 00참조 발코니 난간대 벤치마크 반영]
+   - 3,154 DOM 노드 레이아웃 격리(contain) 및 대형 숨김 모달 content-visibility 지연
+   - 모바일 300ms 탭 지연 제거(touch-action: manipulation) 및 캔버스 터치 제스처 충돌 방지
+   - 모바일 세로 모드 및 3D 탐색 중 고비용 backdrop-filter GPU 리드백 스톨 차단 */
+button, .step-chip, .cam-btn, #headerContainer button, #rightSidebar button, #bottom4dDock button, #btnExpand4dHandle {
+  touch-action: manipulation;
+}
+#viewportContainer canvas {
+  touch-action: none;
+}
+#headerContainer, #rightSidebar, #bottom4dDock, #btnExpand4dHandle {
+  contain: layout style;
+}
+#estimateModal, #methodCompareModal, #evidenceModal, #photoModal {
+  contain: layout style;
+}
+#estimateModal.hidden, #methodCompareModal.hidden, #evidenceModal.hidden, #photoModal.hidden {
+  content-visibility: hidden;
+}
+.glass-panel {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: rgba(15, 23, 42, 0.91);
+}
+.smart-4d-dock {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: rgba(15, 23, 42, 0.93);
+}
+body.is-3d-moving .glass-panel,
+body.is-3d-moving .smart-4d-dock,
+body.is-3d-moving #btnExpand4dHandle {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+@media (max-width: 768px) {
+  .glass-panel, .smart-4d-dock, #btnExpand4dHandle, #canopyLightPanel, #diagramHoverBackdrop {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .glass-panel { background: rgba(15, 23, 42, 0.94); }
+  .smart-4d-dock { background: rgba(15, 23, 42, 0.95); }
+  header button, #headerContainer button {
+    min-height: 30px;
+  }
+}
 </style>
 </head>
 <body class="h-screen w-screen flex flex-col bg-[#b8cde3] text-slate-100">
@@ -9143,8 +9190,9 @@ void main() {
     camera.position.fromArray(HOME_VIEW.position);
 
     THREE.ColorManagement.enabled = false; // 기존 숫자 색상과 수동 변환을 유지한다.
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobileDevice || (window.devicePixelRatio || 1) < 2, powerPreference: "high-performance" });
+    renderer.setPixelRatio(isMobileDevice ? Math.min(window.devicePixelRatio || 1, 1.15) : Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.shadowMap.enabled = DEFAULTS.showShadows;
     renderer.shadowMap.type = THREE.BasicShadowMap; // 정면 주광의 선명한 그림자: 필터 샘플과 셰이더 부팅 비용 축소
     renderer.shadowMap.autoUpdate = false;
@@ -9301,14 +9349,16 @@ void main() {
           seed = (Math.imul(1664525, seed) + 1013904223) >>> 0;
           const r = seed >>> 24;
           const grain = (r < 32 ? -36 : r > 224 ? 22 : ((seed & 31) - 15) * 0.8) + sines[x] * 0.5 + sy * 0.5;
-          const val = Math.min(255, Math.max(0, 168 + grain));
+          const val = 168 + grain;
           const idx = (y * size + x) * 4;
-          color.data[idx] = val + 2;
-          color.data[idx + 1] = val + 1;
-          color.data[idx + 2] = val - 2;
-          color.data[idx + 3] = 255;
-          relief.data[idx] = relief.data[idx + 1] = relief.data[idx + 2] = Math.min(255, Math.max(0, 128 + grain * 1.2));
-          relief.data[idx + 3] = 255;
+          const cd = color.data, rd = relief.data;
+          cd[idx] = val + 2;
+          cd[idx + 1] = val + 1;
+          cd[idx + 2] = val - 2;
+          cd[idx + 3] = 255;
+          const rv = 128 + grain * 1.2;
+          rd[idx] = rd[idx + 1] = rd[idx + 2] = rv;
+          rd[idx + 3] = 255;
         }
       }
       colorContext.putImageData(color, 0, 0); reliefContext.putImageData(relief, 0, 0);
@@ -12261,7 +12311,7 @@ void main() {
       const show = state.showLabels || state.showMarkers || showStrata;
       labelsContainer.style.display = show ? 'block' : 'none';
       if (!show) return;
-      const width = viewportContainer.clientWidth, height = viewportContainer.clientHeight;
+      const width = viewportWidth || viewportContainer.clientWidth, height = viewportHeight || viewportContainer.clientHeight;
       const note = document.getElementById("constructionInspectionNote");
       const topInset = note && note.offsetHeight ? note.offsetTop + note.offsetHeight + 8 : 8;
 
@@ -12670,7 +12720,7 @@ void main() {
 
       }
       const anchorMode=isAnchorMethod();
-      if((!anchorMode&&p<100)||(anchorMode&&p>=14&&p<97))simRefs.ensureDrill?.();
+      if((!anchorMode&&p>0&&p<100)||(anchorMode&&p>=14&&p<97))simRefs.ensureDrill?.();
       if(anchorMode){
         for(const base of simRefs.anchorBases){base.mesh.visible=isAssemblyMethod()?p>=32:p>=48;base.mesh.position.y=base.targetY+(isAssemblyMethod()&&p<66?(p<48?.45:Math.pow(1-Math.min(1,(p-48)/18),3)*.40):0);}
         const inserted=(p-32)/16*simRefs.anchorBolts.length;
@@ -14438,7 +14488,6 @@ void main() {
       state.progress4D = 0;
       const sld = document.getElementById('slider4dProgress');
       if (sld) sld.value = 0;
-      apply4DProgress(0);
       const cfg=currentMethod();
       const isPrefab=cfg.assembly;
 
@@ -15521,7 +15570,6 @@ void main() {
 
     // [사용자 요구 반영] 초기 로드 시점 기본 공법 B (원안: ₩ 1,871,000 Fee제외) 및 타임라인 셋업
     switchConstructionMethod('prefab', false);
-    updateTimelineCostBadge('prefab');
 
     // =========================================================================
     // 8. 리사이즈 대응 및 메인 애니메이션 루프
@@ -15575,12 +15623,31 @@ void main() {
     contextLost=false;lastTime=performance.now();viewportWidth=0;viewportHeight=0;
     const startupMetrics={frames:0,builds:0,firstModelMs:null,quality:'preview',firstGeometryAt:null,firstCompleteAt:null};
     const restPixelRatio = renderer.getPixelRatio();
-    const motionPixelBudget = 1800000;
-    let motionPixelRatio = restPixelRatio, lastMotionAt = -Infinity;
+    const motionPixelBudget = isMobileDevice ? 380000 : 1400000;
+    let motionPixelRatio = restPixelRatio, lastMotionAt = -Infinity, lastUiInteractAt = -Infinity;
     motionUntil=0;motionRestoreTimer=null;appInteractive=false;lastShadowAt=0;
+    function computeMotionPixelRatio() {
+      const area = Math.max(1, (viewportWidth || window.innerWidth || 1280) * (viewportHeight || window.innerHeight || 720));
+      const budgetRatio = Math.sqrt(motionPixelBudget / area);
+      const cap = isMobileDevice ? 0.85 : 1.0;
+      return Math.max(0.65, Math.min(restPixelRatio, cap, budgetRatio));
+    }
     function markCameraMotion() {
       if (!appInteractive) return;
-      lastMotionAt = performance.now();
+      const now = performance.now();
+      const continuous = (now - lastMotionAt) < 125;
+      lastMotionAt = now;
+      if (continuous) {
+        motionUntil = now + 140;
+        if (!document.body.classList.contains('is-3d-moving')) {
+          document.body.classList.add('is-3d-moving');
+        }
+        if (motionRestoreTimer !== null) clearTimeout(motionRestoreTimer);
+        motionRestoreTimer = setTimeout(() => {
+          motionRestoreTimer = null;
+          document.body.classList.remove('is-3d-moving');
+        }, 150);
+      }
     }
     window.RAIL_STARTUP_METRICS=startupMetrics;
     function requestRender(shadows=false){
@@ -15651,8 +15718,23 @@ void main() {
         document.getElementById('activeViewBadge').textContent='수동 시점';
       }
     },{capture:true});
-    // UI 핸들러 종료 뒤 한 프레임에 반영. 형상 변경만 그림자를 무효화한다.
-    ['click','input','change','keydown','keyup'].forEach(type=>document.addEventListener(type,()=>requestRender(),{capture:true,passive:true}));
+    // [성능 최적화] 3D 씬과 무관한 순수 2D UI(모달, 사이드바/도크 토글, 헤더 스크롤, 탭/아코디언) 클릭 시
+    // 불필요한 197K 삼각형 WebGL 재렌더를 차단하여 메뉴/버튼 응답속도 극대화
+    const PURE_UI_SKIP_SELECTOR = '#estimateModal, #methodCompareModal, #evidenceModal, #photoModal, #diagramHoverPreview, #presetHoverPreview, #btnHeaderScrollLeft, #btnHeaderScrollRight, #btnExpandSidebarHandle, #btnCollapseSidebar, #btnToggleSidebar, #btnExpand4dHandle, #btnCollapse4dDock, #btnOpenEstimateModal, #btnCloseEstimateModal, #btnOpenMethodCompareModal, #btnCloseMethodCompareModal, #btnOpenEvidenceModal, #btnCloseEvidenceModal, #btnTogglePhotoModal, #btnCollapseWalkPanel, #btnCollapseCompliance, #btnMinimizeRef, .est-tab-btn, .accordion-header';
+    function shouldTrigger3DRenderFromUI(event) {
+      const t = event && event.target;
+      if (!t || typeof t.closest !== 'function') return true;
+      if (t.closest(PURE_UI_SKIP_SELECTOR)) return false;
+      return true;
+    }
+    ['click','input','change','keydown','keyup'].forEach(type=>document.addEventListener(type,(ev)=>{
+      lastUiInteractAt = performance.now();
+      if (type === 'keydown' || type === 'keyup') {
+        if (state.walkMode || ev.key === 'Escape' || ev.key === 'Shift') requestRender();
+        return;
+      }
+      if (shouldTrigger3DRenderFromUI(ev)) requestRender();
+    },{passive:true}));
     window.addEventListener('blur',()=>{Object.keys(keyState).forEach(key=>delete keyState[key]);});
     document.addEventListener('visibilitychange',()=>{
       Object.keys(keyState).forEach(key=>delete keyState[key]);
@@ -15665,19 +15747,20 @@ void main() {
     canvas.addEventListener('webglcontextrestored',()=>{contextLost=false;requestRender(true);});
     function scheduleEquipmentPreparation(prepare) {
       const queue = () => {
-        if (window.requestIdleCallback)requestIdleCallback(atRest,{timeout:1500});
-        else setTimeout(atRest,80);
+        if (window.requestIdleCallback)requestIdleCallback(atRest,{timeout:2500});
+        else setTimeout(atRest,300);
       };
       const atRest = () => {
         if (simRefs.ensureDrill !== prepare) return;
-        if (state.playing4D || camAnim || performance.now()-lastMotionAt < 180
+        const now = performance.now();
+        if (state.playing4D || camAnim || (now - lastMotionAt) < 500 || (now - lastUiInteractAt) < 600
             || (state.walkMode && state.autoWalkPlaying)) {
-          setTimeout(queue,180);
+          setTimeout(queue,350);
           return;
         }
         prepare();
       };
-      queue();
+      setTimeout(queue, 400);
     }
     
     // =========================================================================
@@ -17369,7 +17452,7 @@ void main() {
       document.getElementById('btnCancelCurrentPick')?.addEventListener('click', cancelActivePick);
       document.getElementById('btnCopyMeasurements')?.addEventListener('click', () => {
         if (measureState.measurements.length === 0) {
-          alert('복사할 측정 결과가 없습니다.');
+          showNonBlockingToast('복사할 측정 결과가 없습니다.', '#f59e0b');
           return;
         }
         const text = measureState.measurements.map(m => {
@@ -17377,7 +17460,7 @@ void main() {
           return `[#${m.id}] ${d} (${m.p1Snap.type} -> ${m.p2Snap.type}) | ΔX: ${formatMeasureDistance(m.dx)}, ΔY: ${formatMeasureDistance(m.dy)}, ΔZ: ${formatMeasureDistance(m.dz)}`;
         }).join('\n');
         navigator.clipboard.writeText(text).then(() => {
-          alert('측정 결과가 클립보드에 복사되었습니다:\n\n' + text);
+          showNonBlockingToast('측정 결과가 클립보드에 복사되었습니다.', '#10b981');
         });
       });
 
@@ -17858,11 +17941,27 @@ void main() {
       });
     }
 
+    function showNonBlockingToast(message, accentColor = '#38bdf8') {
+      let el = document.getElementById('appNonBlockingToast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'appNonBlockingToast';
+        el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10050;padding:10px 16px;border-radius:10px;background:rgba(15,23,42,0.95);color:#f8fafc;font-size:12px;font-weight:700;box-shadow:0 10px 25px rgba(0,0,0,0.45);pointer-events:none;transition:opacity 0.2s ease;';
+        document.body.appendChild(el);
+      }
+      el.style.border = '1px solid ' + accentColor;
+      el.textContent = message;
+      el.style.opacity = '1';
+      clearTimeout(el._hideTimer);
+      el._hideTimer = setTimeout(() => { el.style.opacity = '0'; }, 2400);
+    }
     function initApp(){
-      syncSlidersAndLabels();buildParametricScene();initSunDragInteraction();bindSunPathEvents();initDiagramHoverZoom();initPresetHoverZoom();
-      bindCanopyLightingEvents();
-      updateCanopyLighting();bindInteractiveMeasureEvents();updateSteelEnvironmentMap(true);
-      applyUICollapseStates();handleResize();controls.update();
+      // [1단계: 초고속 첫 프레임 렌더링 - 00참조 발코니 난간대 Phase 119 2단계 부팅 구조 동등화]
+      syncSlidersAndLabels();
+      buildParametricScene();
+      applyUICollapseStates();
+      handleResize();
+      controls.update();
       const firstDrawStartedAt=performance.now();
       updateMeasurementGeometry();renderer.render(scene,camera);startupMetrics.frames++;
       startupMetrics.firstDrawMs=performance.now()-firstDrawStartedAt;
@@ -17885,18 +17984,29 @@ void main() {
       startupMetrics.quality = 'detailed';
       startupMetrics.detailedMeshCount = startupMetrics.firstGeometryMeshCount;
       startupMetrics.firstCompleteAt = performance.now();
-      scheduleEquipmentPreparation(simRefs.ensureDrill);
     }
-    // [초고속 부팅 최적화] 동기식 고해상도 절차적 HDRI 즉시 생성 및 첫 모델 렌더링
-    // [초고속 부팅 최적화] DOMContentLoaded 및 requestAnimationFrame을 통한 비동기 무지연 부팅 (bb00 참조 구조 동등화)
+    // [초고속 부팅 최적화] 1단계 첫 프레임 즉시 표출 -> 2단계 비차단 rAF로 HDRI(1회) 및 보조 인터랙션 바인딩
     function bootWhenReady() {
       initApp();
-      syncSteelFinishUI(false);
-      updateHeaderScrollButtons();
-      requestAnimationFrame(() => {
-        updateSteelEnvironmentMap(true);
+      let stage2Done = false;
+      const runStage2 = () => {
+        if (stage2Done) return;
+        stage2Done = true;
+        updateSteelEnvironmentMap(false);
+        syncSteelFinishUI(false);
+        updateHeaderScrollButtons();
+        initSunDragInteraction();
+        bindSunPathEvents();
+        initDiagramHoverZoom();
+        initPresetHoverZoom();
+        bindCanopyLightingEvents();
+        updateCanopyLighting();
+        bindInteractiveMeasureEvents();
         requestRender();
-      });
+        scheduleEquipmentPreparation(simRefs.ensureDrill);
+      };
+      requestAnimationFrame(runStage2);
+      setTimeout(runStage2, 60);
     }
 
     if (document.readyState === 'loading') {
