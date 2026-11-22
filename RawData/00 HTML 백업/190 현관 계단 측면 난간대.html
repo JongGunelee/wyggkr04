@@ -9967,6 +9967,7 @@ body.is-3d-moving #btnExpand4dHandle {
     let simRefs = {
       posts: [],
       coreSlugs: [],
+      coreHoleLiners: [],
       groutRings: [],
       rosettes: [],
       markerRings: [],
@@ -10651,9 +10652,24 @@ body.is-3d-moving #btnExpand4dHandle {
       };
 
       // 1) 전면 아스팔트 도로 및 콘크리트 앞마당(Apron)
-      const roadGeo = new THREE.BoxGeometry(12, 0.16, 8);
+      // [무결성 개선] 계단/전면포장(P1 코어 타공부 포함) 하부와 아스팔트 도로가 Y=-0.002m에서 간섭하지 않도록 풋프린트 컷아웃 적용
+      const roadShape = new THREE.Shape();
+      roadShape.moveTo(-6, -6.5);
+      roadShape.lineTo(6, -6.5);
+      roadShape.lineTo(6, 1.5);
+      roadShape.lineTo(-6, 1.5);
+      roadShape.closePath();
+      const roadCutout = new THREE.Path();
+      roadCutout.moveTo(-W_stair + 0.002, -0.698);
+      roadCutout.lineTo(-W_stair + 0.002, 1.49);
+      roadCutout.lineTo(W_ramp - 0.002, 1.49);
+      roadCutout.lineTo(W_ramp - 0.002, -0.698);
+      roadCutout.closePath();
+      roadShape.holes.push(roadCutout);
+      const roadGeo = new THREE.ExtrudeGeometry(roadShape, { depth: 0.16, bevelEnabled: false });
+      roadGeo.rotateX(-Math.PI / 2);
+      roadGeo.translate(0, -0.162, 0);
       const roadMesh = new THREE.Mesh(roadGeo, materials.asphalt);
-      roadMesh.position.set(0, -0.082, 2.5);
       roadMesh.receiveShadow = true;
       envGroup.add(roadMesh);
 
@@ -11612,6 +11628,7 @@ body.is-3d-moving #btnExpand4dHandle {
       simRefs.anchorBases=[];simRefs.anchorBolts=[];simRefs.anchorPositions=[];simRefs.anchorSealants=[];simRefs.anchorCaps=[];
       simRefs.posts = [];
       simRefs.coreSlugs = [];
+      simRefs.coreHoleLiners = [];
       simRefs.groutRings = [];
       simRefs.rosettes = [];
       simRefs.markerRings = [];
@@ -11672,12 +11689,38 @@ body.is-3d-moving #btnExpand4dHandle {
         }
         sim4DGroup.add(markerGroup);simRefs.markerRings.push(markerGroup);
         if(!isAnchor){
-        // (b) 습식 코어 타공 홀 내벽 (Core Hole Cylinder)
-        const holeGeo = new THREE.CylinderGeometry(D_core / 2, D_core / 2, H_core, 28, 1, true);
+        // (b) 습식 코어 타공 홀 내벽 + 바닥면 + 상부 습식 절단 경계 림 (P1~P4 100% 동일한 3D 원통 깊이감·시각 일관성 보장)
+        const holeGroup = new THREE.Group();
+        const holeR = D_core / 2 - 0.0006; // 석재 홀 내벽과 Z-Fighting 완전 방지 (-0.6mm 오프셋)
+        const holeH = H_core - 0.0012;
+        const wallThetaStart = sectionView ? Math.PI : 0;
+        const wallThetaLen = sectionView ? Math.PI : Math.PI * 2;
+        const holeGeo = new THREE.CylinderGeometry(holeR, holeR, holeH, 32, 1, true, wallThetaStart, wallThetaLen);
         const holeMesh = new THREE.Mesh(holeGeo, materials.coreHoleWall);
-        holeMesh.position.set(pt.x, pt.floorY - H_core / 2, pt.z);
-        holeMesh.visible = false;
-        coreAssemblyGroup.add(holeMesh);
+        holeMesh.position.set(pt.x, pt.floorY - 0.0008 - holeH / 2, pt.z);
+        holeMesh.receiveShadow = true;
+        holeGroup.add(holeMesh);
+
+        // 코어 홀 최하단 어두운 바닥면 (140mm 깊이 원통 음영 통일 - 내장 CylinderGeometry 사용)
+        const holeBotGeo = new THREE.CylinderGeometry(holeR, holeR, 0.002, 32, 1, false, wallThetaStart, wallThetaLen);
+        const holeBotMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide });
+        const holeBotMesh = new THREE.Mesh(holeBotGeo, holeBotMat);
+        holeBotMesh.position.set(pt.x, pt.floorY - H_core + 0.0015, pt.z);
+        holeGroup.add(holeBotMesh);
+
+        // 코어 타공 상부 습식 절단 경계 림 (P1~P4 선명한 원형 절단면 일관 표출)
+        const botThetaStart = sectionView ? Math.PI / 2 : 0;
+        const botThetaLen = sectionView ? Math.PI : Math.PI * 2;
+        const rimGeo = new THREE.RingGeometry(holeR, D_core / 2 + 0.0014, 32, 1, botThetaStart, botThetaLen);
+        rimGeo.rotateX(-Math.PI / 2);
+        const rimMat = new THREE.MeshBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
+        const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+        rimMesh.position.set(pt.x, pt.floorY + 0.0007, pt.z);
+        holeGroup.add(rimMesh);
+
+        holeGroup.visible = false;
+        coreAssemblyGroup.add(holeGroup);
+        simRefs.coreHoleLiners.push(holeGroup);
 
         // (c) 코어 타공 시 추출되는 화강석 코어 슬러그 (Step 2 연출용)
         const slugGeo = new THREE.CylinderGeometry(D_core * 0.46, D_core * 0.46, H_core, 24);
@@ -12909,12 +12952,38 @@ body.is-3d-moving #btnExpand4dHandle {
         m.visible = (p >= 1 && p < 60);
       });
 
-      // [사용자 요구 #1] Step 0(0% ~ 5%) 및 Step 1(5% ~ 14%)에서는 천공 착공 전이므로 바닥 타공 흔적 완전 은닉 (원형 보존 계단)
-      const holesDrilled = (anchorMode ? p >= 18 : p >= 14);
-      if (simRefs.boreHoleCaps && Array.isArray(simRefs.boreHoleCaps)) {
-        simRefs.boreHoleCaps.forEach(cap => {
-          cap.visible = !holesDrilled;
-        });
+      // [사용자 요구 #1 + 무결성 개선] Step 0~1 원형 보존 + Step 2 습식 코어 순차 천공 연동 (P1~P4 100% 동일 홀 표출)
+      if (!anchorMode) {
+        const totalCorePosts = (simRefs.postPositions && simRefs.postPositions.length) ? simRefs.postPositions.length : 4;
+        const localCoreT = p >= 14 && p < 32 ? (p - 14) / (32 - 14) : 0;
+        const activeCoreIdx = Math.min(totalCorePosts - 1, Math.floor(localCoreT * totalCorePosts));
+        const subCoreT = (localCoreT * totalCorePosts) - activeCoreIdx;
+        for (let idx = 0; idx < totalCorePosts; idx++) {
+          let isHoleDrilled = false;
+          if (p >= 32) {
+            isHoleDrilled = true;
+          } else if (p >= 14) {
+            isHoleDrilled = (idx < activeCoreIdx) || (idx === activeCoreIdx && subCoreT >= 0.12);
+          }
+          if (simRefs.boreHoleCaps && simRefs.boreHoleCaps[idx]) {
+            simRefs.boreHoleCaps[idx].visible = !isHoleDrilled;
+          }
+          if (simRefs.coreHoleLiners && simRefs.coreHoleLiners[idx]) {
+            simRefs.coreHoleLiners[idx].visible = isHoleDrilled;
+          }
+        }
+      } else {
+        const holesDrilled = p >= 18;
+        if (simRefs.boreHoleCaps && Array.isArray(simRefs.boreHoleCaps)) {
+          simRefs.boreHoleCaps.forEach(cap => {
+            cap.visible = !holesDrilled;
+          });
+        }
+        if (simRefs.coreHoleLiners && Array.isArray(simRefs.coreHoleLiners)) {
+          simRefs.coreHoleLiners.forEach(liner => {
+            liner.visible = false;
+          });
+        }
       }
 
       // 2) 습식 코어드릴 장비 및 코어 슬러그 인양 애니메이션 (Step 2: 14 ~ 32%)
