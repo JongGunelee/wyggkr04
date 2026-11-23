@@ -6,12 +6,13 @@ const out=path.resolve(process.env.YEAR_OUTPUT||path.join(root,'bak/Script_Patch
 const sourcePath='RawData/공정관리/26년 잔여 공사 공정관리_(입력).xlsb',url='https://jonggunelee.github.io/wyggkr/07%20%EC%9E%94%EC%97%AC%20%EA%B3%B5%EC%A0%95%EA%B4%80%EB%A6%AC_%28%EA%B8%B0%EC%88%99%EC%82%AC%20%EB%B0%8F%20%EC%82%AC%ED%83%9D%29_2025-06-00.html';
 const input=fs.readFileSync(inputPath),sha=b=>crypto.createHash('sha256').update(b).digest('hex'),blobSha=crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${input.length}\0`),input])).digest('hex');
 fs.mkdirSync(out,{recursive:true});
+fs.mkdirSync(path.join(root,'bak/Script_Patch/txt'),{recursive:true});
 const generationStatus={phase:'browser-launch',startedAt:new Date().toISOString(),inputPath,htmlPath,out,sourceSha256:sha(input),sourceBytes:input.length};
 (async()=>{
  const browser=await chromium.launch({channel:'chrome',headless:true,chromiumSandbox:true});let data;
  try{
-  const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage(),errors=[];
-  page.on('pageerror',e=>errors.push(String(e)));await page.addInitScript(()=>{window.__codexYearCacheDisabled=true;});
+  const context=await browser.newContext({timezoneId:'UTC',viewport:{width:1440,height:900}}),page=await context.newPage(),errors=[];
+  page.on('pageerror',e=>errors.push(String(e)));await page.addInitScript(()=>{window.__codexYearCacheDisabled=true;Object.defineProperty(navigator,'webdriver',{get:()=>false});});
   await context.route('**/*',route=>{
    const req=route.request(),u=decodeURIComponent(req.url());if(!['GET','HEAD','OPTIONS'].includes(req.method()))return route.abort();
    if(req.url().startsWith(url))return route.fulfill({status:200,contentType:'text/html',body:fs.readFileSync(htmlPath)});
@@ -26,17 +27,20 @@ const generationStatus={phase:'browser-launch',startedAt:new Date().toISOString(
    const wb=window.__lastAutoUploadSourceWorkbook,raw={};
    for(const name of wb.SheetNames)raw[name]=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:'',raw:true});
    const projects=window.DataManager.get(),links=window.projectLinkStore.loadProjectLinkMap();
-   return {projects,works:window.workItems||[],milestones:window.milestones||[],links:links instanceof Map?Object.fromEntries(links):links,raw,sourceSheetNames:wb.SheetNames,sourceVbaBytes:wb.vbaraw?.length||0,sourceDate1904:!!wb.Workbook?.WBProps?.date1904,browserMappingVersion:window.YearContext?.VERSION,headerMapping:window.__lastProjectHeaderInfo||null};
+   return {projects,works:window.workItems||[],milestones:window.milestones||[],links:links instanceof Map?Object.fromEntries(links):links,raw,sourceSheetNames:wb.SheetNames,sourceVbaBytes:wb.vbaraw?.length||0,sourceDate1904:!!wb.Workbook?.WBProps?.date1904,browserMappingVersion:window.YearContext?.VERSION,carryKey:window.YearContext?.carryKey,headerMapping:window.__lastProjectHeaderInfo||null};
   });
   await context.close();
  }finally{await browser.close();}
 generationStatus.phase='source-and-normalized-row-validation';
 generationStatus.normalizedCounts={projects:data.projects.length,work:data.works.length,milestones:data.milestones.length};
 generationStatus.rawCounts=Object.fromEntries(Object.entries(data.raw).map(([name,rows])=>[name,rows.length]));
-const yearApi=require('./multiyear_context_20261009.js');
+const legacyMapper=sha(fs.readFileSync(htmlPath))==='9e608f7fd8733f2b97b4b69ce89064f83fe745618ff119beae198f745c32f048';
+const yearApi=legacyMapper?require('./multiyear_context_legacy_20261124.cjs'):require('./multiyear_context_20261009.js');
 const mappingVersion='year-context-20261009-v2';
 assert.equal(yearApi.VERSION,mappingVersion,'generator classification version');
 assert.equal(data.browserMappingVersion,mappingVersion,'approved HTML classification version');
+assert.equal(data.carryKey,legacyMapper?undefined:'Codex_Year_Carryover_V1','approved mapper capability');
+assert.equal(yearApi.carryKey,data.carryKey);
 assert.equal(typeof yearApi.classification,'function');assert.equal(typeof yearApi.accountingYear,'function');
 const operatingYear=Number(process.env.YEAR_OPERATING_YEAR||new Intl.DateTimeFormat('en',{timeZone:'Asia/Seoul',year:'numeric'}).format(new Date()));
 assert(Number.isInteger(operatingYear)&&operatingYear>=2000&&operatingYear<=2199,'invalid operating year');
@@ -73,13 +77,41 @@ for(const [name,rows]of Object.entries(data.raw)){
  assert(ownerColumn>=0&&dateColumn>=0,'work owner/date columns');
  for(const row of rows.slice(1)){const code=normalizeText(row[ownerColumn]);if(!code)continue;const set=workYearsByCode.get(code)||new Set();rawDateYears(row[dateColumn]).forEach(y=>set.add(y));workYearsByCode.set(code,set);}
 }
+const carryColumn = headers.findIndex(v => normalizeText(v) === 'Codex_Year_Carryover_V1');
+assert(!legacyMapper || carryColumn < 0,'legacy mapper cannot preserve a carryover column');
+function rawCarryYear(row) {
+ const value = carryColumn < 0 ? '' : normalizeText(row[carryColumn]);
+ if (!value) return null;
+ // Fail closed if the raw sheet and the approved mapper disagree about a ledger.
+ assert(/^[A-Za-z0-9_-]{1,30000}$/.test(value),'invalid carryover encoding');
+ const record = JSON.parse(Buffer.from(value,'base64url').toString('utf8'));
+ assert(record.version===1 && Number.isInteger(record.base) && Array.isArray(record.events),'invalid carryover record');
+ let year=record.base, reserved=false;
+ const ids=new Set();
+ for (const e of record.events) {
+  assert(e.id && !ids.has(e.id) && e.from===year && e.to===year+1,'invalid carryover sequence');
+  ids.add(e.id);
+  if (e.action==='reserve') { assert(!reserved); reserved=true; }
+  else {
+   assert(reserved && ['cancel','settle','transfer'].includes(e.action)); reserved=false;
+   if(e.action==='transfer'||(e.action==='settle'&&e.settledYear===e.to))year=e.to;
+  }
+ }
+ return year;
+}
 function rawClassification(row){
  const month=rawSettlement(row[settlementColumn]),completed=Number(normalizeText(row[progressColumn]).replace(/[% ,]/g,''))>=100;
  if(month.kind==='valid')return {kind:'settled',year:month.year,completed};
  if(month.kind==='invalid')return {kind:'unknown',year:null,completed};
  const set=new Set(workYearsByCode.get(normalizeText(row[codeColumn]))||[]),start=rawDateYears(row[startColumn])[0],end=rawDateYears(row[endColumn])[0];
  if(start&&end&&end>=start&&end-start<=100)for(let year=start;year<=end;year++)set.add(year);else{if(start)set.add(start);if(end)set.add(end);}
- const schedule=[...set];return schedule.length&&schedule.every(y=>y>operatingYear)?{kind:'planned',year:Math.min(...schedule),completed}:{kind:'open',year:operatingYear,completed};
+ const carry=rawCarryYear(row);
+ if(carry!==null)return {kind:'open',year:carry,completed};
+ const schedule=[...set].filter(y=>Number.isInteger(y)&&y>=2000&&y<=2199);
+ if(schedule.length&&schedule.every(y=>y>operatingYear))return {kind:'planned',year:Math.min(...schedule),completed};
+ if(legacyMapper)return {kind:'open',year:operatingYear,completed};
+ const year=end||start||(schedule.length?Math.min(...schedule):null);
+ return year>=2000&&year<=2199?{kind:'open',year,completed}:{kind:'unknown',year:null,completed};
 }
 const zero=()=>({count:0,po:0}),aggregate=()=>({settled:{...zero(),byYear:{}},open:{...zero(),unfinished:zero(),unsettledComplete:zero()},planned:{...zero(),byYear:{}},unknown:zero()});
 function addCount(target,po){target.count++;target.po+=po;}
@@ -97,6 +129,8 @@ for(const project of data.projects){
 for(const row of rawRows){
  const classification=rawClassification(row),key=classification.year??'unknown',po=Number(row[poColumn])||0,normalized=normalizedByCode.get(normalizeText(row[codeColumn]));
  assert(normalized,'unmapped source project '+normalizeText(row[codeColumn]));
+ assert.equal(normalizeText(normalized.customFields?.[data.carryKey]),carryColumn<0?'':normalizeText(row[carryColumn]),'source carryover field preservation');
+ assert(!yearApi.carryState?.(normalized)?.invalid,'invalid carryover ledger');
  assert.deepEqual(yearApi.classification(normalized,operatingYear),classification,'raw/normalized year classification: '+normalizeText(row[codeColumn]));
  assert.equal(Number(normalized.poAmount)||0,po,'raw/normalized project PO: '+normalizeText(row[codeColumn]));
  rawFinancialChecks[key]??=zero();addCount(rawFinancialChecks[key],po);addClassification(rawClassificationChecks,classification,po);
@@ -106,7 +140,7 @@ assert.deepEqual(classificationChecks,rawClassificationChecks,'independent raw s
 assert.equal(rawRows.reduce((n,r)=>n+(Number(r[poColumn])||0),0),data.projects.reduce((n,p)=>n+(Number(p.poAmount)||0),0),'raw PO total');
 const rawSource={};for(const [name,rows]of Object.entries(data.raw))rawSource[name]=rows.map(row=>{const copy=row.slice();while(copy.length&&String(copy[copy.length-1]??'').trim()==='')copy.pop();return copy;});
 generationStatus.phase='verified-cache-serialization';
-const manifest={sourceInternalIdMax:Math.max(0,...data.projects.map(p=>String(p.id)!==String(p.maintenanceCode)?Number(p.id)||0:0)),sourceMaintenanceCodes:data.projects.map(p=>String(p.maintenanceCode)),schemaVersion:1,mappingVersion,generatedForOperatingYear:operatingYear,classificationVersion:mappingVersion,sourcePath,sourceCommit:process.env.YEAR_SOURCE_COMMIT||null,sourceBlobSha:blobSha,sourceSha256,sourceBytes:input.length,htmlSha256:sha(fs.readFileSync(htmlPath)),generatedAt:new Date().toISOString(),years,counts:{projects:data.projects.length,work:data.works.length,milestones:data.milestones.length,dependencies:data.projects.reduce((n,p)=>n+(p.dependsOn?.length||0),0),webLinks:Object.values(data.links).filter(Boolean).length},financialChecks,settledFinancialChecks,classificationChecks,rawFinancialChecks,rawClassificationChecks,files:{},currentRawCounts:Object.fromEntries(Object.entries(data.raw).map(([n,r])=>[n,r.length])),vbaBytes:data.sourceVbaBytes};
+const manifest={...(legacyMapper?{}:{carryoverVersion:1}),sourceInternalIdMax:Math.max(0,...data.projects.map(p=>String(p.id)!==String(p.maintenanceCode)?Number(p.id)||0:0)),sourceMaintenanceCodes:data.projects.map(p=>String(p.maintenanceCode)),schemaVersion:1,mappingVersion,generatedForOperatingYear:operatingYear,classificationVersion:mappingVersion,sourcePath,sourceCommit:process.env.YEAR_SOURCE_COMMIT||null,sourceBlobSha:blobSha,sourceSha256,sourceBytes:input.length,htmlSha256:sha(fs.readFileSync(htmlPath)),generatedAt:new Date().toISOString(),years,counts:{projects:data.projects.length,work:data.works.length,milestones:data.milestones.length,dependencies:data.projects.reduce((n,p)=>n+(p.dependsOn?.length||0),0),webLinks:Object.values(data.links).filter(Boolean).length},financialChecks,settledFinancialChecks,classificationChecks,rawFinancialChecks,rawClassificationChecks,files:{},currentRawCounts:Object.fromEntries(Object.entries(data.raw).map(([n,r])=>[n,r.length])),vbaBytes:data.sourceVbaBytes};
 const modelFor=projects=>{const ids=new Set(projects.map(p=>String(p.id))),codes=new Set(projects.map(p=>String(p.maintenanceCode)));return {schemaVersion:1,sourceSha256,projects,works:data.works.filter(w=>ids.has(String(w.projectId))),links:Object.fromEntries(Object.entries(data.links).filter(([id])=>ids.has(id))),milestones:[],raw:{...rawSource,[data.sourceSheetNames[0]]:[...rawProject.slice(0,2),...rawRows.filter(r=>codes.has(normalizeText(r[codeColumn])))]}};};
 for(const y of [...years,'unassigned']){const projects=y==='unassigned'?data.projects.filter(p=>yearApi.membership(p,operatingYear).size===0):data.projects.filter(p=>yearApi.membership(p,operatingYear).has(y)),model=modelFor(projects);model.year=y;model.mappingVersion=mappingVersion;model.generatedForOperatingYear=operatingYear;model.milestones=data.milestones.filter(m=>y==='unassigned'?yearApi.asYear(m.date)===null:yearApi.asYear(m.date)===y);
 for(const [name,rows]of Object.entries(model.raw)){if(name===data.sourceSheetNames[0])continue;const h=rows[0]||[],code=h.findIndex(v=>/유지관리번호/.test(normalizeText(v)));if(code>=0){const codes=new Set(projects.map(p=>String(p.maintenanceCode)));model.raw[name]=[h,...rows.slice(1).filter(r=>codes.has(normalizeText(r[code])))];}else if(/마일스톤|milestone/i.test(name)){model.raw[name]=[h,...rows.slice(1).filter(r=>{const dateIndex=h.findIndex(v=>/날짜|date|일자/i.test(normalizeText(v))),nameIndex=h.findIndex(v=>/마일스톤|name/i.test(normalizeText(v)));if(dateIndex<0||nameIndex<0)return false;const normalized=data.milestones.find(m=>normalizeText(m.name)===normalizeText(r[nameIndex]));return normalized&&(y==='unassigned'?yearApi.asYear(normalized.date)===null:yearApi.asYear(normalized.date)===y);})];}}
