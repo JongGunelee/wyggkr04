@@ -437,7 +437,12 @@
           if (typeof indexedDB !== "undefined") {
             window.__earlyWyggkrDbPromise = new Promise((resolve) => {
               try {
-                const req = indexedDB.open("WyggkrCacheDB", 7);
+                const req = indexedDB.open("WyggkrCacheDB", 8);
+                let blocked = false;
+                req.onblocked = () => {
+                  blocked = true;
+                  resolve(null);
+                };
                 req.onupgradeneeded = (e) => {
                   const db = e.target.result;
                   if (db.objectStoreNames.contains("xlsbDataStore")) {
@@ -447,6 +452,11 @@
                 };
                 req.onsuccess = (e) => {
                   const db = e.target.result;
+                  db.onversionchange = () => db.close();
+                  if (blocked) {
+                    db.close();
+                    return;
+                  }
                   try {
                     const tx = db.transaction("xlsbDataStore", "readonly");
                     const countReq = tx.objectStore("xlsbDataStore").count();
@@ -486,6 +496,10 @@
         } catch (_) {}
       }
 
+      function syncOfflineBannerHeight(banner) {
+        document.documentElement.style.setProperty("--offline-banner-height", `${banner.offsetHeight}px`);
+      }
+
       function updateStandaloneNetworkStatus() {
         const banner = document.getElementById("offlineModeBanner");
         if (!banner) return;
@@ -496,8 +510,15 @@
         } else {
           banner.classList.add("hidden");
         }
+        syncOfflineBannerHeight(banner);
       }
-      document.addEventListener("DOMContentLoaded", updateStandaloneNetworkStatus, { once: true });
+      document.addEventListener("DOMContentLoaded", () => {
+        updateStandaloneNetworkStatus();
+        const banner = document.getElementById("offlineModeBanner");
+        if (banner && typeof ResizeObserver === "function") {
+          new ResizeObserver(() => syncOfflineBannerHeight(banner)).observe(banner);
+        }
+      }, { once: true });
       window.addEventListener("online", updateStandaloneNetworkStatus);
       window.addEventListener("offline", updateStandaloneNetworkStatus);
     })();
@@ -1151,6 +1172,12 @@
     .chart-canvas-wrapper {
       position: relative;
       cursor: pointer;
+    }
+
+    #workTypeAnnualTrendCanvasFrame {
+      position: relative;
+      width: 100%;
+      height: 100%;
     }
 
     th {
@@ -3011,18 +3038,43 @@
       /* blue-500 with opacity */
     }
 
-    /* --- [신규] 테이블 행/열 포커스 스타일 --- */
-    /* 행 포커스 (열 포커스 제외) */
-    tr.row-focus>td,
-    tr.row-focus>th {
-      background-color: #dbeafe !important; color: #1e3a8a !important; font-weight: 700 !important; box-shadow: inset 0 1.5px 0 #3b82f6, inset 0 -1.5px 0 #3b82f6 !important; border-left: 4px solid #2563eb !important;
+    /* 행의 색과 고정 열 경계를 유지하면서 선택 셀을 표시한다. */
+    @media (hover: hover) and (pointer: fine) {
+      table :is(tbody, tfoot) tr:hover > :is(td, th),
+      table thead > .grand-summary-row:hover > :is(td, th) {
+        background-image: linear-gradient(rgb(37 99 235 / 5%), rgb(37 99 235 / 5%));
+      }
     }
-
-    .table-container-sticky-header tbody th.row-focus {
-      background-color: #dbeafe !important; color: #1e3a8a !important; font-weight: 700 !important; box-shadow: inset 0 1.5px 0 #3b82f6, inset 0 -1.5px 0 #3b82f6 !important; border-left: 4px solid #2563eb !important;
+    table tr.table-row-selected > :is(td, th) {
+      background-image: linear-gradient(rgb(37 99 235 / 10%), rgb(37 99 235 / 10%));
     }
-
-    /* ▲▲▲ 개선 사항 끝 ▲▲▲ */
+    table tr.table-row-selected > .table-cell-selected {
+      background-image: linear-gradient(rgb(37 99 235 / 19%), rgb(37 99 235 / 19%));
+      outline: 2px solid #1d4ed8;
+      outline-offset: -2px;
+    }
+    table tr.table-row-selected > .table-cell-selected:focus-visible {
+      outline: 3px solid #1e40af;
+      outline-offset: -3px;
+    }
+    .table-cell-copy-status {
+      position: fixed;
+      left: 50%;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: calc(100vw - 32px);
+      padding: 7px 12px;
+      border-radius: 8px;
+      background: #1e3a5f;
+      color: white;
+      font-size: 13px;
+      z-index: 30000;
+      pointer-events: none;
+    }
+    .table-cell-copy-status:empty {
+      opacity: 0;
+    }
 
     .table-container-sticky-header tbody th {
       position: -webkit-sticky;
@@ -5730,9 +5782,13 @@
         width: 850px !important;
       }
 
-      /* [v5.55] 연간 비용 추이 차트(1~6개년)는 모바일 카드 폭에 1:1 정합하여 텍스트 가로 왜곡 및 우측 연도 잘림 방지 */
-      #chartWorkTypeAnnualTrendContainer canvas:not(.is-wide-year-range) {
-        min-width: 100% !important;
+      /* 스크롤 영역 안에서 Chart.js가 측정하는 부모와 캔버스의 폭을 맞춘다. */
+      #workTypeAnnualTrendCanvasFrame.is-wide-year-range {
+        min-width: 680px;
+      }
+
+      #chartWorkTypeAnnualTrend {
+        min-width: 0 !important;
         width: 100% !important;
       }
 
@@ -6083,8 +6139,11 @@
     .pivot-scroll-hint { flex: 0 0 auto; margin: 0 2px 6px; color: #64748b; font-size: 11px; }
 
     #pivotTableContainer, #fullScreenContent {
+      --pivot-hierarchy-width: clamp(280px, 27vw, 420px);
       min-height: 0; overflow: auto; overscroll-behavior: contain; background: #fff;
       border: 1px solid #cbd5e1; border-radius: 10px; scrollbar-gutter: stable;
+      scroll-padding-inline-start: var(--pivot-hierarchy-width);
+      scroll-padding-block-start: calc(var(--pivot-year-head) + var(--pivot-metric-head));
     }
     #pivotTableContainer { flex: 1 1 auto; }
     #pivotTableContainer table, #fullScreenContent table { border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
@@ -6098,14 +6157,11 @@
     .pivot-year-header-content { min-height: 46px; justify-content: center; gap: 1px; line-height: 1.25; }
     .pivot-year-context { color: #475569; font-size: 11px; font-weight: 600; }
     .pivot-hierarchy-heading { display: flex; align-items: center; justify-content: center; min-height: 100%; padding: 0 10px; line-height: 1.35; }
-    #pivotTableContainer tr>*:first-child, #fullScreenContent tr>*:first-child {
-      width: clamp(280px, 27vw, 420px); min-width: clamp(280px, 27vw, 420px) !important; max-width: 420px;
+    :is(#pivotTableContainer, #fullScreenContent) .pivot-hierarchy-cell {
+      width: var(--pivot-hierarchy-width); min-width: var(--pivot-hierarchy-width) !important; max-width: 420px;
       white-space: normal; overflow-wrap: anywhere;
+      box-shadow: 4px 0 8px -8px rgba(15, 23, 42, .55);
     }
-    #pivotTableContainer tr>*:first-child, #fullScreenContent tr>*:first-child { box-shadow: 4px 0 8px -8px rgba(15, 23, 42, .55); }
-    #pivotTableContainer tbody tr:not(.grand-summary-row):hover>*,
-    #fullScreenContent tbody tr:not(.grand-summary-row):hover>* { background-color: #eff6ff !important; }
-    #pivotTableContainer tbody tr.row-focus>*, #fullScreenContent tbody tr.row-focus>* { background-color: #dbeafe !important; color: #1e3a8a !important; font-weight: 700 !important; box-shadow: inset 0 1.5px 0 #3b82f6, inset 0 -1.5px 0 #3b82f6 !important; } #pivotTableContainer tbody tr.row-focus>*:first-child, #fullScreenContent tbody tr.row-focus>*:first-child { border-left: 4px solid #2563eb !important; box-shadow: inset 0 1.5px 0 #3b82f6, inset 0 -1.5px 0 #3b82f6, 4px 0 8px -8px rgba(15, 23, 42, .55) !important; }
     .group-summary { display: inline; white-space: normal; color: #64748b; font-size: .82em; font-weight: 500; line-height: 1.45; }
 
     .pivot-sort-button {
@@ -6162,20 +6218,17 @@
       .pivot-result-heading, .pivot-toolbar-controls { width: 100%; justify-content: flex-start; }
       .pivot-toolbar-controls { flex-wrap: wrap; overflow-x: visible; padding-bottom: 3px; }
       .pivot-control-cluster { flex: 0 0 auto; }
-      #pivotTableContainer, #fullScreenContent { max-width: 100%; overflow: auto !important; }
+      #pivotTableContainer, #fullScreenContent { --pivot-hierarchy-width: 260px; max-width: 100%; overflow: auto !important; }
       #pivotTableContainer table, #fullScreenContent table { min-width: max-content !important; table-layout: auto !important; }
-      #pivotTableContainer tr>*:first-child, #fullScreenContent tr>*:first-child {
-        width: 260px; min-width: 260px !important; max-width: 280px;
-      }
       #comparisonModal .chart-resize-handle, #pivotTableContainer .col-resizer, #pivotTableContainer .row-resizer,
       #fullScreenContent .col-resizer, #fullScreenContent .row-resizer { display: none !important; }
     }
-    /* [스마트 모바일 피벗 UX] 좌측 제목열 접힘 클래스 정의 */
-    #pivotTableContainer.collapsed-first-col tr>*:first-child,
-    #fullScreenContent.collapsed-first-col tr>*:first-child {
-      width: 52px !important;
-      min-width: 50px !important;
-      max-width: 55px !important;
+    :is(#pivotTableContainer, #fullScreenContent).collapsed-first-col {
+      --pivot-hierarchy-width: 52px;
+    }
+    :is(#pivotTableContainer, #fullScreenContent).collapsed-first-col .pivot-hierarchy-cell {
+      width: var(--pivot-hierarchy-width) !important;
+      max-width: var(--pivot-hierarchy-width) !important;
       padding: 4px 2px !important;
       font-size: 10px !important;
       overflow: hidden !important;
@@ -6183,13 +6236,65 @@
       white-space: nowrap !important;
     }
 
+    #pivotHierarchyTooltip {
+      position: fixed;
+      z-index: 30001;
+      transition: none !important;
+      width: max-content;
+      max-width: min(360px, calc(100vw - 20px));
+      max-height: min(45vh, 280px, var(--pivot-tooltip-available-height, 280px));
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      overflow: auto;
+      overscroll-behavior: contain;
+      box-sizing: border-box;
+      padding: 9px 10px 9px 12px;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      background: #1e293b;
+      color: #f8fafc;
+      box-shadow: 0 6px 20px rgb(15 23 42 / 24%);
+      font-size: 14px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    #pivotHierarchyTooltip[hidden], #pivotHierarchyTooltip > [hidden] { display: none; }
+    .pivot-hierarchy-tooltip-content { min-width: 0; }
+    .pivot-hierarchy-tooltip-grip {
+      position: sticky;
+      top: 0;
+      flex: 0 0 30px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #64748b;
+      border-radius: 6px;
+      background: #334155;
+      color: #e2e8f0;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+    .pivot-hierarchy-tooltip-grip::before {
+      content: "";
+      width: 12px;
+      height: 9px;
+      border-block: 1px solid currentColor;
+      background: linear-gradient(currentColor, currentColor) center / 100% 1px no-repeat;
+    }
+    #pivotHierarchyTooltip.is-dragging .pivot-hierarchy-tooltip-grip { cursor: grabbing; }
+    .pivot-hierarchy-tooltip-name { font-weight: 700; }
+    .pivot-hierarchy-tooltip-details { margin-top: 4px; color: #e2e8f0; font-size: 12px; }
+
     @media (max-width: 767px) and (orientation: portrait) {
-      /* 모바일 세로 모드에서 좌측 제목열 폭을 115px~125px로 자동 축소하여 우측 상세 수치 데이터 영역을 65% 이상 확보 */
-      #pivotTableContainer tr>*:first-child,
-      #fullScreenContent tr>*:first-child {
-        width: 120px !important;
-        min-width: 110px !important;
-        max-width: 130px !important;
+      #pivotTableContainer, #fullScreenContent {
+        --pivot-hierarchy-width: clamp(108px, 34vw, 145px);
+      }
+      :is(#pivotTableContainer, #fullScreenContent) .pivot-hierarchy-cell {
+        width: var(--pivot-hierarchy-width) !important;
+        max-width: var(--pivot-hierarchy-width) !important;
         font-size: 11px !important;
         padding: 4px 5px !important;
       }
@@ -6199,8 +6304,41 @@
       #toggleComparisonControlsBtn { padding: 6px 8px; }
       .pivot-cluster-label { display: none; }
       #pivotSortStatus { width: 100%; border-radius: 7px; }
-      #pivotTableContainer tr>*:first-child, #fullScreenContent tr>*:first-child { width: 240px; min-width: 240px !important; max-width: 250px; }
       #tableFullScreenModal { padding: 6px; }
+    }
+    @media (max-width: 520px) and (orientation: portrait) {
+      body.is-mobile :is(#comparisonModal, #tableFullScreenModal) {
+        top: var(--offline-banner-height, 0px);
+      }
+      body.is-mobile #comparisonModal .modal-content {
+        display: flex; flex-direction: column; height: calc(100% - 16px); padding: 0 8px 8px;
+      }
+      body.is-mobile #comparisonModal .modal-header { flex: 0 0 auto; margin-bottom: 4px; padding: 6px 4px; gap: 4px; }
+      body.is-mobile #comparisonModal .modal-close-button { width: 32px; flex-basis: 32px; }
+      body.is-mobile #comparisonModal .pivot-modal-heading { gap: 4px; }
+      body.is-mobile #comparisonModalTitle { flex: 1 1 auto; gap: 3px 4px; font-size: 15px; word-break: keep-all; }
+      body.is-mobile #toggleComparisonControlsBtn { flex: 0 0 auto; gap: 4px; white-space: nowrap; font-size: 12px; }
+      body.is-mobile #comparisonModal .modal-body-container { flex: 1 1 0; height: auto; }
+      body.is-mobile .pivot-result-toolbar { gap: 6px; padding: 5px 2px; margin-bottom: 4px; }
+      body.is-mobile #tableFullScreenModal>div>div:first-child { gap: 6px; padding: 6px 8px; }
+      body.is-mobile #fullScreenModalTitle { font-size: 16px; }
+      body.is-mobile #fullScreenContent { padding: 0; margin: 6px; }
+    }
+    @media (max-width: 360px) and (orientation: portrait),
+      (max-width: 520px) and (max-height: 660px) and (orientation: portrait) {
+      body.is-mobile :is(#comparisonModal .pivot-toolbar-controls, #fullScreenControls) {
+        width: 100%; min-width: 0; flex-wrap: nowrap; justify-content: flex-start;
+        overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin;
+      }
+      body.is-mobile :is(#comparisonModal .pivot-toolbar-controls, #fullScreenControls) > * { flex: 0 0 auto; }
+      body.is-mobile :is(#comparisonModal, #tableFullScreenModal) { --pivot-metric-head: 40px; }
+      body.is-mobile :is(#comparisonModal, #tableFullScreenModal) .pivot-year-header-content { min-height: 34px; }
+      body.is-mobile :is(#comparisonModal, #tableFullScreenModal) .pivot-sort-button { min-height: 32px; }
+      body.is-mobile :is(#pivotTableContainer, #fullScreenContent) thead tr:nth-child(-n+2) > * { padding-block: 3px; }
+      body.is-mobile :is(#pivotTableContainer, #fullScreenContent) thead .grand-summary-row > * {
+        top: auto; z-index: 6; padding-block: 4px;
+      }
+      body.is-mobile :is(#pivotTableContainer, #fullScreenContent) .grand-summary-row .group-summary { line-height: 1.25; }
     }
   </style>
   <style id="wtActionBarMobileStyles">
@@ -7239,7 +7377,7 @@
         <section id="buildingAnalysis" class="section-accordion-content p-4 bg-white rounded-lg shadow-lg">
           <div class="filter-summary-bar" id="summary-bar-building"></div>
           <div class="mb-4 table-container">
-            <table id="tableBuildingSummary">
+            <table id="tableBuildingSummary" tabindex="0">
               <thead>
                 <tr>
                   <th class="no-cell">NO.</th>
@@ -7444,7 +7582,7 @@
             </div>
           </div>
           <div class="mb-4 table-container">
-            <table id="tableWorkTypeSummary">
+            <table id="tableWorkTypeSummary" tabindex="0">
               <thead>
                 <tr>
                   <th class="no-cell">NO.</th>
@@ -7517,7 +7655,9 @@
               </div>
               <div id="legend-container-chartWorkTypeAnnualTrend" class="custom-legend-container"></div>
               <div class="chart-canvas-wrapper h-80 md:h-96 max-h-[400px]">
-                <canvas id="chartWorkTypeAnnualTrend"></canvas>
+                <div id="workTypeAnnualTrendCanvasFrame">
+                  <canvas id="chartWorkTypeAnnualTrend"></canvas>
+                </div>
               </div>
             </div>
           </div>
@@ -7623,7 +7763,7 @@
       </div>
       <div id="detailModalBody" class="modal-body-container">
         <div class="table-container">
-          <table id="detailModalTable">
+          <table id="detailModalTable" tabindex="0">
             <thead></thead>
             <tbody></tbody>
           </table>
@@ -7963,7 +8103,7 @@
           버튼을 눌러야 적용됩니다.
         </p>
         <div id="dongUnitsTableContainer" class="mb-4 max-h-96 overflow-y-auto table-container">
-          <table class="w-full">
+          <table class="w-full" tabindex="0">
             <thead>
               <tr>
                 <th class="w-1/4">동 이름</th>
@@ -9298,7 +9438,7 @@
         const clone = document.documentElement.cloneNode(true);
         clone
           .querySelectorAll(
-            "script[data-embedded-runtime-loaded], .toast-notification, .interactive-tooltip, .tooltip-copy-msg.show",
+            "script[data-embedded-runtime-loaded], .toast-notification, .interactive-tooltip, .tooltip-copy-msg.show, .saved-chart-preview",
           )
           .forEach((node) => node.remove());
         clone
@@ -9328,6 +9468,8 @@
           progress.classList.add("hidden");
           progress.setAttribute("aria-busy", "false");
         }
+        TableCellSelection.clearClonedSelection(clone);
+        PivotHierarchyTooltip.clearClonedTooltip(clone);
         const mobileProgress = clone.querySelector("#mobileLoadingOverlay");
         if (mobileProgress) {
           mobileProgress.classList.remove("active");
@@ -12151,6 +12293,7 @@
 
     // --- [모바일 최적화] 로딩 인디케이터 함수 ---
     let loadingTimerInterval = null;
+    let loadingDismissTimer = null;
     let loadingStartTime = 0;
 
     function showMobileLoading(
@@ -12160,6 +12303,8 @@
       const overlay = document.getElementById("mobileLoadingOverlay");
       if (!overlay) return;
 
+      clearTimeout(loadingDismissTimer);
+      loadingDismissTimer = null;
       document.getElementById("loadingTitle").textContent = title;
       document.getElementById("loadingMessage").textContent = message;
       document.getElementById("loadingProgressBar").style.width = "0%";
@@ -12239,7 +12384,7 @@
 
     function updateMobileLoadingProgress(percentage, message) {
       const overlay = document.getElementById("mobileLoadingOverlay");
-      if (!overlay || !overlay.classList.contains("active")) return;
+      if (overlay?.getAttribute("aria-busy") !== "true") return;
 
       document.getElementById("loadingProgressBar").style.width =
         `${percentage}%`;
@@ -12253,85 +12398,39 @@
       }
     }
 
-    function hideMobileLoading(isSuccess = true) {
-      // [v5.01] 성공적으로 완료되었을 때, 로딩 종료 진입 즉시 상태바의 메시지(성공 완료 문구 포함)를 화면에서 지움
-      if (isSuccess) {
-        const uploadStatusEl = document.getElementById("uploadStatus");
-        if (uploadStatusEl) {
-          uploadStatusEl.textContent = "";
-        }
-      }
+    function hideMobileLoading(isSuccess) {
       const overlay = document.getElementById("mobileLoadingOverlay");
-      if (!overlay || !overlay.classList.contains("active")) return;
+      if (overlay?.getAttribute("aria-busy") !== "true") return;
 
-      // 타이머 중지 및 최종 소요 시간 출력
-      if (loadingTimerInterval) {
-        clearInterval(loadingTimerInterval);
-        loadingTimerInterval = null;
-      }
+      clearInterval(loadingTimerInterval);
+      loadingTimerInterval = null;
       const elapsed = ((performance.now() - loadingStartTime) / 1000).toFixed(2);
       const timerEl = document.getElementById("loadingTimer");
-      if (timerEl) {
-        timerEl.textContent = `최종 소요 시간: ${elapsed}초`;
+      if (timerEl) timerEl.textContent = `최종 소요 시간: ${elapsed}초`;
+
+      if (isSuccess) {
+        updateMobileLoadingProgress(100, "완료되었습니다!");
+        const uploadStatusEl = document.getElementById("uploadStatus");
+        if (uploadStatusEl) uploadStatusEl.textContent = "";
+      } else {
+        document.getElementById("loadingMessage").textContent = "오류가 발생했습니다.";
       }
+      overlay.setAttribute("aria-busy", "false");
 
-      updateMobileLoadingProgress(
-        100,
-        isSuccess ? "완료되었습니다!" : "오류가 발생했습니다.",
-      );
-
-      setTimeout(
-        () => {
-          overlay.style.opacity = "0";
-          setTimeout(() => {
-            overlay.classList.remove("active");
-            overlay.setAttribute("aria-busy", "false");
-            // Hide overlay explicitly because CSS selector (body.is-mobile #mobileLoadingOverlay.active) may not match when moved
-            try {
-              overlay.style.display = "none";
-            } catch (e) { }
-            try {
-              // Ensure overlay sizing handlers are removed when hidden
-              if (overlay.__mobileResizeHandler) {
-                try {
-                  window.removeEventListener(
-                    "resize",
-                    overlay.__mobileResizeHandler,
-                  );
-                } catch (e) { }
-                try {
-                  window.removeEventListener(
-                    "orientationchange",
-                    overlay.__mobileResizeHandler,
-                  );
-                } catch (e) { }
-                overlay.__mobileResizeHandler = null;
-              }
-              // Keep overlay inside body for consistency
-              const originalParent = document.querySelector("body");
-              if (
-                originalParent &&
-                overlay.parentElement !== originalParent
-              ) {
-                originalParent.appendChild(overlay);
-              }
-              // [v5.01] 인라인 style 속성을 완전히 제거하여 단독 HTML 저장 시 원본과 완벽하게 동일하도록 보존
-              overlay.removeAttribute("style");
-              
-              // [v5.01] 자동 업로딩 및 매핑 성공 완료 시 화면 상태 메시지 즉시 제거
-              if (isSuccess) {
-                const uploadStatusEl = document.getElementById("uploadStatus");
-                if (uploadStatusEl) {
-                  uploadStatusEl.textContent = "";
-                }
-              }
-            } catch (e) {
-              console.warn("[mobile] hideMobileLoading cleanup failed", e);
-            }
-          }, 500); // Wait for fade out
-        },
-        isSuccess ? 500 : 1500,
-      ); // Shorter delay on completion, longer to read error
+      loadingDismissTimer = setTimeout(() => {
+        overlay.style.opacity = "0";
+        loadingDismissTimer = setTimeout(() => {
+          loadingDismissTimer = null;
+          overlay.classList.remove("active");
+          overlay.removeAttribute("style");
+          if (overlay.__mobileResizeHandler) {
+            window.removeEventListener("resize", overlay.__mobileResizeHandler);
+            window.removeEventListener("orientationchange", overlay.__mobileResizeHandler);
+            overlay.__mobileResizeHandler = null;
+          }
+          if (overlay.parentElement !== document.body) document.body.appendChild(overlay);
+        }, 500);
+      }, isSuccess ? 500 : 1500);
     }
 
     // Mobile: ensure accordion opened in sidebar scrolls to top and collapses other accordions
@@ -14294,8 +14393,8 @@
     // --- [v5.00] IndexedDB 기반 XLSB 완전 스냅샷 캐싱 (v2 아키텍처) ---
     const WYGGKR_DB_NAME = "WyggkrCacheDB";
     const WYGGKR_STORE_NAME = "xlsbDataStore";
-    // v7: 7동 외벽 10세대 기준이 없는 이전 캐시는 폐기한다.
-    const WYGGKR_DB_VERSION = 7;
+    // v8: 실제 시트 행 번호와 첫 데이터 행의 공란 열을 보존한다.
+    const WYGGKR_DB_VERSION = 8;
 
     function initWyggkrCacheDB() {
       if (window.__earlyWyggkrDbPromise) {
@@ -14310,6 +14409,11 @@
       }
       return new Promise((resolve, reject) => {
         const request = indexedDB.open(WYGGKR_DB_NAME, WYGGKR_DB_VERSION);
+        let blocked = false;
+        request.onblocked = () => {
+          blocked = true;
+          resolve(null);
+        };
         request.onupgradeneeded = (e) => {
           const db = e.target.result;
           if (db.objectStoreNames.contains(WYGGKR_STORE_NAME)) {
@@ -14317,7 +14421,12 @@
           }
           db.createObjectStore(WYGGKR_STORE_NAME);
         };
-        request.onsuccess = (e) => resolve(e.target.result);
+        request.onsuccess = (e) => {
+          const db = e.target.result;
+          db.onversionchange = () => db.close();
+          if (blocked) db.close();
+          else resolve(db);
+        };
         request.onerror = (e) => reject(e.target.error);
       });
     }
@@ -14336,7 +14445,7 @@
     function captureFullSnapshot() {
       try {
         return {
-          _snapshotVersion: 7,
+          _snapshotVersion: WYGGKR_DB_VERSION,
           masterRawEntries: cloneSerializableData(masterRawEntries),
           masterCsvHeaders: cloneSerializableData(masterCsvHeaders),
           allYearsGlobal: [...allYearsGlobal],
@@ -14559,7 +14668,7 @@
           return await fetchXlsbFromGitHub(showStatus, retryCount + 1);
         } else {
           if (uploadStatusEl) {
-            uploadStatusEl.innerHTML = `자동 로딩 실패. 수동 파일을 선택해주세요.<br><span class="text-xs">원인: ${error.message || error}</span>`;
+            uploadStatusEl.textContent = `자동 로딩 실패. 수동 파일을 선택해주세요. 원인: ${error.message || error}`;
             uploadStatusEl.style.color = "red";
           }
           hideMobileLoading(false);
@@ -14584,18 +14693,40 @@
       }
     }
     // --- [v4.76/v5.55] 공통 XLSB 처리 로직 (캐시 우선 검사로 Warm Boot 시 900KB SheetJS 압축 해제 생략) ---
+    async function readUploadWorkbook(data) {
+      if (!(await window.ensureXlsxRuntime())) {
+        throw new Error("Excel 런타임을 준비하지 못했습니다.");
+      }
+      const workbook = XLSX.read(data, {
+        type: "array",
+        cellDates: true,
+        cellFormula: false,
+        cellStyles: false,
+        cellHTML: false,
+        cellNF: false,
+        bookDeps: false,
+        bookFiles: false,
+        bookProps: false,
+        bookVBA: false,
+      });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!worksheet) throw new Error("Excel 파일에 읽을 수 있는 시트가 없습니다.");
+      return XLSX.utils.sheet_to_json(worksheet, { defval: null });
+    }
+
     async function processXlsbArrayBuffer(arrayBuffer, updateProgress, sourceLabel = "GitHub") {
       const uploadStatusEl = document.getElementById("uploadStatus");
       const data = new Uint8Array(arrayBuffer);
 
-      await updateProgress(55, "XLSB 무결성 해시 계산 및 캐시 확인 중...");
+      const useCache = sourceLabel === "GitHub";
+      await updateProgress(55, useCache ? "XLSB 무결성 해시 계산 및 캐시 확인 중..." : "XLSB 무결성 해시 계산 중...");
       let cachedSnapshot = null;
       let fileHash = null;
       let db = null;
       try {
         const [computedHash, openedDb] = await Promise.all([
           hashWyggkrArrayBuffer(data),
-          initWyggkrCacheDB().catch(() => null),
+          useCache ? initWyggkrCacheDB().catch(() => null) : null,
         ]);
         fileHash = computedHash;
         db = openedDb;
@@ -14609,7 +14740,7 @@
           });
           if (cached) {
             if (
-              cached._snapshotVersion === 7 &&
+              cached._snapshotVersion === WYGGKR_DB_VERSION &&
               Array.isArray(cached.masterRawEntries) &&
               cached.mappingIntegrityReport?.status === "verified" &&
               cached.mappingIntegrityReport?.mismatchCount === 0 &&
@@ -14675,53 +14806,27 @@
       } else {
         // --- CACHE MISS: Excel 런타임 로드 후 전체 파싱 + 처리 파이프라인 ---
         await updateProgress(68, "Excel(XLSB) 런타임 준비 중...");
-        if (!(await window.ensureXlsxRuntime())) {
-          throw new Error("Excel 런타임을 준비하지 못했습니다.");
-        }
-        await updateProgress(78, "최초 XLSB 파싱 중...");
         const parseStart = performance.now();
-        const workbook = XLSX.read(data, {
-          type: "array",
-          cellDates: true,
-          cellFormula: false,
-          cellStyles: false,
-          cellHTML: false,
-          cellNF: false,
-          bookDeps: false,
-          bookFiles: false,
-          bookProps: false,
-          bookVBA: false,
-        });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const json = XLSX.utils.sheet_to_json(worksheet);
+        const json = await readUploadWorkbook(data);
 
         await updateProgress(88, "데이터 매핑 및 로드 중...");
-
-        wasScenarioActiveBeforeLoad = activeScenarioApplied;
-        scenarioNameBeforeLoad = activeScenarioName;
-        wasQuickYearFilterActiveBeforeLoad = activeQuickYearFilterApplied;
-        quickYearFilterNameBeforeLoad = activeQuickYearFilterName;
-        wasCompleteManualModeBeforeLoad = isCompleteManualModeActive;
-        manualFilterStateBeforeLoad =
-          !wasScenarioActiveBeforeLoad && !wasQuickYearFilterActiveBeforeLoad
-            ? JSON.parse(JSON.stringify(activeFilterConfigs))
-            : null;
 
         if (db && fileHash) {
           window.__firstXlsbLoadPendingSave__ = { db, fileHash };
         }
 
-        window.__pendingXlsbIntegritySource = {
-          sourceLabel,
-          fileHash: fileHash || "",
-          byteLength: data.byteLength,
-        };
-        const uploadResult = await processUploadedData(json, true);
-        window.__pendingXlsbIntegritySource = null;
-        if (uploadResult === false) {
+        try {
+          const uploadResult = await processUploadedData(json, true, {
+            sourceLabel,
+            fileHash: fileHash || "",
+            byteLength: data.byteLength,
+          });
+          if (!uploadResult) {
+            throw new Error(uploadStatusEl?.textContent ||
+              "데이터 매핑/처리 중 오류가 발생했습니다.");
+          }
+        } finally {
           window.__firstXlsbLoadPendingSave__ = null;
-          throw new Error("데이터 매핑/처리 중 오류가 발생하여 롤백되었습니다. 콘솔을 확인하세요.");
         }
         if (window.__performanceMetrics) {
           window.__performanceMetrics.cacheHit = false;
@@ -16652,16 +16757,11 @@
 
       try {
         await updateProgress(20, "로컬 XLSB 파일 읽는 중...");
-        const arrayBuffer = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result);
-          reader.onerror = (e) => reject(new Error("파일을 읽지 못했습니다."));
-          reader.readAsArrayBuffer(file);
-        });
+        const arrayBuffer = await file.arrayBuffer();
 
-        const isCached = await processXlsbArrayBuffer(arrayBuffer, updateProgress, "로컬");
+        await processXlsbArrayBuffer(arrayBuffer, updateProgress, "로컬");
 
-        if (uploadStatusEl && !isCached) {
+        if (uploadStatusEl) {
           uploadStatusEl.textContent = "로컬 XLSB 로드 및 매핑 완료.";
           uploadStatusEl.style.color = "green";
         }
@@ -16677,7 +16777,7 @@
           uploadStatusEl.textContent = `로딩 실패: ${error.message || error}`;
           uploadStatusEl.style.color = "red";
         }
-        hideMobileLoading(true);
+        hideMobileLoading(false);
         try {
           setProcessingIndicator("xlsb-download", false);
         } catch (e) {}
@@ -17702,15 +17802,15 @@
       cancelScheduledDashboardUpdate({
         keepIndicator: !!options.keepPendingIndicator,
       });
-      if (!options.fromDeferred && window.__savedDashboardWarmupPending__) {
-        window.__savedDashboardWarmupPending__ = false;
-      }
       const dashboardRenderStateKey = generateDashboardRenderStateKey();
       if (!options.force && lastDashboardRenderStateKey === dashboardRenderStateKey) {
         if (!silentMode) {
           setProcessingIndicator("dashboard-update-pending", false);
         }
         return;
+      }
+      if (!options.fromDeferred && window.__savedDashboardWarmupPending__) {
+        window.__savedDashboardWarmupPending__ = false;
       }
       if (!silentMode) {
         setProcessingIndicator("dashboard-update-pending", false);
@@ -20417,8 +20517,6 @@
         updateDetailModalSortUI();
       }
 
-      enableCellFocus(table);
-      enableCellCopyOnClick(table);
     }
 
     function createOrUpdateXAxisSummary(chartId, chart) {
@@ -20622,6 +20720,7 @@
         bodyWrap.className = "chartjs-tooltip-body";
 
         const table = document.createElement("table");
+        table.tabIndex = 0;
         table.style.margin = "0px";
         table.style.borderSpacing = "0";
         bodyWrap.appendChild(table);
@@ -20736,13 +20835,10 @@
     function removeSavedChartPreview(chartId) {
       const canvasEl = document.getElementById(chartId);
       if (!canvasEl) return;
-      const wrapper =
-        canvasEl.closest(".chart-canvas-wrapper") || canvasEl.parentElement;
-      if (wrapper) {
-        wrapper
-          .querySelectorAll(`.saved-chart-preview[data-chart-id="${chartId}"]`)
-          .forEach((previewEl) => previewEl.remove());
-      }
+      const wrapper = canvasEl.closest(".chart-canvas-wrapper") || canvasEl.parentElement;
+      wrapper
+        ?.querySelectorAll(`.saved-chart-preview[data-chart-id="${chartId}"]`)
+        .forEach((previewEl) => previewEl.remove());
       canvasEl.style.opacity = "";
       canvasEl.style.visibility = "";
       canvasEl.style.zIndex = "";
@@ -20761,28 +20857,31 @@
     }
 
     function applySavedChartPreviews(previewMap = {}) {
+      // 단독 저장에서 생성하는 PNG의 데이터 URL 및 파일 시그니처를 확인한다.
+      const pngPrefix = "data:image/png;base64,iVBORw0KGgo";
       Object.entries(previewMap || {}).forEach(([chartId, dataUrl]) => {
-        if (!chartId || !dataUrl || chartId === "popupChartCanvas") return;
+        if (!chartId || chartId === "popupChartCanvas") return;
         const canvasEl = document.getElementById(chartId);
-        if (!canvasEl) return;
-        const wrapper =
-          canvasEl.closest(".chart-canvas-wrapper") || canvasEl.parentElement;
-        if (!wrapper) return;
+        const frame = canvasEl?.parentElement;
+        if (!frame) return;
 
         removeSavedChartPreview(chartId);
+        if (
+          charts[chartId]?.canvas === canvasEl ||
+          typeof dataUrl !== "string" ||
+          !dataUrl.startsWith(pngPrefix)
+        ) return;
 
-        try {
-          const wrapperStyle = window.getComputedStyle(wrapper);
-          if (!wrapperStyle.position || wrapperStyle.position === "static") {
-            wrapper.style.position = "relative";
-          }
-        } catch (_) {
-          wrapper.style.position = "relative";
+        if (getComputedStyle(frame).position === "static") {
+          frame.style.position = "relative";
         }
 
         const previewEl = document.createElement("img");
         previewEl.className = "saved-chart-preview";
         previewEl.dataset.chartId = chartId;
+        previewEl.hidden = true;
+        previewEl.addEventListener("load", () => { previewEl.hidden = false; }, { once: true });
+        previewEl.addEventListener("error", () => previewEl.remove(), { once: true });
         previewEl.src = dataUrl;
         previewEl.alt = "";
         previewEl.setAttribute("aria-hidden", "true");
@@ -20794,12 +20893,7 @@
         previewEl.style.pointerEvents = "none";
         previewEl.style.zIndex = "1";
         previewEl.style.background = "transparent";
-        wrapper.appendChild(previewEl);
-
-        canvasEl.style.opacity = "0";
-        canvasEl.style.visibility = "visible";
-        canvasEl.style.position = "relative";
-        canvasEl.style.zIndex = "2";
+        frame.appendChild(previewEl);
       });
     }
 
@@ -20941,27 +21035,25 @@
         } else {
           charts[chartId] = chartInstance;
         }
-        // [무결성 보증 v5.55] 0x0 또는 컨테이너 실측 크기와 캔버스 버퍼 비율이 불일치할 때 즉시 resize+update 보정
-        if (typeof window.requestAnimationFrame === "function") {
-          window.requestAnimationFrame(() => {
-            try {
-              if (chartInstance && chartInstance.canvas && chartInstance.canvas.offsetParent !== null) {
-                const dpr = chartInstance.currentDevicePixelRatio || window.devicePixelRatio || 1;
-                const cw = chartInstance.canvas.clientWidth;
-                const ch = chartInstance.canvas.clientHeight;
-                if (
-                  chartInstance.width === 0 ||
-                  chartInstance.height === 0 ||
-                  (cw > 0 && Math.abs(chartInstance.width - cw * dpr) > 4) ||
-                  (ch > 0 && Math.abs(chartInstance.height - ch * dpr) > 4)
-                ) {
-                  chartInstance.resize();
-                  chartInstance.update("none");
-                }
-              }
-            } catch (_) { }
-          });
-        }
+        // Chart.js의 논리 크기는 CSS 픽셀이고 DPR은 캔버스 버퍼에만 적용한다.
+        window.requestAnimationFrame(() => {
+          const canvas = chartInstance.canvas;
+          const frame = canvas?.parentElement;
+          if (!frame?.clientWidth || !frame.clientHeight) return;
+
+          const { width, height, currentDevicePixelRatio: dpr = 1 } = chartInstance;
+          const needsResize =
+            !width ||
+            !height ||
+            Math.abs(width - canvas.clientWidth) > 1 ||
+            Math.abs(height - canvas.clientHeight) > 1 ||
+            canvas.width !== Math.floor(width * dpr) ||
+            canvas.height !== Math.floor(height * dpr);
+          if (needsResize) {
+            chartInstance.resize();
+            chartInstance.update("none");
+          }
+        });
 
         const legendContainer = document.getElementById(
           `legend-container-${chartId}`,
@@ -24180,10 +24272,8 @@
 
       container.style.display = "block";
       placeholder.style.display = "none";
-      const trendCanvasEl = document.getElementById("chartWorkTypeAnnualTrend");
-      if (trendCanvasEl) {
-        trendCanvasEl.classList.toggle("is-wide-year-range", yearCount > 6);
-      }
+      const trendFrame = document.getElementById("workTypeAnnualTrendCanvasFrame");
+      trendFrame?.classList.toggle("is-wide-year-range", yearCount > 6);
 
       const baseCommonOpts = commonChartOptions(
         chartTitleText,
@@ -26471,7 +26561,13 @@ function appendMappedUploadEntry(
       if (typeof rawValue === "number") {
         entry[headerName] = Number.isFinite(rawValue) ? rawValue : 0;
       } else if (value) {
-        const parsedValue = parseFloat(value.replace(regexCommaForParse, ""));
+        const isPoAmount = headerName === context.poAmountHeaderNameLocal;
+        const numericText = value.replace(regexCommaForParse, "");
+        const amountText = isPoAmount ? numericText.replace(/\s*원$/, "").trim() : "";
+        const parsedValue = isPoAmount ? Number(amountText) : parseFloat(numericText);
+        if (isPoAmount && (!amountText || !Number.isFinite(parsedValue)) && !/^(?:[-–—]|N\/A)$/i.test(value)) {
+          throw new Error(`${sourceWorksheetRow}행의 PO금액을 숫자로 읽을 수 없습니다.`);
+        }
         entry[headerName] = Number.isNaN(parsedValue) ? 0 : parsedValue;
       } else {
         entry[headerName] = 0;
@@ -26531,6 +26627,10 @@ function appendMappedUploadEntry(
 
   // PO/PR가 비어 있더라도 원천의 나머지 값이 존재하는 행은 반드시 보존한다.
   return hasMappedSourceValue ? entry : null;
+}
+
+function getUploadWorksheetRow(row, index) {
+  return Number.isInteger(row?.__rowNum__) ? row.__rowNum__ + 1 : index + 2;
 }
 
 function verifyExcelUploadMappingIntegrity(
@@ -26593,7 +26693,7 @@ function verifyExcelUploadMappingIntegrity(
       }
     }
     if (hasValue) {
-      expectedRows.push({ row, worksheetRow: rIdx + 2 });
+      expectedRows.push({ row, worksheetRow: getUploadWorksheetRow(row, rIdx) });
     }
   }
   const mappedByWorksheetRow = new Map(
@@ -26782,299 +26882,177 @@ function verifyExcelUploadMappingIntegrity(
   return report;
 }
 
-function processUploadedDataCore(payload) {
-  const isExcel = !!(payload && payload.isExcel);
-  const sourceHeaders = Array.isArray(payload.masterCsvHeaders)
-    ? cloneSerializableData(payload.masterCsvHeaders)
-    : [];
-  const sourceData = payload ? payload.data : null;
-  let rawJsonData = [];
-  let fileHeaders = [];
-  let csvTextForRows = "";
-  let csvDataStartIndex = 0;
+// Emit whole CSV records, including quoted newlines split across file chunks.
+function createCsvRecordReader(acceptRecord) {
+  const delimited = /"|\r\n?|\n/g;
+  const pieces = [];
+  let quoted = false;
+  let trailingCR = "";
+  let line = 1;
+  let recordLine = 1;
 
-  if (isExcel) {
-    rawJsonData = Array.isArray(sourceData) ? sourceData : [];
-    if (rawJsonData.length > 0) {
-      fileHeaders = Object.keys(rawJsonData[0]);
-    }
-  } else {
-    const csvText = typeof sourceData === "string" ? sourceData : "";
-    csvTextForRows = csvText.startsWith("\uFEFF")
-      ? csvText.substring(1)
-      : csvText;
-    const firstNewlineMatch = /\r\n|\n/.exec(csvTextForRows);
-    if (!firstNewlineMatch) {
-      return {
-        fatalError:
-          "오류: CSV 파일에 헤더와 하나 이상의 데이터 행이 필요합니다.",
-        fileHeaders: [],
-        newHeadersFound: [],
-        missingRequiredHeaders: [],
-        localRawEntries: [],
-      };
-    }
-
-    fileHeaders = parseCsvLine(
-      csvTextForRows.slice(0, firstNewlineMatch.index),
-    );
-    csvDataStartIndex =
-      firstNewlineMatch.index + firstNewlineMatch[0].length;
-  }
-
-  if (isExcel && rawJsonData.length === 0) {
-    return {
-      fatalError: "오류: 업로드된 파일에 유효한 데이터가 없습니다.",
-      fileHeaders: fileHeaders,
-      newHeadersFound: [],
-      missingRequiredHeaders: [],
-      localRawEntries: [],
-    };
-  }
-
-  const mappingContext = createUploadMappingContext(fileHeaders, sourceHeaders);
-
-  if (mappingContext.missingRequiredHeaders.length > 0) {
-    return {
-      fileHeaders: fileHeaders,
-      newHeadersFound: mappingContext.newHeadersFound,
-      missingRequiredHeaders: mappingContext.missingRequiredHeaders,
-      localRawEntries: [],
-    };
-  }
-
-  const localRawEntries = [];
-
-  if (isExcel) {
-    for (let i = 0; i < rawJsonData.length; i++) {
-      const entry = appendMappedUploadEntry(
-        rawJsonData[i],
-        null,
-        mappingContext,
-        true,
-        i + 2,
-      );
-      if (entry) localRawEntries.push(entry);
-    }
-  } else {
-    let lineStart = csvDataStartIndex;
-    let sourceWorksheetRow = 2;
-    while (lineStart <= csvTextForRows.length) {
-      let newlineIndex = csvTextForRows.indexOf("\n", lineStart);
-      if (newlineIndex === -1) newlineIndex = csvTextForRows.length;
-      let lineEnd = newlineIndex;
-      if (lineEnd > lineStart && csvTextForRows.charCodeAt(lineEnd - 1) === 13) {
-        lineEnd--;
+  return (chunk, final = false) => {
+    const source = trailingCR + chunk;
+    trailingCR = !final && source.endsWith("\r") ? "\r" : "";
+    const text = trailingCR ? source.slice(0, -1) : source;
+    delimited.lastIndex = 0;
+    let start = 0;
+    for (const token of text.matchAll(delimited)) {
+      if (token[0] === '"') {
+        quoted = !quoted;
+        continue;
       }
-      const line = csvTextForRows.slice(lineStart, lineEnd);
-      if (line.trim() !== "") {
-        const entry = appendMappedUploadEntry(
-          null,
-          parseCsvLine(line),
-          mappingContext,
-          false,
-          sourceWorksheetRow,
-        );
-        if (entry) localRawEntries.push(entry);
-      }
-      lineStart = newlineIndex + 1;
-      sourceWorksheetRow++;
+      line++;
+      if (quoted) continue;
+      pieces.push(text.slice(start, token.index));
+      if (acceptRecord(pieces.join(""), recordLine) === false) return false;
+      pieces.length = 0;
+      recordLine = line;
+      start = token.index + token[0].length;
     }
-  }
-
-  const aggregationState = createRawEntriesAggregationState(
-    mappingContext.sourceHeaders,
-    payload.processingOptions || {},
-  );
-  localRawEntries.forEach((entry) => {
-    accumulateRawEntryForSnapshot(aggregationState, entry);
-  });
-
-  return {
-    fileHeaders: fileHeaders,
-    newHeadersFound: mappingContext.newHeadersFound,
-    missingRequiredHeaders: [],
-    localRawEntries: localRawEntries,
-    processingSnapshot: finalizeRawEntriesAggregationState(aggregationState),
+    if (start < text.length) pieces.push(text.slice(start));
+    if (!final) return true;
+    if (quoted) throw new Error(`CSV ${recordLine}행의 따옴표가 닫히지 않았습니다.`);
+    return pieces.length === 0 || acceptRecord(pieces.join(""), recordLine) !== false;
   };
 }
 
-function processUploadedCsvBlobChunked(payload, emit) {
-  const csvFile = payload && payload.csvFile;
-  if (!csvFile || typeof csvFile.slice !== "function") {
-    throw new Error("CSV Blob/File payload is missing.");
+function startCsvDecoding(bytes, stream = false) {
+  const utf8 = new TextDecoder("utf-8", { fatal: true });
+  try {
+    return { decoder: utf8, text: utf8.decode(bytes, { stream }) };
+  } catch (_) {
+    const korean = new TextDecoder("euc-kr", { fatal: true });
+    return { decoder: korean, text: korean.decode(bytes, { stream }) };
   }
-  if (typeof FileReaderSync !== "function" || typeof TextDecoder !== "function") {
-    throw new Error("Chunked CSV Worker APIs are not available.");
-  }
+}
 
-  const sourceHeaders = Array.isArray(payload.masterCsvHeaders)
-    ? cloneSerializableData(payload.masterCsvHeaders)
-    : [];
-  const chunkBytes =
-    payload.chunkBytes && payload.chunkBytes > 0
-      ? payload.chunkBytes
-      : 4 * 1024 * 1024;
-  const entryBatchSize =
-    payload.entryBatchSize && payload.entryBatchSize > 0
-      ? payload.entryBatchSize
-      : 20000;
-  const reader = new FileReaderSync();
-  const decoder = new TextDecoder("utf-8");
-  let offset = 0;
-  let carry = "";
-  let fileHeaders = null;
+function createCsvUploadReader(payload, emit = null) {
+  const sourceHeaders = cloneSerializableData(payload.masterCsvHeaders || []);
+  const entryBatch = [];
+  const batchSize = payload.entryBatchSize > 0 ? payload.entryBatchSize : 20000;
+  let fileHeaders = [];
   let mappingContext = null;
   let aggregationState = null;
-  let entryBatch = [];
   let parsedCount = 0;
-  let sourceWorksheetRow = 0;
-  let lastProgressOffset = 0;
-  let stoppedResult = null;
 
-  const flushBatch = () => {
-    if (entryBatch.length === 0) return;
-    emit({ type: "entries", entries: entryBatch });
-    entryBatch = [];
-  };
+  function flushBatch() {
+    if (emit && entryBatch.length) emit({ type: "entries", entries: entryBatch.splice(0) });
+  }
 
-  const emitProgress = (force = false) => {
-    if (!force && offset - lastProgressOffset < chunkBytes * 2) return;
-    lastProgressOffset = offset;
-    emit({
-      type: "progress",
-      loaded: offset,
-      total: csvFile.size || 0,
-      parsedCount: parsedCount,
-    });
-  };
-
-  const handleLine = (line) => {
-    if (stoppedResult) return;
-    sourceWorksheetRow++;
-    let currentLine = line;
-    if (currentLine && currentLine.charCodeAt(0) === 0xfeff) {
-      currentLine = currentLine.substring(1);
-    }
-
-    if (!fileHeaders) {
-      fileHeaders = parseCsvLine(currentLine);
+  const write = createCsvRecordReader((record, worksheetRow) => {
+    if (!record.trim()) return true;
+    const fields = parseCsvLine(record);
+    if (!mappingContext) {
+      fileHeaders = fields;
       mappingContext = createUploadMappingContext(fileHeaders, sourceHeaders);
-      if (mappingContext.missingRequiredHeaders.length > 0) {
-        stoppedResult = {
-          fileHeaders: fileHeaders,
-          newHeadersFound: mappingContext.newHeadersFound,
-          missingRequiredHeaders: mappingContext.missingRequiredHeaders,
-          localRawEntries: [],
-          parsedCount: 0,
-        };
-        return;
-      }
+      if (mappingContext.missingRequiredHeaders.length) return false;
       aggregationState = createRawEntriesAggregationState(
-        mappingContext.sourceHeaders,
-        payload.processingOptions || {},
+        mappingContext.sourceHeaders, payload.processingOptions || {},
       );
-      emit({
-        type: "headers",
-        fileHeaders: fileHeaders,
-        newHeadersFound: mappingContext.newHeadersFound,
-      });
-      return;
+      emit?.({ type: "headers", fileHeaders, newHeadersFound: mappingContext.newHeadersFound });
+      return true;
     }
 
-    if (currentLine.trim() === "") return;
-    const entry = appendMappedUploadEntry(
-      null,
-      parseCsvLine(currentLine),
-      mappingContext,
-      false,
-      sourceWorksheetRow,
-    );
-    if (!entry) return;
+    if (fields.length > fileHeaders.length) {
+      throw new Error(`CSV ${worksheetRow}행의 열 수가 헤더보다 많습니다.`);
+    }
+    const entry = appendMappedUploadEntry(null, fields, mappingContext, false, worksheetRow);
+    if (entry) {
+      entryBatch.push(entry);
+      accumulateRawEntryForSnapshot(aggregationState, entry);
+      parsedCount++;
+      if (emit && entryBatch.length >= batchSize) flushBatch();
+    }
+    return true;
+  });
 
-    entryBatch.push(entry);
-    if (aggregationState) {
+  return {
+    write,
+    get parsedCount() { return parsedCount; },
+    finish() {
+      flushBatch();
+      const result = {
+        fileHeaders,
+        newHeadersFound: mappingContext?.newHeadersFound || [],
+        missingRequiredHeaders: mappingContext?.missingRequiredHeaders || [],
+        localRawEntries: entryBatch,
+        parsedCount,
+      };
+      if (!mappingContext) {
+        result.fatalError = "오류: CSV 파일에 헤더와 하나 이상의 데이터 행이 필요합니다.";
+      }
+      if (aggregationState) result.processingSnapshot = finalizeRawEntriesAggregationState(aggregationState);
+      return result;
+    },
+  };
+}
+
+function processUploadedDataCore(payload) {
+  if (!payload?.isExcel) {
+    const reader = createCsvUploadReader(payload || {});
+    reader.write(typeof payload?.data === "string" ? payload.data.replace(/^\uFEFF/, "") : "", true);
+    return reader.finish();
+  }
+
+  const rawRows = Array.isArray(payload.data) ? payload.data : [];
+  const fileHeaders = rawRows.length ? Object.keys(rawRows[0]) : [];
+  const sourceHeaders = cloneSerializableData(payload.masterCsvHeaders || []);
+  const mapping = createUploadMappingContext(fileHeaders, sourceHeaders);
+  const result = {
+    fileHeaders,
+    newHeadersFound: mapping.newHeadersFound,
+    missingRequiredHeaders: mapping.missingRequiredHeaders,
+    localRawEntries: [],
+  };
+  if (!rawRows.length) {
+    result.fatalError = "오류: 업로드된 파일에 유효한 데이터가 없습니다.";
+    return result;
+  }
+  if (mapping.missingRequiredHeaders.length) return result;
+
+  const aggregationState = createRawEntriesAggregationState(
+    mapping.sourceHeaders, payload.processingOptions || {},
+  );
+  rawRows.forEach((row, index) => {
+    const entry = appendMappedUploadEntry(row, null, mapping, true, getUploadWorksheetRow(row, index));
+    if (entry) {
+      result.localRawEntries.push(entry);
       accumulateRawEntryForSnapshot(aggregationState, entry);
     }
-    parsedCount++;
-    if (entryBatch.length >= entryBatchSize) {
-      flushBatch();
-    }
-  };
-
-  while (offset < csvFile.size) {
-    const nextOffset = Math.min(offset + chunkBytes, csvFile.size);
-    const chunkText = decoder.decode(
-      reader.readAsArrayBuffer(csvFile.slice(offset, nextOffset)),
-      { stream: nextOffset < csvFile.size },
-    );
-    carry += chunkText;
-
-    let lineStart = 0;
-    let newlineIndex = carry.indexOf("\n", lineStart);
-    while (newlineIndex !== -1) {
-      let lineEnd = newlineIndex;
-      if (lineEnd > lineStart && carry.charCodeAt(lineEnd - 1) === 13) {
-        lineEnd--;
-      }
-      handleLine(carry.slice(lineStart, lineEnd));
-      if (stoppedResult) break;
-      lineStart = newlineIndex + 1;
-      newlineIndex = carry.indexOf("\n", lineStart);
-    }
-
-    if (stoppedResult) break;
-    carry = carry.slice(lineStart);
-    offset = nextOffset;
-    emitProgress(false);
-  }
-
-  if (!stoppedResult) {
-    const finalText = decoder.decode();
-    if (finalText) carry += finalText;
-    if (carry.length > 0) {
-      if (carry.charCodeAt(carry.length - 1) === 13) {
-        carry = carry.slice(0, -1);
-      }
-      handleLine(carry);
-    }
-  }
-
-  flushBatch();
-
-  if (stoppedResult) {
-    emit({ type: "done", result: stoppedResult });
-    return;
-  }
-
-  if (!fileHeaders) {
-    emit({
-      type: "done",
-      result: {
-        fatalError:
-          "오류: CSV 파일에 헤더와 하나 이상의 데이터 행이 필요합니다.",
-        fileHeaders: [],
-        newHeadersFound: [],
-        missingRequiredHeaders: [],
-        localRawEntries: [],
-        parsedCount: 0,
-      },
-    });
-    return;
-  }
-
-  emitProgress(true);
-  emit({
-    type: "done",
-    result: {
-      fileHeaders: fileHeaders,
-      newHeadersFound: mappingContext ? mappingContext.newHeadersFound : [],
-      missingRequiredHeaders: [],
-      localRawEntries: [],
-      parsedCount: parsedCount,
-      processingSnapshot: finalizeRawEntriesAggregationState(aggregationState),
-    },
   });
+  result.processingSnapshot = finalizeRawEntriesAggregationState(aggregationState);
+  return result;
+}
+
+function processUploadedCsvBlobChunked(payload, emit) {
+  const csvFile = payload.csvFile;
+  if (!csvFile || typeof csvFile.slice !== "function" ||
+    typeof FileReaderSync !== "function" || typeof TextDecoder !== "function") {
+    throw new Error("Chunked CSV input is not available.");
+  }
+  const chunkBytes = payload.chunkBytes > 0 ? payload.chunkBytes : 4 * 1024 * 1024;
+  const fileReader = new FileReaderSync();
+  const reader = createCsvUploadReader(payload, emit);
+  let decoder = null;
+  let lastProgress = 0;
+
+  for (let offset = 0; offset < csvFile.size; offset += chunkBytes) {
+    const nextOffset = Math.min(offset + chunkBytes, csvFile.size);
+    const final = nextOffset === csvFile.size;
+    const bytes = fileReader.readAsArrayBuffer(csvFile.slice(offset, nextOffset));
+    const decoded = decoder
+      ? { decoder, text: decoder.decode(bytes, { stream: !final }) }
+      : startCsvDecoding(bytes, !final);
+    decoder = decoded.decoder;
+    const text = decoded.text;
+    if (!reader.write(text, final)) break;
+    if (final || nextOffset - lastProgress >= chunkBytes * 2) {
+      lastProgress = nextOffset;
+      emit({ type: "progress", loaded: nextOffset, total: csvFile.size, parsedCount: reader.parsedCount });
+    }
+  }
+  emit({ type: "done", result: reader.finish() });
 }
 
 function canUseUploadProcessingWorker() {
@@ -27088,7 +27066,14 @@ function canUseUploadProcessingWorker() {
 
 function createUploadProcessingWorker() {
   const source = [
+    `const BUILT_IN_TOTAL_UNITS_REFERENCE_VERSION = ${BUILT_IN_TOTAL_UNITS_REFERENCE_VERSION};`,
+    `const BUILT_IN_TOTAL_UNITS_REFERENCE_SOURCE = ${JSON.stringify(BUILT_IN_TOTAL_UNITS_REFERENCE_SOURCE)};`,
+    `const BUILT_IN_TOTAL_UNITS_REFERENCE = ${JSON.stringify(BUILT_IN_TOTAL_UNITS_REFERENCE)};`,
     parseCsvLine.toString(),
+    createCsvRecordReader.toString(),
+    startCsvDecoding.toString(),
+    createCsvUploadReader.toString(),
+    getUploadWorksheetRow.toString(),
     cloneSerializableData.toString(),
     normalizeHeaderKey.toString(),
     isSourceRowNumberHeader.toString(),
@@ -27220,12 +27205,13 @@ async function prepareUploadedDataPayload(payload) {
 
   const csvBlob = payload.csvFile || (isCsvBlobSource(payload.data) ? payload.data : null);
   if (!payload.isExcel && csvBlob) {
-    if (typeof csvBlob.text !== "function") {
+    if (typeof csvBlob.arrayBuffer !== "function") {
       throw new Error("이 브라우저에서는 대용량 CSV Blob fallback을 사용할 수 없습니다.");
     }
+    const { text } = startCsvDecoding(await csvBlob.arrayBuffer());
     return processUploadedDataCore({
       ...payload,
-      data: await csvBlob.text(),
+      data: text,
       csvFile: null,
     });
   }
@@ -27233,7 +27219,7 @@ async function prepareUploadedDataPayload(payload) {
   return processUploadedDataCore(payload);
 }
 
-async function processUploadedDataTransaction(data, isExcel = false) {
+async function processUploadedDataTransaction(data, isExcel, xlsbSource) {
   // [무결성 보증] 새 데이터 로드 시 기존의 모든 차트 프리뷰 이미지 클리어 및 캔버스 스타일 초기화
   if (typeof clearAllSavedChartPreviews === "function") {
     clearAllSavedChartPreviews();
@@ -27241,7 +27227,7 @@ async function processUploadedDataTransaction(data, isExcel = false) {
   const isMobile = document.body.classList.contains("is-mobile");
   if (isMobile) {
     const overlay = document.getElementById("mobileLoadingOverlay");
-    if (!overlay.classList.contains("active")) {
+    if (overlay?.getAttribute("aria-busy") !== "true") {
       showMobileLoading(
         "파일 처리 중",
         "데이터를 분석하고 있습니다...\n(데이터 크기에 따라 약 30초 ~ 1분 소요)",
@@ -27320,8 +27306,8 @@ async function processUploadedDataTransaction(data, isExcel = false) {
     preparedResult.missingRequiredHeaders.length > 0
   ) {
     if (uploadStatusEl) {
-      uploadStatusEl.innerHTML = `오류: 파일에 필수 항목(<strong>${preparedResult.missingRequiredHeaders.join(", ")}</strong>)이(가) 없습니다.<br>
-                                    <span class="text-xs">파일에서 인식된 헤더: ${(preparedResult.fileHeaders || []).join(", ")}</span><br>
+      uploadStatusEl.innerHTML = `오류: 파일에 필수 항목(<strong>${escapeHtml(preparedResult.missingRequiredHeaders.join(", "))}</strong>)이(가) 없습니다.<br>
+                                    <span class="text-xs">파일에서 인식된 헤더: ${escapeHtml((preparedResult.fileHeaders || []).join(", "))}</span><br>
                                     <span class="text-xs">'엑셀/CSV 항목 관리'에서 헤더 이름 또는 대체 이름이 일치하는지 확인하세요.</span>`;
       uploadStatusEl.style.color = "red";
     }
@@ -27349,6 +27335,10 @@ async function processUploadedDataTransaction(data, isExcel = false) {
   const localRawEntries = Array.isArray(preparedResult.localRawEntries)
     ? preparedResult.localRawEntries
     : [];
+  const preparedUnits = preparedResult.processingSnapshot?.totalUnitsIntegrity;
+  if (preparedUnits?.status === "failed") {
+    throw new Error(`전체 세대수 원천 충돌: ${preparedUnits.conflictDongCount || 0}개 동`);
+  }
   let usedUploadProcessingSnapshot = false;
 
   if (localRawEntries.length === 0) {
@@ -27364,7 +27354,7 @@ async function processUploadedDataTransaction(data, isExcel = false) {
         data,
         localRawEntries,
         nextMasterCsvHeaders,
-        window.__pendingXlsbIntegritySource || null,
+        xlsbSource,
       );
       window.__lastMappingIntegrityReport = integrityReport;
       if (
@@ -27636,7 +27626,15 @@ async function processUploadedDataTransaction(data, isExcel = false) {
   return true;
 }
 
-async function processUploadedData(data, isExcel = false) {
+async function processUploadedData(data, isExcel = false, xlsbSource = null) {
+  wasScenarioActiveBeforeLoad = activeScenarioApplied;
+  scenarioNameBeforeLoad = activeScenarioName;
+  wasQuickYearFilterActiveBeforeLoad = activeQuickYearFilterApplied;
+  quickYearFilterNameBeforeLoad = activeQuickYearFilterName;
+  wasCompleteManualModeBeforeLoad = isCompleteManualModeActive;
+  manualFilterStateBeforeLoad = !wasScenarioActiveBeforeLoad && !wasQuickYearFilterActiveBeforeLoad
+    ? cloneSerializableData(activeFilterConfigs)
+    : null;
   const previousState = {
     masterRawEntries,
     masterCsvHeaders,
@@ -27655,10 +27653,15 @@ async function processUploadedData(data, isExcel = false) {
     lastDashboardRenderStateKey,
     yearDongBaseAmounts: window.yearDongBaseAmounts,
     mappingIntegrityReport: window.__lastMappingIntegrityReport || null,
+    runtimeHydrationReport: window.__lastRuntimeHydrationReport || null,
+    totalUnitsIntegrityReport: window.__lastTotalUnitsIntegrityReport || null,
+    outerUnitsPerDongStatic,
   };
+  let succeeded = false;
   try {
     window.isInitialBootLoading = true; // [v5.01] 업로드 트랜잭션 중 중복 updateDashboard 무시
-    return await processUploadedDataTransaction(data, isExcel);
+    succeeded = await processUploadedDataTransaction(data, isExcel, xlsbSource);
+    return succeeded;
   } catch (error) {
     if (window.__lastMappingIntegrityReport?.status === "failed") {
       window.__lastMappingIntegrityFailureReport =
@@ -27666,7 +27669,11 @@ async function processUploadedData(data, isExcel = false) {
     }
     masterRawEntries = previousState.masterRawEntries;
     masterCsvHeaders = previousState.masterCsvHeaders;
+    invalidateHeaderNameCache();
     totalUnitsPerDongStatic = previousState.totalUnitsPerDongStatic;
+    outerUnitsPerDongStatic = previousState.outerUnitsPerDongStatic;
+    window.__lastRuntimeHydrationReport = previousState.runtimeHydrationReport;
+    window.__lastTotalUnitsIntegrityReport = previousState.totalUnitsIntegrityReport;
     activeFilterConfigs = previousState.activeFilterConfigs;
     rawEntryRuntimeIndexes = previousState.rawEntryRuntimeIndexes;
     allYearsGlobal = previousState.allYearsGlobal;
@@ -27691,9 +27698,11 @@ async function processUploadedData(data, isExcel = false) {
     console.error("[DataPipeline] 업로드 transaction rollback", error);
     return false;
   } finally {
+    window.isInitialBootLoading = false;
     try { setProcessingIndicator("file-upload", false); } catch (error) {}
     try { hideProgressBar(); } catch (error) {}
-    try { hideMobileLoading(false); } catch (error) {}
+    // GitHub/로컬 XLSB 호출자가 재시도와 최종 결과 표시를 담당한다.
+    if (!xlsbSource) hideMobileLoading(succeeded);
   }
 }
 
@@ -28906,7 +28915,7 @@ async function processUploadedData(data, isExcel = false) {
         const tableHtml = `
                         <div style="max-width:720px;min-width:300px;max-height:420px;overflow:auto;font-size:13px;">
                             <div style="padding:6px 8px;color:#6b7280;font-size:12px;">※ 좌측은 입력(입력된 값), 우측은 참고(전년도 현황)입니다.</div>
-                            <table style="width:100%;border-collapse:collapse;background:#fff;">
+                            <table style="width:100%;border-collapse:collapse;background:#fff;" tabindex="0">
                                 <thead>
                                     <tr>
                                         <th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;color:#222;">동</th>
@@ -31931,246 +31940,465 @@ async function processUploadedData(data, isExcel = false) {
       // Fallback
       return `${displayValue}${unit}`;
     };
-    // [개선] 테이블 포커스 기능을 행에만 적용하도록 수정
-    function enableCellFocus(tableElement) {
-      if (!tableElement || tableElement.dataset.cellFocusEnabled) return;
+    const TableCellSelection = (() => {
+      const controls = "button, input, select, textarea, label, a, summary, [role='button'], [contenteditable], .checkbox-cell, .col-resizer, .row-resizer, .th-sort-controls, .sort-indicator, .toggle-icon, .initial-sort-indicator";
+      const dataSections = "tbody, tfoot, tr.grand-summary-row";
+      let selectedCell = null;
+      let selectionVersion = 0;
+      let feedbackTimer = null;
+      const status = document.createElement("div");
+      status.className = "table-cell-copy-status";
+      status.setAttribute("role", "status");
+      document.body.appendChild(status);
 
-      const clearFocus = () => {
-        tableElement.querySelectorAll(".row-focus").forEach((el) => {
-          el.classList.remove("row-focus");
-        });
-      };
+      function clearSelection() {
+        if (!selectedCell) return;
+        selectedCell.classList.remove("table-cell-selected");
+        selectedCell.parentElement?.classList.remove("table-row-selected");
+        selectedCell.removeAttribute("tabindex");
+        selectedCell = null;
+        selectionVersion++;
+        clearTimeout(feedbackTimer);
+        status.textContent = "";
+      }
 
-      const handleMouseOver = (e) => {
-        const cell = e.target.closest("td, th");
-        if (!cell) return;
-
-        // [개선] 클릭 후 일정 시간 동안만 마우스 오버 무시 (포커스 추가 방지)
-        const ignoreUntil = tableElement.dataset.ignoreMouseOverUntil;
-        if (ignoreUntil && Date.now() < parseInt(ignoreUntil, 10)) {
-          return; // 클릭 후 일정 시간 동안은 포커스 추가하지 않음
+      function deselectCell() {
+        if (document.activeElement === selectedCell) {
+          selectedCell.closest("table")?.focus({ preventScroll: true });
         }
+        clearSelection();
+      }
 
-        // 참조.html 방식: 간단하게 포커스 제거 후 추가
-        clearFocus();
-        const row = cell.parentElement;
-        row.classList.add("row-focus");
-      };
+      function selectCell(cell, focus = false) {
+        if (cell !== selectedCell) {
+          clearSelection();
+          selectedCell = cell;
+          cell.classList.add("table-cell-selected");
+          cell.parentElement.classList.add("table-row-selected");
+          cell.tabIndex = -1;
+        }
+        if (focus) cell.focus({ preventScroll: true });
+      }
 
-      tableElement.addEventListener("mouseover", handleMouseOver);
-      tableElement.addEventListener("mouseleave", clearFocus);
-      tableElement.dataset.cellFocusEnabled = "true";
-    }
+      function feedback(cell, message) {
+        if (selectedCell !== cell || !cell.isConnected) return;
+        clearTimeout(feedbackTimer);
+        status.textContent = message;
+        feedbackTimer = setTimeout(() => { status.textContent = ""; }, 2800);
+      }
 
-    // [개선] 테이블 셀 클릭 시 내용 복사 기능
-    function enableCellCopyOnClick(tableElement) {
-      if (!tableElement || tableElement.dataset.cellCopyEnabled) return;
+      function getCellText(cell) {
+        return cell.textContent.trim() || (cell.classList.contains("text-zero-as-dash") ? "–" : "");
+      }
 
-      tableElement.addEventListener("click", (e) => {
-        // Do not copy if clicking on an interactive element inside the cell
-        if (
-          e.target.closest(
-            "input, button, a, select, .col-resizer, .row-resizer, .th-sort-controls, .sort-indicator, .toggle-icon, .initial-sort-indicator",
-          )
-        ) {
+      async function copyCell(cell) {
+        const version = selectionVersion;
+        const text = getCellText(cell);
+        if (!text) {
+          feedback(cell, "빈 셀이 선택되었습니다.");
           return;
         }
+        try {
+          await navigator.clipboard.writeText(text);
+          if (version === selectionVersion) feedback(cell, "셀 값이 복사되었습니다.");
+        } catch (_) {
+          if (version !== selectionVersion || selectedCell !== cell || !cell.isConnected) return;
+          const active = document.activeElement;
+          const input = document.createElement("textarea");
+          input.value = text;
+          input.style.cssText = "position:fixed;left:0;top:0;opacity:0;pointer-events:none";
+          input.tabIndex = -1;
+          const destination = cell.closest('[role="dialog"], .modal-overlay') || document.body;
+          destination.appendChild(input);
+          try {
+            input.select();
+            feedback(cell, document.execCommand("copy") ? "셀 값이 복사되었습니다." : "셀이 선택되었습니다. 복사 권한을 확인하세요.");
+          } catch (_) {
+            feedback(cell, "셀이 선택되었습니다. 복사 권한을 확인하세요.");
+          } finally {
+            input.remove();
+            if (active?.isConnected) active.focus({ preventScroll: true });
+          }
+        }
+      }
 
-        const cell = e.target.closest("td, th");
+      function isDataCell(cell) {
+        return cell?.parentElement?.closest(dataSections) &&
+          !cell.matches(controls) && cell.getClientRects().length > 0;
+      }
+
+      function getCellAtColumn(row, column) {
+        for (const cell of row.cells) {
+          if (column < cell.colSpan) return cell;
+          column -= cell.colSpan;
+        }
+        return null;
+      }
+
+      function getClickedDataCell(event) {
+        if (!(event.target instanceof Element) || event.defaultPrevented ||
+          event.target.closest(controls) || window.getSelection()?.isCollapsed === false) return null;
+        const cell = event.target.closest("td, th");
+        return isDataCell(cell) ? cell : null;
+      }
+
+      document.addEventListener("click", (event) => {
+        // 선택된 셀의 다시 누르기는 상세 열기와 같은 기존 동작보다 먼저 처리한다.
+        if (event.detail === 0 || !selectedCell || getClickedDataCell(event) !== selectedCell) return;
+        event.preventDefault();
+        event.stopPropagation();
+        deselectCell();
+      }, { capture: true });
+
+      document.addEventListener("click", (event) => {
+        const cell = getClickedDataCell(event);
         if (!cell) return;
+        // 상세 열기 같은 기존 클릭 동작의 포커스는 해당 동작에 맡긴다.
+        selectCell(cell, !cell.onclick && !cell.parentElement.onclick);
+        void copyCell(cell);
+      });
 
-        // [개선] 참조.html 방식: 클릭 시 포커스 제거 (매입 마감 (월) / 건물동 / 계약명 열 클릭 시 잔색 제거)
-        const row = cell.parentElement;
-        if (row) {
-          // 클릭한 행에서 포커스 제거
-          row.classList.remove("row-focus");
+      document.addEventListener("keydown", (event) => {
+        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+        const target = event.target;
+        const table = target instanceof HTMLTableElement ? target : null;
+        const cell = target === selectedCell ? selectedCell : null;
+        if (!table && !cell) return;
+        if (cell && event.key === "Escape") {
+          event.preventDefault();
+          deselectCell();
+          return;
         }
-        // 테이블의 모든 포커스도 제거
-        tableElement.querySelectorAll(".row-focus").forEach((el) => {
-          el.classList.remove("row-focus");
-        });
-
-        // [개선] 클릭 후 일정 시간 동안 마우스 오버 무시 (enableCellFocus와 attachDelegatedHandlersToContainer 모두)
-        const ignoreUntil = Date.now() + 1000;
-        tableElement.dataset.ignoreMouseOverUntil = ignoreUntil;
-
-        // 컨테이너 레벨에서도 포커스 제거 및 플래그 설정
-        const container = tableElement.closest(
-          "#pivotTableContainer, #fullScreenContent",
-        );
-        if (container) {
-          container.querySelectorAll(".row-focus").forEach((el) => {
-            el.classList.remove("row-focus");
-          });
-          // 컨테이너의 ignoreMouseOverUntil 플래그 설정 (attachDelegatedHandlersToContainer와 공유)
-          container.dataset.ignoreMouseOverUntil = ignoreUntil;
+        if (cell && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          if (cell.onclick || cell.parentElement.onclick) cell.click();
+          else void copyCell(cell);
+          return;
         }
-
-        // [개선] 첫 번째 열(매입 마감 (월) / 건물동 / 계약명) 클릭 시 복사 피드백 색상 변경 제거
-        const isFirstColumn =
-          cell.tagName === "TH" && row.closest("tbody") !== null;
-        if (isFirstColumn) {
-          // 첫 번째 열 클릭 시 복사만 수행하고 색상 변경 없음
-          const textToCopy = cell.textContent.trim();
-          if (textToCopy) {
-            navigator.clipboard.writeText(textToCopy).catch((err) => {
-              console.error("Failed to copy text: ", err);
-            });
+        const key = event.key;
+        const horizontal = key === "ArrowLeft" || key === "ArrowRight";
+        const vertical = key === "ArrowUp" || key === "ArrowDown";
+        if (!horizontal && !vertical && !(table && key === "Enter")) return;
+        const next = table
+          ? Array.from(table.rows).find((row) => Array.from(row.cells).some(isDataCell))
+          : cell.parentElement;
+        if (!next) return;
+        event.preventDefault();
+        const step = key === "ArrowLeft" || key === "ArrowUp" ? -1 : 1;
+        const rows = next.closest("table").rows;
+        if (cell && vertical) {
+          const column = Array.from(next.cells).slice(0, cell.cellIndex)
+            .reduce((sum, item) => sum + item.colSpan, 0);
+          for (let i = next.rowIndex + step; i >= 0 && i < rows.length; i += step) {
+            const candidate = getCellAtColumn(rows[i], column);
+            if (!isDataCell(candidate)) continue;
+            selectCell(candidate, true);
+            candidate.scrollIntoView({ block: "nearest", inline: "nearest" });
+            return;
           }
           return;
         }
-
-        const textToCopy = cell.textContent.trim();
-        if (textToCopy) {
-          navigator.clipboard
-            .writeText(textToCopy)
-            .then(() => {
-              // Visual feedback
-              const originalBg = cell.style.backgroundColor;
-              cell.style.backgroundColor = "#a5b4fc"; // indigo-300 for feedback
-              const originalTransition = cell.style.transition;
-              cell.style.transition = "background-color 0.1s ease-in-out";
-
-              setTimeout(() => {
-                cell.style.backgroundColor = originalBg;
-                setTimeout(() => {
-                  cell.style.transition = originalTransition;
-                }, 150);
-              }, 150);
-            })
-            .catch((err) => {
-              console.error("Failed to copy text: ", err);
-            });
+        const cells = next.cells;
+        for (let i = cell ? cell.cellIndex + step : 0; i >= 0 && i < cells.length; i += cell ? step : 1) {
+          if (!isDataCell(cells[i])) continue;
+          selectCell(cells[i], true);
+          cells[i].scrollIntoView({ block: "nearest", inline: "nearest" });
+          return;
         }
       });
-      tableElement.dataset.cellCopyEnabled = "true";
-    }
 
-    // Delegated handlers applied to a container that may receive cloned tables.
-    // This ensures focus and copy behavior works even when cloneNode(true) is used
-    // (event listeners are not copied by cloneNode). Apply once per container.
-    function attachDelegatedHandlersToContainer(container) {
-      if (!container || container.dataset.delegationAttached) return;
+      document.addEventListener("copy", (event) => {
+        if (!selectedCell || event.target !== selectedCell || !event.clipboardData ||
+          window.getSelection()?.isCollapsed === false) return;
+        const text = getCellText(selectedCell);
+        if (!text) return;
+        event.preventDefault();
+        event.clipboardData.setData("text/plain", text);
+        feedback(selectedCell, "셀 값이 복사되었습니다.");
+      });
 
-      // Small debug helper to indicate delegation attachment
-      // [JIT-OPT] try { console.debug('[delegation] Attaching delegated handlers to container:', container.id || container.className || container); } catch(e) {}
-
-      const clearFocus = () => {
-        container
-          .querySelectorAll(".row-focus")
-          .forEach((el) => el.classList.remove("row-focus"));
-      };
-
-      // [개선] 클릭 후 일시적으로 마우스 오버를 무시하기 위한 플래그
-      let ignoreMouseOverUntil = 0;
-
-      const handleMouseOver = (e) => {
-        const cell = e.target.closest("td, th");
-        if (!cell || !container.contains(cell)) return;
-
-        // [개선] 클릭 후 일정 시간 동안만 마우스 오버 무시
-        if (Date.now() < ignoreMouseOverUntil) {
-          return; // 클릭 후 일정 시간 동안은 포커스 추가하지 않음
-        }
-
-        // [개선] enableCellCopyOnClick에서 설정한 플래그도 확인
-        const containerIgnoreUntil = container.dataset.ignoreMouseOverUntil;
-        if (
-          containerIgnoreUntil &&
-          Date.now() < parseInt(containerIgnoreUntil, 10)
-        ) {
-          return; // 클릭 후 일정 시간 동안은 포커스 추가하지 않음
-        }
-
-        // 참조.html 방식: 간단하게 포커스 제거 후 추가
-        clearFocus();
-        const row = cell.parentElement;
-        if (row) row.classList.add("row-focus");
-        // [JIT-OPT] try { console.debug('[delegation][mouseover]', { container: container.id || null, cellText: cell.textContent.trim().slice(0,60), clonedTable: !!cell.closest('table')?.dataset?.cloned }); } catch(e) {}
-      };
-
-      const handleMouseLeave = (e) => {
-        // If leaving the container entirely, clear focus
-        if (!container.contains(e.relatedTarget)) {
-          clearFocus();
-          // [JIT-OPT] try { console.debug('[delegation][mouseleave]', { container: container.id || null }); } catch(e) {}
-        }
-      };
-
-      const handleClick = (e) => {
-        if (
-          e.target.closest(
-            "input, button, a, select, .col-resizer, .row-resizer, .th-sort-controls, .sort-indicator, .toggle-icon, .initial-sort-indicator",
-          )
-        )
-          return;
-        const cell = e.target.closest("td, th");
-        if (!cell || !container.contains(cell)) return;
-
-        // [개선] 매입 마감 (월) / 건물동 / 계약명 열(첫 번째 계층 열) 클릭 시 포커스 즉시 제거
-        // 참조.html 방식을 참고하여 클릭 시 무조건 포커스 제거
-        const row = cell.parentElement;
-        if (row) {
-          // 클릭한 셀의 행에서 포커스 제거
-          row.classList.remove("row-focus");
-        }
-        // 컨테이너의 모든 포커스도 제거
-        clearFocus();
-
-        // 클릭 후 일정 시간 동안 마우스 오버 무시 (포커스가 다시 추가되는 것을 방지)
-        ignoreMouseOverUntil = Date.now() + 1000;
-
-        const textToCopy = cell.textContent.trim();
-        if (!textToCopy) return;
-        try {
-          navigator.clipboard
-            .writeText(textToCopy)
-            .then(() => {
-              const originalBg = cell.style.backgroundColor;
-              cell.style.backgroundColor = "#a5b4fc";
-              const originalTransition = cell.style.transition;
-              cell.style.transition = "background-color 0.1s ease-in-out";
-              setTimeout(() => {
-                cell.style.backgroundColor = originalBg;
-                setTimeout(() => {
-                  cell.style.transition = originalTransition;
-                }, 150);
-              }, 150);
-            })
-            .catch((err) => {
-              console.error("Delegated copy failed", err);
-            });
-        } catch (err) {
-          console.error("Delegated copy error", err);
-        }
-        // [JIT-OPT] try { console.debug('[delegation][click] copied text', { text: textToCopy.slice(0,80), container: container.id || null, cloned: !!cell.closest('table')?.dataset?.cloned }); } catch(e) {}
-      };
-
-      container.addEventListener("mouseover", handleMouseOver);
-      container.addEventListener("mouseleave", handleMouseLeave);
-      container.addEventListener("click", handleClick);
-
-      container.dataset.delegationAttached = "true";
-    }
-
-    // Delegated handlers need to be attached to containers that might hold cloned tables.
-    // This ensures interactions work on both original and full-screen tables.
-    document.addEventListener("DOMContentLoaded", () => {
-      try {
-        const pivotContainer = document.getElementById("pivotTableContainer");
-        const fullScreenContent =
-          document.getElementById("fullScreenContent");
-        if (pivotContainer)
-          attachDelegatedHandlersToContainer(pivotContainer);
-        if (fullScreenContent)
-          attachDelegatedHandlersToContainer(fullScreenContent);
-      } catch (e) {
-        console.warn(
-          "Failed to attach delegated handlers on DOMContentLoaded",
-          e,
-        );
+      function clearClonedSelection(container) {
+        container.querySelectorAll(".table-cell-selected").forEach((cell) => {
+          cell.classList.remove("table-cell-selected");
+          cell.removeAttribute("tabindex");
+          cell.parentElement.classList.remove("table-row-selected");
+        });
+        container.querySelector(".table-cell-copy-status")?.remove();
       }
-    });
+
+      return { clearClonedSelection };
+    })();
+
+    const PivotHierarchyTooltip = (() => {
+      const scopeSelector = "#pivotTableContainer, #fullScreenContent";
+      const tooltip = document.createElement("div");
+      const content = document.createElement("div");
+      const name = document.createElement("div");
+      const details = document.createElement("div");
+      const grip = document.createElement("div");
+      tooltip.id = "pivotHierarchyTooltip";
+      tooltip.setAttribute("role", "tooltip");
+      tooltip.hidden = true;
+      content.className = "pivot-hierarchy-tooltip-content";
+      name.className = "pivot-hierarchy-tooltip-name";
+      details.className = "pivot-hierarchy-tooltip-details";
+      grip.className = "pivot-hierarchy-tooltip-grip";
+      grip.setAttribute("aria-hidden", "true");
+      content.append(name, details);
+      tooltip.append(content, grip);
+      document.body.appendChild(tooltip);
+
+      let activeCell = null;
+      let inputMode = "";
+      let describedTarget = null;
+      let dismissTimer = null;
+      let drag = null;
+      let manualPosition = null;
+      let dropFrame = 0;
+      let escapeDismissed = false;
+
+      function getCollapsedCell(target) {
+        const cell = target instanceof Element ? target.closest("th.pivot-hierarchy-cell") : null;
+        const scope = cell?.closest(scopeSelector);
+        return scope?.classList.contains("collapsed-first-col") ? cell : null;
+      }
+
+      function removeDescription(target) {
+        const ids = (target.getAttribute("aria-describedby") || "").split(/\s+/).filter(
+          (id) => id && id !== tooltip.id,
+        );
+        if (ids.length) target.setAttribute("aria-describedby", ids.join(" "));
+        else target.removeAttribute("aria-describedby");
+      }
+
+      function hide() {
+        clearTimeout(dismissTimer);
+        cancelAnimationFrame(dropFrame);
+        dropFrame = 0;
+        if (!activeCell) return;
+        if (describedTarget) removeDescription(describedTarget);
+        observer.disconnect();
+        resizeObserver?.disconnect();
+        const pointerId = drag?.id;
+        drag = null;
+        if (pointerId !== undefined && grip.hasPointerCapture(pointerId)) grip.releasePointerCapture(pointerId);
+        manualPosition = null;
+        tooltip.classList.remove("is-dragging");
+        tooltip.hidden = true;
+        activeCell = null;
+        describedTarget = null;
+        inputMode = "";
+      }
+
+      function refreshPosition() {
+        if (!activeCell) return;
+        if (!activeCell.isConnected || !getCollapsedCell(activeCell) ||
+          activeCell.closest('[aria-hidden="true"], .hidden')) {
+          hide();
+          return;
+        }
+        position(activeCell);
+      }
+
+      const observer = new MutationObserver(refreshPosition);
+      const resizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(refreshPosition) : null;
+
+      function getVerticalSpace(cell, viewportHeight, margin, gap) {
+        const scope = cell.closest(scopeSelector);
+        const scopeRect = scope.getBoundingClientRect();
+        const rows = new Set([cell.parentElement, scope.querySelector("tr.table-row-selected")]);
+        const blocked = [];
+        for (const row of rows) {
+          if (!row) continue;
+          const rect = row.getBoundingClientRect();
+          const firstCell = row.cells[0]?.getBoundingClientRect() || rect;
+          const lastCell = row.cells[row.cells.length - 1]?.getBoundingClientRect() || rect;
+          const top = Math.max(scopeRect.top, Math.min(rect.top, firstCell.top, lastCell.top), margin);
+          const bottom = Math.min(scopeRect.bottom, Math.max(rect.bottom, firstCell.bottom, lastCell.bottom), viewportHeight - margin);
+          if (top < bottom) blocked.push({ top: Math.max(margin, top - gap), bottom: bottom + gap });
+        }
+        blocked.sort((a, b) => a.top - b.top);
+        const available = [];
+        let top = margin;
+        for (const span of blocked) {
+          if (span.top > top) available.push({ top, bottom: span.top });
+          top = Math.max(top, span.bottom);
+        }
+        if (top < viewportHeight - margin) available.push({ top, bottom: viewportHeight - margin });
+        return available;
+      }
+
+      function position(cell) {
+        const margin = 8;
+        const gap = 6;
+        const viewportWidth = document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight;
+        const available = getVerticalSpace(cell, viewportHeight, margin, gap);
+        const capacity = Math.floor(Math.max(0, ...available.map((band) => band.bottom - band.top)));
+        if (!capacity) {
+          hide();
+          return false;
+        }
+        tooltip.style.setProperty("--pivot-tooltip-available-height", `${capacity}px`);
+        const rect = cell.getBoundingClientRect();
+        const width = Math.ceil(tooltip.getBoundingClientRect().width);
+        const left = manualPosition?.left ?? (inputMode === "touch" ? rect.left : rect.right + gap);
+        tooltip.style.left = `${Math.max(margin, Math.min(left, viewportWidth - width - margin))}px`;
+        const height = tooltip.getBoundingClientRect().height;
+        const preferredTop = manualPosition?.top ?? (
+          rect.top - gap - height >= margin ? rect.top - gap - height : rect.bottom + gap
+        );
+        let top = margin;
+        let distance = Infinity;
+        for (const band of available) {
+          if (band.bottom - band.top < height) continue;
+          const candidate = Math.max(band.top, Math.min(preferredTop, band.bottom - height));
+          const delta = Math.abs(candidate - preferredTop);
+          if (delta < distance) {
+            distance = delta;
+            top = candidate;
+          }
+        }
+        if (!Number.isFinite(distance)) {
+          hide();
+          return false;
+        }
+        tooltip.style.top = `${top}px`;
+        return true;
+      }
+
+      function show(cell, mode, target = null) {
+        clearTimeout(dismissTimer);
+        if (activeCell === cell && inputMode === mode) return;
+        hide();
+
+        const title = cell.querySelector(".pivot-group-name, .pivot-hierarchy-heading")?.textContent.trim() ||
+          Array.from(cell.childNodes).find(
+            (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
+          )?.textContent.trim() || cell.textContent.trim();
+        if (!title) return;
+        name.textContent = title;
+        details.textContent = Array.from(cell.querySelectorAll(".group-summary"),
+          (item) => item.textContent.trim().replace(/^·\s*/, ""),
+        ).filter(Boolean).join("\n");
+        details.hidden = !details.textContent;
+
+        activeCell = cell;
+        inputMode = mode;
+        tooltip.hidden = false;
+        if (!position(cell)) return;
+        if (target) {
+          const ids = (target.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean);
+          target.setAttribute("aria-describedby", [...new Set([...ids, tooltip.id])].join(" "));
+          describedTarget = target;
+        }
+        const scope = cell.closest(scopeSelector);
+        observer.observe(scope, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+        resizeObserver?.observe(scope);
+        resizeObserver?.observe(cell);
+        const modal = cell.closest("#comparisonModal, #tableFullScreenModal");
+        if (modal) observer.observe(modal, { attributes: true, attributeFilter: ["class", "aria-hidden"] });
+      }
+
+      function containsTarget(target) {
+        return target instanceof Node && (activeCell?.contains(target) || tooltip.contains(target));
+      }
+
+      function handlePointerOut(event) {
+        if (inputMode !== "hover" || !containsTarget(event.target) || containsTarget(event.relatedTarget)) return;
+        clearTimeout(dismissTimer);
+        dismissTimer = setTimeout(hide, 400);
+      }
+
+      grip.addEventListener("pointerdown", (event) => {
+        if (!activeCell || drag || event.button !== 0) return;
+        event.preventDefault();
+        clearTimeout(dismissTimer);
+        cancelAnimationFrame(dropFrame);
+        const box = tooltip.getBoundingClientRect();
+        drag = { id: event.pointerId, offsetX: event.clientX - box.left, offsetY: event.clientY - box.top };
+        inputMode = "dragged";
+        grip.setPointerCapture(event.pointerId);
+        tooltip.classList.add("is-dragging");
+      });
+      grip.addEventListener("pointermove", (event) => {
+        if (!drag || drag.id !== event.pointerId) return;
+        manualPosition = { left: event.clientX - drag.offsetX, top: event.clientY - drag.offsetY };
+        refreshPosition();
+      });
+      grip.addEventListener("lostpointercapture", (event) => {
+        if (drag?.id !== event.pointerId) return;
+        drag = null;
+        tooltip.classList.remove("is-dragging");
+        refreshPosition();
+        const settleUntil = performance.now() + 240;
+        function settlePosition(now) {
+          dropFrame = 0;
+          refreshPosition();
+          if (activeCell && now < settleUntil) dropFrame = requestAnimationFrame(settlePosition);
+        }
+        if (activeCell) dropFrame = requestAnimationFrame(settlePosition);
+      });
+
+      for (const scope of document.querySelectorAll(scopeSelector)) {
+        scope.addEventListener("pointerover", (event) => {
+          if (escapeDismissed || event.pointerType === "touch") return;
+          const cell = getCollapsedCell(event.target);
+          if (cell && (activeCell !== cell || !["focus", "dragged"].includes(inputMode))) show(cell, "hover");
+        });
+        scope.addEventListener("pointerout", handlePointerOut);
+        scope.addEventListener("focusin", (event) => {
+          if (escapeDismissed || !event.target.matches(":focus-visible")) return;
+          const cell = getCollapsedCell(event.target);
+          if (cell) show(cell, "focus", event.target);
+        });
+        scope.addEventListener("focusout", (event) => {
+          if (inputMode === "focus" && event.target === describedTarget) hide();
+        });
+      }
+      tooltip.addEventListener("pointerover", () => clearTimeout(dismissTimer));
+      tooltip.addEventListener("pointerout", handlePointerOut);
+
+      document.addEventListener("click", (event) => {
+        if (event.detail === 0 || tooltip.contains(event.target)) return;
+        escapeDismissed = false;
+        const cell = getCollapsedCell(event.target);
+        if (!cell) {
+          hide();
+          return;
+        }
+        if (event.pointerType !== "touch" && !document.body.classList.contains("is-mobile")) return;
+        if (activeCell === cell && ["touch", "dragged"].includes(inputMode)) hide();
+        else show(cell, "touch");
+      }, { capture: true });
+      function resumeAfterEscape() {
+        escapeDismissed = false;
+      }
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") {
+          resumeAfterEscape();
+          return;
+        }
+        if (!activeCell) return;
+        escapeDismissed = true;
+        hide();
+        document.addEventListener("pointermove", resumeAfterEscape, { once: true, passive: true });
+      }, { capture: true });
+      document.addEventListener("scroll", (event) => {
+        if (!activeCell || event.target === tooltip) return;
+        if (inputMode === "dragged") refreshPosition();
+        else hide();
+      }, { capture: true, passive: true });
+      window.addEventListener("resize", hide);
+
+      function clearClonedTooltip(clone) {
+        clone.querySelector("#pivotHierarchyTooltip")?.remove();
+        clone.querySelectorAll('[aria-describedby~="pivotHierarchyTooltip"]').forEach(removeDescription);
+      }
+
+      return { clearClonedTooltip };
+    })();
+
     // [개선] '동별 기본 금액'에 대한 지능형 그룹화 로직 (전역으로 이동)
     function groupDongsForEstimateInputs(dongsToGroup, allRelevantEntries) {
       const workTypeHeader = getHeaderName("작업유형");
@@ -33556,20 +33784,6 @@ async function processUploadedData(data, isExcel = false) {
         ? fullScreenContainer
         : pivotContainer;
 
-      // Attach delegated handlers if not already attached. This ensures that even if the table
-      // is cloned (e.g., for full-screen view), the interactions will work.
-      try {
-        if (pivotContainer)
-          attachDelegatedHandlersToContainer(pivotContainer);
-        if (fullScreenContainer)
-          attachDelegatedHandlersToContainer(fullScreenContainer);
-      } catch (err) {
-        console.warn(
-          "Failed to attach delegated handlers in renderPivotedComparisonView_v2",
-          err,
-        );
-      }
-
       const existingTable = activeContainer.querySelector("table");
       const isReRender = existingTable !== null;
 
@@ -33689,7 +33903,7 @@ async function processUploadedData(data, isExcel = false) {
                 );
 
                 let tableHtml = `<div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 12px;" tabindex="0">
                                 <thead style="position: sticky; top: 0; background-color: #0b6623; color: #fff; z-index: 1;">
                                     <tr>
                                         <th style="padding: 8px; text-align: center; border-bottom: 1px solid #ddd; color: #fff;">동</th>
@@ -35107,10 +35321,12 @@ async function processUploadedData(data, isExcel = false) {
           // [성능 최적화] DocumentFragment 사용하여 DOM 조작 배치 처리
           const fragment = document.createDocumentFragment();
           const table = document.createElement("table");
+          table.tabIndex = 0;
           const thead = table.createTHead();
 
           const headerRow1 = thead.insertRow();
           const thHierarchy = document.createElement("th");
+          thHierarchy.className = "pivot-hierarchy-cell";
           thHierarchy.rowSpan = 2;
 
           let hierarchyText = hierarchyLevels
@@ -35418,6 +35634,7 @@ async function processUploadedData(data, isExcel = false) {
                 row.style.height = `${pivotedTableRowHeights[currentKey]}px`;
               }
               const th = document.createElement("th");
+              th.className = "pivot-hierarchy-cell";
 
               if (isGroup) {
                 row.className = `group-header-row group-header-row-${level}`;
@@ -35535,6 +35752,7 @@ async function processUploadedData(data, isExcel = false) {
           const totalRow = thead.insertRow(2);
           totalRow.className = "grand-summary-row";
           const totalTh = document.createElement("th");
+          totalTh.className = "pivot-hierarchy-cell";
 
           // ▼▼▼ 개선 사항: '전체 합계' 행에 요약 정보 추가 ▼▼▼
           const entriesForGrandSummary = filteredEntries.filter(
@@ -35592,8 +35810,6 @@ async function processUploadedData(data, isExcel = false) {
 
           // ▼▼▼ 개선 사항: 렌더링된 테이블에 크기 조절 기능 적용 ▼▼▼
           makeTableResizable_v2(table);
-          enableCellFocus(table);
-          enableCellCopyOnClick(table);
 
           if (
             comparisonSortState.level === "item" &&
@@ -35619,6 +35835,7 @@ async function processUploadedData(data, isExcel = false) {
               tableClone.dataset.cloned = "true";
             } catch (e) { }
             // [JIT-OPT] try { console.debug('[pivot] appended table clone into fullScreenContent (render path)', { tableClone, containerId: fullScreenContent.id }); } catch(e) {}
+            TableCellSelection.clearClonedSelection(tableClone);
             fullScreenContent.appendChild(tableClone);
         
         // [스마트 피벗 UX] 전체 화면 진입 시 일반 모달의 접힘/펼침 상태를 100% 동기화 계승
@@ -35641,29 +35858,7 @@ async function processUploadedData(data, isExcel = false) {
           }
         }
 
-            // 클론된 노드는 이벤트 리스너를 복제하지 않으므로
-            // 기존의 dataset 플래그(복제로 인해 존재할 수 있음)를 제거하고
-            // 리사이저 및 인터랙션 핸들러를 명시적으로 다시 붙입니다.
-            try {
-              try {
-                delete tableClone.dataset.cellFocusEnabled;
-              } catch (e) { }
-              try {
-                delete tableClone.dataset.cellCopyEnabled;
-              } catch (e) { }
-              // 컬럼/행 리사이저와 포커스/클립보드 기능 적용
-              makeTableResizable_v2(tableClone);
-              // 추가: 전체화면 컨테이너에 delegation 핸들러를 붙여서
-              // 어떤 방식으로 테이블이 주입되든 호버/클릭 동작이 동작하도록 보장
-              try {
-                attachDelegatedHandlersToContainer(fullScreenContent);
-              } catch (e) { }
-            } catch (err) {
-              console.warn(
-                "[pivot] attaching handlers to fullscreen clone failed",
-                err,
-              );
-            }
+            makeTableResizable_v2(tableClone);
           }
 
           if (
@@ -36609,6 +36804,7 @@ async function processUploadedData(data, isExcel = false) {
           tableClone.dataset.cloned = "true";
         } catch (e) { }
         // [JIT-OPT] try { console.debug('[fullscreen] appended table clone from openTableFullScreen', { tableClone, containerId: fullScreenContent.id }); } catch(e) {}
+        TableCellSelection.clearClonedSelection(tableClone);
         fullScreenContent.appendChild(tableClone);
         
         // [스마트 피벗 UX] 전체 화면 진입 시 일반 모달의 접힘/펼침 상태를 100% 동기화 계승
@@ -36640,11 +36836,6 @@ async function processUploadedData(data, isExcel = false) {
 
         // ▼▼▼ 개선 사항: 복제된 테이블에도 크기 조절 기능 적용 ▼▼▼
         makeTableResizable_v2(tableClone);
-        enableCellFocus(tableClone);
-        enableCellCopyOnClick(tableClone);
-        try {
-          attachDelegatedHandlersToContainer(fullScreenContent);
-        } catch (e) { }
 
         fullScreenModal.classList.remove("hidden");
         fullScreenModal.classList.add("flex");
@@ -37214,6 +37405,8 @@ async function processUploadedData(data, isExcel = false) {
     }
 
     async function initializeDashboardApp() {
+      const shouldAutoLoadGithubXlsbOnBoot =
+        location.protocol.startsWith("http") && navigator.onLine !== false;
       // [수정] YoY 설정 컨트롤 초기화 (함수 위치 이동으로 정상 호출)
       initializeYoYSettingsControls();
       const isMobileBoot = document.body.classList.contains("is-mobile");
@@ -37503,7 +37696,7 @@ async function processUploadedData(data, isExcel = false) {
           );
           window.__savedDashboardHydratedFromSnapshot__ = false;
 
-          if (!location.protocol.startsWith("http")) {
+          if (!shouldAutoLoadGithubXlsbOnBoot) {
             await processRawEntries(masterRawEntries, masterCsvHeaders);
             try {
               syncWorkTypeCheckboxesToAllSelected({ skipUpdate: true });
@@ -37511,7 +37704,6 @@ async function processUploadedData(data, isExcel = false) {
           }
         }
 
-        const shouldAutoLoadGithubXlsbOnBoot = location.protocol.startsWith("http");
         if (!shouldAutoLoadGithubXlsbOnBoot && !wasLoadedFromSave && masterRawEntries.length === 0) {
           const uploadStatusEl = document.getElementById("uploadStatus");
           if (uploadStatusEl) {
@@ -37606,8 +37798,12 @@ async function processUploadedData(data, isExcel = false) {
 
         const finalizeInitialDashboardRender = async (renderOptions = {}) => {
           window.isInitialBootLoading = false; // [v5.01] 초기 렌더링 강제 잠금 해제
-          await updateDashboard(renderOptions);
-          applySavedChartVisibility();
+          const render = updateDashboard(renderOptions);
+          const renderVersion = dashboardRenderRequestVersion;
+          await render;
+          if (renderVersion === dashboardRenderRequestVersion) {
+            applySavedChartVisibility();
+          }
           // [v4.93] 전체 부팅 완시점 지표 기록
           if (window.__performanceMetrics) {
             window.__performanceMetrics.totalBootTime = performance.now() - window.__performanceMetrics.startTime;
@@ -37707,9 +37903,7 @@ async function processUploadedData(data, isExcel = false) {
           }
         });
 
-        if (wasLoadedFromSave) {
-          window.__savedDashboardWarmupPending__ = false;
-        } else if (!shouldAutoLoadGithubXlsbOnBoot) {
+        if (!wasLoadedFromSave && !shouldAutoLoadGithubXlsbOnBoot) {
           await finalizeInitialDashboardRender();
         }
 
@@ -38380,12 +38574,16 @@ async function processUploadedData(data, isExcel = false) {
                 if (
                   chartId !== "popupChartCanvas" &&
                   chart &&
-                  chart.canvas &&
-                  typeof chart.canvas.toDataURL === "function"
+                  chart.canvas?.width > 0 &&
+                  chart.canvas.height > 0 &&
+                  chart.chartArea?.width > 0 &&
+                  chart.chartArea.height > 0
                 ) {
                   try {
-                    chartPreviewImages[chartId] =
-                      chart.canvas.toDataURL("image/png");
+                    const dataUrl = chart.canvas.toDataURL("image/png");
+                    if (dataUrl.startsWith("data:image/png;base64,")) {
+                      chartPreviewImages[chartId] = dataUrl;
+                    }
                   } catch (previewError) {
                     console.warn(
                       `[downloadHtml] chart preview capture failed for ${chartId}`,
@@ -38660,121 +38858,37 @@ async function processUploadedData(data, isExcel = false) {
           }
         });
 
-        attachListener("excelUpload", "change", (event) => {
-          const file = event.target.files[0];
-          if (!file) return;
-
-          // [v4.77] 로컬 XLSB 파일 선택 시 해시 캐싱 최적화 로드 호출
-          if (file.name.endsWith(".xlsb")) {
-            loadLocalXlsbFile(file);
-            return;
-          }
-
-          // [성능 최적화] 파일 선택 직후 즉시 인디케이터 표시 (데스크탑 및 모바일 모두)
-          const isMobile = document.body.classList.contains("is-mobile");
-          if (isMobile) {
-            // 모바일: 기존 로딩 오버레이 사용
-            showMobileLoading(
-              "파일 처리 중",
-              "데이터를 분석하고 있습니다...\n(데이터 크기에 따라 약 30초 ~ 1분 소요)",
-            );
-          } else {
-            // 데스크탑: 전역 인디케이터 사용
-            setProcessingIndicator(
-              "file-upload",
-              true,
-              "파일 처리 중",
-              "파일을 읽고 데이터를 분석하고 있습니다...",
-            );
-          }
-
-          // ▼▼▼ [신규] 데이터 로드 전 현재 필터 상태 캡처 ▼▼▼
-          wasScenarioActiveBeforeLoad = activeScenarioApplied;
-          scenarioNameBeforeLoad = activeScenarioName;
-          wasQuickYearFilterActiveBeforeLoad = activeQuickYearFilterApplied;
-          quickYearFilterNameBeforeLoad = activeQuickYearFilterName;
-          wasCompleteManualModeBeforeLoad = isCompleteManualModeActive;
-          manualFilterStateBeforeLoad =
-            !wasScenarioActiveBeforeLoad &&
-              !wasQuickYearFilterActiveBeforeLoad
-              ? JSON.parse(JSON.stringify(activeFilterConfigs))
-              : null;
-          // ▲▲▲ [신규] 끝 ▲▲▲
-
-          const uploadStatusEl = document.getElementById("uploadStatus");
-          const handleFileProcessingError = (error) => {
-            if (uploadStatusEl) {
-              uploadStatusEl.textContent =
-                "오류: 파일 처리 중 문제가 발생했습니다.";
-              uploadStatusEl.style.color = "red";
+        attachListener("excelUpload", "change", async (event) => {
+          const input = event.currentTarget;
+          const file = input.files[0];
+          if (!file || input.disabled) return;
+          input.disabled = true;
+          const extension = file.name.split(".").pop().toLowerCase();
+          try {
+            if (extension === "xlsb") {
+              await loadLocalXlsbFile(file);
+              return;
             }
-            const isMobileErr =
-              document.body.classList.contains("is-mobile");
-            if (!isMobileErr) {
-              try {
-                setProcessingIndicator("file-upload", false);
-              } catch (e) {
-                console.warn("[파일 업로드] 인디케이터 숨김 실패:", e);
-              }
+
+            if (document.body.classList.contains("is-mobile")) {
+              showMobileLoading("파일 처리 중", "파일을 읽고 데이터를 분석하고 있습니다...");
+            } else {
+              setProcessingIndicator("file-upload", true, "파일 처리 중", "파일을 읽고 데이터를 분석하고 있습니다...");
             }
+            const isExcel = extension !== "csv";
+            const data = isExcel ? await readUploadWorkbook(await file.arrayBuffer()) : file;
+            await processUploadedData(data, isExcel);
+          } catch (error) {
+            const status = document.getElementById("uploadStatus");
+            status.textContent = `오류: 파일을 처리할 수 없습니다. ${error.message || error}`;
+            status.style.color = "red";
+            hideMobileLoading(false);
+            setProcessingIndicator("file-upload", false);
             console.error("파일 처리 중 오류 발생:", error);
-          };
-
-          if (file.name.endsWith(".csv")) {
-            (async () => {
-              try {
-                await processUploadedData(file, false);
-              } catch (error) {
-                handleFileProcessingError(error);
-              }
-            })();
-            return;
+          } finally {
+            input.value = "";
+            input.disabled = false;
           }
-
-          const reader = new FileReader();
-
-          reader.onload = async (e) => {
-            try {
-              if (file.name.endsWith(".csv")) {
-                const csvText = new TextDecoder("utf-8").decode(
-                  new Uint8Array(e.target.result),
-                );
-                await processUploadedData(csvText, false);
-              } else {
-                if (!(await window.ensureXlsxRuntime())) {
-                  throw new Error("Excel 런타임을 준비하지 못했습니다.");
-                }
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {
-                  type: "array",
-                  cellDates: true,
-                });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet);
-                await processUploadedData(json, true);
-              }
-            } catch (error) {
-              handleFileProcessingError(error);
-            }
-          };
-          reader.onerror = () => {
-            if (uploadStatusEl) {
-              uploadStatusEl.textContent =
-                "오류: 파일을 읽는 중 오류가 발생했습니다.";
-              uploadStatusEl.style.color = "red";
-            }
-            // [성능 최적화] 오류 시 인디케이터 숨김
-            const isMobileErr = document.body.classList.contains("is-mobile");
-            if (!isMobileErr) {
-              try {
-                setProcessingIndicator("file-upload", false);
-              } catch (e) {
-                console.warn("[파일 업로드] 인디케이터 숨김 실패:", e);
-              }
-            }
-          };
-          reader.readAsArrayBuffer(file);
         });
 
         attachListener("exportAllToExcel", "click", () => {
@@ -39978,13 +40092,17 @@ async function processUploadedData(data, isExcel = false) {
         // [v5.55] 모든 UI 리스너 및 레이아웃 초기화 직후 GitHub XLSB 자동 로드를 단일 흐름으로 완료하여 경합 및 이중 렌더링 제거
         if (shouldAutoLoadGithubXlsbOnBoot) {
           await fetchXlsbFromGitHub(true);
+        } else if (wasLoadedFromSave) {
+          // 저장본의 화면을 먼저 복원한 후 실제 차트를 원천 데이터로 다시 그린다.
+          window.isInitialBootLoading = false;
+          scheduleSavedDashboardWarmup();
         }
 
         // [개선] 모든 초기화가 완료되었음을 알리는 커스텀 이벤트를 발생시킵니다.
         await new Promise((resolve) => requestAnimationFrame(resolve));
         window.__dashboardReadyAt__ = performance.now();
         window.dispatchEvent(
-          new CustomEvent("dashboardReady", { detail: { usable: true, version: "v5.55" } }),
+          new CustomEvent("dashboardReady", { detail: { usable: true, version: "v5.60" } }),
         );
         // [JIT-OPT] console.log('[DEBUG] Dispatched dashboardReady event.');
       } catch (initError) {
@@ -39998,9 +40116,9 @@ async function processUploadedData(data, isExcel = false) {
           document.body.prepend(errorBanner);
         }
         errorBanner.textContent = `대시보드 초기화 중 문제가 발생했습니다: ${initError.message}`;
+        hideMobileLoading(false);
       } finally {
         try { setProcessingIndicator("dashboard-boot", false); } catch (error) {}
-        try { hideMobileLoading(false); } catch (error) {}
       }
     }
 
@@ -44216,7 +44334,7 @@ async function processUploadedData(data, isExcel = false) {
           } else {
             rows.sort((a, b) => String(a.dong).localeCompare(b.dong));
             html =
-              '<table class="w-full"><thead><tr><th style="text-align:left;padding:6px">동</th><th style="text-align:right;padding:6px">기본 금액</th></tr></thead><tbody>';
+              '<table class="w-full" tabindex="0"><thead><tr><th style="text-align:left;padding:6px">동</th><th style="text-align:right;padding:6px">기본 금액</th></tr></thead><tbody>';
             rows.forEach((r) => {
               const amt =
                 typeof r.amount === "number"
