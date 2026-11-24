@@ -85,12 +85,18 @@ function rawCarryYear(row) {
  // Fail closed if the raw sheet and the approved mapper disagree about a ledger.
  assert(/^[A-Za-z0-9_-]{1,30000}$/.test(value),'invalid carryover encoding');
  const record = JSON.parse(Buffer.from(value,'base64url').toString('utf8'));
- assert(record.version===1 && Number.isInteger(record.base) && Array.isArray(record.events),'invalid carryover record');
+ assert([1,2].includes(record.version) && Number.isInteger(record.base) && record.base>=2000 && record.base<=2199 && Array.isArray(record.events),'invalid carryover record');
  let year=record.base, reserved=false;
  const ids=new Set();
  for (const e of record.events) {
-  assert(e.id && !ids.has(e.id) && e.from===year && e.to===year+1,'invalid carryover sequence');
+  assert(e.id && !ids.has(e.id) && e.from===year && Number.isInteger(e.to) && e.to>=2000 && e.to<=2199,'invalid carryover sequence');
   ids.add(e.id);
+  if (e.action==='move') {
+   assert(record.version===2&&!reserved&&e.to!==year,'invalid selected-year movement');
+   year=e.to;
+   continue;
+  }
+  assert(e.to===year+1,'invalid adjacent carryover');
   if (e.action==='reserve') { assert(!reserved); reserved=true; }
   else {
    assert(reserved && ['cancel','settle','transfer'].includes(e.action)); reserved=false;
@@ -140,7 +146,8 @@ assert.deepEqual(classificationChecks,rawClassificationChecks,'independent raw s
 assert.equal(rawRows.reduce((n,r)=>n+(Number(r[poColumn])||0),0),data.projects.reduce((n,p)=>n+(Number(p.poAmount)||0),0),'raw PO total');
 const rawSource={};for(const [name,rows]of Object.entries(data.raw))rawSource[name]=rows.map(row=>{const copy=row.slice();while(copy.length&&String(copy[copy.length-1]??'').trim()==='')copy.pop();return copy;});
 generationStatus.phase='verified-cache-serialization';
-const manifest={...(legacyMapper?{}:{carryoverVersion:1}),sourceInternalIdMax:Math.max(0,...data.projects.map(p=>String(p.id)!==String(p.maintenanceCode)?Number(p.id)||0:0)),sourceMaintenanceCodes:data.projects.map(p=>String(p.maintenanceCode)),schemaVersion:1,mappingVersion,generatedForOperatingYear:operatingYear,classificationVersion:mappingVersion,sourcePath,sourceCommit:process.env.YEAR_SOURCE_COMMIT||null,sourceBlobSha:blobSha,sourceSha256,sourceBytes:input.length,htmlSha256:sha(fs.readFileSync(htmlPath)),generatedAt:new Date().toISOString(),years,counts:{projects:data.projects.length,work:data.works.length,milestones:data.milestones.length,dependencies:data.projects.reduce((n,p)=>n+(p.dependsOn?.length||0),0),webLinks:Object.values(data.links).filter(Boolean).length},financialChecks,settledFinancialChecks,classificationChecks,rawFinancialChecks,rawClassificationChecks,files:{},currentRawCounts:Object.fromEntries(Object.entries(data.raw).map(([n,r])=>[n,r.length])),vbaBytes:data.sourceVbaBytes};
+const carryoverVersion=data.projects.some(p=>yearApi.carryState?.(p)?.record?.version===2)?2:1;
+const manifest={...(legacyMapper?{}:{carryoverVersion}),sourceInternalIdMax:Math.max(0,...data.projects.map(p=>String(p.id)!==String(p.maintenanceCode)?Number(p.id)||0:0)),sourceMaintenanceCodes:data.projects.map(p=>String(p.maintenanceCode)),schemaVersion:1,mappingVersion,generatedForOperatingYear:operatingYear,classificationVersion:mappingVersion,sourcePath,sourceCommit:process.env.YEAR_SOURCE_COMMIT||null,sourceBlobSha:blobSha,sourceSha256,sourceBytes:input.length,htmlSha256:sha(fs.readFileSync(htmlPath)),generatedAt:new Date().toISOString(),years,counts:{projects:data.projects.length,work:data.works.length,milestones:data.milestones.length,dependencies:data.projects.reduce((n,p)=>n+(p.dependsOn?.length||0),0),webLinks:Object.values(data.links).filter(Boolean).length},financialChecks,settledFinancialChecks,classificationChecks,rawFinancialChecks,rawClassificationChecks,files:{},currentRawCounts:Object.fromEntries(Object.entries(data.raw).map(([n,r])=>[n,r.length])),vbaBytes:data.sourceVbaBytes};
 const modelFor=projects=>{const ids=new Set(projects.map(p=>String(p.id))),codes=new Set(projects.map(p=>String(p.maintenanceCode)));return {schemaVersion:1,sourceSha256,projects,works:data.works.filter(w=>ids.has(String(w.projectId))),links:Object.fromEntries(Object.entries(data.links).filter(([id])=>ids.has(id))),milestones:[],raw:{...rawSource,[data.sourceSheetNames[0]]:[...rawProject.slice(0,2),...rawRows.filter(r=>codes.has(normalizeText(r[codeColumn])))]}};};
 for(const y of [...years,'unassigned']){const projects=y==='unassigned'?data.projects.filter(p=>yearApi.membership(p,operatingYear).size===0):data.projects.filter(p=>yearApi.membership(p,operatingYear).has(y)),model=modelFor(projects);model.year=y;model.mappingVersion=mappingVersion;model.generatedForOperatingYear=operatingYear;model.milestones=data.milestones.filter(m=>y==='unassigned'?yearApi.asYear(m.date)===null:yearApi.asYear(m.date)===y);
 for(const [name,rows]of Object.entries(model.raw)){if(name===data.sourceSheetNames[0])continue;const h=rows[0]||[],code=h.findIndex(v=>/유지관리번호/.test(normalizeText(v)));if(code>=0){const codes=new Set(projects.map(p=>String(p.maintenanceCode)));model.raw[name]=[h,...rows.slice(1).filter(r=>codes.has(normalizeText(r[code])))];}else if(/마일스톤|milestone/i.test(name)){model.raw[name]=[h,...rows.slice(1).filter(r=>{const dateIndex=h.findIndex(v=>/날짜|date|일자/i.test(normalizeText(v))),nameIndex=h.findIndex(v=>/마일스톤|name/i.test(normalizeText(v)));if(dateIndex<0||nameIndex<0)return false;const normalized=data.milestones.find(m=>normalizeText(m.name)===normalizeText(r[nameIndex]));return normalized&&(y==='unassigned'?yearApi.asYear(normalized.date)===null:yearApi.asYear(normalized.date)===y);})];}}

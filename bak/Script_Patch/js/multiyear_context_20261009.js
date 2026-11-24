@@ -1,3 +1,4 @@
+
 (function(root) {
     'use strict';
     const VERSION = 'year-context-20261009-v2';
@@ -44,7 +45,14 @@
     const carryMemo = new WeakMap();
 
     function carryStep(state, event) {
-        if (event.from !== state.year || event.to !== event.from + 1 || !validYear(event.to)) return false;
+        if (event.from !== state.year || !validYear(event.to)) return false;
+        if (event.action === 'move') {
+            if (state.reservation || event.to === event.from) return false;
+            state.year = event.to;
+            state.transfers.push(event);
+            return true;
+        }
+        if (event.to !== event.from + 1) return false;
         if (event.action === 'reserve' && !state.reservation) {
             state.reservation = event;
         } else if (['cancel', 'transfer', 'settle'].includes(event.action) && state.reservation) {
@@ -68,13 +76,14 @@
             if (typeof raw !== 'string' || !/^[A-Za-z0-9_-]{1,30000}$/.test(raw)) throw new Error('encoding');
             const decoded = Uint8Array.from(atob(raw.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
             const record = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(decoded));
-            if (record.version !== 1 || !validYear(record.base) || !Array.isArray(record.events)) throw new Error('schema');
+            if (![1, 2].includes(record.version) || !validYear(record.base) || !Array.isArray(record.events)) throw new Error('schema');
             const value = { record, year: record.base, reservation: null, transfers: [] };
             const ids = new Set();
             for (const event of record.events) {
                 if (typeof event.id !== 'string' || !event.id || ids.has(event.id) ||
                     !Number.isFinite(Date.parse(event.at)) || !Number.isSafeInteger(event.po) ||
                     typeof event.customer !== 'string' || typeof event.center !== 'string' ||
+                    (event.action === 'move' && record.version !== 2) ||
                     (event.action === 'settle' && !validYear(event.settledYear)) ||
                     !carryStep(value, event)) throw new Error('history');
                 ids.add(event.id);
@@ -102,7 +111,11 @@
         if (year === 'all') return [];
         const carry = carryState(project);
         if (!carry || carry.invalid) return [];
-        const result = carry.transfers.filter(event => event.from === year).map(event => ({ ...event, bucket: 'sent' }));
+        const result = [];
+        for (const event of carry.transfers) {
+            if (event.from === year) result.push({...event, bucket: event.action === 'move' ? 'movedOut' : 'sent'});
+            if (event.action === 'move' && event.to === year) result.push({...event, bucket: 'movedIn'});
+        }
         if (carry.reservation?.to === year && !settlementYear(project)) {
             result.push({ ...carry.reservation, po: Number(project.poAmount) || 0,
                 customer: projectGroup(project, 'customer'), center: projectGroup(project, 'center'), bucket: 'incoming' });
@@ -110,25 +123,29 @@
         return result;
     }
 
-    function prepareCarry(project, action, from, now = currentYear()) {
+    function prepareCarry(project, action, from, now = currentYear(), destination = from + 1) {
         const state = carryState(project);
         const status = classification(project, now);
-        if (state?.invalid || !validYear(from) || !validYear(from + 1) || from > now) throw new Error('관리 연도 또는 이월 기록을 확인해 주세요.');
+        const moving = action === 'move';
+        const to = moving ? destination : from + 1;
+        if (state?.invalid || !validYear(from) || !validYear(to) || to === from || (!moving && from > now)) {
+            throw new Error('출발·대상 연도 또는 이월 기록을 확인해 주세요.');
+        }
         const settling = action === 'settle';
         if (settling ? (!state?.reservation || status.kind !== 'settled') :
-            (status.kind !== 'open' || status.year !== from)) throw new Error('프로젝트 상태가 바뀌었습니다. 목록을 다시 열어 확인해 주세요.');
+            ((status.kind !== 'open' && !(moving && status.kind === 'planned')) || status.year !== from)) throw new Error('프로젝트 상태가 바뀌었습니다. 목록을 다시 열어 확인해 주세요.');
         if (action === 'transfer' && now <= from) throw new Error('대상 연도가 시작된 뒤 인계를 확정할 수 있습니다.');
         const po = Number(project.poAmount ?? 0);
         if (!Number.isSafeInteger(po)) throw new Error('프로젝트 PO금액을 확인해 주세요.');
         const record = state?.record || { version: 1, base: from, events: [] };
         const event = { id: root.crypto?.randomUUID?.() || Array.from(root.crypto.getRandomValues(new Uint32Array(4))).join('-'),
-            action, from, to: from + 1, at: new Date().toISOString(), po,
+            action, from, to, at: new Date().toISOString(), po,
             customer: projectGroup(project, 'customer'), center: projectGroup(project, 'center') };
         if (settling) event.settledYear = status.year;
         const next = state ? { ...state, transfers: state.transfers.slice() } :
             { year: from, reservation: null, transfers: [] };
         if (!carryStep(next, event)) throw new Error('현재 상태에서 해당 이월 작업을 적용할 수 없습니다.');
-        return encodeCarry({ ...record, events: [...record.events, event] });
+        return encodeCarry({ ...record, version: moving ? 2 : record.version, events: [...record.events, event] });
     }
     function classification(p,now=currentYear()) {
         const year = settlementYear(p), completed = Number(p?.progress) >= 100;
