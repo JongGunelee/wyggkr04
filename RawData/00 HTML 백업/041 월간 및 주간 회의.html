@@ -16799,42 +16799,237 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             });
         }
 
+        // 🚀 [부팅 가속] 대용량 회의 템플릿(약 3.7MB) 온디맨드·유휴 백그라운드 로더 (중복 요청 병합)
+        const inFlightTemplateLoads = new Map();
+        function isTemplateReady(html) {
+            return Boolean(html && html.trim() && !html.includes('로딩 중') && !html.includes('로딩 실패'));
+        }
+
+        async function ensureMeetingTemplateLoaded(type) {
+            const normalizedType = type === 'monthly' ? 'monthly' : 'weekly';
+            const currentHtml = normalizedType === 'monthly' ? MONTHLY_TEMPLATE_HTML : WEEKLY_TEMPLATE_HTML;
+            if (isTemplateReady(currentHtml)) return currentHtml;
+            if (inFlightTemplateLoads.has(normalizedType)) {
+                return inFlightTemplateLoads.get(normalizedType);
+            }
+            const url = normalizedType === 'monthly' ? TEMPLATE_URL_MONTHLY : TEMPLATE_URL_WEEKLY;
+            const label = normalizedType === 'monthly' ? '월간' : '주간';
+            const promise = fetchTemplateFromURL(url, label).then(html => {
+                if (isTemplateReady(html)) {
+                    if (normalizedType === 'monthly') {
+                        MONTHLY_TEMPLATE_HTML = html;
+                        const el = document.getElementById('templateMonthly');
+                        if (el) el.value = html;
+                    } else {
+                        WEEKLY_TEMPLATE_HTML = html;
+                        const el = document.getElementById('templateWeekly');
+                        if (el) el.value = html;
+                    }
+                    return html;
+                }
+                return normalizedType === 'monthly' ? MONTHLY_TEMPLATE_HTML : WEEKLY_TEMPLATE_HTML;
+            }).finally(() => {
+                inFlightTemplateLoads.delete(normalizedType);
+            });
+            inFlightTemplateLoads.set(normalizedType, promise);
+            return promise;
+        }
+
+        function prefetchMeetingTemplatesInIdle() {
+            const runPrefetch = () => {
+                Promise.all([
+                    ensureMeetingTemplateLoaded('weekly'),
+                    ensureMeetingTemplateLoaded('monthly')
+                ]).then(() => {
+                    console.log('회의 안건 템플릿이 유휴 백그라운드에서 준비되었습니다.');
+                }).catch(() => {});
+            };
+            if (typeof window.requestIdleCallback === 'function') {
+                window.requestIdleCallback(() => setTimeout(runPrefetch, 1200), { timeout: 4000 });
+            } else {
+                setTimeout(runPrefetch, 2500);
+            }
+        }
+
+        function parseLocalDateInput(dateStr) {
+            const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(String(dateStr || '').trim());
+            if (match) {
+                return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+            }
+            const parsed = new Date(dateStr);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        function computeMeetingDateContext(type, dateInput) {
+            const date = parseLocalDateInput(dateInput);
+            if (!date) return null;
+            const rawYear = date.getFullYear();
+            const rawMonth = date.getMonth() + 1;
+            const rawDay = date.getDate();
+            const dateStr = `${rawYear}-${String(rawMonth).padStart(2, '0')}-${String(rawDay).padStart(2, '0')}`;
+            const shortDateStr = `${String(rawYear).slice(-2)}-${String(rawMonth).padStart(2, '0')}-${String(rawDay).padStart(2, '0')}`;
+
+            if (type === 'monthly') {
+                const year = rawYear;
+                const month = rawMonth;
+                const monthMM = String(month).padStart(2, '0');
+                const prevMonth = new Date(rawYear, rawMonth - 2, 1).getMonth() + 1;
+                return {
+                    type: 'monthly',
+                    rawYear, rawMonth, rawDay,
+                    year, month, week: null,
+                    prevMonth,
+                    dateStr, shortDateStr,
+                    lastWeekRange: null,
+                    thisWeekRange: null,
+                    filename: `월간회의_${year}_${monthMM}.html`
+                };
+            }
+
+            const isoInfo = getISOWeekInfo(date);
+            const year = isoInfo.isoYear;
+            const month = isoInfo.isoMonth;
+            const week = isoInfo.isoWeekOfMonth;
+            const monthMM = String(month).padStart(2, '0');
+            const weekWW = String(week).padStart(2, '0');
+
+            const dayOfWeek = date.getDay() || 7; // 월=1 .. 일=7
+            const thisMonday = new Date(rawYear, rawMonth - 1, rawDay - (dayOfWeek - 1));
+            const thisSunday = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() + 6);
+            const lastMonday = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() - 7);
+            const lastSunday = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() - 1);
+            const fmtMD = d => `${d.getMonth() + 1}/${d.getDate()}`;
+            const lastWeekRange = `${fmtMD(lastMonday)} ~ ${fmtMD(lastSunday)}`;
+            const thisWeekRange = `${fmtMD(thisMonday)} ~ ${fmtMD(thisSunday)}`;
+
+            return {
+                type: 'weekly',
+                rawYear, rawMonth, rawDay,
+                year, month, week,
+                prevMonth: null,
+                dateStr, shortDateStr,
+                lastWeekRange,
+                thisWeekRange,
+                filename: `주간회의_${year}_${monthMM}_${weekWW}주차.html`
+            };
+        }
+
+        function applySelectedDateToMeetingTemplate(rawTemplateHtml, ctx) {
+            let html = String(rawTemplateHtml || '');
+            // 기존 프리셋 스크립트 태그가 존재하면 제거 (HTML 파서 조기 종료 방지를 위해 동적 RegExp 사용)
+            const presetTagCleanupRe = new RegExp('<script\\s+data-meeting-preset-date="[^"]*">[\\s\\S]*?<' + '/script>\\s*', 'gi');
+            html = html.replace(presetTagCleanupRe, '');
+
+            const safePresetJson = JSON.stringify({
+                type: ctx.type,
+                rawYear: ctx.rawYear,
+                rawMonth: ctx.rawMonth,
+                rawDay: ctx.rawDay,
+                year: ctx.year,
+                month: ctx.month,
+                week: ctx.week,
+                prevMonth: ctx.prevMonth,
+                dateStr: ctx.dateStr,
+                shortDateStr: ctx.shortDateStr,
+                lastWeekRange: ctx.lastWeekRange,
+                thisWeekRange: ctx.thisWeekRange
+            }).replace(/</g, '\\u003c');
+
+            const presetCloseTag = '<' + '/script>';
+            const presetScriptTag = `<script data-meeting-preset-date="${ctx.dateStr}">window.__PRESET_MEETING_DATE__=${safePresetJson};window.__MANUAL_DATE_TEXT__=${JSON.stringify(ctx.dateStr)};${presetCloseTag}`;
+
+            if (ctx.type === 'monthly') {
+                const monthlyLabel = `${ctx.year}년 ${ctx.month}월`;
+                // 1) 정적 마크업 치환 (title, editable-title meta, page-title h1, 전월말 집행비, 달력 헤더)
+                html = html.replace(/YYYY년\s*MM월/g, monthlyLabel);
+                html = html.replace(/(<title[^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월|YYYY년\s*MM월)([\s\S]*?<\/title>)/i, `$1${monthlyLabel}$2`);
+                html = html.replace(/(<meta\s+name=["']editable-title["'][^>]*content=["'][^"']*)(?:\d{2,4}년\s*\d{1,2}월|YYYY년\s*MM월)/i, `$1${monthlyLabel}`);
+                html = html.replace(/(<h1\b[^>]*id=["']page-title["'][^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월|YYYY년\s*MM월)([\s\S]*?<\/h1>)/i, `$1${monthlyLabel}$2`);
+                html = html.replace(/\d{1,2}월말\s*집행비/g, `${ctx.prevMonth}월말 집행비`);
+                html = html.replace(/(<span\b[^>]*id=["']calendar-month-year["'][^>]*>)[^<]*(<\/span>)/i, `$1${monthlyLabel}$2`);
+
+                // 2) 런타임 자동 날짜 반영 스크립트가 오늘(new Date()) 대신 선택한 회의 날짜를 기준으로 동작하도록 연동
+                html = html.replace(
+                    /let\s+calendarDate\s*=\s*new\s+Date\(\s*\);/,
+                    'let calendarDate = window.__PRESET_MEETING_DATE__ ? new Date(window.__PRESET_MEETING_DATE__.rawYear, window.__PRESET_MEETING_DATE__.rawMonth - 1, window.__PRESET_MEETING_DATE__.rawDay) : new Date();'
+                );
+                html = html.replace(
+                    /(function\s+applyDynamicDateUpdates\s*\(\s*\)\s*\{[\s\S]{0,120}?)const\s+now\s*=\s*new\s+Date\(\s*\);/,
+                    '$1const now = window.__PRESET_MEETING_DATE__ ? new Date(window.__PRESET_MEETING_DATE__.rawYear, window.__PRESET_MEETING_DATE__.rawMonth - 1, window.__PRESET_MEETING_DATE__.rawDay) : new Date();'
+                );
+                html = html.replace(
+                    /const\s+prevMonthDate\s*=\s*new\s+Date\(\s*\);\s*prevMonthDate\.setMonth\(\s*prevMonthDate\.getMonth\(\s*\)\s*-\s*1\s*\);/,
+                    'const prevMonthDate = new Date(currentYear, currentMonth - 2, 1);'
+                );
+                html = html.replace(
+                    /document\.getElementById\(\s*['"]info-date['"]\s*\)\.textContent\s*=\s*dateStr;/,
+                    "document.getElementById('info-date').textContent = (window.__PRESET_MEETING_DATE__ && window.__PRESET_MEETING_DATE__.shortDateStr) || dateStr;"
+                );
+                // 지난달 등 과거 날짜 선택 시 열었을 때 당월로 강제 덮어쓰기 방지
+                html = html.replace(
+                    /if\s*\(\s*docDate\s*<\s*currentMonthDate\s*\)/,
+                    'if (!window.__PRESET_MEETING_DATE__ && docDate < currentMonthDate)'
+                );
+            } else {
+                const weeklyLabel = `${ctx.year}년 ${ctx.month}월 ${ctx.week}주차`;
+                // 1) 정적 마크업 치환 (title, editable-title meta, page-title h1, current-date, 전주/금주 범위)
+                html = html.replace(/YYYY년\s*MM월\s*W주차/g, weeklyLabel);
+                html = html.replace(/(<title[^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월\s*\d{1,2}주차|YYYY년\s*MM월\s*W주차)([\s\S]*?<\/title>)/i, `$1${weeklyLabel}$2`);
+                html = html.replace(/(<meta\s+name=["']editable-title["'][^>]*content=["'][^"']*)(?:\d{2,4}년\s*\d{1,2}월\s*\d{1,2}주차|YYYY년\s*MM월\s*W주차)/i, `$1${weeklyLabel}`);
+                html = html.replace(/(<h1\b[^>]*id=["']page-title["'][^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월\s*\d{1,2}주차|YYYY년\s*MM월\s*W주차)([\s\S]*?<\/h1>)/i, `$1${weeklyLabel}$2`);
+                html = html.replace(/(<span\b[^>]*id=["']current-date["'][^>]*>)(?:YYYY-MM-DD|\d{4}-\d{2}-\d{2})(<\/span>)/i, `$1${ctx.dateStr}$2`);
+                html = html.replace(/전주\s*\(\s*\d{1,2}\s*\/\s*\d{1,2}\s*~\s*\d{1,2}\s*\/\s*\d{1,2}\s*\)/g, `전주 (${ctx.lastWeekRange})`);
+                html = html.replace(/금주\s*\(\s*\d{1,2}\s*\/\s*\d{1,2}\s*~\s*\d{1,2}\s*\/\s*\d{1,2}\s*\)/g, `금주 (${ctx.thisWeekRange})`);
+
+                // 2) 런타임 자동 날짜 반영 함수(applyCurrentDateToDocument)가 오늘(new Date()) 대신 선택한 회의 날짜를 기준으로 동작하도록 연동
+                html = html.replace(
+                    /(function\s+applyCurrentDateToDocument\s*\(\s*\)\s*\{[\s\S]{0,120}?)const\s+now\s*=\s*new\s+Date\(\s*\);/,
+                    '$1const now = window.__PRESET_MEETING_DATE__ ? new Date(window.__PRESET_MEETING_DATE__.rawYear, window.__PRESET_MEETING_DATE__.rawMonth - 1, window.__PRESET_MEETING_DATE__.rawDay) : new Date();'
+                );
+                // 3) 주간 네비게이션 바(initializeWeeklyNavigator)가 오늘 연·월 대신 선택한 문서 연·월(documentYear/documentMonth)을 표시하도록 연동
+                html = html.replace(
+                    /displayedYearInNav\s*=\s*actualWeekInfo\.year;\s*displayedMonthInNav\s*=\s*actualWeekInfo\.month;/,
+                    'displayedYearInNav = window.__PRESET_MEETING_DATE__ ? documentYear : actualWeekInfo.year; displayedMonthInNav = window.__PRESET_MEETING_DATE__ ? documentMonth : actualWeekInfo.month;'
+                );
+                // 4) 창 포커스/탭 복귀 시 syncWeeklyNavigatorToLatest가 오늘 월로 강제 롤백하는 현상 방지
+                html = html.replace(
+                    /(function\s+syncWeeklyNavigatorToLatest\s*\([^)]*\)\s*\{)/,
+                    '$1 if (window.__PRESET_MEETING_DATE__) return;'
+                );
+            }
+
+            // 3) 선택 날짜 프리셋 메타 스크립트 주입 (<head> 내부 끝부분 우선)
+            if (/<\/head>/i.test(html)) {
+                html = html.replace(/<\/head>/i, `    ${presetScriptTag}\n</head>`);
+            } else {
+                html = `${presetScriptTag}\n${html}`;
+            }
+
+            return html;
+        }
+
         async function createNewMeetingFile() {
             closeAllOpenElements();
             const type = document.getElementById('newMeetingType').value;
             const dateInput = document.getElementById('newMeetingDate').value;
             if (!dateInput) { alert('회의 날짜를 선택해주세요.'); return; }
 
-            const date = new Date(dateInput);
-            const isoInfo = getISOWeekInfo(date);
-            const year = isoInfo.isoYear;
-            const month = isoInfo.isoMonth;
-            const week = isoInfo.isoWeekOfMonth;
+            const ctx = computeMeetingDateContext(type, dateInput);
+            if (!ctx) { alert('유효한 회의 날짜를 선택해주세요.'); return; }
 
-            const monthMM = String(month).padStart(2, '0');
-            const weekWW = String(week).padStart(2, '0');
-
-            let templateContent, filename;
-
-            if (type === 'monthly') {
-                templateContent = MONTHLY_TEMPLATE_HTML;
-                filename = `월간회의_${year}_${monthMM}.html`;
-                templateContent = templateContent.replace(/YYYY년\s*MM월/g, `${year}년 ${month}월`);
-                const prevMonthDate = new Date(date);
-                prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
-                const prevMonth = prevMonthDate.getMonth() + 1;
-                templateContent = templateContent.replace(/\d{1,2}월말 집행비/g, `${prevMonth}월말 집행비`);
-
-            } else {
-                templateContent = WEEKLY_TEMPLATE_HTML;
-                filename = `주간회의_${year}_${monthMM}_${weekWW}주차.html`;
-                templateContent = templateContent.replace(/YYYY년\s*MM월\s*W주차/g, `${year}년 ${month}월 ${week}주차`);
+            let rawTemplate = type === 'monthly' ? MONTHLY_TEMPLATE_HTML : WEEKLY_TEMPLATE_HTML;
+            if (!isTemplateReady(rawTemplate)) {
+                updateDataSyncStatus(`${type === 'monthly' ? '월간' : '주간'} 회의록 템플릿을 불러오는 중…`, 'waiting');
+                rawTemplate = await ensureMeetingTemplateLoaded(type);
             }
 
-            if (!templateContent.trim() || templateContent.includes('로딩 실패') || templateContent.includes('로딩 중')) {
+            if (!isTemplateReady(rawTemplate)) {
                 alert(`${type === 'monthly' ? '월간' : '주간'} 템플릿이 비어있거나 로딩에 실패했습니다. 인터넷 연결을 확인하거나, 설정에서 템플릿을 직접 추가해주세요.`);
                 return;
             }
+
+            const templateContent = applySelectedDateToMeetingTemplate(rawTemplate, ctx);
+            const filename = ctx.filename;
 
             const blob = new Blob([templateContent], { type: 'text/html;charset=utf-8' });
             const link = document.createElement('a');
@@ -16844,6 +17039,13 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(link.href);
+
+            if (typeof showToast === 'function') {
+                const detail = ctx.type === 'monthly'
+                    ? `${ctx.year}년 ${ctx.month}월 (${ctx.prevMonth}월말 집행비 반영)`
+                    : `${ctx.year}년 ${ctx.month}월 ${ctx.week}주차 (금주 ${ctx.thisWeekRange} 반영)`;
+                showToast(`📄 ${filename} 다운로드 완료 · 내부 날짜 ${detail}`, 'success');
+            }
         }
 
         function toggleConfigMode(mode) {
@@ -20034,14 +20236,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 alert(`회의 데이터를 불러오지 못했습니다: ${error.message}\n설정에서 XLSB 경로를 확인하거나 로컬 XLSB 가져오기를 사용해주세요.`);
             });
 
-            Promise.all([
-                fetchTemplateFromURL(TEMPLATE_URL_WEEKLY, '주간'),
-                fetchTemplateFromURL(TEMPLATE_URL_MONTHLY, '월간')
-            ]).then(([weeklyHtml, monthlyHtml]) => {
-                if (weeklyHtml) { WEEKLY_TEMPLATE_HTML = weeklyHtml; document.getElementById('templateWeekly').value = weeklyHtml; }
-                if (monthlyHtml) { MONTHLY_TEMPLATE_HTML = monthlyHtml; document.getElementById('templateMonthly').value = monthlyHtml; }
-                console.log("회의 안건 템플릿이 백그라운드에서 로딩되었습니다.");
-            });
+            // 🚀 [부팅 속도 최적화] 3.7MB 대용량 회의 템플릿을 초기 부팅 네트워크 대역폭과 경합시키지 않고 유휴 시간에 지연 프리페치
+            prefetchMeetingTemplatesInIdle();
 
             // 현황(#manageSkippedBtn) 버튼은 아래 공용 당구공 드롭다운 컨트롤러에서 처리 (즉시 팝업 방지)
 
@@ -20497,8 +20693,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             document.getElementById('creationPanelToggleBtn').addEventListener('click', () => {
                 openModal('creationModal');
                 enhanceMeetingDatePicker();
+                void ensureMeetingTemplateLoaded(document.getElementById('newMeetingType')?.value || 'weekly');
             });
-            document.getElementById('settingsToggleBtn').addEventListener('click', () => openModal('settingsModal'));
+            document.getElementById('settingsToggleBtn').addEventListener('click', () => {
+                openModal('settingsModal');
+                void Promise.all([ensureMeetingTemplateLoaded('weekly'), ensureMeetingTemplateLoaded('monthly')]);
+            });
             document.querySelectorAll('.modal-close-btn').forEach(btn => btn.addEventListener('click', (e) => closeModal(e.target.dataset.target)));
             document.querySelectorAll('.modal-overlay').forEach(overlay => { overlay.addEventListener('click', e => { if (e.target === overlay && !e.target.querySelector('.modal-content.dragging')) { closeModal(overlay.id); } }); });
             document.querySelectorAll('input[name="dataManagementMode"]').forEach(radio => radio.addEventListener('change', (e) => toggleDataManagementMode(e.target.value)));
