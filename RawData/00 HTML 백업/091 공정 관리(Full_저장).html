@@ -474,7 +474,7 @@
         root.YearContext?.refreshClock();
         mount(); if (!backdrop || opened) return;
         opener = root.document.activeElement; draftYear = String(safeState().year); opened = true;
-        closeButtonOnly = view === 'settings';
+        closeButtonOnly = view === 'settings' || view === 'summary';
         panel.querySelector('#operation-year-cancel').hidden = closeButtonOnly;
         backdrop.hidden = false; panel?.__fitViewport?.(); button.setAttribute('aria-expanded', 'true');
         previousOverflow = root.document.body.style.overflow; backdrop.dataset.bodyOverflowBefore = previousOverflow; root.document.body.style.overflow = 'hidden';
@@ -52145,7 +52145,7 @@
                                 .filter(x => {
                                     const name = String(x.name);
                                     // [\ubb34\uacb0\uc131 \ub9ac\ud329\ud1a0\ub9c1] WorkDates\ub97c \uc6b0\uc120\uc801\uc73c\ub85c \uac10\uc9c0 (\ub2e4\uc6b4\ub85c\ub4dc \uc2dc \uc0dd\uc131\ub418\ub294 \uad6c\uc870\uc640 \uc77c\uce58)
-                                    const matches = /(^workdates?$|work\s+dates?|\uc791\uc5c5\uc77c|\uc791\uc5c5\s*\ubaa9\ub85d|\uc791\uc5c5)/i.test(name) &&
+                                    const matches = /(^work(?:dates?)?$|work\s+dates?|\uc791\uc5c5\uc77c|\uc791\uc5c5\s*\ubaa9\ub85d|\uc791\uc5c5)/i.test(name) &&
                                         !name.toLowerCase().includes('work-work') &&
                                         !name.toLowerCase().includes('workwork');
                                     if (matches) {
@@ -58681,10 +58681,12 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                                 currentProjectData.forEach(p => {
                                     const id = String(p.id || '').trim();
                                     const name = String(p.name || '').trim();
+                                    const maintenanceCode = normalizeAutoUploadProjectKey(p.maintenanceCode).toLowerCase();
                                     if (id) {
                                         projectMap.set(id.toLowerCase(), p);
                                         projectMap.set(normalizeKey(id), p);
                                     }
+                                    if (maintenanceCode && !projectMap.has(maintenanceCode)) projectMap.set(maintenanceCode, p);
                                     if (name) {
                                         projectLookupMap.set(name.toLowerCase(), p);
                                         projectLookupMap.set(name.trim(), p);
@@ -58708,9 +58710,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                                     if (!val) return null;
                                     if (typeof val === 'number') {
                                         if (val > 20000 && val < 1000000) {
-                                            const d = new Date(1900, 0, 1);
-                                            d.setDate(d.getDate() + (Math.floor(val) - (Math.floor(val) >= 60 ? 2 : 1)));
-                                            return d.toISOString().split('T')[0];
+                                            return normalizeAutoUploadDateValue(val);
                                         }
                                         return null;
                                     }
@@ -58987,16 +58987,18 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                                                 projects.forEach(p => {
                                                     const pid = String(p.id || '').trim().toLowerCase();
                                                     const pname = String(p.name || '').trim().toLowerCase();
+                                                    const maintenanceCode = normalizeAutoUploadProjectKey(p.maintenanceCode).toLowerCase();
                                                     if (pid) projectMap.set(pid, p);
+                                                    if (maintenanceCode && !projectMap.has(maintenanceCode)) projectMap.set(maintenanceCode, p);
                                                     if (pname) projectMap.set(pname, p);
                                                 });
 
                                                 const getISO = (val) => {
                                                     if (!val) return null;
                                                     if (typeof val === 'number') {
-                                                        const d = new Date(1900, 0, 1);
-                                                        d.setDate(d.getDate() + (Math.floor(val) - (Math.floor(val) >= 60 ? 2 : 1)));
-                                                        return d.toISOString().split('T')[0];
+                                                        const serial = Math.floor(val);
+                                                        const date = new Date(Date.UTC(1900, 0, serial - (serial >= 60 ? 1 : 0)));
+                                                        return date.toISOString().slice(0, 10);
                                                     }
                                                     const match = String(val).match(/(\d{4})[-\/]?(\d{2})[-\/]?(\d{2})/);
                                                     return match ? `${match[1]}-${match[2]}-${match[3]}` : null;
@@ -61347,7 +61349,6 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 return;
             }
             if (window.YearBootCoordinator && await window.YearBootCoordinator.tryBoot(normalizeAutoUploadUrl(url), options, createYearBootAdapter20261009())) return;
-            const yearLegacyTicket20261009 = window.YearBootCoordinator ? window.YearBootCoordinator.legacyBegin() : null;
             // Ensure settlement mapping/parsing is ready even during early auto-upload.
             ensureSettlementImportBootstrap();
 
@@ -61355,9 +61356,6 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             let effectiveAutoUploadUrl = normalizedUrl;
             const uploadDebug = !!window.__UPLOAD_DEBUG__;
             const silentStartupFeedback = !!(options && options.silentStartupFeedback);
-            if (silentStartupFeedback) {
-                window.__codexStartupAutoUploadToastSilent = (Number(window.__codexStartupAutoUploadToastSilent) || 0) + 1;
-            }
 
             // Check online status first
             if (!isOnline && !navigator.onLine) {
@@ -61374,6 +61372,10 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 throw new Error('fetch unsupported');
             }
 
+            const yearLegacyTicket20261009 = window.YearBootCoordinator ? window.YearBootCoordinator.legacyBegin() : null;
+            if (silentStartupFeedback) {
+                window.__codexStartupAutoUploadToastSilent = (Number(window.__codexStartupAutoUploadToastSilent) || 0) + 1;
+            }
             const autoUploadPerf = createAutoUploadPerfSession(normalizedUrl);
             window.__activeAutoUploadPerfSession = autoUploadPerf;
 
