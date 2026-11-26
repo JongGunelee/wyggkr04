@@ -5212,6 +5212,79 @@ button, .step-chip, .cam-btn, #headerContainer button, #rightSidebar button, #bo
 #estimateModal, #methodCompareModal, #evidenceModal, #photoModal {
   contain: layout style;
 }
+/* [제48장] 견적서 갑지·상세 내역서 항목 hover 품셈·일위대가·단가비교·단위환산 툴팁 */
+.est-tip-row {
+  cursor: help;
+  transition: background-color 0.12s ease;
+}
+.est-tip-row:hover {
+  background-color: rgba(56, 189, 248, 0.13) !important;
+}
+.est-tip-row td:first-child::after,
+.est-tip-row td:nth-child(2)::after {
+  content: '';
+}
+#estItemTooltip {
+  position: fixed;
+  z-index: 10095;
+  pointer-events: none;
+  width: min(415px, calc(100vw - 20px));
+  background: rgba(9, 15, 29, 0.97);
+  border: 1px solid rgba(56, 189, 248, 0.65);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.82), 0 0 0 1px rgba(14, 165, 233, 0.2);
+  color: #e2e8f0;
+  font-size: 11px;
+  line-height: 1.48;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  display: none;
+}
+#estItemTooltip.visible {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+#estItemTooltip .est-tt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.9);
+}
+#estItemTooltip .est-tt-title {
+  font-weight: 800;
+  color: #f8fafc;
+  font-size: 12px;
+}
+#estItemTooltip .est-tt-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  white-space: nowrap;
+}
+#estItemTooltip .est-tt-sec {
+  margin-top: 5px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+}
+#estItemTooltip .est-tt-label {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 800;
+  margin-bottom: 2px;
+  letter-spacing: -0.2px;
+}
 #estimateModal.hidden, #methodCompareModal.hidden, #evidenceModal.hidden, #photoModal.hidden {
   content-visibility: hidden;
 }
@@ -5333,17 +5406,17 @@ body.is-3d-moving #btnExpand4dHandle {
           <div class="rv-cube-stage">
             <div class="rv-cube-box" id="rvCubeBox">
               <div class="rv-face f-front" data-rv-view="front">정면<small>FRONT</small></div>
-              <div class="rv-face f-back" data-rv-view="back">배면<small>BACK</small></div>
+              <div class="rv-face f-back" data-rv-view="back" title="건물 후면 조회 제한 (전면 구도 유지)">후면제한<small>LOCK</small></div>
               <div class="rv-face f-right" data-rv-view="right">우측<small>RIGHT</small></div>
               <div class="rv-face f-left" data-rv-view="left">좌측<small>LEFT</small></div>
               <div class="rv-face f-top" data-rv-view="top">평면<small>TOP</small></div>
-              <div class="rv-face f-bottom" data-rv-view="bottom">하면<small>BOT</small></div>
+              <div class="rv-face f-bottom" data-rv-view="bottom" title="지면 하부 조회 제한 (지상 구도 유지)">지면제한<small>LOCK</small></div>
             </div>
           </div>
           <div class="rv-compass" id="rvCompassLabel">N · S · E · W</div>
         </div>
 
-        <button type="button" id="btnToggleRevitCutPanel" title="FL. 기준 높이 절단 평면 뷰 & 6방향 입면/단면 즉시 전환 패널 열기/닫기">
+        <button type="button" id="btnToggleRevitCutPanel" title="FL. 기준 높이 절단 평면 뷰 & 입면/평면/단면 즉시 전환 패널 열기/닫기">
           <span>📐</span><span id="rvCutToggleTxt">FL.절단·입면 ▼</span>
         </button>
 
@@ -5353,16 +5426,16 @@ body.is-3d-moving #btnExpand4dHandle {
             <button type="button" id="rvBtnClosePanel" class="text-slate-400 hover:text-white text-xs font-bold px-1">✕</button>
           </div>
 
-          <!-- 1) 6방향 입면 · 평면 · 등각 즉시 전환 -->
+          <!-- 1) 입면 · 평면 · 사선 · 등각 즉시 전환 (지면 하부·건물 후면 차단) -->
           <div class="space-y-1">
-            <div class="text-[9.5px] font-bold text-slate-400">입면 · 평면 · 3D 즉시 전환</div>
+            <div class="text-[9.5px] font-bold text-slate-400">입면 · 평면 · 3D 즉시 전환 (지상·전면 전용)</div>
             <div class="rv-mini-grid-4">
               <button type="button" class="rv-qbtn" data-rv-view="front">정면</button>
-              <button type="button" class="rv-qbtn" data-rv-view="back">배면</button>
               <button type="button" class="rv-qbtn" data-rv-view="left">좌측</button>
               <button type="button" class="rv-qbtn" data-rv-view="right">우측</button>
               <button type="button" class="rv-qbtn" data-rv-view="top">평면(TOP)</button>
-              <button type="button" class="rv-qbtn" data-rv-view="bottom">하면(BOT)</button>
+              <button type="button" class="rv-qbtn" data-rv-view="leftFront">좌45°</button>
+              <button type="button" class="rv-qbtn" data-rv-view="rightFront">우45°</button>
               <button type="button" class="rv-qbtn" data-rv-view="iso">3D등각</button>
               <button type="button" class="rv-qbtn" data-rv-view="home">⌂ 홈</button>
             </div>
@@ -5762,19 +5835,19 @@ body.is-3d-moving #btnExpand4dHandle {
             <span class="text-[11px] font-extrabold text-sky-300 hidden md:inline">🛠️ 공법:</span>
             <div class="flex bg-slate-900/90 p-0.5 rounded-lg border border-slate-700">
               <button id="btnMethodOnsite" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-300 hover:text-white transition flex items-center gap-1">
-                <span>방식 A</span> <span class="hidden sm:inline">(코어·현장 용접)</span>
+                <span>A-코어+용접</span>
               </button>
               <button id="btnMethodPrefab" class="px-2 py-1 rounded-md text-[11px] font-extrabold bg-sky-500 text-slate-950 shadow transition flex items-center gap-1">
-                <span>방식 B</span> <span class="hidden sm:inline">(코어·현장 조립)</span>
+                <span>B-코어+조립(원안)</span>
               </button>
-              <button id="btnMethodAnchorWeld" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-300">방식 C (앙카·현장 용접)</button>
-              <button id="btnMethodAnchorAssembly" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-300">방식 D (앙카·현장 조립)</button>
+              <button id="btnMethodAnchorWeld" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-300">C-앙커+용접</button>
+              <button id="btnMethodAnchorAssembly" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-300">D-앙커+조립</button>
             </div>
             <span id="methodTimeBadge" class="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-900/80 text-amber-300 border border-amber-500/30">
               ⏱️ 4.5h
             </span>
             <div id="methodCostBadge" class="text-[10px] sm:text-[11px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-950/90 to-slate-900 border border-amber-500/50 shadow-inner flex items-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer hover:border-amber-400 transition shrink-0 select-none pointer-events-auto" title="현재 선택된 시공 공법의 총공사비 (클릭 시 견적서 갑지·내역서 전문 열기)">
-              <span id="methodCostTag" class="px-1.5 py-0.2 rounded bg-amber-500/25 text-amber-300 font-extrabold text-[9.5px] sm:text-[10px] border border-amber-500/40">공법 B (원안)</span>
+              <span id="methodCostTag" class="px-1.5 py-0.2 rounded bg-amber-500/25 text-amber-300 font-extrabold text-[9.5px] sm:text-[10px] border border-amber-500/40">B-코어+조립(원안)</span>
               <span class="text-amber-400 font-bold hidden xs:inline">총공사비</span>
               <span id="methodCostAmount" class="text-white font-black">₩ 1,871,000</span>
               <span class="text-emerald-400 font-extrabold text-[9.5px] sm:text-[10px]">(Fee제외)</span>
@@ -6148,7 +6221,7 @@ body.is-3d-moving #btnExpand4dHandle {
         <span id="handle4dGripper" class="text-slate-400 font-mono select-none text-sm shrink-0 cursor-grab active:cursor-grabbing px-0.5" title="마우스로 드래그하여 이동">⠿</span>
         <span class="whitespace-nowrap shrink-0 text-[11px] sm:text-xs">🛠️ 4D 시공 타임라인 펼치기 ▼</span>
         <span id="handleCostBadge" class="text-[10px] sm:text-[11px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-500/40 flex items-center gap-1 sm:gap-1.5 whitespace-nowrap shrink-0 cursor-pointer hover:brightness-110">
-          <span id="handleCostTag" class="px-1.5 py-0.2 rounded bg-amber-500/25 text-amber-300 font-extrabold text-[9.5px] sm:text-[10px] border border-amber-500/40 whitespace-nowrap shrink-0">공법 B (원안)</span>
+          <span id="handleCostTag" class="px-1.5 py-0.2 rounded bg-amber-500/25 text-amber-300 font-extrabold text-[9.5px] sm:text-[10px] border border-amber-500/40 whitespace-nowrap shrink-0">B-코어+조립(원안)</span>
           <span class="text-amber-400 font-bold hidden xs:inline whitespace-nowrap shrink-0">총공사비</span>
           <span id="handleCostAmount" class="text-white font-black whitespace-nowrap shrink-0">₩ 1,871,000</span>
           <span class="text-emerald-400 font-bold text-[9.5px] whitespace-nowrap shrink-0">(Fee제외)</span>
@@ -6782,22 +6855,22 @@ body.is-3d-moving #btnExpand4dHandle {
                 </thead>
                 <tbody class="divide-y divide-slate-800 text-slate-200">
                   <tr id="rowEstMethodB" class="bg-amber-950/30 text-amber-200 font-bold">
-                    <td class="py-1 px-1.5 whitespace-nowrap"><span class="px-1 rounded bg-amber-500/30 text-amber-300 text-[9px]">B (원안)</span></td>
-                    <td class="py-1 px-1.5 whitespace-nowrap">공장선조립+코어매립</td>
+                    <td class="py-1 px-1.5 whitespace-nowrap"><span class="px-1 rounded bg-amber-500/30 text-amber-300 text-[9px]">B-코어+조립(원안)</span></td>
+                    <td class="py-1 px-1.5 whitespace-nowrap">코어매립+공장선조립</td>
                     <td class="py-1 px-1 text-right text-emerald-300 font-extrabold whitespace-nowrap">₩ 1,871,000</td>
                     <td class="py-1 px-1 text-center text-emerald-400 text-[9.5px] font-extrabold whitespace-nowrap">ZERO (최우수)</td>
                     <td class="py-1 px-1.5 text-center text-sky-300 whitespace-nowrap">1일</td>
                   </tr>
                   <tr id="rowEstMethodA" class="hover:bg-slate-800/40">
-                    <td class="py-1 px-1.5 whitespace-nowrap"><span class="px-1 rounded bg-slate-800 text-slate-300 text-[9px]">A</span></td>
-                    <td class="py-1 px-1.5 text-slate-300 whitespace-nowrap">현장용접+코어매립</td>
+                    <td class="py-1 px-1.5 whitespace-nowrap"><span class="px-1 rounded bg-slate-800 text-slate-300 text-[9px]">A-코어+용접</span></td>
+                    <td class="py-1 px-1.5 text-slate-300 whitespace-nowrap">코어매립+현장용접</td>
                     <td class="py-1 px-1 text-right text-slate-300 whitespace-nowrap">₩ 2,076,000</td>
                     <td class="py-1 px-1 text-center text-sky-300 text-[9.5px] whitespace-nowrap">ZERO (우수)</td>
                     <td class="py-1 px-1.5 text-center text-slate-400 whitespace-nowrap">1.5~2일</td>
                   </tr>
                   <tr id="rowEstMethodC" class="hover:bg-slate-800/40">
-                    <td class="py-1 px-1.5 whitespace-nowrap"><span class="px-1 rounded bg-slate-800 text-slate-300 text-[9px]">C</span></td>
-                    <td class="py-1 px-1.5 text-slate-300 whitespace-nowrap">플레이트 앙카식</td>
+                    <td class="py-1 px-1.5 whitespace-nowrap"><span class="px-1 rounded bg-slate-800 text-slate-300 text-[9px]">C-앙커+용접</span></td>
+                    <td class="py-1 px-1.5 text-slate-300 whitespace-nowrap">플레이트앙커+현장용접</td>
                     <td class="py-1 px-1 text-right text-slate-300 whitespace-nowrap">
                       ₩ 1,914,000<br/>
                       <span class="text-[8.5px] text-amber-300 font-bold block whitespace-nowrap">(STS보정: 207.9만)</span>
@@ -6806,10 +6879,10 @@ body.is-3d-moving #btnExpand4dHandle {
                     <td class="py-1 px-1.5 text-center text-slate-400 whitespace-nowrap">1일</td>
                   </tr>
                   <tr id="rowEstMethodD" class="hover:bg-slate-800/40">
-                    <td class="py-1 px-1.5 whitespace-nowrap"><span class="px-1 rounded bg-slate-800 text-slate-300 text-[9px]">D</span></td>
-                    <td class="py-1 px-1.5 text-slate-300 whitespace-nowrap">측면 브라켓식</td>
+                    <td class="py-1 px-1.5 whitespace-nowrap"><span class="px-1 rounded bg-slate-800 text-slate-300 text-[9px]">D-앙커+조립</span></td>
+                    <td class="py-1 px-1.5 text-slate-300 whitespace-nowrap">플레이트앙커+모듈조립</td>
                     <td class="py-1 px-1 text-right text-slate-300 whitespace-nowrap">₩ 2,091,000</td>
-                    <td class="py-1 px-1 text-center text-amber-300 text-[9.5px] whitespace-nowrap">보통 (편심주의)</td>
+                    <td class="py-1 px-1 text-center text-amber-300 text-[9.5px] whitespace-nowrap">취약 (유격·이음주의)</td>
                     <td class="py-1 px-1.5 text-center text-slate-400 whitespace-nowrap">1~1.5일</td>
                   </tr>
                 </tbody>
@@ -6893,7 +6966,7 @@ body.is-3d-moving #btnExpand4dHandle {
       <div id="estModalBanner" class="bg-gradient-to-r from-amber-950/80 via-slate-900 to-amber-950/80 border-b border-amber-500/40 px-4 sm:px-5 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div>
           <div class="text-[11px] font-extrabold text-amber-300 flex items-center gap-2">
-            <span id="estModalMethodBadge" class="px-2 py-0.5 rounded text-[10.5px] font-black bg-amber-500/30 text-amber-200 border border-amber-500/50">공법 B (채택 원안)</span>
+            <span id="estModalMethodBadge" class="px-2 py-0.5 rounded text-[10.5px] font-black bg-amber-500/30 text-amber-200 border border-amber-500/50">B-코어+조립(원안)</span>
             <span>총 견적금액</span>
             <span class="text-emerald-400 text-xs font-black">(Fee제외 / VAT별도)</span>
           </div>
@@ -6904,11 +6977,11 @@ body.is-3d-moving #btnExpand4dHandle {
         </div>
         <div class="flex flex-wrap items-center gap-2 text-xs">
           <!-- 모달 내부 즉시 공법 전환 퀵 탭 셀렉터 -->
-          <div class="flex items-center gap-1 bg-slate-950/90 p-1 rounded-lg border border-slate-700 mr-1 sm:mr-2">
-            <button type="button" data-est-method="prefab" class="btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-bold transition">B·원안</button>
-            <button type="button" data-est-method="onsite" class="btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-bold transition">A·용접</button>
-            <button type="button" data-est-method="anchorWeld" class="btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-bold transition">C·앙카</button>
-            <button type="button" data-est-method="anchorAssembly" class="btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-bold transition">D·브라켓</button>
+          <div class="flex flex-wrap items-center gap-1 bg-slate-950/90 p-1 rounded-lg border border-slate-700 mr-1 sm:mr-2">
+            <button type="button" data-est-method="prefab" class="btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-bold transition whitespace-nowrap">B-코어+조립(원안)</button>
+            <button type="button" data-est-method="onsite" class="btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-bold transition whitespace-nowrap">A-코어+용접</button>
+            <button type="button" data-est-method="anchorWeld" class="btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-bold transition whitespace-nowrap">C-앙커+용접</button>
+            <button type="button" data-est-method="anchorAssembly" class="btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-bold transition whitespace-nowrap">D-앙커+조립</button>
           </div>
           <div class="bg-slate-950/80 px-3 py-1.5 rounded-lg border border-slate-700 text-right">
             <span class="text-[10px] text-slate-400 block">직접공사비 (재료+노무)</span>
@@ -6918,23 +6991,19 @@ body.is-3d-moving #btnExpand4dHandle {
             <span class="text-[10px] text-slate-400 block">법정 간접비 (7종)</span>
             <span id="estModalIndirectCost" class="font-bold text-amber-300 font-mono">₩ 97,356</span>
           </div>
-          <div class="bg-slate-950/80 px-3 py-1.5 rounded-lg border border-slate-700 text-right">
-            <span class="text-[10px] text-slate-400 block">낙찰율</span>
-            <span class="font-bold text-emerald-400 font-mono">83.5%</span>
-          </div>
         </div>
       </div>
 
-      <!-- 모달 탭 스위처 (shrink-0, min-h-[46px], z-10 적용으로 탭 묻힘 완전 방지) -->
+      <!-- 모달 탭 스위처 (제48장: 4대 공법 비교 탭 제일 좌측 [1] 배치) -->
       <div class="flex border-b border-slate-800 bg-slate-950/50 px-4 pt-2 gap-1 overflow-x-auto shrink-0 min-h-[46px] z-10 custom-scrollbar">
-        <button id="tabBtnEst1" class="est-tab-btn active px-3.5 py-2 rounded-t-lg text-xs font-bold border-b-2 border-amber-400 text-amber-300 bg-slate-900 shrink-0 whitespace-nowrap transition">
-          📜 [1] 견적서 갑지 (총괄 요약)
+        <button id="tabBtnEst3" class="est-tab-btn active px-3.5 py-2 rounded-t-lg text-xs font-bold border-b-2 border-amber-400 text-amber-300 bg-slate-900 shrink-0 whitespace-nowrap transition">
+          ⚖️ [1] 4대 공법 비교견적 (2026 하반기)
+        </button>
+        <button id="tabBtnEst1" class="est-tab-btn px-3.5 py-2 rounded-t-lg text-xs font-bold text-slate-400 hover:text-slate-200 shrink-0 whitespace-nowrap transition">
+          📜 [2] 견적서 갑지 (총괄 요약)
         </button>
         <button id="tabBtnEst2" class="est-tab-btn px-3.5 py-2 rounded-t-lg text-xs font-bold text-slate-400 hover:text-slate-200 shrink-0 whitespace-nowrap transition">
-          📋 [2] 상세 내역서 (직접·간접비 분개)
-        </button>
-        <button id="tabBtnEst3" class="est-tab-btn px-3.5 py-2 rounded-t-lg text-xs font-bold text-slate-400 hover:text-slate-200 shrink-0 whitespace-nowrap transition">
-          ⚖️ [3] 4대 공법 비교견적 (2026 하반기)
+          📋 [3] 상세 내역서 (직접·간접비 분개)
         </button>
         <button id="tabBtnEst4" class="est-tab-btn px-3.5 py-2 rounded-t-lg text-xs font-bold text-slate-400 hover:text-slate-200 shrink-0 whitespace-nowrap transition">
           🔬 [4] 부재별 단위환산 적산표
@@ -6947,8 +7016,8 @@ body.is-3d-moving #btnExpand4dHandle {
       <!-- 모달 본문 영역 (flex-1 min-h-0 추가로 스크롤 영역 격리) -->
       <div class="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs flex-1 min-h-0">
         
-        <!-- 탭 1: 견적서 갑지 -->
-        <div id="estTabContent1" class="space-y-4">
+        <!-- 탭 2: 견적서 갑지 -->
+        <div id="estTabContent1" class="hidden space-y-4">
           <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-slate-800 pb-3">
               <div>
@@ -6991,7 +7060,11 @@ body.is-3d-moving #btnExpand4dHandle {
               </div>
             </div>
 
-            <!-- 갑지 비목별 집계표 -->
+            <!-- 갑지 비목별 집계표 (각 행 마우스 오버 시 품셈·일위대가·단가비교·단위환산 툴팁 연동) -->
+            <div class="flex items-center justify-between text-[11px] text-sky-300/90 px-0.5">
+              <span class="font-bold">📊 비목별 원가 집계표</span>
+              <span class="text-[10.5px] text-slate-400">💡 각 항목 행에 마우스 커서를 올리면 <b class="text-sky-300">품셈 산식·일위대가·단가비교·단위환산</b> 근거가 요약 표시됩니다.</span>
+            </div>
             <div class="overflow-x-auto rounded-lg border border-slate-800">
               <table class="w-full text-left text-xs border-collapse">
                 <thead>
@@ -7004,23 +7077,23 @@ body.is-3d-moving #btnExpand4dHandle {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/80 bg-slate-950 text-slate-200">
-                  <tr class="font-bold bg-slate-900/40"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">I</td><td class="py-1.5 px-3 text-sky-300 whitespace-nowrap" colspan="2">직접공사비 소계</td><td id="estTab1DirectSubtotal" class="py-1.5 px-3 text-right text-sky-300 whitespace-nowrap">1,774,490</td><td class="whitespace-nowrap">직접비 합계</td></tr>
-                  <tr><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">1</td><td class="py-1.5 px-3 whitespace-nowrap">재료비</td><td id="estTab1MaterialSpec" class="py-1.5 px-3 text-slate-400 whitespace-nowrap">난간대 세트 + 코어장비 렌탈비</td><td id="estTab1MaterialCost" class="py-1.5 px-3 text-right whitespace-nowrap">1,550,000</td><td class="whitespace-nowrap">내역서 참조</td></tr>
-                  <tr><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">2</td><td class="py-1.5 px-3 whitespace-nowrap">노무비</td><td id="estTab1LaborSpec" class="py-1.5 px-3 text-slate-400 whitespace-nowrap">보통인부 1인 (시중노임단가)</td><td id="estTab1LaborCost" class="py-1.5 px-3 text-right whitespace-nowrap">224,490</td><td class="whitespace-nowrap">내역서 참조</td></tr>
-                  <tr><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">3</td><td class="py-1.5 px-3 whitespace-nowrap">기계/기타경비</td><td id="estTab1ExpenseSpec" class="py-1.5 px-3 text-slate-400 whitespace-nowrap">내역서 직영 경비</td><td id="estTab1ExpenseCost" class="py-1.5 px-3 text-right whitespace-nowrap">0</td><td class="whitespace-nowrap">재료비 포함</td></tr>
+                  <tr data-est-tip="direct" class="est-tip-row font-bold bg-slate-900/40"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">I</td><td class="py-1.5 px-3 text-sky-300 whitespace-nowrap" colspan="2">직접공사비 소계 <span class="text-[9.5px] text-sky-400/70 font-normal ml-1">ⓘ</span></td><td id="estTab1DirectSubtotal" class="py-1.5 px-3 text-right text-sky-300 whitespace-nowrap">1,774,490</td><td class="whitespace-nowrap">직접비 합계</td></tr>
+                  <tr data-est-tip="material" class="est-tip-row"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">1</td><td class="py-1.5 px-3 whitespace-nowrap">재료비 <span class="text-[9.5px] text-sky-400/70 ml-0.5">ⓘ</span></td><td id="estTab1MaterialSpec" class="py-1.5 px-3 text-slate-400 whitespace-nowrap">난간대 세트 + 코어장비 렌탈비</td><td id="estTab1MaterialCost" class="py-1.5 px-3 text-right whitespace-nowrap">1,550,000</td><td class="whitespace-nowrap">내역서 참조</td></tr>
+                  <tr data-est-tip="labor" class="est-tip-row"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">2</td><td class="py-1.5 px-3 whitespace-nowrap">노무비 <span class="text-[9.5px] text-sky-400/70 ml-0.5">ⓘ</span></td><td id="estTab1LaborSpec" class="py-1.5 px-3 text-slate-400 whitespace-nowrap">보통인부 1인 (시중노임단가)</td><td id="estTab1LaborCost" class="py-1.5 px-3 text-right whitespace-nowrap">224,490</td><td class="whitespace-nowrap">내역서 참조</td></tr>
+                  <tr data-est-tip="expense" class="est-tip-row"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">3</td><td class="py-1.5 px-3 whitespace-nowrap">기계/기타경비 <span class="text-[9.5px] text-sky-400/70 ml-0.5">ⓘ</span></td><td id="estTab1ExpenseSpec" class="py-1.5 px-3 text-slate-400 whitespace-nowrap">내역서 직영 경비</td><td id="estTab1ExpenseCost" class="py-1.5 px-3 text-right whitespace-nowrap">0</td><td class="whitespace-nowrap">재료비 포함</td></tr>
                   
-                  <tr class="font-bold bg-slate-900/40"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">II</td><td class="py-1.5 px-3 text-amber-300 whitespace-nowrap" colspan="2">간접공사비 소계 (법정 7종)</td><td id="estTab1IndirectSubtotal" class="py-1.5 px-3 text-right text-amber-300 whitespace-nowrap">97,356</td><td class="whitespace-nowrap">법정 요율 적용</td></tr>
-                  <tr><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">4</td><td class="py-1.5 px-3 whitespace-nowrap">국민연금보험료</td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">노무비 × 4.75%</td><td id="estTab1Pension" class="py-1.5 px-3 text-right whitespace-nowrap">10,663</td><td class="whitespace-nowrap">모든공사 적용</td></tr>
-                  <tr><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">5</td><td class="py-1.5 px-3 whitespace-nowrap">건강보험료</td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">노무비 × 3.595%</td><td id="estTab1Health" class="py-1.5 px-3 text-right whitespace-nowrap">8,070</td><td class="whitespace-nowrap">모든공사 적용</td></tr>
-                  <tr><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">6</td><td class="py-1.5 px-3 whitespace-nowrap">노인장기요양보험료</td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">건강보험료 × 12.95%</td><td id="estTab1Care" class="py-1.5 px-3 text-right whitespace-nowrap">1,045</td><td class="whitespace-nowrap">모든공사 적용</td></tr>
-                  <tr><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">7</td><td class="py-1.5 px-3 whitespace-nowrap">고용보험료</td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">노무비 × 1.01%</td><td id="estTab1Employ" class="py-1.5 px-3 text-right whitespace-nowrap">2,267</td><td class="whitespace-nowrap">모든공사 적용</td></tr>
-                  <tr><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">8</td><td class="py-1.5 px-3 whitespace-nowrap">산재보험료</td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">노무비 × 3.56%</td><td id="estTab1Accident" class="py-1.5 px-3 text-right whitespace-nowrap">7,992</td><td class="whitespace-nowrap">모든공사 적용</td></tr>
-                  <tr><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">9</td><td class="py-1.5 px-3 whitespace-nowrap">산업안전보건관리비</td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">(재료비 + 노무비) × 2.93%</td><td id="estTab1Safety" class="py-1.5 px-3 text-right font-semibold text-amber-200 whitespace-nowrap">51,993</td><td class="whitespace-nowrap">건설업 고시요율</td></tr>
-                  <tr><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">10</td><td class="py-1.5 px-3 whitespace-nowrap">일반관리비 및 이윤</td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">(노무비 + 간접공사비) × 5.0%</td><td id="estTab1Admin" class="py-1.5 px-3 text-right whitespace-nowrap">15,326</td><td class="whitespace-nowrap">요율 5% 적용</td></tr>
+                  <tr data-est-tip="indirect" class="est-tip-row font-bold bg-slate-900/40"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">II</td><td class="py-1.5 px-3 text-amber-300 whitespace-nowrap" colspan="2">간접공사비 소계 (법정 7종) <span class="text-[9.5px] text-amber-400/70 font-normal ml-1">ⓘ</span></td><td id="estTab1IndirectSubtotal" class="py-1.5 px-3 text-right text-amber-300 whitespace-nowrap">97,356</td><td class="whitespace-nowrap">법정 요율 적용</td></tr>
+                  <tr data-est-tip="pension" class="est-tip-row"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">4</td><td class="py-1.5 px-3 whitespace-nowrap">국민연금보험료 <span class="text-[9.5px] text-sky-400/70 ml-0.5">ⓘ</span></td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">노무비 × 4.75%</td><td id="estTab1Pension" class="py-1.5 px-3 text-right whitespace-nowrap">10,663</td><td class="whitespace-nowrap">모든공사 적용</td></tr>
+                  <tr data-est-tip="health" class="est-tip-row"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">5</td><td class="py-1.5 px-3 whitespace-nowrap">건강보험료 <span class="text-[9.5px] text-sky-400/70 ml-0.5">ⓘ</span></td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">노무비 × 3.595%</td><td id="estTab1Health" class="py-1.5 px-3 text-right whitespace-nowrap">8,070</td><td class="whitespace-nowrap">모든공사 적용</td></tr>
+                  <tr data-est-tip="care" class="est-tip-row"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">6</td><td class="py-1.5 px-3 whitespace-nowrap">노인장기요양보험료 <span class="text-[9.5px] text-sky-400/70 ml-0.5">ⓘ</span></td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">건강보험료 × 12.95%</td><td id="estTab1Care" class="py-1.5 px-3 text-right whitespace-nowrap">1,045</td><td class="whitespace-nowrap">모든공사 적용</td></tr>
+                  <tr data-est-tip="employ" class="est-tip-row"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">7</td><td class="py-1.5 px-3 whitespace-nowrap">고용보험료 <span class="text-[9.5px] text-sky-400/70 ml-0.5">ⓘ</span></td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">노무비 × 1.01%</td><td id="estTab1Employ" class="py-1.5 px-3 text-right whitespace-nowrap">2,267</td><td class="whitespace-nowrap">모든공사 적용</td></tr>
+                  <tr data-est-tip="accident" class="est-tip-row"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">8</td><td class="py-1.5 px-3 whitespace-nowrap">산재보험료 <span class="text-[9.5px] text-sky-400/70 ml-0.5">ⓘ</span></td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">노무비 × 3.56%</td><td id="estTab1Accident" class="py-1.5 px-3 text-right whitespace-nowrap">7,992</td><td class="whitespace-nowrap">모든공사 적용</td></tr>
+                  <tr data-est-tip="safety" class="est-tip-row"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">9</td><td class="py-1.5 px-3 whitespace-nowrap">산업안전보건관리비 <span class="text-[9.5px] text-sky-400/70 ml-0.5">ⓘ</span></td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">(재료비 + 노무비) × 2.93%</td><td id="estTab1Safety" class="py-1.5 px-3 text-right font-semibold text-amber-200 whitespace-nowrap">51,993</td><td class="whitespace-nowrap">건설업 고시요율</td></tr>
+                  <tr data-est-tip="admin" class="est-tip-row"><td class="py-1.5 px-3 text-slate-500 whitespace-nowrap">10</td><td class="py-1.5 px-3 whitespace-nowrap">일반관리비 및 이윤 <span class="text-[9.5px] text-sky-400/70 ml-0.5">ⓘ</span></td><td class="py-1.5 px-3 text-slate-400 whitespace-nowrap">(노무비 + 간접공사비) × 5.0%</td><td id="estTab1Admin" class="py-1.5 px-3 text-right whitespace-nowrap">15,326</td><td class="whitespace-nowrap">요율 5% 적용</td></tr>
                   
-                  <tr class="font-extrabold bg-amber-950/40 text-amber-200 text-sm whitespace-nowrap">
+                  <tr data-est-tip="total" class="est-tip-row font-extrabold bg-amber-950/40 text-amber-200 text-sm whitespace-nowrap">
                     <td class="py-2.5 px-3 text-center whitespace-nowrap" colspan="3">
-                      총 견적금액 (단수조정 1,000원 미만 절사)<br/>
+                      총 견적금액 (단수조정 1,000원 미만 절사) <span class="text-[10px] text-sky-300 font-normal">ⓘ</span><br/>
                       <span class="text-xs font-black text-emerald-400">(Fee제외 / VAT별도)</span>
                     </td>
                     <td id="estTab1TotalCost" class="py-2.5 px-3 text-right text-emerald-300 text-base whitespace-nowrap">₩ 1,871,000</td>
@@ -7032,13 +7105,13 @@ body.is-3d-moving #btnExpand4dHandle {
           </div>
         </div>
 
-        <!-- 탭 2: 상세 내역서 (엑셀 내역서 시트 100% 일치) -->
+        <!-- 탭 3: 상세 내역서 (엑셀 내역서 시트 100% 일치) -->
         <div id="estTabContent2" class="hidden space-y-4">
           <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
-              <div class="flex items-center gap-2">
+              <div class="flex flex-wrap items-center gap-2">
                 <h3 class="text-sm font-bold text-white whitespace-nowrap">📋 주요 공종별 직접공사비 세부 내역서 (내역서 시트)</h3>
-                <span class="text-[11px] text-slate-400 whitespace-nowrap">(적용 낙찰율: <b class="text-amber-300">83.5%</b>)</span>
+                <span class="text-[10.5px] text-sky-300/90 whitespace-nowrap">💡 항목에 마우스를 올리면 품셈·일위대가·단가비교·단위환산 툴팁 표시</span>
               </div>
               <button type="button" class="btn-goto-est-tab5 px-2.5 py-1 rounded bg-sky-600/30 hover:bg-sky-500/40 text-sky-200 border border-sky-500/50 text-[11px] font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap">
                 📑 타 공법(A/C/D) 품셈근거·일위대가 비교 ↗
@@ -7117,8 +7190,8 @@ body.is-3d-moving #btnExpand4dHandle {
           </div>
         </div>
 
-        <!-- 탭 3: 2026 하반기 한국 건설기준 4대 공법 비교견적 (심층 유추 제안) -->
-        <div id="estTabContent3" class="hidden space-y-4">
+        <!-- 탭 1: 2026 하반기 한국 건설기준 4대 공법 비교견적 (제일 좌측 기본 활성 탭) -->
+        <div id="estTabContent3" class="space-y-4">
 
             <!-- 🏛️ 국가 공인 기준 핵심 적용 및 견적 작성업체 구분 공표 배너 -->
             <div class="p-3 bg-indigo-950/40 border border-indigo-500/50 rounded-xl flex items-start gap-3 text-xs shadow-lg">
@@ -7181,13 +7254,13 @@ body.is-3d-moving #btnExpand4dHandle {
                     <tr id="rowSummaryMethodB" class="bg-amber-950/30 border-l-4 border-amber-400 hover:bg-amber-950/50 transition">
                       <td class="py-3 px-3 font-bold text-amber-300 whitespace-nowrap align-top">
                         <div class="space-y-1">
-                          <span class="px-2 py-0.5 rounded bg-amber-500/30 text-amber-200 font-black text-[11px] inline-block border border-amber-400/40">공법 B (원안)</span>
+                          <span class="px-2 py-0.5 rounded bg-amber-500/30 text-amber-200 font-black text-[11px] inline-block border border-amber-400/40">B-코어+조립(원안)</span>
                           <span class="block text-[10px] text-emerald-400 font-extrabold">🏆 최종 채택</span>
                           <span class="block text-[9.5px] text-emerald-300 font-semibold mt-0.5">시공사: ㈜일성건축 (원안 실견적)</span>
                         </div>
                       </td>
                       <td class="py-3 px-3 align-top">
-                        <b class="text-white text-[12px]">공장 선조립 + 습식 코어 매립 조립</b><br/>
+                        <b class="text-white text-[12px]">습식 코어 매립 + 공장 선조립 완제품 설치</b><br/>
                         <span class="text-slate-300 text-[11px] block mt-0.5">
                           공장 정밀 지그 완제품 제작 반입 → 계단 슬래브 D70 코어 드릴 습식 천공(130~140mm 매립) → 완제품 난간대 직결 근입·수직 고정 → 60MPa 초속경 무수축 그라우트 주입 충진 및 비오염 실리콘 코킹 마감
                         </span>
@@ -7217,11 +7290,11 @@ body.is-3d-moving #btnExpand4dHandle {
                     <!-- 공법 A (현장 맞춤제작) -->
                     <tr id="rowSummaryMethodA" class="hover:bg-slate-900/60 transition">
                       <td class="py-3 px-3 font-bold text-slate-300 whitespace-nowrap align-top">
-                        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[11px]">공법 A</span>
+                        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[11px]">A-코어+용접</span>
                         <span class="block text-[9.5px] text-amber-300 font-semibold mt-1">시공사: 미상 (국가 공인 기준 직접 산출)</span>
                       </td>
                       <td class="py-3 px-3 align-top">
-                        <b class="text-white text-[12px]">현장 파이프 절단·알곤용접 + 코어 매립</b><br/>
+                        <b class="text-white text-[12px]">습식 코어 매립 + 현장 파이프 절단·알곤용접</b><br/>
                         <span class="text-slate-300 text-[11px] block mt-0.5">
                           파이프 원자재 현장 반입 → 현장 실측 가공·절단 → 지주 코어 매립 및 수직 레벨 조정 → 횡대/손잡이 현장 전둘레 TIG 알곤용접 → 그라인더 비드 연마 → 무수축 그라우트 충진
                         </span>
@@ -7247,16 +7320,16 @@ body.is-3d-moving #btnExpand4dHandle {
                       </td>
                     </tr>
 
-                    <!-- 공법 C (플레이트 앙카 고정식) -->
+                    <!-- 공법 C (플레이트 앙커 + 현장 용접) -->
                     <tr id="rowSummaryMethodC" class="hover:bg-slate-900/60 transition">
                       <td class="py-3 px-3 font-bold text-slate-300 whitespace-nowrap align-top">
-                        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[11px]">공법 C</span>
+                        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[11px]">C-앙커+용접</span>
                         <span class="block text-[9.5px] text-amber-300 font-semibold mt-1">시공사: 미상 (국가 공인 기준 직접 산출)</span>
                       </td>
                       <td class="py-3 px-3 align-top">
-                        <b class="text-white text-[12px]">플레이트 앙카 볼트 표면 고정식</b><br/>
+                        <b class="text-white text-[12px]">플레이트 앙커 볼트 고정 + 현장 알곤용접식</b><br/>
                         <span class="text-slate-300 text-[11px] block mt-0.5">
-                          화강석 상면 타공(D10, 4홀/지주) → M10 세트앙카 매립 타격 정착 → 지주 하단 베이스플레이트 거치 및 볼트 너트 체결 → 베이스 4면 실리콘 코킹 및 PVC 앙커볼트 보호캡(16EA) 마감
+                          화강석 상면 타공(Ø12, 4홀×4지주=16EA) → M10 세트앙커 매립 타격 정착 → 120×120 베이스플레이트 거치 및 횡대/손잡이 현장 용접 → 베이스 4면 실리콘 코킹 및 PVC 앙커볼트 보호캡(16EA) 마감
                         </span>
                       </td>
                       <td class="py-3 px-3 text-right font-black text-amber-200 text-sm align-top whitespace-nowrap">
@@ -7271,9 +7344,9 @@ body.is-3d-moving #btnExpand4dHandle {
                         • 공기 1일 시공 가능
                       </td>
                       <td class="py-3 px-3 text-rose-300 text-[11px] align-top">
-                        <b class="text-rose-400">• ⚠️ 외력 전도 취약 (전도·유격 치명적 하자):</b> 횡하중 지렛대 인발력 집중으로 장기 보행 시 앙카 헐거워짐 흔들림 및 화강석 모서리 균열 파손(Crack) 위험 극심<br/>
+                        <b class="text-rose-400">• ⚠️ 외력 전도 취약 (전도·유격 치명적 하자):</b> 횡하중 지렛대 인발력 집중으로 장기 보행 시 앙커 헐거워짐 흔들림 및 화강석 모서리 균열 파손(Crack) 위험 극심<br/>
                         <b class="text-rose-400">• ⚠️ 옥외 부식·녹물 유출:</b> 일반 도금판 적용 시 2~3년 내 옥외 빗물·제설제에 붉은 녹물 유출로 고급 화강석 영구 변색<br/>
-                        <b class="text-amber-300">• ⚠️ 비용 역전 발생:</b> 옥외 부식 방지용 두꺼운 STS 8t 레이저 플레이트 및 STS 앙카 필수 적용 시 <b>총공사비 2,079,000원으로 급증하여 원안 B보다 더 비쌈!</b>
+                        <b class="text-amber-300">• ⚠️ 비용 역전 발생:</b> 옥외 부식 방지용 두꺼운 STS 8t 레이저 플레이트 및 STS 앙커 필수 적용 시 <b>총공사비 2,079,000원으로 급증하여 원안 B보다 더 비쌈!</b>
                       </td>
                       <td class="py-3 px-3 text-center align-top whitespace-nowrap">
                         <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10.5px] font-bold inline-block">
@@ -7283,16 +7356,16 @@ body.is-3d-moving #btnExpand4dHandle {
                       </td>
                     </tr>
 
-                    <!-- 공법 D (앙카 혼합 고정식) -->
+                    <!-- 공법 D (플레이트 앙커 + 공장 선조립 모듈러 조립식) -->
                     <tr id="rowSummaryMethodD" class="hover:bg-slate-900/60 transition">
                       <td class="py-3 px-3 font-bold text-slate-300 whitespace-nowrap align-top">
-                        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[11px]">공법 D</span>
+                        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[11px]">D-앙커+조립</span>
                         <span class="block text-[9.5px] text-amber-300 font-semibold mt-1">시공사: 미상 (국가 공인 기준 직접 산출)</span>
                       </td>
                       <td class="py-3 px-3 align-top">
-                        <b class="text-white text-[12px]">측면 브라켓 앙카 부착식 (상면 무타공)</b><br/>
+                        <b class="text-white text-[12px]">플레이트 앙커 볼트 고정 + 공장 선조립 모듈러 조립식</b><br/>
                         <span class="text-slate-300 text-[11px] block mt-0.5">
-                          디딤판 상면 타공 배제 → 계단 측면 콘크리트 골조에 측면 특수 ㄷ자 브라켓 앙카링 → 지주 측면 체결 및 수직 레벨 조정 → 볼트 캡 및 실리콘 마감
+                          화강석 상면 타공(Ø12, 4홀×4지주=16EA) → M10 STS 세트앙커 체결 및 120×120 베이스플레이트 고정 → 현장 화기 없이 기성 모듈러 슬리브·리벳/볼트 체결 조립 → 베이스 4면 비오염 실리콘 코킹 및 PVC 앙커볼트 보호캡(16EA) 마감
                         </span>
                       </td>
                       <td class="py-3 px-3 text-right font-black text-slate-200 text-sm align-top whitespace-nowrap">
@@ -7300,18 +7373,18 @@ body.is-3d-moving #btnExpand4dHandle {
                         <span class="text-[9.5px] text-rose-400 font-semibold">(+220,000원 최고가)</span>
                       </td>
                       <td class="py-3 px-3 text-sky-300 text-[11px] align-top">
-                        • 디딤판 상면 타공 0개로 계단 유효 보행폭 100% 보존<br/>
-                        • 계단 상면 방수층 완전 보호
+                        • 현장 용접 0% (무화기 모듈 조립)로 화재 위험 배제<br/>
+                        • 깊은 코어 천공 없이 기성 모듈 부품으로 신속 조립 가능
                       </td>
                       <td class="py-3 px-3 text-amber-300 text-[11px] align-top">
-                        <b class="text-amber-400">• ⚠️ 측면 편심 모멘트 발생:</b> 난간대 수직/횡하중이 측면 앙카로 편심 전달되어 골조 균열 및 브라켓 영구 변형 리스크<br/>
-                        • 특수 절곡 STS 브라켓 주문제작비로 4대 공법 중 최고가 공사비 형성
+                        <b class="text-amber-400">• ⚠️ 앙커 인발·슬리브 체결부 유격 리스크:</b> 바닥 앙커 고정 한계(전도 모멘트 집중) + 조립 슬리브·볼트 이음부 장기 진동 풀림 우려<br/>
+                        • 정밀 가공 STS 모듈러 슬리브·조립 피팅 자재비 추가로 4대 공법 중 최고가 공사비 형성
                       </td>
                       <td class="py-3 px-3 text-center align-top whitespace-nowrap">
                         <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10.5px] font-bold inline-block">
                           ❌ 미채택 (탈락)
                         </span>
-                        <span class="block text-[10px] text-slate-400 mt-1">최고가 비용·편심응력</span>
+                        <span class="block text-[10px] text-slate-400 mt-1">최고가 비용·앙커유격</span>
                       </td>
                     </tr>
                   </tbody>
@@ -7359,10 +7432,10 @@ body.is-3d-moving #btnExpand4dHandle {
                   <!-- B방식 (원안) -->
                   <tr id="rowModalMethodB" class="bg-amber-950/30 border-l-4 border-amber-400">
                     <td class="py-2.5 px-2 font-bold text-amber-300 whitespace-nowrap">
-                      <span class="px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200 font-extrabold text-[10px]">공법 B (원안)</span>
+                      <span class="px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200 font-extrabold text-[10px]">B-코어+조립(원안)</span>
                     </td>
                     <td class="py-2.5 px-2.5 whitespace-nowrap">
-                      <b class="text-white">공장 선조립·현장 코어 습식 매립</b><br/>
+                      <b class="text-white">습식 코어 매립 + 공장 선조립</b><br/>
                       <span class="text-slate-400 text-[10.5px]">공장 지그 완제품 제작 반입, 무수축 그라우팅 고정</span><br/>
                       <span class="text-emerald-400 text-[10px] font-bold">시공사: ㈜일성건축 (원안 실거래 견적 반영)</span>
                     </td>
@@ -7387,10 +7460,10 @@ body.is-3d-moving #btnExpand4dHandle {
                   <!-- A방식 -->
                   <tr id="rowModalMethodA">
                     <td class="py-2.5 px-2 font-bold text-slate-300 whitespace-nowrap">
-                      <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">공법 A</span>
+                      <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">A-코어+용접</span>
                     </td>
                     <td class="py-2.5 px-2.5 whitespace-nowrap">
-                      <b class="text-white">현장 절단·알곤용접 + 코어 매립</b><br/>
+                      <b class="text-white">습식 코어 매립 + 현장 절단·알곤용접</b><br/>
                       <span class="text-slate-400 text-[10.5px]">자재 파이프 반입 후 현장 실측 가공, TIG 전둘레 용접</span><br/>
                       <span class="text-amber-300 text-[10px] font-bold">시공사: 미상 (국가 공인 표준품셈·물가정보 직접 산출)</span>
                     </td>
@@ -7415,11 +7488,11 @@ body.is-3d-moving #btnExpand4dHandle {
                   <!-- C방식 -->
                   <tr id="rowModalMethodC">
                     <td class="py-2.5 px-2 font-bold text-slate-300 whitespace-nowrap">
-                      <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">공법 C</span>
+                      <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">C-앙커+용접</span>
                     </td>
                     <td class="py-2.5 px-2.5 whitespace-nowrap">
-                      <b class="text-white">플레이트 앙카 고정식 (표면 체결)</b><br/>
-                      <span class="text-slate-400 text-[10.5px]">일반 철판 베이스 3t~4t + M10 세트앙카 + 4면 실리콘 코킹 및 PVC 캡(16EA)</span><br/>
+                      <b class="text-white">플레이트 앙커 고정 + 현장 알곤용접</b><br/>
+                      <span class="text-slate-400 text-[10.5px]">베이스 120×120 + M10 세트앙커 16EA + 4면 실리콘 코킹 및 PVC 캡(16EA)</span><br/>
                       <span class="text-amber-300 text-[10px] font-bold">시공사: 미상 (국가 공인 표준품셈·물가정보 직접 산출)</span>
                     </td>
                     <td class="py-2.5 px-2 text-right whitespace-nowrap">1,500,800</td>
@@ -7434,23 +7507,23 @@ body.is-3d-moving #btnExpand4dHandle {
                     <td class="py-2.5 px-1.5 text-center font-bold text-sky-300 whitespace-nowrap">1일</td>
                     <td class="py-2.5 px-2.5 text-rose-400 font-extrabold text-[11px] whitespace-nowrap">
                       ⚠️ 전도 취약 / 유격 발생 위험<br/>
-                      <span class="text-slate-400 text-[10px] font-normal">외력 시 앙카 인발 모멘트 집중, 화강석 균열 위험</span>
+                      <span class="text-slate-400 text-[10px] font-normal">외력 시 앙커 인발 모멘트 집중, 화강석 균열 위험</span>
                     </td>
                     <td class="py-2.5 px-2 text-rose-300 text-[11px] whitespace-nowrap">
                       • 겉보기 1,914,000원이나 <b>치명적 하자 요인</b><br/>
                       • <b>일반 철판 베이스: 옥외 빗물·제설제에 2~3년 내 붉은 녹물 유출</b><br/>
-                      • <b>STS 6t~9t 베이스+STS앙카 필수 적용 시 +16.5만원(총 2,079,000원)으로 역전!</b>
+                      • <b>STS 6t~9t 베이스+STS앙커 필수 적용 시 +16.5만원(총 2,079,000원)으로 역전!</b>
                     </td>
                   </tr>
 
                   <!-- D방식 -->
                   <tr id="rowModalMethodD">
                     <td class="py-2.5 px-2 font-bold text-slate-300 whitespace-nowrap">
-                      <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">공법 D</span>
+                      <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">D-앙커+조립</span>
                     </td>
                     <td class="py-2.5 px-2.5 whitespace-nowrap">
-                      <b class="text-white">측면 브라켓 부착식 (상면 보존)</b><br/>
-                      <span class="text-slate-400 text-[10.5px]">디딤판 상면 타공 0개, 측면 앙카링 + 4면 실리콘 코킹 및 PVC 캡(16EA)</span><br/>
+                      <b class="text-white">플레이트 앙커 고정 + 모듈러 조립식</b><br/>
+                      <span class="text-slate-400 text-[10.5px]">M10 STS 앙커 16EA + 모듈러 슬리브·볼트 무용접 조립 + 4면 실리콘·PVC 캡(16EA)</span><br/>
                       <span class="text-amber-300 text-[10px] font-bold">시공사: 미상 (국가 공인 표준품셈·물가정보 직접 산출)</span>
                     </td>
                     <td class="py-2.5 px-2 text-right whitespace-nowrap">1,610,800</td>
@@ -7462,12 +7535,12 @@ body.is-3d-moving #btnExpand4dHandle {
                     </td>
                     <td class="py-2.5 px-1.5 text-center text-slate-400 whitespace-nowrap">1~1.5일</td>
                     <td class="py-2.5 px-2.5 text-amber-300 font-bold text-[11px] whitespace-nowrap">
-                      ⚠️ 측면 편심 모멘트 주의<br/>
-                      <span class="text-slate-400 text-[10px] font-normal">상면 보존되나 측면 편심 하중으로 골조 보강 필수</span>
+                      ⚠️ 앙커 인발·슬리브 유격 주의<br/>
+                      <span class="text-slate-400 text-[10px] font-normal">표면 앙커 고정 한계 + 모듈 이음부 장기 유격 점검 필요</span>
                     </td>
                     <td class="py-2.5 px-2 text-sky-300 text-[11px] whitespace-nowrap">
-                      • 계단 유효 보행폭 100% 보존<br/>
-                      • 특수 ㄷ자 브라켓 가공비 반영 (+8.5%)
+                      • 현장 용접 0% (무화기 조립)<br/>
+                      • 정밀 STS 모듈러 슬리브·피팅 가공비로 최고가 (+11.8%)
                     </td>
                   </tr>
                 </tbody>
@@ -7664,7 +7737,7 @@ body.is-3d-moving #btnExpand4dHandle {
                 </div>
               </div>
               <button type="button" id="btnJumpToCompareTabFrom5" class="btn-goto-est-tab3 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition shadow-md flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
-                <span>⚖️ [3] 공법 비교표·취합표 바로가기 ↗</span>
+                <span>⚖️ [1] 4대 공법 비교표·취합표 바로가기 ↗</span>
               </button>
             </div>
 
@@ -7906,41 +7979,40 @@ body.is-3d-moving #btnExpand4dHandle {
                       </td>
                     </tr>
                     <tr>
-                      <td class="py-2 px-2.5 font-bold text-white">M10 세트앙카 매립<br/><span class="text-[10px] text-slate-400 font-normal">(공법 D)</span></td>
+                      <td class="py-2 px-2.5 font-bold text-white">M10 STS 세트앙커 매립<br/><span class="text-[10px] text-slate-400 font-normal">(D-앙커+조립)</span></td>
                       <td class="py-2 px-2 text-center">개소</td>
-                      <td class="py-2 px-2 text-center font-bold text-amber-300 font-mono text-sm">12개소</td>
+                      <td class="py-2 px-2 text-center font-bold text-amber-300 font-mono text-sm">16개소</td>
                       <td class="py-2 px-3 text-slate-300">
-                        지주 3개소 베이스플레이트: P1(4홀), P2(4홀), P3(4홀)<br/>
-                        * P4는 계단참 측면 브라켓 알곤 직결용접 (1개소)
+                        지주 4개소 베이스플레이트: P1(4홀), P2(4홀), P3(4홀), P4(4홀)<br/>
+                        * 현장 무용접 모듈러 슬리브·볼트 체결 조립식
                       </td>
                       <td class="py-2 px-3 text-slate-400 font-mono">
-                        (상부 지주 3EA × 4홀) = <strong class="text-emerald-300 font-bold">12개소</strong><br/>
-                        + P4 지주 계단참 측면 직결 알곤용접 1개소
+                        지주 4개소 × 베이스플레이트당 4홀 타공 및 앙커링<br/>
+                        = 4 × 4 = <strong class="text-emerald-300 font-bold">16개소</strong> (M10×80L STS 세트앙커 + 모듈 슬리브)
                       </td>
                     </tr>
                     <tr>
-                      <td class="py-2 px-2.5 font-bold text-white">PVC 앙커볼트 보호캡<br/><span class="text-[10px] text-slate-400 font-normal">(공법 C/D)</span></td>
+                      <td class="py-2 px-2.5 font-bold text-white">PVC 앙커볼트 보호캡<br/><span class="text-[10px] text-slate-400 font-normal">(C-앙커+용접 / D-앙커+조립)</span></td>
                       <td class="py-2 px-2 text-center">EA</td>
-                      <td class="py-2 px-2 text-center font-bold text-amber-300 font-mono text-sm">16 / 12EA</td>
+                      <td class="py-2 px-2 text-center font-bold text-amber-300 font-mono text-sm">16EA</td>
                       <td class="py-2 px-3 text-slate-300">
-                        노출 앵커볼트 너트 상부: 공법 C(16개 볼트), 공법 D(12개 볼트)
+                        노출 앙커볼트 너트 상부: 공법 C(16개 볼트), 공법 D(16개 볼트) 동일
                       </td>
                       <td class="py-2 px-3 text-slate-400 font-mono">
-                        체결 앵커볼트 돌출 너트 1:1 결속 마감<br/>
-                        공법 C: 16개 볼트 = <strong class="text-emerald-300 font-bold">16EA</strong> / 공법 D: 12개 볼트 = <strong class="text-emerald-300 font-bold">12EA</strong>
+                        체결 앙커볼트 돌출 너트 1:1 결속 마감<br/>
+                        공법 C·D 공통: 4지주 × 4볼트 = <strong class="text-emerald-300 font-bold">16EA</strong>
                       </td>
                     </tr>
                     <tr>
-                      <td class="py-2 px-2.5 font-bold text-white">베이스 4면 실리콘 코킹<br/><span class="text-[10px] text-slate-400 font-normal">(공법 C/D)</span></td>
+                      <td class="py-2 px-2.5 font-bold text-white">베이스 4면 실리콘 코킹<br/><span class="text-[10px] text-slate-400 font-normal">(C-앙커+용접 / D-앙커+조립)</span></td>
                       <td class="py-2 px-2 text-center">개소(m)</td>
                       <td class="py-2 px-2 text-center font-bold text-amber-300 font-mono text-sm">4개소<br/>(1.92m)</td>
                       <td class="py-2 px-3 text-slate-300">
-                        120×120mm 베이스플레이트 외곽 둘레 4변 방수 실링
+                        120×120mm 베이스플레이트 외곽 둘레 4변 방수 실링 (P1~P4 전체)
                       </td>
                       <td class="py-2 px-3 text-slate-400 font-mono">
                         베이스 1EA 둘레 = 4변 × 0.12m = 0.48m<br/>
-                        공법 C: 4개소 × 0.48m = <strong class="text-emerald-300 font-bold">1.92m (4개소 둘레)</strong><br/>
-                        공법 D: 3개소 × 0.48m = <strong class="text-emerald-300 font-bold">1.44m (3개소 둘레)</strong>
+                        공법 C·D 공통: 4개소 × 0.48m = <strong class="text-emerald-300 font-bold">1.92m (4개소 둘레)</strong>
                       </td>
                     </tr>
                     <tr>
@@ -8701,8 +8773,8 @@ body.is-3d-moving #btnExpand4dHandle {
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
               <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
                 <div class="flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-xs font-bold border border-slate-700">공법 D</span>
-                  <span class="text-xs font-bold text-white">측면 C형 브라켓 앙카 부착식 (디딤판 상면 무타공 + 측면 코킹 + PVC 캡)</span>
+                  <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-xs font-bold border border-slate-700">D-앙커+조립</span>
+                  <span class="text-xs font-bold text-white">플레이트 앙커 고정 + 공장 선조립 모듈러 조립식 (4면 코킹 + PVC 캡 16EA)</span>
                 </div>
                 <div class="flex items-center gap-2 text-xs">
                   <span class="text-slate-400">공기: <strong class="text-white">1.0~1.5일</strong></span>
@@ -8715,9 +8787,9 @@ body.is-3d-moving #btnExpand4dHandle {
                 <div>
                   <span class="font-bold text-indigo-300">📖 적용 표준품셈 기준 (KICT 2026년판)</span>
                   <ul class="list-disc list-inside text-slate-300 mt-1 space-y-0.5">
-                    <li>제9장 9-1-2 [앵커볼트 매립설치] <strong class="text-white">(p.528)</strong>: 측면 콘크리트 M10 세트앙카 16개소 타공·고정</li>
-                    <li>제9장 9-3-1 [특수 브라켓형 난간설치] <strong class="text-white">(p.545)</strong>: 측면 C형 브라켓 캔틸레버 수직 레벨링 결구</li>
-                    <li>제8장 8-5-2 및 9-1-5: 측면 브라켓 4개소 비오염 실리콘 코킹 + 16개소 PVC 앙커볼트 캡 마감</li>
+                    <li>제9장 9-1-2 [앵커볼트 매립설치] <strong class="text-white">(p.528)</strong>: 화강석 상면 M10 STS 세트앙커 16개소 타공·고정</li>
+                    <li>제9장 9-3-1 [조립식 스테인리스 난간설치] <strong class="text-white">(p.545)</strong>: 공장 선조립 모듈러 슬리브·리벳/볼트 무용접 체결</li>
+                    <li>제8장 8-5-2 및 9-1-5: 120×120 베이스플레이트 4개소 비오염 실리콘 코킹 + 16개소 PVC 앙커볼트 캡 마감</li>
                   </ul>
                 </div>
                 <div>
@@ -8726,9 +8798,9 @@ body.is-3d-moving #btnExpand4dHandle {
                     <button type="button" class="btn-goto-unit-cost text-[10px] text-sky-400 underline">일위대가 세부 ↗</button>
                   </div>
                   <ul class="list-disc list-inside text-slate-300 mt-1 space-y-0.5">
-                    <li>특수 절곡 C형 브라켓 일체형 난간대 및 측면 앙카 자재비로 <strong class="text-white">직접재료비 ₩ 1,610,800</strong> 발생</li>
-                    <li>측면 수평 천공 및 캔틸레버 결구(철물공 0.7인 + 코킹/캡 0.5인)로 <strong class="text-white">직접노무비 ₩ 319,490</strong></li>
-                    <li>측면 타공 지그·장비 손료 ₩ 51,200 및 법정 간접공사비 ₩ 109,510 산출</li>
+                    <li>공장 선조립 모듈러 슬리브·조립 피팅 난간대 및 STS 앙커 자재비로 <strong class="text-white">직접재료비 ₩ 1,610,800</strong> 발생</li>
+                    <li>상면 앙커 천공·모듈 수직 레벨링 조립(철물공 0.7인 + 코킹/캡 0.5인)으로 <strong class="text-white">직접노무비 ₩ 319,490</strong></li>
+                    <li>해머드릴·토크 체결 지그 손료 ₩ 51,200 및 법정 간접공사비 ₩ 109,510 산출</li>
                   </ul>
                 </div>
               </div>
@@ -8826,10 +8898,10 @@ body.is-3d-moving #btnExpand4dHandle {
               <div class="bg-slate-900/70 border border-slate-800 rounded-lg p-3 space-y-1.5">
                 <div class="flex items-center gap-2 text-amber-300 font-bold text-xs">
                   <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px]">질의 5</span>
-                  <span>"공법 C는 앵커가 16개소인데 공법 D는 왜 12개소인가?"</span>
+                  <span>"C-앙커+용접과 D-앙커+조립은 모두 앙커 16개소인데 왜 원가·시공 방식이 다른가?"</span>
                 </div>
                 <p class="text-slate-300 text-[11px] leading-relaxed">
-                  <strong class="text-white">답변:</strong> 공법 C는 4개 지주 전체(P1, P2, P3, P4)에 4홀 베이스플레이트를 장착하여 <strong class="text-emerald-300 font-bold">총 16개소 (4지주 × 4홀 = 16개소)</strong>를 앵커링하는 반면, 공법 D는 상부 3개 지주(P1, P2, P3)만 바닥 앵커 <strong class="text-emerald-300 font-bold">12개소 (3지주 × 4홀 = 12개소)</strong>를 체결하고 최하단 P4 지주는 계단참 측면 콘크리트 브라켓에 <strong class="text-emerald-300">현장 알곤용접 1개소</strong>로 직결 고정하기 때문입니다.
+                  <strong class="text-white">답변:</strong> 두 공법 모두 지주 4개소(P1~P4)에 4홀 베이스플레이트를 장착해 <strong class="text-emerald-300 font-bold">M10 앙커 16개소(4지주 × 4홀) + 4면 실리콘 코킹(1.92m) + PVC 보호캡 16EA</strong>를 동일하게 적용합니다. 다만 <strong class="text-white">C-앙커+용접</strong>은 현장에서 횡대·손잡이를 알곤용접하는 반면, <strong class="text-white">D-앙커+조립</strong>은 현장 화기를 없애기 위해 정밀 가공된 <strong class="text-emerald-300">STS 모듈러 슬리브·조립 피팅·볼트 체결식</strong>으로 제작하므로 자재 가공비 및 토크 조립 공수가 추가되어 ₩ 2,091,000원이 산출됩니다.
                 </p>
               </div>
 
@@ -9326,16 +9398,16 @@ body.is-3d-moving #btnExpand4dHandle {
                       </td>
                     </tr>
 
-                    <!-- 공법 D (앙카 혼합 고정식) -->
+                    <!-- 공법 D (플레이트 앙커 + 모듈러 조립식) -->
                     <tr id="rowCompareModalMethodD" class="hover:bg-slate-900/60 transition">
                       <td class="py-3 px-3 font-bold text-slate-300 whitespace-nowrap align-top">
-                        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[11px]">공법 D</span>
+                        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[11px]">D-앙커+조립</span>
                         <span class="block text-[9.5px] text-amber-300 font-semibold mt-1">시공사: 미상 (국가 공인 기준 직접 산출)</span>
                       </td>
                       <td class="py-3 px-3 align-top">
-                        <b class="text-white text-[12px]">측면 브라켓 앙카 부착식 (상면 무타공)</b><br/>
+                        <b class="text-white text-[12px]">플레이트 앙커 고정 + 공장 선조립 모듈러 조립식</b><br/>
                         <span class="text-slate-300 text-[11px] block mt-0.5">
-                          디딤판 상면 타공 배제 → 계단 측면 콘크리트 골조에 측면 특수 ㄷ자 브라켓 앙카링 → 지주 측면 체결 및 수직 레벨 조정 → 볼트 캡 및 실리콘 마감
+                          화강석 상면 타공(Ø12, 16홀) → M10 STS 세트앙커 16EA 및 베이스플레이트 체결 → 현장 무용접 모듈러 슬리브·볼트 조립 → 4면 실리콘 코킹 및 PVC 볼트 캡(16EA) 마감
                         </span>
                       </td>
                       <td class="py-3 px-3 text-right font-black text-slate-200 text-sm align-top whitespace-nowrap">
@@ -9343,18 +9415,18 @@ body.is-3d-moving #btnExpand4dHandle {
                         <span class="text-[9.5px] text-rose-400 font-semibold">(+220,000원 최고가)</span>
                       </td>
                       <td class="py-3 px-3 text-sky-300 text-[11px] align-top">
-                        • 디딤판 상면 타공 0개로 계단 유효 보행폭 100% 보존<br/>
-                        • 계단 상면 방수층 완전 보호
+                        • 현장 용접 0% (무화기 모듈 조립)로 화재 위험 배제<br/>
+                        • 깊은 코어 천공 없이 기성 모듈 부품으로 신속 조립 가능
                       </td>
                       <td class="py-3 px-3 text-amber-300 text-[11px] align-top">
-                        <b class="text-amber-400">• ⚠️ 측면 편심 모멘트 발생:</b> 난간대 수직/횡하중이 측면 앙카로 편심 전달되어 골조 균열 및 브라켓 영구 변형 리스크<br/>
-                        • 특수 절곡 STS 브라켓 주문제작비로 4대 공법 중 최고가 공사비 형성
+                        <b class="text-amber-400">• ⚠️ 앙커 인발·슬리브 유격 리스크:</b> 바닥 앙커 고정 한계 + 모듈 슬리브·볼트 체결부 장기 진동 풀림 우려<br/>
+                        • 정밀 가공 STS 모듈러 슬리브·조립 피팅 주문제작비로 4대 공법 중 최고가 공사비 형성
                       </td>
                       <td class="py-3 px-3 text-center align-top whitespace-nowrap">
                         <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10.5px] font-bold inline-block">
                           ❌ 미채택 (탈락)
                         </span>
-                        <span class="block text-[10px] text-slate-400 mt-1">최고가 비용·편심응력</span>
+                        <span class="block text-[10px] text-slate-400 mt-1">최고가 비용·앙커유격</span>
                       </td>
                     </tr>
                   </tbody>
@@ -9373,7 +9445,7 @@ body.is-3d-moving #btnExpand4dHandle {
           <article class="p-3 rounded-xl bg-amber-950/20 border-2 border-amber-400/60 flex flex-col justify-between space-y-2 shadow-lg">
             <div>
               <div class="flex items-center justify-between">
-                <span class="font-extrabold text-amber-300 text-xs">방식 B (원안 채택)</span>
+                <span class="font-extrabold text-amber-300 text-xs">B-코어+조립(원안)</span>
                 <span class="px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-200 text-[10px] font-black">₩ 1,871,000</span>
               </div>
               <p class="text-[11px] text-slate-300 mt-1.5 leading-relaxed">
@@ -9381,7 +9453,7 @@ body.is-3d-moving #btnExpand4dHandle {
               </p>
             </div>
             <button id="btnSelectPrefabFromModal" data-select-method="prefab" class="w-full py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition shadow-md flex items-center justify-center gap-1 cursor-pointer">
-              <span>▶ 방식 B로 4D 재생 (원안)</span>
+              <span>▶ B-코어+조립(원안) 4D 재생</span>
             </button>
           </article>
 
@@ -9389,7 +9461,7 @@ body.is-3d-moving #btnExpand4dHandle {
           <article class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-2">
             <div>
               <div class="flex items-center justify-between">
-                <span class="font-bold text-slate-200 text-xs">방식 A (현장 맞춤)</span>
+                <span class="font-bold text-slate-200 text-xs">A-코어+용접</span>
                 <span class="text-slate-400 text-[10px] font-bold">₩ 2,076,000</span>
               </div>
               <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
@@ -9397,7 +9469,7 @@ body.is-3d-moving #btnExpand4dHandle {
               </p>
             </div>
             <button id="btnSelectOnsiteFromModal" data-select-method="onsite" class="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700 flex items-center justify-center gap-1 cursor-pointer">
-              <span>▶ 방식 A로 4D 재생</span>
+              <span>▶ A-코어+용접 4D 재생</span>
             </button>
           </article>
 
@@ -9405,15 +9477,15 @@ body.is-3d-moving #btnExpand4dHandle {
           <article class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-2">
             <div>
               <div class="flex items-center justify-between">
-                <span class="font-bold text-slate-200 text-xs">방식 C (플레이트 앙카)</span>
+                <span class="font-bold text-slate-200 text-xs">C-앙커+용접</span>
                 <span class="text-rose-400 text-[10px] font-bold">STS보정 ₩ 2,079,000</span>
               </div>
               <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
-                화강석 상면 타공 → M10 세트앙카 매립 → 베이스플레이트 체결 → 4면 실리콘 코킹 및 PVC 앙커볼트 보호캡 마감
+                화강석 상면 타공 → M10 세트앙커 16EA 매립 → 베이스플레이트 체결·현장 용접 → 4면 실리콘 코킹 및 PVC 보호캡 마감
               </p>
             </div>
             <button id="btnSelectAnchorWeldFromModal" data-select-method="anchorWeld" class="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700 flex items-center justify-center gap-1 cursor-pointer">
-              <span>▶ 방식 C로 4D 재생</span>
+              <span>▶ C-앙커+용접 4D 재생</span>
             </button>
           </article>
 
@@ -9421,15 +9493,15 @@ body.is-3d-moving #btnExpand4dHandle {
           <article class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-2">
             <div>
               <div class="flex items-center justify-between">
-                <span class="font-bold text-slate-200 text-xs">방식 D (측면 브라켓)</span>
+                <span class="font-bold text-slate-200 text-xs">D-앙커+조립</span>
                 <span class="text-slate-400 text-[10px] font-bold">₩ 2,091,000</span>
               </div>
               <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
-                디딤판 상면 무타공 → 계단 측면 특수 ㄷ자 브라켓 앙카링 → 지주 측면 거치 및 레벨 체결 → 실리콘 마감
+                화강석 상면 타공 → M10 STS 앙커 16EA·베이스 체결 → 현장 무용접 모듈러 슬리브 조립 → 4면 실리콘·PVC 캡 마감
               </p>
             </div>
             <button id="btnSelectAnchorAssemblyFromModal" data-select-method="anchorAssembly" class="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700 flex items-center justify-center gap-1 cursor-pointer">
-              <span>▶ 방식 D로 4D 재생</span>
+              <span>▶ D-앙커+조립 4D 재생</span>
             </button>
           </article>
         </div>
@@ -9727,10 +9799,10 @@ body.is-3d-moving #btnExpand4dHandle {
     ];
     const makeAnchorStages=(rows,letter)=>rows.map((row,i)=>({step:i,min:[0,5,18,32,48,64,80,93][i],max:[5,18,32,48,64,80,93,100][i],pill:row[0].replace(' 마감',''),title:'[방식 '+letter+' · '+i+'단계] '+row[0].replace(/^\d+\. /,''),desc:row[1]}));
     const METHOD_CONFIG={
-      onsite:{letter:'A',anchor:false,assembly:false,label:'습식 코어 + 현장 용접',badge:'현장 용접 · 양생 조건 확인',stages:STAGE_INFO_ONSITE},
-      prefab:{letter:'B',anchor:false,assembly:true,label:'습식 코어 + 현장 조립',badge:'선조립 · 양생 조건 확인',stages:STAGE_INFO_PREFAB},
-      anchorWeld:{letter:'C',anchor:true,assembly:false,label:'앙카 볼트 + 현장 용접',badge:'베이스·앙카 · 현장 용접',stages:makeAnchorStages(ANCHOR_STAGES_C,'C')},
-      anchorAssembly:{letter:'D',anchor:true,assembly:true,label:'앙카 볼트 + 현장 조립',badge:'베이스·앙카 · 현장 조립',stages:makeAnchorStages(ANCHOR_STAGES_D,'D')}
+      onsite:{letter:'A',anchor:false,assembly:false,label:'A-코어+용접 (습식 코어 + 현장 용접)',badge:'현장 용접 · 양생 조건 확인',stages:STAGE_INFO_ONSITE},
+      prefab:{letter:'B',anchor:false,assembly:true,label:'B-코어+조립(원안) (습식 코어 + 공장 선조립)',badge:'선조립 · 양생 조건 확인',stages:STAGE_INFO_PREFAB},
+      anchorWeld:{letter:'C',anchor:true,assembly:false,label:'C-앙커+용접 (플레이트 앙커 + 현장 용접)',badge:'베이스·앙커 · 현장 용접',stages:makeAnchorStages(ANCHOR_STAGES_C,'C')},
+      anchorAssembly:{letter:'D',anchor:true,assembly:true,label:'D-앙커+조립 (플레이트 앙커 + 모듈러 조립)',badge:'베이스·앙커 · 무용접 조립',stages:makeAnchorStages(ANCHOR_STAGES_D,'D')}
     };
     const currentMethod=()=>METHOD_CONFIG[state.constructionMethod]||METHOD_CONFIG.prefab;
     const isAnchorMethod=()=>currentMethod().anchor;
@@ -9808,7 +9880,7 @@ body.is-3d-moving #btnExpand4dHandle {
     controls.autoRotate = false;
     controls.screenSpacePanning = true;
     controls.target.fromArray(HOME_VIEW.target);
-    controls.maxPolarAngle = Math.PI * 0.90; // 지하 단면도 볼 수 있도록 약간 허용
+    controls.maxPolarAngle = Math.PI * 0.492; // [제48장] 지면 하부 진입 원천 차단 (지면 상부 전용)
     controls.minDistance = 0.35;
     controls.maxDistance = 14;
     // 발코니 참조 대비 최적화: 마우스 회전·이동·휠 줌 감도 30% 즉각 상향
@@ -14501,31 +14573,29 @@ body.is-3d-moving #btnExpand4dHandle {
     let camAnim = null;
 
     function constrainEntranceCamera() {
-      // Revit 3D ViewCube(배면·좌/우 입면·평면·하면) 또는 FL. 절단 평면 활성 시에는 360° 전방위 입면/단면 관찰을 허용!
-      if (state.viewCubeFreeCamera || state.flCutMode && state.flCutMode !== 'off') return;
+      // [제48장 무결성 경계 잠금] 줌 인/아웃·워크뷰·단면·평면·뷰큐브 전 모드에서 지면 하부(y < ground) 및 건물 후면(z < doorLimit) 진입 원천 차단!
       const tread = state.treadDepth / 1000;
       const rise = state.riserHeight / 1000;
       const steps = state.stepCount;
       const landingBack = -(steps-1)*tread-LANDING_DEPTH;
-      const doorLimit = landingBack+.12; // 문틀 중심보다 90mm 바깥쪽
+      const doorLimit = landingBack+.12; // 문틀 중심·건물 외벽 전면선보다 90mm 바깥쪽 (건물 후면 진입 차단)
       const position = camera.position, target = controls.target;
       let changed = false;
       if (position.z < doorLimit) { position.z = doorLimit; changed = true; }
+      const outerWingLimit = Math.max(doorLimit, -1.70);
+      if (Math.abs(position.x) > 2.45 && position.z < outerWingLimit) { position.z = outerWingLimit; changed = true; }
       if (target.z < doorLimit) { target.z = doorLimit; changed = true; }
-      if (state.activeCamPreset !== 'underside') {
-        const {x,z} = position;
-        let floor = 0;
-        if (x >= -state.stairWidth/1000 && x < 0 && z <= .010) {
-          floor = Math.min(steps,1+Math.floor((.010-z)/tread))*rise;
-        } else if (x >= 0 && x <= state.rampWidth/1000 && z < tread) {
-          floor = THREE.MathUtils.clamp((tread-z)/((steps+1)*tread),0,1)*steps*rise;
-        }
-        if (position.y < floor+.10) { position.y = floor+.10; changed = true; }
-        if (!state.xrayMode && state.activeCamPreset !== 'rampCutaway' && target.y < 0) {
-          target.y = 0; changed = true;
-        }
+      const {x,z} = position;
+      let floor = 0;
+      if (x >= -state.stairWidth/1000 && x < 0 && z <= .010) {
+        floor = Math.min(steps,1+Math.floor((.010-z)/tread))*rise;
+      } else if (x >= 0 && x <= state.rampWidth/1000 && z < tread) {
+        floor = THREE.MathUtils.clamp((tread-z)/((steps+1)*tread),0,1)*steps*rise;
       }
-      if(changed && position.distanceToSquared(target) > 1e-8)camera.lookAt(target);
+      const minCamY = Math.max(0.12, floor + 0.10);
+      if (position.y < minCamY) { position.y = minCamY; changed = true; }
+      if (target.y < 0.02) { target.y = 0.02; changed = true; }
+      if (changed && position.distanceToSquared(target) > 1e-8) camera.lookAt(target);
     }
 
     function applyCameraProjection(width, height) {
@@ -14610,9 +14680,9 @@ body.is-3d-moving #btnExpand4dHandle {
           target: new THREE.Vector3(railX, totalRise * 0.35, -totalRun * 0.45)
         },
         underside: {
-          label: "계단 하부 점검 (도로 숨김)",
-          pos: new THREE.Vector3(railX + 1.0, -0.90, 1.15),
-          target: new THREE.Vector3(railX-0.5, -0.18, -totalRun * 0.5)
+          label: "계단 기초·지주 하부 지상 점검 (지면 상부 전용)",
+          pos: new THREE.Vector3(railX + 1.15, 0.24, 1.30),
+          target: new THREE.Vector3(railX - 0.15, 0.22, -totalRun * 0.45)
         },
         walkthrough: {
           label: "1인칭 보행자 워크뷰 (눈높이 1.65m)",
@@ -16353,9 +16423,10 @@ body.is-3d-moving #btnExpand4dHandle {
           camera.position.set(p0.x - 0.95, totalRise + 1.62, -totalRun - 1.15);
           controls.target.set(railX - 0.18, primaryPose.supportFloorY + 0.85 * baseAvatarScale, p0.z);
         } else {
-          camera.position.set(-W_stair - 0.45, totalRise + 2.25, -totalRun - 1.65);
+          camera.position.set(-W_stair - 0.35, totalRise + 2.15, Math.max(-totalRun - LANDING_DEPTH + 0.25, -totalRun - 1.10));
           controls.target.set(-0.10, totalRise + 0.55, -0.35);
         }
+        constrainEntranceCamera();
         camera.lookAt(controls.target);
       }
 
@@ -17243,10 +17314,10 @@ body.is-3d-moving #btnExpand4dHandle {
 
     // [사용자 요구 반영] 4D 시공 타임라인 도크 및 핸들 버튼의 총공사비 (Fee제외) 실시간 연동 딕셔너리
     const METHOD_ESTIMATE_INFO = {
-      onsite: { letter: 'A', name: '공법 A', shortName: '공법 A (현장용접)', amount: '₩ 2,076,000' },
-      prefab: { letter: 'B', name: '공법 B (원안)', shortName: '공법 B (원안)', amount: '₩ 1,871,000' },
-      anchorWeld: { letter: 'C', name: '공법 C', shortName: '공법 C (플레이트앙카)', amount: '₩ 1,914,000' },
-      anchorAssembly: { letter: 'D', name: '공법 D', shortName: '공법 D (모듈슬리브)', amount: '₩ 2,091,000' }
+      onsite: { letter: 'A', name: 'A-코어+용접', shortName: 'A-코어+용접', amount: '₩ 2,076,000' },
+      prefab: { letter: 'B', name: 'B-코어+조립(원안)', shortName: 'B-코어+조립(원안)', amount: '₩ 1,871,000' },
+      anchorWeld: { letter: 'C', name: 'C-앙커+용접', shortName: 'C-앙커+용접', amount: '₩ 1,914,000' },
+      anchorAssembly: { letter: 'D', name: 'D-앙커+조립', shortName: 'D-앙커+조립', amount: '₩ 2,091,000' }
     };
 
     // [무결성 연동 엔진] 공식 견적서(갑지·내역서·비교표) 공법별 100% 실시간 연동 데이터셋
@@ -17254,10 +17325,10 @@ body.is-3d-moving #btnExpand4dHandle {
       prefab: {
         key: 'prefab',
         letter: 'B',
-        name: '공법 B (원안)',
-        shortName: '공법 B (원안)',
+        name: 'B-코어+조립(원안)',
+        shortName: 'B-코어+조립(원안)',
         badgeClass: 'px-2 py-0.5 rounded text-[10.5px] font-black bg-amber-500/30 text-amber-200 border border-amber-500/50',
-        projectName: '시공 B방식 견적서 (3동 현관 난간대 - 공장 선조립 코어매립)',
+        projectName: 'B-코어+조립(원안) 견적서 (3동 현관 난간대 - 습식 코어매립 + 공장 선조립)',
         amountNum: '₩ 1,871,000',
         amountHangul: '일백팔십칠만일천원정',
         calcRemark: '계산치 1,871,846 (단수 1,000원 절사)',
@@ -17317,10 +17388,10 @@ body.is-3d-moving #btnExpand4dHandle {
       onsite: {
         key: 'onsite',
         letter: 'A',
-        name: '공법 A (현장용접)',
-        shortName: '공법 A (현장용접)',
+        name: 'A-코어+용접',
+        shortName: 'A-코어+용접',
         badgeClass: 'px-2 py-0.5 rounded text-[10.5px] font-black bg-rose-500/30 text-rose-200 border border-rose-500/50',
-        projectName: '시공 A방식 견적서 (3동 현관 난간대 - 현장맞춤 알곤용접 코어매립)',
+        projectName: 'A-코어+용접 견적서 (3동 현관 난간대 - 습식 코어매립 + 현장 알곤용접)',
         amountNum: '₩ 2,076,000',
         amountHangul: '이백칠만육천원정',
         calcRemark: '계산치 2,076,000 (표준품셈 역산 정합)',
@@ -17390,10 +17461,10 @@ body.is-3d-moving #btnExpand4dHandle {
       anchorWeld: {
         key: 'anchorWeld',
         letter: 'C',
-        name: '공법 C (플레이트앙카)',
-        shortName: '공법 C (플레이트앙카)',
+        name: 'C-앙커+용접',
+        shortName: 'C-앙커+용접',
         badgeClass: 'px-2 py-0.5 rounded text-[10.5px] font-black bg-sky-500/30 text-sky-200 border border-sky-500/50',
-        projectName: '시공 C방식 견적서 (3동 현관 난간대 - 플레이트 앙카 고정 및 PVC캡 마감)',
+        projectName: 'C-앙커+용접 견적서 (3동 현관 난간대 - 플레이트 앙커 고정 + 현장 용접)',
         amountNum: '₩ 1,914,000',
         amountHangul: '일백구십일만사천원정',
         calcRemark: '계산치 1,914,000 (STS앙카 보정 시 2,079,000원)',
@@ -17470,20 +17541,20 @@ body.is-3d-moving #btnExpand4dHandle {
       anchorAssembly: {
         key: 'anchorAssembly',
         letter: 'D',
-        name: '공법 D (모듈슬리브)',
-        shortName: '공법 D (모듈슬리브)',
+        name: 'D-앙커+조립',
+        shortName: 'D-앙커+조립',
         badgeClass: 'px-2 py-0.5 rounded text-[10.5px] font-black bg-indigo-500/30 text-indigo-200 border border-indigo-500/50',
-        projectName: '시공 D방식 견적서 (3동 현관 난간대 - 디딤판무타공 측면브라켓 앙카식)',
+        projectName: 'D-앙커+조립 견적서 (3동 현관 난간대 - 플레이트 앙커 고정 + 모듈러 조립식)',
         amountNum: '₩ 2,091,000',
         amountHangul: '이백구만일천원정',
-        calcRemark: '계산치 2,091,000 (특수 C브라켓 반영)',
+        calcRemark: '계산치 2,091,000 (모듈러 슬리브·조립 피팅 반영)',
         directSubtotal: '1,981,490',
         materialCost: '1,610,800',
-        materialSpec: '난간대+C형브라켓(1,460,800)+측면앙카(90,000)+실리콘/PVC캡(60,000)',
+        materialSpec: '모듈러 조립 난간대(1,460,800)+STS앙커 16EA(90,000)+실리콘/PVC캡(60,000)',
         laborCost: '319,490',
-        laborSpec: '철물공 측면결구(179,650) + 코킹공 측면방수/PVC캡(139,840)',
+        laborSpec: '철물공 앙커·모듈조립(179,650) + 코킹공 4면실링/PVC캡(139,840)',
         expenseCost: '51,200',
-        expenseSpec: '측면 수평 석재/골조 천공 장비대 및 지그 손료',
+        expenseSpec: '석재 해머드릴 천공 및 토크 체결 지그 손료',
         indirectSubtotal: '109,510',
         indirect: {
           pension: '15,176',
@@ -17495,24 +17566,24 @@ body.is-3d-moving #btnExpand4dHandle {
           admin: '10,213'
         },
         items: [
-          { name: '측면 C형 브라켓 일체형 난간대', spec: 'STS304 1500×1100 측면 돌출 브라켓 특수 지그 제작품', unit: 'set', qty: 1, matUnit: '1,460,800', matAmt: '1,460,800', labUnit: '-', labAmt: '0', total: '1,460,800' },
-          { name: '측면 콘크리트 세트 앙카볼트', spec: 'M10×100mm STS 세트앙카 (지주당 4EA × 4개소 = 16EA)', unit: 'EA', qty: 16, matUnit: '5,625', matAmt: '90,000', labUnit: '-', labAmt: '0', total: '90,000' },
-          { name: '측면 브라켓 접합면 실리콘 코킹', spec: '측면 브라켓-석재 접촉면 빗물 침투 방지 비오염 코킹·백업재 (4개소)', unit: '개소', qty: 4, matUnit: '7,000', matAmt: '28,000', labUnit: '5,613', labAmt: '22,450', total: '50,450' },
-          { name: '고내후성 PVC 앙커볼트 보호캡', spec: 'M10 측면 노출 볼트두부 보호 엔지니어링 PVC캡 및 밀폐재 (16EA)', unit: 'EA', qty: 16, matUnit: '2,000', matAmt: '32,000', labUnit: '784', labAmt: '12,550', total: '44,550' },
-          { name: '측면 석재/골조 정밀 타공 기계경비', spec: '측면 수평 천공 지그 및 다이아몬드 비트 소모품 손료 (직접경비)', unit: '식', qty: 1, matUnit: '51,200(경비)', matAmt: '51,200', labUnit: '-', labAmt: '0', total: '51,200' },
-          { name: '철물공 (측면 캔틸레버 결구)', spec: '측면 앙카 타공 및 브라켓 수직 레벨링 결구 0.70인 (256,650원)', unit: '인', qty: 0.70, matUnit: '-', matAmt: '0', labUnit: '256,650', labAmt: '179,650', total: '179,650' },
-          { name: '코킹공 및 보조 (측면 방수실링/PVC캡)', spec: '측면 방수 코킹 및 PVC 캡 체결 0.50인', unit: '인', qty: 0.50, matUnit: '-', matAmt: '0', labUnit: '209,680', labAmt: '104,840', total: '104,840' }
+          { name: '모듈러 슬리브 조립형 난간대', spec: 'STS304 1500×1100×50Ø 베이스 4개소·정밀 슬리브/볼트 조립 완제품', unit: 'set', qty: 1, matUnit: '1,460,800', matAmt: '1,460,800', labUnit: '-', labAmt: '0', total: '1,460,800' },
+          { name: 'M10 STS 세트 앙커볼트', spec: 'M10×80mm 스테인리스 세트앙커 (지주당 4EA × 4개소 = 16EA)', unit: 'EA', qty: 16, matUnit: '5,625', matAmt: '90,000', labUnit: '-', labAmt: '0', total: '90,000' },
+          { name: '베이스 4면 비오염 실리콘 코킹', spec: '120×120 베이스 둘레 4면 비오염성 변성 실리콘·백업재 방수 코킹 (4개소)', unit: '개소', qty: 4, matUnit: '7,000', matAmt: '28,000', labUnit: '5,613', labAmt: '22,450', total: '50,450' },
+          { name: '고내후성 PVC 앙커볼트 보호캡', spec: 'M10 노출 볼트두부 보호 엔지니어링 PVC캡 및 밀폐재 (16EA)', unit: 'EA', qty: 16, matUnit: '2,000', matAmt: '32,000', labUnit: '784', labAmt: '12,550', total: '44,550' },
+          { name: '석재 해머드릴·조립 지그 기계경비', spec: 'SDS-Plus 12Ø 천공 비트 및 토크 체결 지그 소모품 손료 (직접경비)', unit: '식', qty: 1, matUnit: '51,200(경비)', matAmt: '51,200', labUnit: '-', labAmt: '0', total: '51,200' },
+          { name: '철물공 (앙커 고정·모듈러 조립)', spec: '상면 앙커 타공 및 모듈러 슬리브 수직 레벨링 조립 0.70인 (256,650원)', unit: '인', qty: 0.70, matUnit: '-', matAmt: '0', labUnit: '256,650', labAmt: '179,650', total: '179,650' },
+          { name: '코킹공 및 보조 (4면 방수실링/PVC캡)', spec: '베이스 4면 방수 코킹 및 PVC 캡 압입 체결 0.50인', unit: '인', qty: 0.50, matUnit: '-', matAmt: '0', labUnit: '209,680', labAmt: '104,840', total: '104,840' }
         ],
         noteHtml: `
           <div class="p-3 bg-indigo-950/20 border border-indigo-500/30 rounded-lg text-slate-300 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-                <span>🛡️</span> <span>[공법 D 전용 마감 공정] 디딤판 상면 무타공 + 측면 실리콘 코킹 & PVC 앙커볼트 캡(16EA)</span>
+                <span>🛡️</span> <span>[D-앙커+조립 전용 마감 공정] 무용접 모듈러 조립 + 4면 실리콘 코킹 & PVC 앙커볼트 캡(16EA)</span>
               </span>
               <span class="text-[11px] text-emerald-400 font-bold">+ ₩ 60,000 (Fee제외 직접반영)</span>
             </div>
             <p class="text-[11px] text-slate-300 leading-relaxed">
-              계단 디딤판 상면 타공을 100% 배제하고, 측면 콘크리트 골조에 측면 특수 C형 브라켓을 앙카링하여 결구합니다. 디딤판 상면 방수층 및 유효 폭을 온전히 보존할 수 있으나, 측면 편심 하중 발생 위험과 주문제작비로 인해 <b>4대 공법 중 최고가인 ₩ 2,091,000원</b>이 소요됩니다.
+              화강석 디딤판 상면에 M10 STS 세트앙커 16EA로 베이스플레이트 4개소를 고정한 뒤, 현장 화기 작업 없이 공장 선조립 모듈러 슬리브·볼트 피팅으로 난간대를 체결하고 4면 실리콘 코킹 및 PVC 보호캡(16EA)으로 마감합니다. 현장 용접은 없으나 표면 앙커 고정 한계(인발 모멘트 집중) 및 정밀 조립 피팅 가공비 추가로 <b>4대 공법 중 최고가인 ₩ 2,091,000원</b>이 소요됩니다.
             </p>
           </div>`
         ,
@@ -17533,7 +17604,7 @@ body.is-3d-moving #btnExpand4dHandle {
                 <span class="px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200 text-[10px] font-extrabold border border-amber-400/50">업체정보: 미상</span>
               </div>
               <p class="text-slate-200 text-[10.5px] leading-relaxed">
-                본 <b>공법 D(측면브라켓)</b>의 견적서는 민간 특정 업체의 제출 견적이 아니므로 상호·사업자번호·주소가 모두 <b class="text-amber-300">'미상'</b>이며, 국토교통부·한국건설기술연구원 표준품셈, 조달청/한국물가정보 공인 자재단가, 대한건설협회 2026 하반기 건설업 시중노임단가 및 기획재정부 계약예규 법정 간접비요율을 <b class="text-amber-300">"국가 공인 기준 핵심 적용"</b>하여 객관적으로 직접 적산·산출한 비교 분석 견적서입니다.
+                본 <b>D-앙커+조립</b>의 견적서는 민간 특정 업체의 제출 견적이 아니므로 상호·사업자번호·주소가 모두 <b class="text-amber-300">'미상'</b>이며, 국토교통부·한국건설기술연구원 표준품셈, 조달청/한국물가정보 공인 자재단가, 대한건설협회 2026 하반기 건설업 시중노임단가 및 기획재정부 계약예규 법정 간접비요율을 <b class="text-amber-300">"국가 공인 기준 핵심 적용"</b>하여 객관적으로 직접 적산·산출한 비교 분석 견적서입니다.
               </p>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px] text-slate-300 bg-slate-950/70 p-2 rounded border border-slate-800">
                 <div>• <b>표준품셈:</b> 한국건설기술연구원(KICT) 건설표준품셈 100% 반영</div>
@@ -17612,12 +17683,12 @@ body.is-3d-moving #btnExpand4dHandle {
       document.querySelectorAll('.btn-est-method-switch').forEach(btn => {
         const m = btn.getAttribute('data-est-method');
         if (m === curData.key) {
-          btn.className = 'btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-black transition shadow-sm';
+          btn.className = 'btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-black transition shadow-sm whitespace-nowrap';
           btn.style.background = '#f59e0b';
           btn.style.color = '#020617';
           btn.style.border = '1px solid #fde047';
         } else {
-          btn.className = 'btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300';
+          btn.className = 'btn-est-method-switch px-2 py-1 rounded text-[10.5px] font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 whitespace-nowrap';
           btn.style.background = '';
           btn.style.color = '';
           btn.style.border = '1px solid transparent';
@@ -17689,13 +17760,13 @@ body.is-3d-moving #btnExpand4dHandle {
       const elTab1Remark = document.getElementById('estTab1StatusRemark');
       if (elTab1Remark) elTab1Remark.textContent = curData.calcRemark;
 
-      // [3] 탭 2 (상세 내역서) 동기화
+      // [3] 탭 3 (상세 내역서) 동기화 + 항목별 hover 툴팁 속성 부여
       const elTab2Tbody = document.getElementById('estTab2ItemsTbody');
       if (elTab2Tbody) {
         let html = '';
-        curData.items.forEach(it => {
-          html += `<tr>
-            <td class="py-2 px-2.5 font-bold text-white whitespace-nowrap">${it.name}</td>
+        curData.items.forEach((it, itemIdx) => {
+          html += `<tr data-est-item-idx="${itemIdx}" class="est-tip-row">
+            <td class="py-2 px-2.5 font-bold text-white whitespace-nowrap">${it.name} <span class="text-[9.5px] text-sky-400/75 font-normal">ⓘ</span></td>
             <td class="py-2 px-2.5 text-slate-300 min-w-[200px]">${it.spec}</td>
             <td class="py-2 px-1 text-center whitespace-nowrap">${it.unit}</td>
             <td class="py-2 px-1 text-center font-bold whitespace-nowrap">${it.qty}</td>
@@ -17706,8 +17777,8 @@ body.is-3d-moving #btnExpand4dHandle {
             <td class="py-2 px-2.5 text-right font-extrabold text-white whitespace-nowrap">${it.total}</td>
           </tr>`;
         });
-        html += `<tr class="bg-slate-900/70 font-extrabold text-sky-300 border-t-2 border-slate-700">
-          <td class="py-2.5 px-2.5" colspan="4">직접공사비 합계 (${curData.name})</td>
+        html += `<tr data-est-item-idx="subtotal" class="est-tip-row bg-slate-900/70 font-extrabold text-sky-300 border-t-2 border-slate-700">
+          <td class="py-2.5 px-2.5" colspan="4">직접공사비 합계 (${curData.name}) <span class="text-[9.5px] text-sky-400/75 font-normal">ⓘ</span></td>
           <td class="py-2.5 px-2 text-right" colspan="2">재료비: ₩ ${curData.materialCost}${curData.expenseCost !== '0' ? ` · 경비: ₩ ${curData.expenseCost}` : ''}</td>
           <td class="py-2.5 px-2 text-right" colspan="2">노무비 소계: ₩ ${curData.laborCost}</td>
           <td class="py-2.5 px-2.5 text-right text-emerald-300 text-sm">₩ ${curData.directSubtotal}</td>
@@ -18008,7 +18079,7 @@ body.is-3d-moving #btnExpand4dHandle {
       const get=id=>document.getElementById(id),dock=get('bottom4dDock'),header=get('dockDragHeader'),body=get('bottom4dBody');
       const keep={};for(const id of ['btn4dPrev','btn4dPlay','btn4dNext','slider4dProgress','label4dPercent','select4dSpeed','btnCollapse4dDock','stageTitleText','activeMethodTag','stepButtonsContainer','stageDetailDesc','methodTimeBadge','methodCostBadge','btnMethodOnsite','btnMethodPrefab','btnMethodAnchorWeld','btnMethodAnchorAssembly','btnToggleWalkDock','btnToggleRefDock','btnToggleXray','btnOpenMethodCompareModal'])keep[id]=get(id);
       const button=(id,text)=>{const b=document.createElement('button');b.id=id;b.type='button';b.textContent=text;b.style.cssText='background:#263a50;color:#e5edf4;border:1px solid #51677c';b.setAttribute('aria-expanded','false');return b;};
-      const method=button('timelineMethodButton','B · 코어 조립 ▾'),details=button('timelineDetailsButton','공정 ▾'),review=button('timelineReviewButton','검토 ▾');
+      const method=button('timelineMethodButton','B-코어+조립(원안) ▾'),details=button('timelineDetailsButton','공정 ▾'),review=button('timelineReviewButton','검토 ▾');
       details.title='공정 상세 및 단계별 이동 팝업 열기';
       review.title='다각도 워크뷰 · 도면·사진 · 공법 비교표 열기';
       const drag=document.createElement('span');drag.textContent='⠿';drag.title='재생 바 드래그 이동';drag.style.cssText='cursor:move;color:#7dd3fc;text-align:center';
@@ -18112,7 +18183,7 @@ body.is-3d-moving #btnExpand4dHandle {
     }
     function updateSlimTimeline(){
       const method=document.getElementById('timelineMethodButton');if(!method)return;
-      const cfg=currentMethod();method.textContent=cfg.letter+' · '+(cfg.anchor?'앙카':'코어')+' '+(cfg.assembly?'조립':'용접')+' ▾';method.title=cfg.label;
+      const cfg=currentMethod();method.textContent=cfg.letter+'-'+(cfg.anchor?'앙커':'코어')+'+'+(cfg.assembly?'조립':'용접')+(cfg.letter==='B'?'(원안)':'')+' ▾';method.title=cfg.label;
       if(typeof updateTimelineCostBadge==='function')updateTimelineCostBadge(state.constructionMethod);
       cfg.stages.forEach((stage,i)=>{
         const b=document.getElementById('timelineStage'+i);
@@ -18693,13 +18764,12 @@ body.is-3d-moving #btnExpand4dHandle {
         '총 견적금액: 1,871,000원 (Fee제외 / VAT별도) [일백팔십칠만일천원정]',
         '• 직접공사비 소계: 1,774,490원 (재료비 1,550,000원 + 노무비 224,490원)',
         '• 법정 간접비 소계: 97,356원 (국민/건강/요양/고용/산재/산안비 2.93%/일반관리비 및 이윤 5%)',
-        '• 적용 낙찰율: 83.5% (0.835)',
         '----------------------------------------------------------------',
         '⚖️ [2026 하반기 한국 건설기준 4대 공법 비교견적 (Fee제외)]',
-        '• 공법 B (원안 - 공장선조립+코어매립): ₩ 1,871,000 (공기 1일, 화재위험 0%)',
-        '• 공법 A (현장절단·알곤용접+코어매립): ₩ 2,076,000 (공기 1.5~2일, 용접공 시중노임 반영)',
-        '• 공법 C (플레이트 앙카 고정식):       ₩ 1,914,000 (공기 1일, 4면 실리콘·PVC캡 반영)',
-        '• 공법 D (측면 브라켓 부착식):         ₩ 2,091,000 (공기 1~1.5일, 4면 실리콘·PVC캡 반영)',
+        '• B-코어+조립(원안): ₩ 1,871,000 (습식 코어매립+공장선조립, 공기 1일, 화재위험 0%)',
+        '• A-코어+용접:       ₩ 2,076,000 (습식 코어매립+현장 알곤용접, 공기 1.5~2일)',
+        '• C-앙커+용접:       ₩ 1,914,000 (플레이트 앙커+현장용접, 4면 실리콘·PVC캡 16EA 반영)',
+        '• D-앙커+조립:       ₩ 2,091,000 (플레이트 앙커+모듈러 조립식, 4면 실리콘·PVC캡 16EA 반영)',
         '----------------------------------------------------------------',
         '📌 [현재 3D 모델링 설계 조건 및 실시간 부재 물량 (BOM)]',
         '현재 적용 공법: 공법 ' + m.letter + ' · ' + m.label,
@@ -18739,14 +18809,12 @@ body.is-3d-moving #btnExpand4dHandle {
 
     if (btnOpenEstimateModal && estimateModal) {
       btnOpenEstimateModal.addEventListener('click', () => {
-        estimateModal.classList.remove('hidden');
-        syncEstimateActiveMethod();
+        openEstimateModal();
       });
     }
     if (btnOpenEstModalFromTab && estimateModal) {
       btnOpenEstModalFromTab.addEventListener('click', () => {
-        estimateModal.classList.remove('hidden');
-        syncEstimateActiveMethod();
+        openEstimateModal();
       });
     }
     if (btnCloseEstimateModal && estimateModal) {
@@ -18755,11 +18823,11 @@ body.is-3d-moving #btnExpand4dHandle {
       });
     }
 
-    // 견적서 모달 내부 탭 전환 (탭 1~5 통합)
+    // 견적서 모달 내부 탭 전환 (제48장: [1] 4대 공법 비교 → [2] 갑지 → [3] 상세 내역서 → [4] 단위환산 → [5] 품셈·일위대가)
     const estTabBtns = [
+      { btn: document.getElementById('tabBtnEst3'), content: document.getElementById('estTabContent3') },
       { btn: document.getElementById('tabBtnEst1'), content: document.getElementById('estTabContent1') },
       { btn: document.getElementById('tabBtnEst2'), content: document.getElementById('estTabContent2') },
-      { btn: document.getElementById('tabBtnEst3'), content: document.getElementById('estTabContent3') },
       { btn: document.getElementById('tabBtnEst4'), content: document.getElementById('estTabContent4') },
       { btn: document.getElementById('tabBtnEst5'), content: document.getElementById('estTabContent5') }
     ];
@@ -18779,6 +18847,8 @@ body.is-3d-moving #btnExpand4dHandle {
           c.classList.add('hidden');
         }
       });
+      const tipEl = document.getElementById('estItemTooltip');
+      if (tipEl) tipEl.classList.remove('visible');
       const bodyArea = document.querySelector('#estimateModal .overflow-y-auto');
       if (bodyArea) bodyArea.scrollTop = 0;
     }
@@ -18791,6 +18861,289 @@ body.is-3d-moving #btnExpand4dHandle {
       }
     });
 
+    // [제48장] 견적서 갑지 · 상세 내역서 항목별 품셈 산식·일위대가·단가비교·부재 단위환산 실시간 요약 툴팁 엔진
+    function parseWonNum(val) {
+      return Number(String(val || '0').replace(/[^0-9.-]/g, '')) || 0;
+    }
+
+    function buildEstimateRowTooltipHtml(curData, tipKey, itemIdx) {
+      const mName = curData.name;
+      const runM = (state.stepCount * state.treadDepth) / 1000;
+      const riseM = (state.stepCount * state.riserHeight) / 1000;
+      const railLenM = Math.max(1.5, Math.hypot(runM, riseM) + 0.95);
+      const postCnt = 4;
+      const matN = parseWonNum(curData.materialCost);
+      const labN = parseWonNum(curData.laborCost);
+      const expN = parseWonNum(curData.expenseCost);
+      const dirN = parseWonNum(curData.directSubtotal);
+      const indN = parseWonNum(curData.indirectSubtotal);
+      const totN = parseWonNum(curData.amountNum);
+      const perM = Math.round(totN / railLenM).toLocaleString();
+      const perPost = Math.round(totN / postCnt).toLocaleString();
+
+      let title = '';
+      let formula = '';
+      let unitCost = '';
+      let compare = '';
+      let conversion = '';
+
+      if (tipKey) {
+        const map = {
+          direct: {
+            title: 'I. 직접공사비 소계 (재료비 + 노무비 + 기계/경비)',
+            formula: `직접비 = 재료비(₩${curData.materialCost}) + 노무비(₩${curData.laborCost}) + 경비(₩${curData.expenseCost}) = <b>₩ ${curData.directSubtotal}</b>`,
+            unitCost: `재료비 ${(matN / Math.max(1, dirN) * 100).toFixed(1)}% · 노무비 ${(labN / Math.max(1, dirN) * 100).toFixed(1)}% · 경비 ${(expN / Math.max(1, dirN) * 100).toFixed(1)}% 구성 (KICT 표준품셈 + 2026 하반기 시중노임단가)`,
+            compare: `B-코어+조립(원안) ₩1,774,490 | A-코어+용접 ₩1,944,490 | C-앙커+용접 ₩1,811,490 | D-앙커+조립 ₩1,981,490`,
+            conversion: `연장 ${railLenM.toFixed(2)}m 기준 <b>₩${Math.round(dirN / railLenM).toLocaleString()}/m</b> · 지주 ${postCnt}본 기준 <b>₩${Math.round(dirN / postCnt).toLocaleString()}/개소</b>`
+          },
+          material: {
+            title: '1. 재료비 (STS304 난간대 본체 · 고정자재 · 코어/앙커)',
+            formula: `${curData.materialSpec} → 합계 <b>₩ ${curData.materialCost}</b>`,
+            unitCost: `조달청 가격정보·(사)한국물가정보 STS304 Ø50.8×1.5t(42,000원/m)·Ø25.4(18,000원/m) + 공장 가공·부속품 반영`,
+            compare: `B ₩1,550,000(원안) | A ₩1,320,000(원자재) | C ₩1,500,800(도금베이스·실리콘/캡) | D ₩1,610,800(모듈슬리브·STS앙커)`,
+            conversion: `연장 ${railLenM.toFixed(2)}m 환산 <b>₩${Math.round(matN / railLenM).toLocaleString()}/m</b> · 지주 1개소당 <b>₩${Math.round(matN / postCnt).toLocaleString()}</b>`
+          },
+          labor: {
+            title: '2. 노무비 (2026 하반기 건설업 시중노임단가 적용)',
+            formula: `${curData.laborSpec} → 합계 <b>₩ ${curData.laborCost}</b>`,
+            unitCost: `대한건설협회 2026 하반기 공인단가: 보통인부 224,490원/일 · 특별인부 224,510원/일 · 철물공 256,650원/일 · 용접공 284,550원/일`,
+            compare: `B ₩224,490(최저·1인) | A ₩544,490(용접+화기감시) | C ₩259,490(앙커+코킹) | D ₩319,490(앙커+모듈조립+코킹)`,
+            conversion: `연장 환산 <b>₩${Math.round(labN / railLenM).toLocaleString()}/m</b> · 지주 1개소당 노무비 <b>₩${Math.round(labN / postCnt).toLocaleString()}</b>`
+          },
+          expense: {
+            title: '3. 기계/기타경비 (장비 손료 및 소모품)',
+            formula: `${curData.expenseSpec} → 합계 <b>₩ ${curData.expenseCost}</b>`,
+            unitCost: `KICT 표준품셈 기계경비 산정기준: TIG 알곤가스·연마재(A 80,000원), 해머드릴·비트·토크지그 손료(C·D 51,200원), B는 코어렌탈 재료비 일괄 계상`,
+            compare: `B ₩0(재료비포함) | A ₩80,000 | C ₩51,200 | D ₩51,200`,
+            conversion: `지주 4개소 타공·결구 기준 개소당 <b>₩${Math.round(expN / postCnt).toLocaleString()}</b>`
+          },
+          indirect: {
+            title: 'II. 법정 간접공사비 소계 (기획재정부 계약예규 7종)',
+            formula: `간접비 = 4대보험 5종 + 산업안전보건관리비(2.93%) + 일반관리비·이윤(5.0%) = <b>₩ ${curData.indirectSubtotal}</b>`,
+            unitCost: `직접공사비 대비 ${(indN / Math.max(1, dirN) * 100).toFixed(2)}% (노무비 연동 5종 + (재료+노무) 연동 산안비 + 관리비/이윤)`,
+            compare: `B ₩97,356(최저) | A ₩131,510 | C ₩102,510 | D ₩109,510`,
+            conversion: `연장 ${railLenM.toFixed(2)}m당 간접비 <b>₩${Math.round(indN / railLenM).toLocaleString()}/m</b>`
+          },
+          pension: {
+            title: '4. 국민연금보험료 (법정 요율 4.75%)',
+            formula: `노무비(₩${curData.laborCost}) × 4.75% = <b>₩ ${curData.indirect.pension}</b>`,
+            unitCost: `국민연금법·조달청 원가계산 제비율 적용기준 (직접노무비 기준 4.75% 의무 계상)`,
+            compare: `B ₩10,663 | A ₩25,863 | C ₩12,326 | D ₩15,176`,
+            conversion: `총공사비 비중 ${(parseWonNum(curData.indirect.pension) / Math.max(1, totN) * 100).toFixed(2)}%`
+          },
+          health: {
+            title: '5. 국민건강보험료 (법정 요율 3.595%)',
+            formula: `노무비(₩${curData.laborCost}) × 3.595% = <b>₩ ${curData.indirect.health}</b>`,
+            unitCost: `국민건강보험법·기획재정부 계약예규 (직접노무비 × 3.595%, 사후정산 대상)`,
+            compare: `B ₩8,070 | A ₩19,574 | C ₩9,329 | D ₩11,486`,
+            conversion: `총공사비 비중 ${(parseWonNum(curData.indirect.health) / Math.max(1, totN) * 100).toFixed(2)}%`
+          },
+          care: {
+            title: '6. 노인장기요양보험료 (건강보험료 × 12.95%)',
+            formula: `건강보험료(₩${curData.indirect.health}) × 12.95% = <b>₩ ${curData.indirect.care}</b>`,
+            unitCost: `노인장기요양보험법 법정 부가요율 (건강보험료 산출액의 12.95%)`,
+            compare: `B ₩1,045 | A ₩2,535 | C ₩1,208 | D ₩1,487`,
+            conversion: `직접노무비 대비 실효요율 0.465%`
+          },
+          employ: {
+            title: '7. 고용보험료 (법정 요율 1.01%)',
+            formula: `노무비(₩${curData.laborCost}) × 1.01% = <b>₩ ${curData.indirect.employ}</b>`,
+            unitCost: `고용보험 및 산업재해보상보험의 보험료징수법 (직접노무비 × 1.01%)`,
+            compare: `B ₩2,267 | A ₩5,499 | C ₩2,621 | D ₩3,227`,
+            conversion: `총공사비 비중 ${(parseWonNum(curData.indirect.employ) / Math.max(1, totN) * 100).toFixed(2)}%`
+          },
+          accident: {
+            title: '8. 산업재해보상보험료 (법정 요율 3.56%)',
+            formula: `노무비(₩${curData.laborCost}) × 3.56% = <b>₩ ${curData.indirect.accident}</b>`,
+            unitCost: `건설업 산재보험 고시요율 (직접노무비 × 3.56% 적용)`,
+            compare: `B ₩7,992 | A ₩19,384 | C ₩9,238 | D ₩11,374`,
+            conversion: `총공사비 비중 ${(parseWonNum(curData.indirect.accident) / Math.max(1, totN) * 100).toFixed(2)}%`
+          },
+          safety: {
+            title: '9. 산업안전보건관리비 (고시요율 2.93%)',
+            formula: `(재료비 ₩${curData.materialCost} + 노무비 ₩${curData.laborCost}) × 2.93% = <b>₩ ${curData.indirect.safety}</b>`,
+            unitCost: `고용노동부 건설업 산업안전보건관리비 계상 및 사용기준 (일반건설공사 갑 2.93%)`,
+            compare: `B ₩51,993 | A ₩54,642 | C ₩51,623 | D ₩56,547`,
+            conversion: `안전보호구·집수보양·작업장 안전조치 법정 재원 (총공사비 ${(parseWonNum(curData.indirect.safety) / Math.max(1, totN) * 100).toFixed(2)}%)`
+          },
+          admin: {
+            title: '10. 일반관리비 및 이윤 (요율 5.0% 적용)',
+            formula: `(노무비 + 법정제경비) × 5.0% 한도 적용 → <b>₩ ${curData.indirect.admin}</b>`,
+            unitCost: `기획재정부 예정가격작성기준 (소규모 전문건설공사 일반관리비·이윤 합산 5% 이내 절감 적용)`,
+            compare: `B ₩15,326 | A ₩4,013 | C ₩16,165 | D ₩10,213`,
+            conversion: `총공사비 비중 ${(parseWonNum(curData.indirect.admin) / Math.max(1, totN) * 100).toFixed(2)}%`
+          },
+          total: {
+            title: `총 견적금액 — ${mName} (Fee제외 / VAT별도)`,
+            formula: `직접비(₩${curData.directSubtotal}) + 간접비(₩${curData.indirectSubtotal}) = ${curData.calcRemark} → <b>${curData.amountNum}</b>`,
+            unitCost: curData.key === 'prefab' ? '㈜일성건축 2026.11.17 실거래 견적 100% 반영 (1,000원 미만 단수 절사)' : 'KICT 표준품셈 + 조달청/물가정보 + 2026 하반기 시중노임단가 + 계약예규 7종 직접 적산',
+            compare: `B-코어+조립(원안) ₩1,871,000(최저·채택) | A ₩2,076,000 | C ₩1,914,000(STS보정 2,079,000) | D ₩2,091,000`,
+            conversion: `현재 3D 모델(계단 ${state.stepCount}단 · 높이 ${state.railingHeight}mm · 연장 ${railLenM.toFixed(2)}m) 기준 <b>₩${perM}/m</b> · <b>₩${perPost}/지주</b>`
+          }
+        };
+        const d = map[tipKey] || map.total;
+        ({ title, formula, unitCost, compare, conversion } = d);
+      } else if (itemIdx === 'subtotal') {
+        title = `직접공사비 합계 — ${mName}`;
+        formula = `내역서 ${curData.items.length}개 공종 합계 = 재료비 ₩${curData.materialCost} + 노무비 ₩${curData.laborCost}${expN > 0 ? ` + 경비 ₩${curData.expenseCost}` : ''} = <b>₩ ${curData.directSubtotal}</b>`;
+        unitCost = `간접공사비 ₩${curData.indirectSubtotal} 가산 후 단수조정 총공사비 <b>${curData.amountNum} (Fee제외)</b>`;
+        compare = `B ₩1,774,490(원안) | A ₩1,944,490(+17만) | C ₩1,811,490(+3.7만) | D ₩1,981,490(+20.7만)`;
+        conversion = `3D 모델 연장 ${railLenM.toFixed(2)}m 기준 직접비 <b>₩${Math.round(dirN / railLenM).toLocaleString()}/m</b> · 지주 ${postCnt}본 기준 <b>₩${Math.round(dirN / postCnt).toLocaleString()}/본</b>`;
+      } else {
+        const it = curData.items[Number(itemIdx)];
+        if (!it) return '';
+        const itemTot = parseWonNum(it.total);
+        const itemMat = parseWonNum(it.matAmt);
+        const itemLab = parseWonNum(it.labAmt);
+        const nm = it.name;
+        title = `${it.name} (${it.qty} ${it.unit} · ₩ ${it.total})`;
+        formula = `산식: 수량 ${it.qty} ${it.unit} × (재료단가 ${it.matUnit} + 노무단가 ${it.labUnit}) = <b>₩ ${it.total}</b> (직접비의 ${(itemTot / Math.max(1, dirN) * 100).toFixed(1)}%)`;
+
+        if (/난간|파이프/.test(nm)) {
+          unitCost = `STS304 Ø50.8×1.5t(상부 2.2m + 지주 4.4m) + Ø25.4×1.2t(중간 간살 2.2m) + 하부 커버/베이스 + 공장 가공·연마 일위대가 분개 (Tab [4] 단위환산 연동)`;
+          compare = `B 완제품 ₩1,400,000 | A 원자재 ₩920,000(+현장용접 노무 54.4만) | C 베이스일체 ₩1,380,800 | D 모듈슬리브 ₩1,460,800`;
+          conversion = `총 파이프 환산 약 8.8m 기준 <b>₩${Math.round(itemTot / 8.8).toLocaleString()}/m</b> · 난간 연장(${railLenM.toFixed(2)}m) 기준 <b>₩${Math.round(itemTot / railLenM).toLocaleString()}/m</b>`;
+        } else if (/코어|그라우트|몰탈/.test(nm)) {
+          unitCost = `KICT 표준품셈 제9장(코어 천공): Ø68~70 다이아몬드 비트 습식 4개소(깊이 130~140mm) + 60MPa 초속경 무수축 그라우트 1포(25kg, 실소요 3.5kg)`;
+          compare = `B 코어렌탈 ₩150,000 | A 코어+몰탈 ₩400,000 | C·D 코어 미적용(대신 앙커+코킹+캡+드릴경비 별도 발생)`;
+          conversion = `코어 4개소 기준 <b>₩${Math.round(itemTot / 4).toLocaleString()}/개소</b> (천공체적 0.0016m³ · 매립깊이 135mm 기준)`;
+        } else if (/앙커|앙카/.test(nm)) {
+          unitCost = `KICT 표준품셈 제9장 9-1-2 [앵커볼트 매립설치]: 지주 4개소 × 4홀 = 16EA (M10×80L STS 웨지/세트앙커, 단가 ${it.matUnit}원/EA)`;
+          compare = `B·A 앙커 불요(₩0·코어매립) | C 16EA ₩60,000(3,750원/EA) | D 16EA ₩90,000(5,625원/EA, STS 고급 사양)`;
+          conversion = `개소(지주)당 4EA 체결 → 지주당 <b>₩${Math.round(itemTot / 4).toLocaleString()}</b> · 볼트당 <b>₩${Math.round(itemTot / Math.max(1, it.qty)).toLocaleString()}/EA</b>`;
+        } else if (/실리콘|코킹/.test(nm)) {
+          unitCost = `KICT 표준품셈 제8장 8-5-2 [코킹]: 120×120 베이스 외곽 4변 둘레(0.48m × 4개소 = 1.92m) 석재 전용 비오염성 변성 실리콘 + 백업재`;
+          compare = `B·A 베이스플레이트 미사용(₩0) | C·D 공통 4개소 1.92m (자재 ₩28,000 + 노무 ₩22,450 = ₩50,450)`;
+          conversion = `실링 연장 1.92m 기준 <b>₩${Math.round(itemTot / 1.92).toLocaleString()}/m</b> · 개소당 <b>₩${Math.round(itemTot / 4).toLocaleString()}</b>`;
+        } else if (/PVC|보호캡/.test(nm)) {
+          unitCost = `KICT 제9장 9-1-5: M10 노출 너트 부식·발걸림 방지 고내후성 그레이 PVC 육각 보호캡 16EA (자재 2,000원 + 압입노무 784원/EA)`;
+          compare = `B·A 노출볼트 없음(₩0) | C·D 공통 16EA ₩44,550 (실리콘+PVC캡 합계 +₩60,000 Fee제외 반영)`;
+          conversion = `지주 4개소 × 4볼트 = 16EA → 볼트 1개당 <b>₩${Math.round(itemTot / 16).toLocaleString()}/EA</b>`;
+        } else if (/용접|철물|코킹공|보통인부|특별인부|청소/.test(nm)) {
+          unitCost = `대한건설협회 2026 하반기 시중노임단가 적용: 단가 ${it.labUnit}원/일 × ${it.qty}인 = ₩${it.labAmt} (${it.spec})`;
+          compare = `총 노무비 비교: B ₩224,490(1.0인) | A ₩544,490(2.03인) | C ₩259,490(1.0인) | D ₩319,490(1.2인)`;
+          conversion = `지주 ${postCnt}본 기준 <b>₩${Math.round(itemTot / postCnt).toLocaleString()}/개소</b> · 연장 환산 <b>₩${Math.round(itemTot / railLenM).toLocaleString()}/m</b>`;
+        } else {
+          unitCost = `KICT 표준품셈 기계경비·소모품 손료 산정기준 (${it.spec})`;
+          compare = `경비 비교: B ₩0(포함) | A ₩80,000(용접소모품) | C·D ₩51,200(해머드릴·비트·지그 손료)`;
+          conversion = `4개 지주 작업 기준 개소당 <b>₩${Math.round(itemTot / postCnt).toLocaleString()}</b> (재료 ₩${itemMat.toLocaleString()} / 노무 ₩${itemLab.toLocaleString()})`;
+        }
+      }
+
+      return `
+        <div class="est-tt-head">
+          <span class="est-tt-title">${title}</span>
+          <span class="est-tt-badge">${mName}</span>
+        </div>
+        <div class="est-tt-sec">
+          <span class="est-tt-label text-sky-300">📐 품셈 · 산출 산식</span>
+          <div class="text-slate-200">${formula}</div>
+        </div>
+        <div class="est-tt-sec">
+          <span class="est-tt-label text-emerald-300">📑 일위대가 · 공인 단가 근거</span>
+          <div class="text-slate-300">${unitCost}</div>
+        </div>
+        <div class="est-tt-sec">
+          <span class="est-tt-label text-amber-300">⚖️ 4대 공법 단가 비교</span>
+          <div class="text-slate-300">${compare}</div>
+        </div>
+        <div class="est-tt-sec">
+          <span class="est-tt-label text-indigo-300">🔬 3D 부재별 단위 환산</span>
+          <div class="text-slate-200">${conversion}</div>
+        </div>
+      `;
+    }
+
+    function initEstimateHoverTooltips() {
+      const modal = document.getElementById('estimateModal');
+      if (!modal || modal._estTipBound) return;
+      modal._estTipBound = true;
+      let tipEl = document.getElementById('estItemTooltip');
+      if (!tipEl) {
+        tipEl = document.createElement('div');
+        tipEl.id = 'estItemTooltip';
+        tipEl.setAttribute('role', 'tooltip');
+        document.body.appendChild(tipEl);
+      }
+
+      let activeRow = null;
+      let lastTipOpenedAt = 0;
+      const positionTip = (clientX, clientY) => {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const rect = tipEl.getBoundingClientRect();
+        const tw = rect.width || 390;
+        const th = rect.height || 230;
+        let x = clientX + 16;
+        let y = clientY + 14;
+        if (x + tw + 12 > vw) x = Math.max(10, clientX - tw - 16);
+        if (y + th + 12 > vh) y = Math.max(10, clientY - th - 14);
+        tipEl.style.left = x + 'px';
+        tipEl.style.top = y + 'px';
+      };
+
+      const showForRow = (row, clientX, clientY) => {
+        const curKey = lastSyncedEstimateKey || state.constructionMethod || 'prefab';
+        const curData = ESTIMATE_METHOD_DATA[curKey] || ESTIMATE_METHOD_DATA.prefab;
+        const tipKey = row.getAttribute('data-est-tip');
+        const itemIdx = row.getAttribute('data-est-item-idx');
+        const html = buildEstimateRowTooltipHtml(curData, tipKey, itemIdx);
+        if (!html) return;
+        tipEl.innerHTML = html;
+        tipEl.classList.add('visible');
+        lastTipOpenedAt = Date.now();
+        positionTip(clientX, clientY);
+      };
+
+      const hideTip = () => {
+        activeRow = null;
+        tipEl.classList.remove('visible');
+      };
+
+      modal.addEventListener('mouseover', (e) => {
+        const row = e.target.closest('tr.est-tip-row');
+        if (!row) {
+          if (activeRow) hideTip();
+          return;
+        }
+        if (row !== activeRow) {
+          activeRow = row;
+          showForRow(row, e.clientX, e.clientY);
+        }
+      });
+
+      modal.addEventListener('mousemove', (e) => {
+        if (!activeRow || !tipEl.classList.contains('visible')) return;
+        positionTip(e.clientX, e.clientY);
+      });
+
+      modal.addEventListener('mouseout', (e) => {
+        if (!activeRow) return;
+        const rel = e.relatedTarget;
+        if (!rel || !rel.closest || !rel.closest('tr.est-tip-row')) {
+          hideTip();
+        }
+      });
+
+      // 모바일 터치 환경에서도 행 탭으로 툴팁 확인 및 재탭/빈 곳 탭 시 닫기 지원
+      modal.addEventListener('click', (e) => {
+        const row = e.target.closest('tr.est-tip-row');
+        if (row && window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+          if (activeRow === row && tipEl.classList.contains('visible')) {
+            if (Date.now() - lastTipOpenedAt > 260) hideTip();
+          } else {
+            activeRow = row;
+            showForRow(row, e.clientX || window.innerWidth * 0.5, e.clientY || window.innerHeight * 0.35);
+          }
+        } else if (!row && tipEl.classList.contains('visible')) {
+          hideTip();
+        }
+      });
+
+      const closeBtn = document.getElementById('btnCloseEstimateModal');
+      if (closeBtn) closeBtn.addEventListener('click', hideTip);
+    }
+
     // [신규] 탭 5 바로가기 점프 버튼 일괄 바인딩
     
         // [공법 비교표·취합표 원클릭 상호 연동 내비게이션 엔진]
@@ -18798,6 +19151,7 @@ body.is-3d-moving #btnExpand4dHandle {
       const modal = document.getElementById('estimateModal');
       if (modal) {
         modal.classList.remove('hidden');
+        initEstimateHoverTooltips();
         if (typeof syncEstimateActiveMethod === 'function') syncEstimateActiveMethod(state.constructionMethod);
       }
       if (typeof targetTabIdx === 'number' && typeof activateEstTab === 'function') {
@@ -18821,7 +19175,7 @@ body.is-3d-moving #btnExpand4dHandle {
 
     document.querySelectorAll('.btn-goto-est-tab3').forEach(btn => {
       btn.addEventListener('click', () => {
-        openEstimateModal(2);
+        openEstimateModal(0);
       });
     });
 
@@ -18830,14 +19184,14 @@ body.is-3d-moving #btnExpand4dHandle {
       btnOpenEstFromCompareModal.addEventListener('click', () => {
         const methodModal = document.getElementById('methodCompareModal');
         if (methodModal) methodModal.classList.add('hidden');
-        openEstimateModal(2);
+        openEstimateModal(0);
       });
     }
 
     const btnJumpToCompareTabFrom5 = document.getElementById('btnJumpToCompareTabFrom5');
     if (btnJumpToCompareTabFrom5) {
       btnJumpToCompareTabFrom5.addEventListener('click', () => {
-        if (typeof activateEstTab === 'function') activateEstTab(2);
+        if (typeof activateEstTab === 'function') activateEstTab(0);
       });
     }
 
@@ -21515,8 +21869,16 @@ body.is-3d-moving #btnExpand4dHandle {
         state.activeCamPreset = 'rv_' + viewName;
       }
 
+      // [제48장] 건물 후면(back) 및 지면 하부(bottom) 조회 차단 가드
+      if (viewName === 'back' || viewName === 'bottom') {
+        if (typeof showNonBlockingToast === 'function') {
+          showNonBlockingToast(viewName === 'back' ? '건물 후면 조회가 제한되어 정면 입면뷰로 유지합니다.' : '지면 하부 조회가 제한되어 지상 구도로 유지합니다.', '#f59e0b');
+        }
+        viewName = 'front';
+      }
+
       controls.enabled = true;
-      state.viewCubeFreeCamera = true;
+      state.viewCubeFreeCamera = false;
       const W_stair = state.stairWidth / 1000;
       const W_ramp = state.rampWidth / 1000;
       const totalRise = (state.stepCount * state.riserHeight) / 1000;
@@ -21525,12 +21887,12 @@ body.is-3d-moving #btnExpand4dHandle {
       const cy = totalRise + 0.95;
 
       const views = {
-        front:  { label: '정면 입면뷰 (FRONT · 남측)',  pos: new THREE.Vector3(cx, cy + 0.15, 7.65),    target: new THREE.Vector3(cx, cy, cz),      fov: 32 },
-        back:   { label: '배면 입면뷰 (BACK · 북측)',   pos: new THREE.Vector3(cx, cy + 0.35, -9.20),   target: new THREE.Vector3(cx, cy, cz),      fov: 32 },
-        left:   { label: '좌측 입면뷰 (LEFT · 서측)',   pos: new THREE.Vector3(-9.40, cy + 0.15, cz),   target: new THREE.Vector3(cx, cy, cz),      fov: 32 },
-        right:  { label: '우측 입면뷰 (RIGHT · 동측)',  pos: new THREE.Vector3(7.90, cy + 0.15, cz),    target: new THREE.Vector3(cx, cy, cz),      fov: 32 },
-        top:    { label: '평면 뷰 (TOP · 수직 하향)',   pos: new THREE.Vector3(cx, 10.20, cz + 0.08),   target: new THREE.Vector3(cx, totalRise, cz), fov: 32 },
-        bottom: { label: '하면 뷰 (BOTTOM · 상향)',     pos: new THREE.Vector3(cx, -7.80, cz + 0.08),   target: new THREE.Vector3(cx, totalRise, cz), fov: 34 }
+        front:      { label: '정면 입면뷰 (FRONT · 남측)',       pos: new THREE.Vector3(cx, cy + 0.15, 7.65),    target: new THREE.Vector3(cx, cy, cz),        fov: 32 },
+        left:       { label: '좌측 입면뷰 (LEFT · 서측)',        pos: new THREE.Vector3(-9.40, cy + 0.15, cz),   target: new THREE.Vector3(cx, cy, cz),        fov: 32 },
+        right:      { label: '우측 입면뷰 (RIGHT · 동측)',       pos: new THREE.Vector3(7.90, cy + 0.15, cz),    target: new THREE.Vector3(cx, cy, cz),        fov: 32 },
+        leftFront:  { label: '좌측 45° 사선 조감 (SW · 서남)',   pos: new THREE.Vector3(-5.80, cy + 1.10, 5.10), target: new THREE.Vector3(cx, cy * 0.78, cz), fov: 34 },
+        rightFront: { label: '우측 45° 사선 조감 (SE · 동남)',   pos: new THREE.Vector3(5.20, cy + 1.10, 5.10),  target: new THREE.Vector3(cx, cy * 0.78, cz), fov: 34 },
+        top:        { label: '평면 뷰 (TOP · 수직 하향)',        pos: new THREE.Vector3(cx, 10.20, cz + 0.08),   target: new THREE.Vector3(cx, totalRise, cz), fov: 32 }
       };
       const cfg = views[viewName] || views.front;
       state.customCamFov = cfg.fov;
@@ -21547,6 +21909,7 @@ body.is-3d-moving #btnExpand4dHandle {
         camAnim = null;
         camera.position.copy(cfg.pos);
         controls.target.copy(cfg.target);
+        constrainEntranceCamera();
         controls.update();
         syncRevitViewCubeFromCamera();
       } else {
@@ -21563,13 +21926,19 @@ body.is-3d-moving #btnExpand4dHandle {
 
     function rotateViewCubeYaw90(dirSign) {
       camAnim = null;
-      state.viewCubeFreeCamera = true;
+      state.viewCubeFreeCamera = false;
       const offset = camera.position.clone().sub(controls.target);
-      const ang = dirSign * (Math.PI / 2);
-      const cosA = Math.cos(ang), sinA = Math.sin(ang);
-      const nx = offset.x * cosA - offset.z * sinA;
-      const nz = offset.x * sinA + offset.z * cosA;
-      const endPos = controls.target.clone().add(new THREE.Vector3(nx, offset.y, nz));
+      const rHoriz = Math.max(0.5, Math.hypot(offset.x, offset.z));
+      const curTheta = Math.atan2(offset.x, offset.z);
+      // [제48장] 건물 후면 진입 차단: 좌측 입면(-88°) ~ 우측 입면(+88°) 범위 내로 45°~90° 안전 회전
+      const nextTheta = THREE.MathUtils.clamp(curTheta + dirSign * (Math.PI / 4), -Math.PI * 0.49, Math.PI * 0.49);
+      const tread = state.treadDepth / 1000;
+      const doorLimit = -(state.stepCount - 1) * tread - LANDING_DEPTH + 0.12;
+      const endPos = new THREE.Vector3(
+        controls.target.x + rHoriz * Math.sin(nextTheta),
+        Math.max(0.25, controls.target.y + offset.y),
+        Math.max(doorLimit, controls.target.z + rHoriz * Math.cos(nextTheta))
+      );
       camAnim = {
         startPos: camera.position.clone(),
         endPos,
@@ -21611,17 +21980,18 @@ body.is-3d-moving #btnExpand4dHandle {
           moved = true;
           lastX = e.clientX; lastY = e.clientY;
           camAnim = null;
-          state.viewCubeFreeCamera = true;
+          state.viewCubeFreeCamera = false;
           const off = camera.position.clone().sub(controls.target);
           const r = off.length();
-          let theta = Math.atan2(off.x, off.z) - dx * 0.012;
+          let theta = THREE.MathUtils.clamp(Math.atan2(off.x, off.z) - dx * 0.012, -Math.PI * 0.495, Math.PI * 0.495);
           let phi = Math.acos(THREE.MathUtils.clamp(off.y / Math.max(0.01, r), -1, 1)) - dy * 0.012;
-          phi = THREE.MathUtils.clamp(phi, 0.06, Math.PI - 0.06);
+          phi = THREE.MathUtils.clamp(phi, 0.06, Math.PI * 0.488);
           camera.position.set(
             controls.target.x + r * Math.sin(phi) * Math.sin(theta),
             controls.target.y + r * Math.cos(phi),
             controls.target.z + r * Math.sin(phi) * Math.cos(theta)
           );
+          constrainEntranceCamera();
           camera.lookAt(controls.target);
           controls.update();
           requestRender();

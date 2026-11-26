@@ -23,7 +23,14 @@
         const value=p?.manualSettlementDate;
         if(value instanceof Date)return asYear(value);
         if(typeof value==='number')return root.XLSX?.SSF?.parse_date_code?.(value)?.y||null;
-        const m=String(value??'').trim().match(/^(20\d{2})[-./](\d{1,2})(?:[-./](\d{1,2}))?$/);
+        const text = String(value ?? '').trim();
+        if (/^\d{5}(?:\.\d+)?$/.test(text) && Number(text) >= 20000 && Number(text) < 90000) {
+            return root.XLSX?.SSF?.parse_date_code?.(Number(text))?.y || null;
+        }
+        if (/^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} 20\d{2} \d{2}:\d{2}:\d{2} GMT[+-]\d{4}(?: \([^)]*\))?$/.test(text)) {
+            return asYear(new Date(text));
+        }
+        const m = text.match(/^(20\d{2})[-./](\d{1,2})(?:[-./](\d{1,2}))?$/);
         if(!m||Number(m[2])<1||Number(m[2])>12)return null;
         if(m[3]&&(Number(m[3])<1||Number(m[3])>new Date(Number(m[1]),Number(m[2]),0).getDate()))return null;
         return Number(m[1]);
@@ -36,25 +43,142 @@
         for(const d of dates){const y=asYear(d&&typeof d==='object'&&!(d instanceof Date)?d.date:d);if(y) years.add(y);}
         return years;
     };
+    // Project Data's reserved field participates in the existing field-level save journal.
+    const carryKey = 'Codex_Year_Carryover_V1';
+    const validYear = y => Number.isInteger(y) && y >= 2000 && y <= 2199;
+    const carryMemo = new WeakMap();
+
+    function carryStep(state, event) {
+        if (event.from !== state.year || !validYear(event.to)) return false;
+        if (event.action === 'move') {
+            if (state.reservation || event.to === event.from) return false;
+            state.year = event.to;
+            state.transfers.push(event);
+            return true;
+        }
+        if (event.to !== event.from + 1) return false;
+        if (event.action === 'reserve' && !state.reservation) {
+            state.reservation = event;
+        } else if (['cancel', 'transfer', 'settle'].includes(event.action) && state.reservation) {
+            state.reservation = null;
+            if (event.action === 'transfer' || (event.action === 'settle' && event.settledYear === event.to)) {
+                state.year = event.to;
+                state.transfers.push(event);
+            }
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    function carryState(project) {
+        const raw = project?.customFields?.[carryKey];
+        if (raw == null || raw === '') return null;
+        if (carryMemo.get(project)?.raw === raw) return carryMemo.get(project).state;
+        let state = { invalid: true };
+        try {
+            if (typeof raw !== 'string' || !/^[A-Za-z0-9_-]{1,30000}$/.test(raw)) throw new Error('encoding');
+            const decoded = Uint8Array.from(atob(raw.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+            const record = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(decoded));
+            if (![1, 2].includes(record.version) || !validYear(record.base) || !Array.isArray(record.events)) throw new Error('schema');
+            const value = { record, year: record.base, reservation: null, transfers: [] };
+            const ids = new Set();
+            for (const event of record.events) {
+                if (typeof event.id !== 'string' || !event.id || ids.has(event.id) ||
+                    !Number.isFinite(Date.parse(event.at)) || !Number.isSafeInteger(event.po) ||
+                    typeof event.customer !== 'string' || typeof event.center !== 'string' ||
+                    (event.action === 'move' && record.version !== 2) ||
+                    (event.action === 'settle' && !validYear(event.settledYear)) ||
+                    !carryStep(value, event)) throw new Error('history');
+                ids.add(event.id);
+            }
+            state = value;
+        } catch (_) { /* Preserve malformed source cells for correction. */ }
+        carryMemo.set(project, {raw, state});
+        return state;
+    }
+
+    function encodeCarry(record) {
+        const bytes = new TextEncoder().encode(JSON.stringify(record));
+        const encoded = btoa(Array.from(bytes, n => String.fromCharCode(n)).join(''))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        if (encoded.length > 30000) throw new Error('이월 기록이 저장 한도를 넘었습니다.');
+        return encoded;
+    }
+
+    function projectGroup(project, axis) {
+        const resolver = axis === 'customer' ? root.resolveCustomerText : root.resolveSiCenterText;
+        return String(resolver?.(project) || (axis === 'customer' ? project.client : '') || '').trim() || '미지정';
+    }
+
+    function references(project, year) {
+        if (year === 'all') return [];
+        const carry = carryState(project);
+        if (!carry || carry.invalid) return [];
+        const result = [];
+        for (const event of carry.transfers) {
+            if (event.from === year) result.push({...event, bucket: event.action === 'move' ? 'movedOut' : 'sent'});
+            if (event.action === 'move' && event.to === year) result.push({...event, bucket: 'movedIn'});
+        }
+        if (carry.reservation?.to === year && !settlementYear(project)) {
+            result.push({ ...carry.reservation, po: Number(project.poAmount) || 0,
+                customer: projectGroup(project, 'customer'), center: projectGroup(project, 'center'), bucket: 'incoming' });
+        }
+        return result;
+    }
+
+    function prepareCarry(project, action, from, now = currentYear(), destination = from + 1) {
+        const state = carryState(project);
+        const status = classification(project, now);
+        const moving = action === 'move';
+        const to = moving ? destination : from + 1;
+        if (state?.invalid || !validYear(from) || !validYear(to) || to === from || (!moving && from > now)) {
+            throw new Error('출발·대상 연도 또는 이월 기록을 확인해 주세요.');
+        }
+        const settling = action === 'settle';
+        if (settling ? (!state?.reservation || status.kind !== 'settled') :
+            ((status.kind !== 'open' && !(moving && status.kind === 'planned')) || status.year !== from)) throw new Error('프로젝트 상태가 바뀌었습니다. 목록을 다시 열어 확인해 주세요.');
+        if (action === 'transfer' && now <= from) throw new Error('대상 연도가 시작된 뒤 인계를 확정할 수 있습니다.');
+        const po = Number(project.poAmount ?? 0);
+        if (!Number.isSafeInteger(po)) throw new Error('프로젝트 PO금액을 확인해 주세요.');
+        const record = state?.record || { version: 1, base: from, events: [] };
+        const event = { id: root.crypto?.randomUUID?.() || Array.from(root.crypto.getRandomValues(new Uint32Array(4))).join('-'),
+            action, from, to, at: new Date().toISOString(), po,
+            customer: projectGroup(project, 'customer'), center: projectGroup(project, 'center') };
+        if (settling) event.settledYear = status.year;
+        const next = state ? { ...state, transfers: state.transfers.slice() } :
+            { year: from, reservation: null, transfers: [] };
+        if (!carryStep(next, event)) throw new Error('현재 상태에서 해당 이월 작업을 적용할 수 없습니다.');
+        return encodeCarry({ ...record, version: moving ? 2 : record.version, events: [...record.events, event] });
+    }
     function classification(p,now=currentYear()) {
-        const year=settlementYear(p),completed=Number(p?.progress)>=100;
-        if(year)return {kind:'settled',year,completed};
-        const value=String(p?.manualSettlementDate??'').trim();
-        if(value&&!/^(작업중|작업 중|미정산|정산 대기|정산대기)$/.test(value))return {kind:'unknown',year:null,completed};
-        const years=[...scheduleYears(p)];
-        if(years.length&&years.every(y=>y>now))return {kind:'planned',year:Math.min(...years),completed};
-        return {kind:'open',year:now,completed};
+        const year = settlementYear(p), completed = Number(p?.progress) >= 100;
+        if (year) return {kind:'settled', year, completed};
+        const value = String(p?.manualSettlementDate ?? '').trim();
+        const carry = carryState(p);
+        if (carry?.invalid || (value && !/^(작업중|작업 중|미정산|정산 대기|정산대기)$/.test(value))) {
+            return {kind:'unknown', year:null, completed};
+        }
+        if (carry) return {kind:'open', year:carry.year, completed};
+        const years = [...scheduleYears(p)].filter(validYear);
+        if (years.length && years.every(y => y > now)) return {kind:'planned', year:Math.min(...years), completed};
+        // For legacy rows the source dates provide a stable candidate across January 1.
+        const basis = asYear(p.endDateStr || p.endDate) || asYear(p.startDateStr || p.startDate) ||
+            (years.length ? Math.min(...years) : null);
+        return validYear(basis) ? {kind:'open', year:basis, completed} : {kind:'unknown', year:null, completed};
     }
     const accountingYear=(p,now=currentYear())=>classification(p,now).year;
-    const membership = (p,now=currentYear()) => {const s=scheduleYears(p),y=accountingYear(p,now);if(y)s.add(y);return s;};
+    const membership = (p,now=currentYear()) => {const s=scheduleYears(p),y=accountingYear(p,now);if(y)s.add(y);const h=carryState(p);if(h&&!h.invalid){if(h.reservation)s.add(h.reservation.to);for(const event of h.transfers){s.add(event.from);s.add(event.to);}}return s;};
     const availableYears = projects => [...new Set((projects||[]).flatMap(p=>[...membership(p)]))].sort((a,b)=>b-a);
     const chooseDefault = (years,now=currentYear()) => years.includes(now)?now:(years.filter(y=>y<=now).sort((a,b)=>b-a)[0]||now);
-    let selected=null,explicit=false,editUnlocked=false,includeOpen=true,generation=0,metadataYears=[],financialMetadata=null,bootStatus='원본 연결 중',lastSource=null,lastLength=-1,cachedYears=[],yearMemo=new WeakMap();
+    let selected=null,observedYear=currentYear(),explicit=false,editUnlocked=false,includeOpen=true,generation=0,metadataYears=[],financialMetadata=null,bootStatus='원본 연결 중',lastSource=null,lastLength=-1,cachedYears=[],yearMemo=new WeakMap();
     const canonical=()=>Array.isArray(root.projectData)?root.projectData:[];
     const canonicalYears=()=>{const source=canonical();if(source!==lastSource||source.length!==lastLength){lastSource=source;lastLength=source.length;cachedYears=availableYears(source);}return cachedYears;};
-    function invalidate(){lastSource=null;yearMemo=new WeakMap();}
-    function memo(p){let m=yearMemo.get(p);const signature=[p.startDateStr||p.startDate,p.endDateStr||p.endDate,p.manualSettlementDate,p.progress,p.workDate?.length,currentYear()].join('|');if(!m||m.signature!==signature||m.workDates!==p.workDate){m={signature,workDates:p.workDate,years:scheduleYears(p),classification:classification(p)};yearMemo.set(p,m);}return m;}
+    function invalidate(){lastSource=null;yearMemo=new WeakMap();generation++;}
+    function memo(p){let m=yearMemo.get(p);const signature=[p.startDateStr||p.startDate,p.endDateStr||p.endDate,p.manualSettlementDate,p.progress,p.workDate?.length,p.customFields?.[carryKey],currentYear()].join('|');if(!m||m.signature!==signature||m.workDates!==p.workDate){m={signature,workDates:p.workDate,years:scheduleYears(p),classification:classification(p)};yearMemo.set(p,m);}return m;}
     function ensure(projects=canonical()) {
+        const now = currentYear();
+        if (observedYear !== now) { observedYear = now; invalidate(); }
         if(selected===null)selected=chooseDefault(metadataYears.length?metadataYears:canonicalYears());
         if(!explicit&&projects.length&&!metadataYears.length)selected=chooseDefault(canonicalYears());
         return selected;
@@ -67,6 +191,8 @@
             if(basis==='unassigned')return c.kind==='unknown';
             if(basis==='open')return c.kind==='open'&&c.year===year;
             const financial=c.year===year&&c.kind!=='unknown'&&(c.kind!=='open'||includeOpen);
+            if (basis === 'review') return financial || c.kind === 'unknown' ||
+                (c.kind === 'open' && c.year === year) || references(p, year).length > 0;
             if(basis==='financial')return financial;
             const schedule=m.years.has(year)||(c.kind==='open'&&c.year===year&&includeOpen);
             if(c.kind==='open'&&c.year===year&&!includeOpen)return false;
@@ -110,8 +236,25 @@
         const next=year==='all'?'all':Number(year);
         if(next!=='all'&&(!Number.isInteger(next)||next<2000||next>2199))throw new Error('잘못된 운영 연도');
         if(next!==selected&&!isYearReady(next))throw new Error((next==='all'?'전체 기간':'선택한 '+next+'년')+' 자료가 아직 준비 중입니다. 준비된 연도의 조회·편집은 계속할 수 있습니다.');
-        if(next!==selected)beforeChange();
+        if(next!==selected || explicit !== (options.explicit!==false))beforeChange();
         selected=next;explicit=options.explicit!==false;editUnlocked=false;generation++;return notify();
+    }
+    function refresh() {
+        invalidate();
+        ensure();
+        return notify();
+    }
+    function assertCarryEditable(year) {
+        if (ensure() !== year) throw new Error('운영 연도가 바뀌었습니다. 목록을 다시 열어 주세요.');
+        assertEditable();
+        root.YearBootCoordinator?.assertComplete?.();
+        beforeChange();
+    }
+    function isReviewSeason() {
+        return Number(new Intl.DateTimeFormat('en', {timeZone:'Asia/Seoul',month:'numeric'}).format(new Date())) >= 11;
+    }
+    function refreshClock() {
+        if (observedYear !== currentYear()) refresh();
     }
     function setOptions(options={}){if(typeof options.includeOpen==='boolean'&&options.includeOpen!==includeOpen){beforeChange();includeOpen=options.includeOpen;generation++;notify();}return getState();}
     function toggleEdit(){if(!editUnlocked&&partialYearReadOnly(ensure())){root.showToast?.('전체 원본 확인이 완료되면 선택한 연도를 수정할 수 있습니다. 현재 준비 연도의 편집은 유지됩니다.','warning');return getState();}editUnlocked=!editUnlocked;updateUI();return getState();}
@@ -128,7 +271,7 @@
             picker.value=String(state.year);
         }
         const label=doc.getElementById('operation-year-basis');
-        if(label)label.textContent=(state.year==='all'?'전체 기간':state.year+'년')+(state.year>state.currentYear?' · PO: 정산 지정·예정 예산 (예정은 정산 카드에서 제외)':' · PO: 최종 정산월·최신 진행 대기')+' / 일정: 해당 연도 작업'+(state.readonly?' · 조회 모드':'');
+        if(label)label.textContent=(state.year==='all'?'전체 기간':state.year+'년')+(state.year>state.currentYear?' · PO: 정산 지정·예정 예산 (예정은 정산 카드에서 제외)':' · PO: 정산월·귀속 연도')+(state.explicit?' · 선택 고정':' · 자동 선택')+' / 일정: 해당 연도 작업'+(state.readonly?' · 조회 모드':'');
         const edit=doc.getElementById('operation-year-edit');if(edit){edit.hidden=!(state.year<state.currentYear);edit.disabled=partialYearReadOnly(state.year);edit.title=edit.disabled?'전체 원본 확인 후 수정할 수 있습니다.':'';edit.textContent=state.editUnlocked?'이전 연도 수정 종료':'이전 연도 수정';edit.setAttribute('aria-pressed',String(state.editUnlocked));}
         const pending=scope(canonical(),'unassigned'),unassigned=doc.getElementById('operation-year-unassigned');
         const partial=financialMetadata&&root.YearBootCoordinator&&!root.YearBootCoordinator.getState().complete;
@@ -136,20 +279,24 @@
         if(unassigned)unassigned.textContent=count?'정산월 확인 필요 (원본 보존): '+fmt(count)+'건 / '+fmt(amount)+'원':'정산월 오류·연도 미확정 0건';
         const progress=doc.getElementById('operation-year-progress');if(progress)progress.textContent=bootStatus;
         const retry=doc.getElementById('operation-year-retry');if(retry)retry.hidden=root.YearBootCoordinator?.getState().phase!=='blocked';
-        for(const id of ['overview-header-summaries','settlement-header-summaries']){const el=doc.getElementById(id);if(el){el.dataset.operationYear=String(state.year);el.dataset.amountBasis='final-settlement-current-open';}}
+        for(const id of ['overview-header-summaries','settlement-header-summaries']){const el=doc.getElementById(id);if(el){el.dataset.operationYear=String(state.year);el.dataset.amountBasis='final-settlement-managed-year';}}
         root.YearBubbleUI?.update(state);
     }
     function mount(){root.YearBubbleUI?.mount();updateUI();}
     function setMetadata(years,financial){metadataYears=(years||[]).map(Number).filter(y=>Number.isInteger(y)&&y>=2000&&y<=2199);financialMetadata=financial||null;if(!explicit)selected=chooseDefault(metadataYears);updateUI();}
     function setBootStatus(text){bootStatus=String(text);updateUI();}
     function clearPreview(){for(const id of ['overview-header-summaries','settlement-header-summaries']){const el=root.document?.getElementById(id);if(el?.hasAttribute('data-fast-header-preview')){el.replaceChildren();el.removeAttribute('data-fast-header-preview');}}}
-    const api={VERSION,currentYear,asYear,settlementYear,classification,accountingYear,scheduleYears,membership,availableYears,chooseDefault,scope,scopeWork,financialWithUnassigned,ensure,select,setOptions,toggleEdit,getState,getViewState,assertEditable,updateUI,setMetadata,setBootStatus,clearPreview,mount};
+    const api={VERSION,carryKey,carryState,prepareCarry,references,projectGroup,isReviewSeason,refresh,refreshClock,assertCarryEditable,currentYear,asYear,settlementYear,classification,accountingYear,scheduleYears,membership,availableYears,chooseDefault,scope,scopeWork,financialWithUnassigned,ensure,select,setOptions,toggleEdit,getState,getViewState,assertEditable,updateUI,setMetadata,setBootStatus,clearPreview,mount};
     root.YearContext=api;
     if(typeof module==='object'&&module.exports)module.exports=api;
     if(root.document){
-        root.document.addEventListener('DOMContentLoaded',()=>{const saved=root.embeddedSettings?.operationYear;if(saved==='all'||(Number.isInteger(saved)&&saved>=2000&&saved<=2199)){selected=saved;explicit=true;}if(typeof root.embeddedSettings?.yearOptions?.includeOpen==='boolean')includeOpen=root.embeddedSettings.yearOptions.includeOpen;mount();clearPreview();}, {once:true});
+        root.document.addEventListener('DOMContentLoaded',()=>{const saved=root.embeddedSettings?.operationYear;if(root.embeddedSettings?.yearOptions?.selectionMode!=='auto'&&(saved==='all'||(Number.isInteger(saved)&&saved>=2000&&saved<=2199))){selected=saved;explicit=true;}if(typeof root.embeddedSettings?.yearOptions?.includeOpen==='boolean')includeOpen=root.embeddedSettings.yearOptions.includeOpen;mount();clearPreview();}, {once:true});
+        root.document.addEventListener('visibilitychange', () => {
+            if (root.document.visibilityState === 'visible') refreshClock();
+        });
         root.document.addEventListener('data:loaded',()=>{invalidate();ensure();updateUI();});
         root.document.addEventListener('data:changed',()=>{invalidate();ensure();updateUI();});
+        root.document.addEventListener('settlement:updated', () => { invalidate(); ensure(); updateUI(); });
         root.document.addEventListener('workdate-data-updated',event=>{if(event.detail?.source==='auto-upload-work-sheet')return;invalidate();ensure();updateUI();});
         // Existing mutation dialogs retain their read/export controls in history mode.
         root.document.addEventListener('click',e=>{
@@ -173,8 +320,9 @@
     const EDGE = 8, DRAG_THRESHOLD = 6;
     const IDS = ['operation-year-bubble','operation-year-lock','operation-year-modal','operation-year-toolbar'];
     let button = null, lockButton = null, backdrop = null, panel = null, mounted = false, locked = false;
-    let position = null, drag = null, suppressClickUntil = 0, opened = false;
+    let position = null, followsDefault = false, drag = null, suppressClickUntil = 0, opened = false;
     let opener = null, previousOverflow = null, draftYear = null, globalListeners = false;
+    let closeButtonOnly = false;
 
     function report(error) {
         const message = error?.message || String(error);
@@ -186,7 +334,7 @@
         const doc = root.document;
         return {width: Math.max(1, root.innerWidth || doc?.documentElement.clientWidth || 390), height: Math.max(1, root.innerHeight || doc?.documentElement.clientHeight || 844)};
     }
-    function bubbleSize() { const area = viewport(); return area.width <= 768 && area.height >= area.width ? 64 : 80; }
+    function bubbleSize() { const area = viewport(); return area.width <= 768 && area.height >= area.width ? 48 : 80; }
     function clamp(value) {
         const area = viewport(), SIZE = bubbleSize();
         const minX = Math.min(EDGE, Math.max(0, area.width - SIZE)), minY = Math.min(EDGE, Math.max(0, area.height - SIZE - 16));
@@ -194,8 +342,10 @@
     }
     function defaultPosition() {
         const area = viewport(); if (bubbleSize() === 80) return clamp({x: EDGE, y: EDGE});
-        const badge = root.document?.getElementById('network-status')?.getBoundingClientRect();
-        return clamp({x: area.width - bubbleSize() - EDGE, y: badge?.width > 0 && badge.bottom > 0 ? badge.bottom + EDGE : 64});
+        const networkStatus = root.document?.getElementById('network-status');
+        const badge = networkStatus?.getBoundingClientRect();
+        const gap = networkStatus?.classList.contains('online') ? 2 : 29;
+        return clamp({x: area.width - bubbleSize() - EDGE, y: badge?.width > 0 && badge.bottom > 0 ? badge.bottom + gap : 88});
     }
     function validPosition(value) { return value && Number.isFinite(Number(value.x)) && Number.isFinite(Number(value.y)); }
     function adaptedPosition(value) {
@@ -209,7 +359,12 @@
     }
     function paintPosition() {
         if (button && position) { button.style.left = position.x + 'px'; button.style.top = position.y + 'px'; }
-        if (lockButton && position) { lockButton.style.left = position.x + 'px'; lockButton.style.top = (position.y + bubbleSize() - 16) + 'px'; }
+        if (lockButton && position) {
+            const size = bubbleSize();
+            const portrait = size !== 80;
+            lockButton.style.left = (position.x - (portrait ? 8 : 0)) + 'px';
+            lockButton.style.top = (position.y + size - (portrait ? 24 : 16)) + 'px';
+        }
     }
     function paintLock() {
         if (!button || !lockButton) return;
@@ -226,7 +381,8 @@
     function storePosition() { try { root.localStorage?.setItem(POSITION_KEY, JSON.stringify(serializePosition())); } catch (_) { /* A storage restriction must not disable movement. */ } }
     function serializePosition() { const value = position || defaultPosition(); return {version: VERSION, x: value.x, y: value.y, width: value.width, height: value.height, size: bubbleSize(), locked}; }
     function restorePosition(value, persist = false) {
-        position = validPosition(value) ? adaptedPosition(value) : defaultPosition();
+        followsDefault = !validPosition(value);
+        position = followsDefault ? defaultPosition() : adaptedPosition(value);
         locked = value?.locked === true; paintPosition(); paintLock(); if (persist) storePosition(); return serializePosition();
     }
     function initialPosition() {
@@ -235,7 +391,7 @@
         return restorePosition(saved?.version === VERSION ? saved : null);
     }
     function getPosition() { return serializePosition(); }
-    function resetPosition() { locked = false; position = defaultPosition(); paintPosition(); paintLock(); storePosition(); update(safeState()); return serializePosition(); }
+    function resetPosition() { locked = false; followsDefault = true; position = defaultPosition(); paintPosition(); paintLock(); storePosition(); update(safeState()); return serializePosition(); }
 
     function style() {
         const doc = root.document; if (!doc) return;
@@ -251,7 +407,7 @@
 #operation-year-lock{position:fixed;width:32px;height:32px;min-width:32px;padding:0;z-index:100601;border:1px solid #0284c7;border-radius:50%;background:#f0f9ff;color:#075985;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 5px #0f172a30}
 #operation-year-lock[data-locked="true"]{background:#075985;color:#fff}
 #operation-year-lock:focus-visible{outline:3px solid #7c3aed;outline-offset:2px}
-@media(max-width:768px) and (orientation:portrait){#operation-year-bubble{width:64px;height:64px;min-width:64px;max-width:64px;padding:6px}#operation-year-bubble strong{font-size:21px}#operation-year-bubble small{font-size:9px}}
+@media(max-width:768px) and (orientation:portrait){#operation-year-bubble{width:48px;height:48px;min-width:48px;max-width:48px;padding:3px}#operation-year-bubble strong{font-size:17px}#operation-year-bubble small{font-size:8px}#operation-year-lock{width:24px;height:24px}}
 #operation-year-modal{position:fixed;inset:0;z-index:100610;display:flex;align-items:center;justify-content:center;background:#0f172a73;padding:12px;box-sizing:border-box;overscroll-behavior:contain}
 #operation-year-modal[hidden]{display:none!important}
 #operation-year-bubble{z-index:2147483640}
@@ -297,22 +453,44 @@
     }
     function close() {
         if (!opened) return;
-        opened = false; draftYear = null; if (backdrop) backdrop.hidden = true;
+        opened = false; closeButtonOnly = false; draftYear = null; if (backdrop) backdrop.hidden = true;
+        panel?.querySelector('[data-year-view="summary"]')?.replaceChildren();
         if (button) button.setAttribute('aria-expanded', 'false');
         if (root.document?.body && previousOverflow !== null && root.document.body.style.overflow === 'hidden') root.document.body.style.overflow = previousOverflow;
         previousOverflow = null;
         const target = opener?.isConnected ? opener : button; target?.focus({preventScroll: true}); opener = null;
     }
-    function open() {
+    function showView(view, title) {
+        const scroll = panel?.querySelector('.year-modal-scroll');
+        const body = scroll?.querySelector('[data-year-view="' + view + '"]');
+        if (!body) return;
+        const switched = body.hidden;
+        for (const section of scroll.children) section.hidden = section !== body;
+        if (switched) scroll.scrollTop = 0;
+        panel.querySelector('#operation-year-modal-title').textContent = title;
+        panel.querySelector('#operation-year-close').setAttribute('aria-label', title + ' 닫기');
+    }
+    function open(view = 'settings') {
+        root.YearContext?.refreshClock();
         mount(); if (!backdrop || opened) return;
         opener = root.document.activeElement; draftYear = String(safeState().year); opened = true;
-        backdrop.hidden = false; button.setAttribute('aria-expanded', 'true');
+        closeButtonOnly = view === 'settings';
+        panel.querySelector('#operation-year-cancel').hidden = closeButtonOnly;
+        backdrop.hidden = false; panel?.__fitViewport?.(); button.setAttribute('aria-expanded', 'true');
         previousOverflow = root.document.body.style.overflow; backdrop.dataset.bodyOverflowBefore = previousOverflow; root.document.body.style.overflow = 'hidden';
-        update(safeState()); root.document.getElementById('operation-year-select')?.focus({preventScroll: true});
+        showView(view, view === 'summary' ? '확정·이월 요약' : '운영 연도 선택');
+        const scroll = panel.querySelector('.year-modal-scroll');
+        if (scroll) scroll.scrollTop = 0;
+        update(safeState());
+        if (view === 'settings') root.document.getElementById('operation-year-select')?.focus({preventScroll: true});
     }
     function keyboard(event) {
         if (!ownsModalFocus()) return;
-        if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(); return; }
+        if (event.key === 'Escape') {
+            event.stopImmediatePropagation();
+            if (!closeButtonOnly) { event.preventDefault(); close(); }
+            return;
+        }
         if (event.key !== 'Tab') return;
         const nodes = focusable(); if (!nodes.length) { event.preventDefault(); panel?.focus(); return; }
         const active = root.document.activeElement, first = nodes[0], last = nodes[nodes.length - 1];
@@ -321,7 +499,12 @@
         event.stopImmediatePropagation();
     }
     function focusGuard(event) { if (ownsModalFocus() && panel && !panel.contains(event.target)) focusable()[0]?.focus({preventScroll: true}); }
-    function resize() { if (position) { position = clamp(position); paintPosition(); } }
+    function resize() {
+        panel?.__fitViewport?.();
+        if (!position) return;
+        position = followsDefault && !locked ? defaultPosition() : clamp(position);
+        paintPosition();
+    }
     function pointerDown(event) {
         if (locked || drag || opened || (event.pointerType === 'mouse' && event.button !== 0)) return;
         drag = {id: event.pointerId, x: event.clientX, y: event.clientY, start: {...position}, moved: false};
@@ -331,7 +514,7 @@
         if (locked || !drag || drag.id !== event.pointerId) return;
         const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
         if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-        drag.moved = true; event.preventDefault(); button.dataset.dragging = 'true';
+        drag.moved = true; followsDefault = false; event.preventDefault(); button.dataset.dragging = 'true';
         position = clamp({x: drag.start.x + dx, y: drag.start.y + dy}); paintPosition();
     }
     function pointerEnd(event) {
@@ -344,7 +527,7 @@
         const steps = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]};
         if (locked || !event.altKey || !steps[event.key]) return;
         event.preventDefault(); event.stopPropagation(); const [x, y] = steps[event.key], step = event.shiftKey ? 30 : 10;
-        position = clamp({x: position.x + x * step, y: position.y + y * step}); paintPosition(); storePosition();
+        followsDefault = false; position = clamp({x: position.x + x * step, y: position.y + y * step}); paintPosition(); storePosition();
     }
     function rebuildPicker(state) {
         const picker = root.document.getElementById('operation-year-select'); if (!picker) return;
@@ -373,17 +556,29 @@
         const readonly = root.document.getElementById('operation-year-readonly');
         if (readonly) { readonly.hidden = !state.readonly; readonly.textContent = state.year === 'all' ? '전체 기간은 비교·조회 모드입니다. 수정할 연도를 먼저 선택해 주세요.' : partialReadOnly ? '선택한 연도는 조회할 수 있습니다. 전체 원본 확인이 완료되면 수정할 수 있습니다.' : '이전 연도는 조회 모드입니다. 수정이 필요하면 이전 연도 수정 모드를 선택해 주세요.'; }
         const count = state.openCount ?? state.open?.count ?? state.ongoingCount;
-        if (count !== undefined) root.document.getElementById('operation-year-open-count').textContent = '진행·정산 대기 (전체 원본·조회): ' + Number(count || 0).toLocaleString('ko-KR') + '건 · 최신 운영 연도 관리';
+        if (count !== undefined) root.document.getElementById('operation-year-open-count').textContent = '진행·정산 대기 (전체 원본·조회): ' + Number(count || 0).toLocaleString('ko-KR') + '건 · 귀속 연도에서 관리';
         const retry = root.document.getElementById('operation-year-retry'); if (retry) retry.hidden = root.YearBootCoordinator?.getState?.().phase !== 'blocked';
+        root.CarryoverUI?.refresh();
     }
     function modalClick(event) {
         event.stopPropagation();
-        if (event.target === backdrop) { close(); return; }
+        if (event.target === backdrop) {
+            if (!closeButtonOnly) close();
+            return;
+        }
         const action = event.target.closest?.('button')?.id;
         try {
-            if (action === 'operation-year-close' || action === 'operation-year-cancel') close();
-            else if (action === 'operation-year-apply') { root.YearContext?.select(root.document.getElementById('operation-year-select').value); close(); }
-            else if (action === 'operation-year-current') { root.YearContext?.select(safeState().currentYear); close(); }
+            if (action === 'operation-year-close' || (action === 'operation-year-cancel' && !closeButtonOnly)) close();
+            else if (action === 'operation-year-apply' || action === 'operation-year-current') {
+                const state = action === 'operation-year-apply'
+                    ? root.YearContext?.select(root.document.getElementById('operation-year-select').value)
+                    : root.YearContext?.select(root.YearContext.chooseDefault(safeState().years), {explicit:false});
+                if (closeButtonOnly) {
+                    const applied = state || safeState();
+                    draftYear = String(applied.year);
+                    rebuildPicker(applied);
+                } else close();
+            }
             else if (action === 'operation-year-edit') { root.YearContext?.toggleEdit?.(); update(safeState()); }
             else if (action === 'operation-year-position-reset') resetPosition();
             else if (action === 'operation-year-retry') Promise.resolve(root.YearBootCoordinator?.retry?.()).catch(report);
@@ -418,7 +613,7 @@
         button.innerHTML = '<strong>--년</strong><small>운영 연도</small>';
         lockButton = doc.createElement('button'); lockButton.id = 'operation-year-lock'; lockButton.type = 'button';
         backdrop = doc.createElement('div'); backdrop.id = 'operation-year-modal'; backdrop.hidden = true;
-        backdrop.innerHTML = '<section id="operation-year-toolbar" role="dialog" aria-modal="true" aria-labelledby="operation-year-modal-title" tabindex="-1"><div class="year-modal-heading"><h2 id="operation-year-modal-title">운영 연도 선택</h2><button type="button" id="operation-year-close" aria-label="운영 연도 선택 닫기">×</button></div><label for="operation-year-select">조회할 연도</label><select id="operation-year-select"></select><div class="year-modal-row"><button type="button" id="operation-year-current">올해 보기</button><button type="button" id="operation-year-edit" hidden>이전 연도 수정</button></div><label class="year-modal-option"><input type="checkbox" id="operation-year-include-open" checked><span>진행·정산 대기 포함<br><small>최신 운영 연도에서 계속 관리합니다.</small></span></label><span id="operation-year-open-count" class="year-modal-info">진행·정산 대기 확인 중</span><span id="operation-year-basis" class="year-modal-info"></span><span id="operation-year-unassigned" class="year-modal-info"></span><p id="operation-year-readonly" class="year-modal-note" hidden></p><p class="year-modal-note">미완료 작업과 완료 후 정산 대기는 최신 운영 연도로 이어집니다. 이전 연도에 시작한 작업도 정산이 끝난 연도에 비용이 귀속됩니다. 날짜 정보 자체가 확인되지 않은 기록은 별도로 표시합니다.</p><span id="operation-year-progress" class="year-modal-info" role="status" aria-live="polite"></span><div class="year-modal-row"><button type="button" id="operation-year-retry" hidden>전체 확인 재시도</button><button type="button" id="operation-year-position-reset">물방울 위치 초기화</button></div><div class="year-modal-footer"><button type="button" id="operation-year-cancel">닫기</button><button type="button" id="operation-year-apply">적용</button></div></section>';
+        backdrop.innerHTML = '<section id="operation-year-toolbar" role="dialog" aria-modal="true" aria-labelledby="operation-year-modal-title" tabindex="-1"><div class="year-modal-heading"><h2 id="operation-year-modal-title">운영 연도 선택</h2><button type="button" id="operation-year-close" aria-label="운영 연도 선택 닫기">×</button></div><label for="operation-year-select">조회할 연도</label><select id="operation-year-select"></select><div class="year-modal-row"><button type="button" id="operation-year-current">현재 연도 자동</button><button type="button" id="operation-year-edit" hidden>이전 연도 수정</button></div><label class="year-modal-option"><input type="checkbox" id="operation-year-include-open" checked><span>진행·정산 대기 포함<br><small>귀속된 연도의 대기와 이월 예약을 포함합니다.</small></span></label><span id="operation-year-open-count" class="year-modal-info">진행·정산 대기 확인 중</span><span id="operation-year-basis" class="year-modal-info"></span><span id="operation-year-unassigned" class="year-modal-info"></span><p id="operation-year-readonly" class="year-modal-note" hidden></p><p class="year-modal-note">정산 대기는 귀속된 연도에 유지됩니다. 인계한 프로젝트만 다음 연도에 반영됩니다. 유효한 정산월을 지정하면 해당 연도로 귀속합니다.</p><span id="operation-year-progress" class="year-modal-info" role="status" aria-live="polite"></span><div class="year-modal-row"><button type="button" id="operation-year-retry" hidden>전체 확인 재시도</button><button type="button" id="operation-year-position-reset">물방울 위치 초기화</button></div><div class="year-modal-footer"><button type="button" id="operation-year-cancel">닫기</button><button type="button" id="operation-year-apply">적용</button></div></section>';
         panel = backdrop.querySelector('#operation-year-toolbar'); doc.body.append(button, lockButton, backdrop);
         initialPosition();
         button.addEventListener('pointerdown', pointerDown); button.addEventListener('pointermove', pointerMove); button.addEventListener('pointerup', pointerEnd); button.addEventListener('pointercancel', pointerEnd); button.addEventListener('lostpointercapture', pointerEnd);
@@ -427,9 +622,9 @@
         button.addEventListener('click', event => { event.stopPropagation(); if (Date.now() < suppressClickUntil && event.detail !== 0) { event.preventDefault(); return; } open(); });
         backdrop.addEventListener('click', modalClick); backdrop.addEventListener('change', modalChange);
         if (!globalListeners) { root.addEventListener('resize', resize); doc.addEventListener('keydown', keyboard, true); doc.addEventListener('focusin', focusGuard); globalListeners = true; }
-        mounted = true; update(safeState()); return true;
+        mounted = true; root.CarryoverUI?.mount(panel); update(safeState()); return true;
     }
-    const api = {VERSION, mount, update, getPosition, resetPosition, serializePosition, restorePosition, normalizeSnapshot, setLocked, open, close};
+    const api = {VERSION, mount, update, getPosition, resetPosition, serializePosition, restorePosition, normalizeSnapshot, setLocked, open, close, showView};
     root.YearBubbleUI = api;
     if (typeof module === 'object' && module.exports) module.exports = api;
     if (root.document) {
@@ -509,7 +704,7 @@
         if((root.projectData||[]).length || root.WebSavePlugin?.state?.dirty || root.WebSavePlugin?.state?.remoteDirty)return false;
         if(state.usingCache)return true;
         const candidate=await validProbe;if(!candidate)return false;
-        if(candidate.schemaVersion!==SCHEMA||candidate.mappingVersion!==VERSION||candidate.generatedForOperatingYear!==root.YearContext.currentYear()||candidate.sourcePath!==source.path||!candidate.sourceCommit||!/^[a-f0-9]{40}$/.test(candidate.sourceCommit)||!/^[a-f0-9]{64}$/.test(candidate.sourceSha256)||!Array.isArray(candidate.years))return false;
+        if(![1,2].includes(candidate.carryoverVersion)||candidate.schemaVersion!==SCHEMA||candidate.mappingVersion!==VERSION||candidate.generatedForOperatingYear!==root.YearContext.currentYear()||candidate.sourcePath!==source.path||!candidate.sourceCommit||!/^[a-f0-9]{40}$/.test(candidate.sourceCommit)||!/^[a-f0-9]{64}$/.test(candidate.sourceSha256)||!Array.isArray(candidate.years))return false;
         manifest=candidate;cacheBase=defaultBase;sourceBase='https://raw.githubusercontent.com/'+source.owner+'/'+source.repo+'/';
         const current=root.YearContext.chooseDefault(manifest.years),model=await readModel(current).catch(()=>null);if(!model)return false;
         // Two recovery callers can await the same first model concurrently. The
@@ -9604,7 +9799,8 @@
                     return true;
                 }
 
-                return false;
+                const carryKey = window.YearContext.carryKey;
+                return (project.customFields?.[carryKey] || '') !== (snapshot.customFields?.[carryKey] || '');
             }
 
             // ============================================================
@@ -17449,6 +17645,7 @@
 
             function countWorkItems(projects) {
                 try {
+                    if (typeof window.countUnifiedWorkItems === 'function') return window.countUnifiedWorkItems();
                     if (typeof window.getUnifiedWorkItems === 'function') {
                         const items = window.getUnifiedWorkItems();
                         if (Array.isArray(items)) return items.length;
@@ -21534,32 +21731,25 @@
                 },
 
                 // Optimize a single element
-                optimizeElement: function (element, type) {
+                optimizeElement: function (element) {
                     if (!element || this.appliedElements.has(element)) return;
-
-                    // Add mousedown for instant feedback
-                    element.addEventListener('mousedown', function (e) {
-                        InstantFeedback.applyFeedback(element, 'press');
-                    }, { passive: true });
-
-                    // Add mouseup/mouseleave to release feedback
-                    element.addEventListener('mouseup', function (e) {
-                        InstantFeedback.removeFeedback(element);
-                    }, { passive: true });
-
-                    element.addEventListener('mouseleave', function (e) {
-                        InstantFeedback.removeFeedback(element);
-                    }, { passive: true });
-
-                    // Add touch support
-                    element.addEventListener('touchstart', function (e) {
-                        InstantFeedback.applyFeedback(element, 'press');
-                    }, { passive: true });
-
-                    element.addEventListener('touchend', function (e) {
-                        InstantFeedback.removeFeedback(element);
-                    }, { passive: true });
-
+                    if (!this.feedbackBound) {
+                        this.feedbackBound = true;
+                        const feedback = event => {
+                            const targets = event.type === 'mouseleave' ? [event.target] : event.composedPath();
+                            for (const target of targets) {
+                                if (!this.appliedElements.has(target)) continue;
+                                if (event.type === 'mousedown' || event.type === 'touchstart') {
+                                    InstantFeedback.applyFeedback(target, 'press');
+                                } else {
+                                    InstantFeedback.removeFeedback(target);
+                                }
+                            }
+                        };
+                        for (const type of ['mousedown','mouseup','mouseleave','touchstart','touchend','touchcancel']) {
+                            document.addEventListener(type, feedback, {capture:true, passive:true});
+                        }
+                    }
                     this.appliedElements.add(element);
                 }
             };
@@ -23446,8 +23636,6 @@
             border-right: 1px solid #e2e8f0;
             box-sizing: border-box;
             position: relative;
-            backface-visibility: hidden;
-            transform: translate3d(0, 0, 0);
             contain: layout style paint;
         }
 
@@ -23490,8 +23678,6 @@
             border-left: 1px solid #e2e8f0;
             z-index: 1;
             pointer-events: none;
-            backface-visibility: hidden;
-            transform: translate3d(0, 0, 0);
         }
 
         /* [REMOVED] 기존 마커 스타일 - 새로운 시스템으로 대체됨 */
@@ -27433,7 +27619,7 @@
 
     <!-- [REMOVED] Duplicate Loading Overlay - Using the one in body tag (line ~76714) -->
 
-    <div class="w-full h-full p-4 md:p-8 flex flex-col">
+    <div id="codex-dashboard-shell" class="w-full h-full p-4 md:p-8 flex flex-col">
         <!-- Main content area -->
         <main id="dashboardContent" class="flex flex-col flex-grow min-h-0 space-y-4 overflow-y-auto" style="overflow-y: auto !important;">
 
@@ -27442,7 +27628,7 @@
                 <div class="accordion-header p-4 flex justify-between items-center border-b">
                     <h2 class="accordion-title-btn text-2xl font-bold flex items-baseline" role="button" tabindex="0"
                         aria-expanded="false" aria-controls="accordion-panel-overview" data-accordion-id="overview">
-                        <span>📊 총괄</span>
+                        <span class="accordion-title-name"><span>📊</span> <span>총괄</span></span>
                         <span class="text-lg font-medium text-gray-400 ml-2">(PO비용 기준)</span>
                         <span class="accordion-hint-chip hint-visible" data-accordion-hint="overview">
                             <span aria-hidden="true">👆</span>
@@ -27608,7 +27794,7 @@
                 <div class="accordion-header p-4 flex items-center border-b">
                     <h2 class="accordion-title-btn text-2xl font-bold flex items-baseline" role="button" tabindex="0"
                         aria-expanded="false" aria-controls="accordion-panel-settlement" data-accordion-id="settlement">
-                        <span>💰 정산</span>
+                        <span class="accordion-title-name"><span>💰</span> <span>정산</span></span>
                         <span class="text-lg font-medium text-gray-400 ml-2">(PO이용 기준)</span>
                         <span class="accordion-hint-chip hint-visible" data-accordion-hint="settlement">
                             <span aria-hidden="true">👆</span>
@@ -27645,7 +27831,7 @@
                         <h2 class="accordion-title-btn text-2xl font-bold transition-colors" role="button" tabindex="0"
                             aria-expanded="false" aria-controls="accordion-panel-schedule" data-accordion-id="schedule"
                             style="user-select: none;">
-                            <span>🗓️ 일정</span>
+                            <span class="accordion-title-name"><span>🗓️</span> <span>일정</span></span>
                             <span class="accordion-hint-chip hint-visible" data-accordion-hint="schedule">
                                 <span aria-hidden="true">👆</span>
                                 <span>타임라인을 열어보세요</span>
@@ -27656,7 +27842,7 @@
                         <!-- 개선 사항: 고객사와 시공사 바로가기 추가 -->
                         <!-- [UI-FIX-v3] flex-wrap 제거 및 수평 스크롤 적용 -->
                         <div class="schedule-header-filter-row flex items-center gap-2 ml-4 flex-nowrap"
-                            style="pointer-events: auto; flex-wrap: nowrap !important; overflow-x: auto; white-space: nowrap;">
+                            style="pointer-events: auto; overflow-x: auto; white-space: nowrap;">
                             <select id="header-customer-filter-shortcut"
                                 class="px-3 py-1 text-sm border border-gray-300 rounded hover:border-violet-500 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white"
                                 style="pointer-events: auto;">
@@ -29917,7 +30103,8 @@
         const exportToExcelBtn = document.getElementById('exportToExcelBtn');
         // Unified row-based work items array (one entry per \uc791\uc5c5\uc77c row)
         // Shape: { projectId, projectName, workDate, workDetail }
-        window.workItems = window.workItems || [];
+        window.workItems = window.isStandalone && Array.isArray(window.embeddedSettings?.workRows)
+            ? window.embeddedSettings.workRows.slice() : (window.workItems || []);
         // Selectors updated after DOM changes for controls
         let taskTypeFilter, customFilterContainer, progressFilter, sortBy, searchInput;
         const SORT_DIRECTIONS = Object.freeze({ ASC: 'asc', DESC: 'desc' });
@@ -51797,6 +51984,8 @@
                         workbook = ExcelParserUnified.readXlsx(data, {
                             type: 'array',
                             cellDates: false,
+                            // This upload applies Work rows against the confirmed project mapping.
+                            codexProjectMappingOwnsWorkSheet: true,
                             cellNF: true,  // [RESTORED] \uc22b\uc790 \ud3ec\ub9f7 \uc720\uc9c0 \ud544\uc218 (\ub0a0\uc9dc \ud45c\uc2dc \ud615\uc2dd \ubcf4\uc874)
                             cellStyles: false,
                             sheetStubs: false
@@ -53093,6 +53282,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             for (let i = 0; i < customList.length; i++) {
                 const cf = customList[i] || {};
                 const originalName = String(cf.fieldName || '').trim();
+                if (sanitizeKey(originalName) === window.YearContext.carryKey) continue;
                 
                 // [PERF FIX] O(1) 스키마 등록을 여기서 세션당 1회만 처리
                 if (registry && originalName) {
@@ -55101,7 +55291,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             try { if (mappingModal) mappingModal.classList.add('hidden'); } catch (e) { }
             try { if (window.RefactoringSuite2025 && typeof window.RefactoringSuite2025.markDataStatsDirty === 'function') window.RefactoringSuite2025.markDataStatsDirty(); } catch (e) { }
             // [PERF-FIX] defer heavy rendering to give E2E polling a gap on the main thread
-            try { if (typeof renderMilestoneModal === 'function') setTimeout(() => renderMilestoneModal(), 0); } catch (e) { }
+            try { if (typeof renderMilestoneModal === 'function') setTimeout(() => renderMilestoneModal(true), 0); } catch (e) { }
             try {
                 if (typeof requestCoalescedMainRender === 'function') setTimeout(() => requestCoalescedMainRender('milestone-fast-apply'), 0);
                 else if (typeof render === 'function') setTimeout(() => render(), 0);
@@ -56594,6 +56784,9 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
             // 4. \ucd5c\uc885 \ub370\uc774\ud130 \uac1d\uccb4 \uc0dd\uc131
             const customFields = {};
+            if (uploadRuntime?.carryColumn >= 0 && row[uploadRuntime.carryColumn] != null) {
+                customFields[window.YearContext.carryKey] = String(row[uploadRuntime.carryColumn]);
+            }
             // Store custom fields using sanitized keys to avoid problems with special characters.
             customFieldDefs.forEach(cf => {
                 const originalName = cf.fieldName || '';
@@ -56773,7 +56966,9 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 progress: (typeof parsedCore.progress === 'number' ? parsedCore.progress : (Number(parsedCore.progress) || 0)),
                 processRate: (typeof parsedCore.progress === 'number' ? parsedCore.progress : (Number(parsedCore.progress) || 0)), // Standard alias
                 contractor: (normalizedContractor || '\ubbf8\uc9c0\uc815'), // [PRD FIX] Store contractor as direct property (trim + default)
-                manualSettlementDate: parsedCore.manualSettlementDate ? String(parsedCore.manualSettlementDate).trim() : '', // [LOGIC FIX] \uc815\uc0b0 \uc6d4 \ud544\ub4dc \uc800\uc7a5
+                manualSettlementDate: parsedCore.manualSettlementDate instanceof Date
+                    ? formatDateYMD(parsedCore.manualSettlementDate).slice(0, 7)
+                    : (parsedCore.manualSettlementDate ? String(parsedCore.manualSettlementDate).trim() : ''), // [LOGIC FIX] \uc815\uc0b0 \uc6d4 \ud544\ub4dc \uc800\uc7a5
                 settlement: settlement, // [CRITICAL FIX] Settlement \ub370\uc774\ud130 \ud1b5\ud569 (\ub3d9\uc801 \ud30c\uc2f1\ub41c \uceec\ub7fc)
                 workDate: workDateArray,  // [LOGIC FIX] \uc791\uc5c5\uc77c\uc744 \ubc30\uc5f4 \ud615\uc2dd\uc73c\ub85c \uc800\uc7a5
                 workDetail: workDetail,  // \uc791\uc5c5 \ub0b4\uc6a9 \uc800\uc7a5 (\ub0a0\uc9dc\ubcc4 \ub0b4\uc6a9\uc740 \uc138\ubbf8\ucf5c\ub860\uc73c\ub85c \ubd84\ub9ac)
@@ -56856,6 +57051,10 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 window.__coreDataLoadInProgress = true;
 
                 const dataRows = rawData.slice(dataStartIndex);
+                const carryHeader = rawData.slice(0, dataStartIndex).find(row =>
+                    Array.isArray(row) && row.includes(window.YearContext.carryKey));
+                const uploadRuntime = ensureUploadMappingRuntime(mapping);
+                if (uploadRuntime) uploadRuntime.carryColumn = carryHeader?.indexOf(window.YearContext.carryKey) ?? -1;
                 const successfulData = [];
                 const failedData = [];
                 const processingNotifier = createProgressNotifier('\ub370\uc774\ud130 \uc804\ucc98\ub9ac \uc911...');
@@ -57585,8 +57784,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                                     let fastHeaderRendered = false;
                                     try {
                                         const headerContainer = document.getElementById('overview-header-summaries');
-                                        if (headerContainer && typeof renderSettlementHeaderSummariesFast === 'function') {
-                                            fastHeaderRendered = renderSettlementHeaderSummariesFast(projectData || window.projectData || [], headerContainer);
+                                        if (headerContainer) {
+                                            fastHeaderRendered = paintCarryHeader(getStableProjectDatasetForSummary(), headerContainer, 'customer');
                                         }
                                     } catch (fastHeaderError) {
                                         console.warn('[finishProcessing] fast overview customer header failed:', fastHeaderError);
@@ -59497,7 +59696,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     Object.keys(p.customFields).forEach(key => {
                         // `remarks` is only the runtime alias of the fixed 특이사항 field.
                         // Do not expose it as an independent filter or persist it as a custom column.
-                        if (String(key || '').trim().toLowerCase() !== 'remarks') customFieldKeys.add(key);
+                        if (key !== window.YearContext.carryKey && String(key || '').trim().toLowerCase() !== 'remarks') customFieldKeys.add(key);
                     });
                 }
             });
@@ -60830,7 +61029,6 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
 
             const lookup = buildAutoUploadProjectLookup(projects);
             const byProject = new Map();
-            const projectIds = new Set(projects.map(p => String(p && p.id != null ? p.id : '')).filter(Boolean));
 
             for (let r = headerRowIndex + 1; r < workRows.length; r++) {
                 const row = workRows[r];
@@ -60861,6 +61059,11 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 });
             }
 
+            return commitAutoUploadWorkDates(projects, byProject, result, options);
+        }
+
+        function commitAutoUploadWorkDates(projects, byProject, result, options = {}) {
+            const projectIds = new Set(projects.map(p => String(p && p.id != null ? p.id : '')).filter(Boolean));
             try {
                 const wd = window.workDate || {};
                 if (options.clearBeforeApply !== false) {
@@ -60991,9 +61194,23 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 links: window.projectLinkStore && window.projectLinkStore.loadProjectLinkMap ? window.projectLinkStore.loadProjectLinkMap() : {} });
             const refresh = () => { invalidateFilteredDataCache(); latestFilteredData = null; render(true); scheduleSettlementHeaderSummariesFast('year-cache'); window.YearContext.updateUI(); };
             const applyWork = (model, projects) => {
-                for (const name of Object.keys(model.raw || {})) {
-                    if (isAutoUploadWorkSheetName(name)) applyAutoUploadWorkSheetData(model.raw[name], { projectDataSource: projects, clearBeforeApply: true });
+                if (!projects.length) return;
+                const targetIds = new Set(projects.map(project => String(project.id)));
+                const byProject = new Map();
+                const result = { applied: 0, skipped: 0, projects: 0, rows: model.works.length };
+                // The cache already verified project ownership and source counts.
+                // A projected raw sheet can omit rows resolved by the source mapper.
+                for (const item of model.works) {
+                    const id = String(item.projectId);
+                    if (!targetIds.has(id)) continue;
+                    const date = item.workDate;
+                    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('연도 캐시 작업일 형식 오류');
+                    if (!byProject.has(id)) byProject.set(id, []);
+                    byProject.get(id).push({ date, detail: String(item.workDetail ?? '').trim() });
+                    result.applied++;
                 }
+                commitAutoUploadWorkDates(projects, byProject, result);
+                if (result.error) throw new Error('연도 캐시 작업일 매핑 실패: ' + result.error);
             };
             const applyLinks = (model, projects) => {
                 if (window.projectLinkStore && typeof window.projectLinkStore.setProjectLink === 'function') {
@@ -61125,6 +61342,10 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         }
 
         async function fetchAndImportFromUrl(url, options = {}) {
+            if (window.isStandalone && window.projectData?.length && (options.startupAutoUpload || options.recoveryAttempt)) {
+                // A reopened embedded snapshot is authoritative until the user requests a fresh import.
+                return;
+            }
             if (window.YearBootCoordinator && await window.YearBootCoordinator.tryBoot(normalizeAutoUploadUrl(url), options, createYearBootAdapter20261009())) return;
             const yearLegacyTicket20261009 = window.YearBootCoordinator ? window.YearBootCoordinator.legacyBegin() : null;
             // Ensure settlement mapping/parsing is ready even during early auto-upload.
@@ -61305,6 +61526,21 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 throw new Error('Empty or unreadable primary sheet');
             }
 
+            // SheetJS gives Invalid Date to some literal strings with a date number format.
+            // Recover only those original string cells in the row view, leaving the save source intact.
+            const projectRange = XLSX.utils.decode_range(primaryWorksheet['!ref']);
+            for (let rowIndex = 0; rowIndex < sheetData.length; rowIndex++) {
+                const row = sheetData[rowIndex];
+                for (let colIndex = 0; colIndex < row.length; colIndex++) {
+                    const projected = row[colIndex];
+                    if (!(projected instanceof Date) || Number.isFinite(projected.getTime())) continue;
+                    const address = XLSX.utils.encode_cell({
+                        r: projectRange.s.r + rowIndex, c: projectRange.s.c + colIndex
+                    });
+                    const cell = primaryWorksheet[address];
+                    if (cell && typeof cell.v === 'string' && (cell.t === 's' || cell.t === 'str')) row[colIndex] = cell.v;
+                }
+            }
             rememberAutoUploadRawSheet('project', sheetData);
 
             markAutoUploadPerfStage(autoUploadPerf, 'parseEnd');
@@ -61638,6 +61874,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             MAPPING_FIELDS.forEach(f => mapping.core[f.key] = -1);
 
             combinedHeaders.forEach((headerText, colIndex) => {
+                if (headerText === window.YearContext.carryKey) return;
                 let bestMatch = 'ignore';
                 const lowerHeaderText = String(headerText || '').toLowerCase().trim();
                 const normalizedHeaderText = lowerHeaderText.replace(/\s+/g, '');
@@ -61690,7 +61927,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                     mapping.custom.push({ colIndex: colIndex, fieldName: headerText || `col_${colIndex}` });
                 } else {
                     // assign to core if not already assigned
-                    if (mapping.core[bestMatch] === -1) {
+                    if (mapping.core[bestMatch] === -1 ||
+                        (bestMatch === 'manualSettlementDate' && mapping.core.manualSettlementDate == null)) {
                         mapping.core[bestMatch] = colIndex;
                     } else {
                         // collision: treat as custom
@@ -62075,9 +62313,11 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         // \uac1c\uc120 \uc0ac\ud56d: \ud544\ud130\ub9c1/\uc815\ub82c \uacb0\uacfc \uba54\ubaa8\uc774\uc81c\uc774\uc158\uc744 \uc704\ud55c \uce90\uc2dc
         let filteredDataCache = null;
         let filteredDataCacheKey = null;
+        let carryFilterCache = null;
 
         // \uce90\uc2dc \ubb34\ud6a8\ud654 \ud568\uc218
         function invalidateFilteredDataCache() {
+            carryFilterCache = null;
             filteredDataCache = null;
             filteredDataCacheKey = null;
         }
@@ -62243,13 +62483,13 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         window.__codexGetZoomDateFilterBasis20260613 = getZoomDateFilterBasis20260613;
         window.__codexGetZoomFilterBasisLabel20260613 = getZoomFilterBasisLabel20260613;
 
-        function getFilteredAndSortedData(skipFilters = false) {
+        function getFilteredAndSortedData(skipFilters = false, yearBasis = 'union') {
             // [VIEW FILTER INTEGRATION] Check for view-filtered data first
             // This integrates the Select View module with the main render pipeline
             let data = (typeof window.getFilteredProjectData === 'function')
                 ? window.getFilteredProjectData()
                 : (window._viewFilterActive && window._viewFilteredData ? window._viewFilteredData : (window.projectData || []));
-            if (window.YearContext) data = window.YearContext.scope(data, 'union');
+            if (window.YearContext) data = window.YearContext.scope(data, yearBasis);
 
             // [DEBUG] \ub370\uc774\ud130 \uc18c\uc2a4 \ud655\uc778
             if (window.__GANTT_FILTER_DEBUG__) {
@@ -62315,6 +62555,7 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             // \uce90\uc2dc \ud0a4 \uc0dd\uc131 (\ud544\ud130 \uc870\uac74\uc758 \ud574\uc2dc)
             const cacheKey = JSON.stringify({
                 operationYear: window.YearContext ? window.YearContext.getViewState().year : null,
+                yearBasis,
                 searchTerm,
                 taskType: cacheKeyTaskTypeFilter?.value || taskTypeFilter?.value,
                 progress: cacheKeyProgressFilter?.value || progressFilter?.value,
@@ -62328,7 +62569,10 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             });
 
             // \uce90\uc2dc\uac00 \uc720\ud6a8\ud55c \uacbd\uc6b0 \uc7ac\uc0ac\uc6a9
-            let _dynamicKey = cacheKey + '_' + (typeof viewMinDate !== 'undefined' && viewMinDate ? viewMinDate.getTime() : '') + '_' + (typeof viewMaxDate !== 'undefined' && viewMaxDate ? viewMaxDate.getTime() : '') + '_' + (typeof isCustomZoomActive !== 'undefined' ? isCustomZoomActive : '') + '_' + (typeof getZoomDateFilterBasis20260613 === 'function' ? getZoomDateFilterBasis20260613() : 'workdate'); if (filteredDataCache && filteredDataCacheKey === _dynamicKey) {
+            let _dynamicKey = cacheKey + '_' + (typeof viewMinDate !== 'undefined' && viewMinDate ? viewMinDate.getTime() : '') + '_' + (typeof viewMaxDate !== 'undefined' && viewMaxDate ? viewMaxDate.getTime() : '') + '_' + (typeof isCustomZoomActive !== 'undefined' ? isCustomZoomActive : '') + '_' + (typeof getZoomDateFilterBasis20260613 === 'function' ? getZoomDateFilterBasis20260613() : 'workdate'); if (yearBasis === 'review') {
+                if (filteredDataCache && carryFilterCache?.key === _dynamicKey &&
+                    carryFilterCache.revision === window.YearContext.getViewState().generation) return carryFilterCache.data;
+            } else if (filteredDataCache && filteredDataCacheKey === _dynamicKey) {
                 return filteredDataCache;
             }
 
@@ -62670,8 +62914,12 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
             }
 
             // \uce90\uc2dc \uc800\uc7a5
-            filteredDataCache = data;
-            filteredDataCacheKey = typeof _dynamicKey !== 'undefined' ? _dynamicKey : cacheKey;
+            if (yearBasis === 'review') {
+                carryFilterCache = {key: _dynamicKey, data, revision: window.YearContext.getViewState().generation};
+            } else {
+                filteredDataCache = data;
+                filteredDataCacheKey = _dynamicKey;
+            }
 
             return data;
         }
@@ -63783,167 +64031,587 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
         }
 
 
-        function getStableProjectDatasetForSummary() {
-            if (window.YearContext && typeof getFilterAwareDataset === 'function') {
-                return window.YearContext.scope(getFilterAwareDataset(), 'financial');
+        const carryLabels = {
+            confirmed: '당년 확정', pending: '정산 대기', reserved: '이월 예정',
+            planned: '미래 계획', received: '전년 유입', incoming: '받을 예정', sent: '보낸 이력',
+            movedOut: '다른 연도로 이동', movedIn: '다른 연도에서 이동',
+            unknown: '귀속 확인 필요'
+        };
+        const carryOrder = Object.keys(carryLabels);
+        let carryReviewExpanded = false;
+        const carrySummaryCache = new WeakMap();
+
+        function carryText(tag, className, value = '') {
+            const element = document.createElement(tag);
+            if (className) element.className = className;
+            element.textContent = value;
+            return element;
+        }
+
+        function carryAmount(po, count) {
+            return Number(po).toLocaleString('ko-KR') + '원 / ' + Number(count).toLocaleString('ko-KR') + '건';
+        }
+
+        function carrySummary(data, state) {
+            const context = window.YearContext;
+            const review = carryReviewExpanded || (state.year === state.currentYear && context.isReviewSeason());
+            const key = [state.year, state.currentYear, state.includeOpen, state.generation, review].join('|');
+            const cached = carrySummaryCache.get(data);
+            if (cached?.key === key) return cached;
+            const groups = { customer: new Map(), center: new Map() };
+            const rows = [];
+            const financial = new Set(context.scope(data, 'financial'));
+            const seen = new Set();
+            function add(row) {
+                rows.push(row);
+                for (const axis of ['customer', 'center']) {
+                    const name = row[axis];
+                    if (!groups[axis].has(name)) groups[axis].set(name, { total: { po: 0, count: 0 }, buckets: Object.create(null) });
+                    const group = groups[axis].get(name);
+                    const bucket = group.buckets[row.bucket] ||= { po: 0, count: 0 };
+                    bucket.po += row.po;
+                    bucket.count++;
+                    if (row.financial) {
+                        group.total.po += row.po;
+                        group.total.count++;
+                    }
+                }
             }
-            const candidates = [];
-            const pushCandidate = (name, data) => {
-                if (Array.isArray(data) && data.length > 0) candidates.push({ name, data });
+            for (const project of data) {
+                const id = String(project.id ?? '').trim();
+                if (id && seen.has(id)) continue;
+                if (id) seen.add(id);
+                const status = context.classification(project);
+                const history = context.carryState(project);
+                const row = {
+                    project, id, po: Number(project.poAmount) || 0, carryValue: project.customFields?.[context.carryKey],
+                    customer: context.projectGroup(project, 'customer'), center: context.projectGroup(project, 'center')
+                };
+                const isFinancial = financial.has(project);
+                if (isFinancial) {
+                    const bucket = status.kind === 'settled' ? 'confirmed' : status.kind === 'planned' ? 'planned' :
+                        history?.reservation ? 'reserved' : 'pending';
+                    add({ ...row, bucket, financial: true, year: status.year });
+                    const inlet = history?.transfers?.at(-1);
+                    if (state.year !== 'all' && inlet?.action !== 'move' && inlet?.to === state.year) {
+                        add({ ...row, bucket: 'received', financial: false, year: inlet.from });
+                    }
+                } else if (status.kind === 'unknown') {
+                    add({ ...row, bucket: 'unknown', financial: false, year: null });
+                }
+                for (const event of context.references(project, state.year)) {
+                    add({ ...row, ...event, financial: false, year: event.bucket === 'sent' || event.bucket === 'movedOut' ? event.to : event.from });
+                }
+            }
+            const summary = { key, groups, rows };
+            carrySummaryCache.set(data, summary);
+            return summary;
+        }
+
+        function paintCarryHeader(data, container, axis, financial = window.YearContext.scope(data, 'financial')) {
+            if (!container) return false;
+            const context = window.YearContext;
+            const view = context.getViewState();
+            const year = view.currentYear;
+            const alerts = new Set();
+            for (const project of data) {
+                if (!project.customFields?.[context.carryKey]) continue;
+                const history = context.carryState(project);
+                function mark(event) {
+                    if (event?.from === year && event.to === year + 1)
+                        alerts.add(event[axis] || context.projectGroup(project, axis));
+                }
+                mark(history?.reservation);
+                history?.transfers?.forEach(mark);
+            }
+            const groups = new Map(), seen = new Set();
+            for (const project of financial) {
+                const id = String(project.id ?? '').trim();
+                if (id && seen.has(id)) continue;
+                if (id) seen.add(id);
+                const name = window.YearContext.projectGroup(project, axis);
+                const group = groups.get(name) || {po: 0, count: 0};
+                group.po += Number(project.poAmount) || 0;
+                group.count++;
+                groups.set(name, group);
+            }
+            for (const name of alerts) if (!groups.has(name)) groups.set(name, {po: 0, count: 0});
+            const rank = name => axis === 'center' ? ['운영센터', '공사센터'].indexOf(name) : -1;
+            const names = [...groups.keys()].sort((a, b) =>
+                (rank(a) + 3) % 3 - (rank(b) + 3) % 3 || a.localeCompare(b, 'ko', {numeric: true}));
+            const key = JSON.stringify([axis, view.year,
+                names.map(name => [name, groups.get(name).po, groups.get(name).count, alerts.has(name)])]);
+            if (container.__carryHeaderKey === key && container.firstChild) return true;
+            const fragment = document.createDocumentFragment();
+            for (const [index, name] of names.entries()) {
+                if (index) fragment.append(document.createTextNode(' '),
+                    carryText('span', 'text-slate-400 font-light mx-2 inline-block', '|'), document.createTextNode(' '));
+                const group = groups.get(name), item = carryText('span', 'inline-block whitespace-nowrap');
+                const label = carryText('span', 'font-semibold carry-header-name');
+                const info = carryText('button', 'carry-info-trigger', 'ⓘ');
+                info.type = 'button';
+                if (alerts.has(name)) info.classList.add('carry-attention');
+                info.setAttribute('aria-label', name + ' 확정·이월 요약');
+                info.title = name + ' 확정·이월 요약';
+                info.onclick = event => { event.preventDefault(); event.stopPropagation();
+                    showCarryOverview(axis, name); };
+                label.append(info, document.createTextNode(name + ':'));
+                item.append(label, document.createTextNode(' 총 ' + formatCurrency(group.po) +
+                    ' (' + formatAmountWithUnit(group.po) + ') / ' + group.count + '건'));
+                item.dataset.carryGroup = name;
+                item.dataset.carryPo = String(group.po);
+                item.dataset.carryCount = String(group.count);
+                fragment.append(item);
+            }
+            if (!names.length) fragment.append(document.createTextNode('정산월 기준 0원 / 0건'));
+            container.replaceChildren(fragment);
+            container.removeAttribute('data-fast-header-preview');
+            container.__carryHeaderKey = key;
+            return true;
+        }
+
+        function carryCanonicalProjectsById() {
+            const byId = new Map();
+            for (const project of window.projectData || []) {
+                const id = String(project.id ?? '').trim();
+                if (id) byId.set(id, byId.has(id) ? null : project);
+            }
+            return byId;
+        }
+
+        function applyCarryProjects(selected, action, year, destination) {
+            const context = window.YearContext;
+            context.assertCarryEditable(year);
+            const byId = carryCanonicalProjectsById();
+            const staged = selected.map(row => {
+                const project = byId.get(row.id);
+                const field = context.carryKey;
+                if (!project || project !== row.canonicalProject || Number(project.poAmount || 0) !== row.po ||
+                    context.projectGroup(project, 'customer') !== row.customer ||
+                    context.projectGroup(project, 'center') !== row.center || project.customFields?.[field] !== row.carryValue) {
+                    throw new Error('미리보기 후 프로젝트가 변경되었습니다. 목록을 다시 열어 확인해 주세요.');
+                }
+                return { project, field, value: context.prepareCarry(project, action, year, context.currentYear(), destination) };
+            });
+            for (const {project, field, value} of staged) {
+                project.customFields = { ...project.customFields, [field]: value };
+            }
+            for (const {project, field} of staged) {
+                document.dispatchEvent(new CustomEvent('project:updated', {
+                    detail: { projectId: project.id, changedFields: ['custom:' + field], source: 'user-year-carryover', userInitiated: true }
+                }));
+            }
+            document.dispatchEvent(new CustomEvent('data:changed', {
+                detail: { source: 'user-year-carryover', userInitiated: true }
+            }));
+            invalidateFilteredDataCache();
+            latestFilteredData = null;
+            window.YearContext.refresh();
+        }
+
+        function showCarryOverview(axis, name) {
+            window.YearBubbleUI.open('summary');
+            const panel = document.querySelector('[data-year-view="summary"]');
+            if (!panel) return;
+            const state = window.YearContext.getViewState();
+            const {groups, rows} = carrySummary(getStableProjectDatasetForSummary(), state);
+            const year = state.year === 'all' ? '전체 기간' : state.year + '년';
+            const groupTitle = name + ' · ' + year;
+            const group = groups[axis].get(name);
+            const matching = rows.filter(row => row.financial && row[axis] === name);
+            const empty = {po: 0, count: 0};
+            const confirmed = group?.buckets.confirmed || empty;
+            const pending = group?.buckets.pending || empty;
+            const reserved = group?.buckets.reserved || empty;
+            const title = carryText('h3', '', groupTitle);
+            const stats = carryText('div', 'carry-overview-stats');
+            const note = carryText('p', 'year-modal-note', state.includeOpen || state.year === 'all'
+                ? '이월 예정은 정산 대기 중 예약한 금액입니다. 총 PO에 다시 합산하지 않습니다.'
+                : '진행·정산 대기 제외 설정이 적용된 요약입니다.');
+            const scroll = panel.closest('.year-modal-scroll');
+
+            function restoreSummary(focusTarget = panel) {
+                window.YearBubbleUI.showView('summary', '확정·이월 요약');
+                panel.replaceChildren(title, stats, note);
+                if (scroll) scroll.scrollTop = 0;
+                focusTarget.focus({preventScroll: true});
+            }
+
+            for (const [label, value, buckets] of [
+                ['총 PO', group?.total || empty, null],
+                [year + ' 확정', confirmed, ['confirmed']],
+                ['정산 대기', {po: pending.po + reserved.po, count: pending.count + reserved.count}, ['pending', 'reserved']],
+                [state.year === 'all' ? '이월 예정' : (state.year + 1) + '년 이월 예정', reserved, ['reserved']]
+            ]) {
+                const amount = carryAmount(value.po, value.count);
+                const item = carryText('button', 'carry-overview-stat');
+                item.type = 'button';
+                item.append(carryText('span', '', label), carryText('strong', '', amount));
+                item.onclick = () => {
+                    const projects = matching.filter(row => !buckets || buckets.includes(row.bucket)).map(row => row.project);
+                    const detailsTitle = label + ' 상세 증빙';
+                    const back = carryText('button', 'carry-evidence-back', '요약으로 돌아가기');
+                    back.type = 'button';
+                    back.onclick = () => restoreSummary(item);
+                    const tableHost = carryText('div', 'carry-evidence-table');
+                    window.YearBubbleUI.showView('summary', detailsTitle);
+                    panel.replaceChildren(back, carryText('h3', '', groupTitle), carryText('p', 'year-modal-note', amount));
+                    if (!projects.length) panel.append(carryText('p', 'year-modal-note', '이 항목에 해당하는 프로젝트가 없습니다.'));
+                    panel.append(tableHost);
+                    renderDataDetailProjectTable(tableHost, groupTitle + ' ' + detailsTitle, projects);
+                    if (scroll) scroll.scrollTop = 0;
+                    back.focus({preventScroll: true});
+                };
+                stats.append(item);
+            }
+            restoreSummary();
+        }
+
+        function openCarryReview(axis, options = {}) {
+            const context = window.YearContext;
+            if (document.getElementById('operation-year-modal')?.hidden) window.YearBubbleUI.open();
+            setupCarryReviewControls();
+            const workspace = document.getElementById('operation-year-carry-workspace');
+            if (!workspace) return;
+            const detailsOnly = options.details === true;
+            document.getElementById('carry-year-axis').value = axis;
+            const data = getStableProjectDatasetForSummary();
+            const state = context.getViewState();
+            const {rows, groups} = carrySummary(data, state);
+            const heading = carryText('h2', '', (state.year === 'all' ? '전체 기간' : state.year + '년') + (detailsOnly ? ' 확정·이월 내역' : ' 프로젝트 이월 검토'));
+            heading.id = 'carry-review-title';
+            const actions = { move: '선택 연도로 즉시 이동', reserve: '다음 해 이월 예약', cancel: '이월 예약 취소', transfer: '예약 인계 확정' };
+            const filters = carryText('div', 'carry-review-filters');
+            function selectField(title, values) {
+                const label = carryText('label', '', title);
+                const select = carryText('select', '');
+                select.setAttribute('aria-label', title);
+                for (const [value, text] of values) {
+                    const option = carryText('option', '', text);
+                    option.value = value;
+                    select.append(option);
+                }
+                label.append(select);
+                filters.append(label);
+                return select;
+            }
+            const grouping = selectField('집계 기준', [['customer', '고객사별'], ['center', '센터별']]);
+            grouping.value = axis;
+            const group = selectField(axis === 'customer' ? '고객사' : '센터',
+                [['', '전체 그룹'], ...[...groups[axis].keys()].map(name => [name, name])]);
+            const status = selectField('상태', [['', '전체 상태'], ...carryOrder.map(k => [k, carryLabels[k]])]);
+            const action = selectField('적용할 작업', Object.entries(actions));
+            const destination = detailsOnly ? null : selectField('대상 연도', []);
+            if (destination) destination.id = 'carry-target-year';
+            if (options.group && [...group.options].some(option => option.value === options.group)) group.value = options.group;
+            const searchLabel = carryText('label', 'carry-review-search', '프로젝트 이름 검색');
+            const search = carryText('input', ''); search.type = 'search'; search.id = 'carry-project-search';
+            search.placeholder = '프로젝트 이름·유지관리명·번호 검색 (예: 사택 LED)';
+            search.autocomplete = 'off'; search.value = options.query || ''; searchLabel.append(search);
+            const summary = carryText('div', 'carry-review-summary');
+            const list = carryText('div', 'carry-review-list');
+            const selected = new Set();
+            const tally = carryText('p', 'carry-review-tally');
+            tally.setAttribute('aria-live', 'polite');
+            const error = carryText('p', 'carry-review-error');
+            error.setAttribute('role', 'status');
+            const footer = carryText('div', 'carry-review-footer');
+            const preview = carryText('button', '', '선택 내역 확인');
+            const close = carryText('button', '', '운영 연도 선택으로 돌아가기');
+            const selectAll = carryText('button', '', '표시된 대상 모두 선택');
+            const clearSelection = carryText('button', '', '선택 해제');
+            const mayEdit = !detailsOnly && !state.readonly && typeof state.year === 'number' &&
+                state.year >= 2000 && state.year <= 2199 && window.YearBootCoordinator?.getState().complete !== false;
+            const destinationReady = () => mayEdit && destination.value !== '';
+            function chooseDestinations() {
+                if (!destination) return;
+                destination.replaceChildren(new Option('연도를 선택하세요', ''));
+                if (!mayEdit) return;
+                const from = state.year;
+                if (action.value === 'move') {
+                    if (from > 2000) destination.add(new Option((from - 1) + '년 (전년)', String(from - 1)));
+                    if (from < 2199) destination.add(new Option((from + 1) + '년 (다음 해)', String(from + 1)));
+                    const years = document.createElement('optgroup');
+                    years.label = '특정 연도';
+                    for (let year = 2000; year <= 2199; year++) {
+                        if (Math.abs(year - from) > 1) years.append(new Option(year + '년', String(year)));
+                    }
+                    destination.append(years);
+                } else if (from < 2199 && from <= state.currentYear) {
+                    destination.add(new Option((from + 1) + '년 (예약 대상)', String(from + 1)));
+                }
+            }
+            const instructions = carryText('p', 'year-modal-note', detailsOnly ? '' :
+                '출발 연도 ' + (typeof state.year === 'number' ? state.year + '년' : '전체 기간') +
+                ' · 프로젝트 체크 → 대상 연도 선택 → 선택 내역 확인 → 적용. 정산 확정 건은 정산월로 관리합니다.');
+            let eligibleVisible = [];
+            let previewSelection = null;
+
+            function updateTally() {
+                const hidden = selected.size - eligibleVisible.filter(({row}) => selected.has(row)).length;
+                tally.textContent = '선택 ' + carryAmount([...selected].reduce((sum, row) => sum + row.po, 0), selected.size) +
+                    (hidden ? ' · 현재 목록 밖 ' + hidden + '건 포함' : '');
+                clearSelection.disabled = !selected.size;
+                preview.disabled = !destinationReady() || !selected.size;
+                selectAll.disabled = !eligibleVisible.length;
+            }
+
+            function draw() {
+                workspace.__carryOptions = {...options, query: search.value, group: group.value};
+                summary.replaceChildren();
+                const summaryValues = new Map();
+                const tokens = search.value.toLocaleLowerCase('ko-KR').trim().split(' ').filter(Boolean);
+                previewSelection = null;
+                preview.textContent = '선택 내역 확인';
+                eligibleVisible = [];
+                const fragment = document.createDocumentFragment();
+                for (const row of rows) {
+                    if ((group.value && group.value !== row[axis]) || (status.value && status.value !== row.bucket)) continue;
+                    const haystack = [row.project.name, row.project.maintenanceName, row.project.maintenanceCode, row.project.taskName, row.id].filter(Boolean).join(' ').toLocaleLowerCase('ko-KR').replaceAll(' ', '');
+                    if (!tokens.every(token => haystack.includes(token))) continue;
+                    const value = summaryValues.get(row.bucket) || {po: 0, count: 0};
+                    value.po += row.po; value.count++; summaryValues.set(row.bucket, value);
+                    const entry = carryText('label', 'carry-review-row');
+                    entry.dataset.carryProjectId = row.id; entry.dataset.carryBucket = row.bucket;
+                    const eligible = row.financial && row.year === state.year && (action.value === 'move'
+                        ? row.bucket === 'pending' || row.bucket === 'planned'
+                        : row.bucket === (action.value === 'reserve' ? 'pending' : 'reserved'));
+                    if (row.id && mayEdit && eligible &&
+                        (action.value !== 'transfer' || state.currentYear > state.year)) {
+                        const input = carryText('input', '');
+                        input.type = 'checkbox';
+                        input.checked = selected.has(row);
+                        input.onchange = () => {
+                            if (input.checked) selected.add(row);
+                            else selected.delete(row);
+                            previewSelection = null;
+                            preview.textContent = '선택 내역 확인';
+                            updateTally();
+                        };
+                        eligibleVisible.push({input, row});
+                        entry.append(input);
+                    }
+                    const name = row.project.name || row.project.maintenanceName || row.id || '이름 미지정';
+                    entry.append(carryText('span', '', name + ' · ' + row[axis]),
+                        carryText('span', '', carryLabels[row.bucket] + (row.action === 'move' ? ' · ' + row.from + '년 → ' + row.to + '년' : '') + ' · ' + carryAmount(row.po, 1)));
+                    fragment.append(entry);
+                }
+                if (!fragment.childNodes.length) fragment.append(carryText('p', '', '이 조건에 해당하는 프로젝트가 없습니다.'));
+                for (const bucket of carryOrder) {
+                    const value = summaryValues.get(bucket);
+                    if (value) summary.append(carryText('p', '', carryLabels[bucket] + ' ' + carryAmount(value.po, value.count)));
+                }
+                list.replaceChildren(fragment);
+                error.textContent = detailsOnly ? '조회용 내역입니다. 받을 예정·전년 유입·보낸 이력은 금융 소계에 중복 합산하지 않습니다.' : !mayEdit ? (state.year === 'all' ? '운영 연도 선택으로 돌아가 출발 연도를 적용하세요.' :
+                        state.year < state.currentYear && state.readonly ? '이전 연도의 이월을 처리하려면 운영 연도 선택에서 이전 연도 수정을 켜세요.' :
+                        '출발 연도와 전체 원본 확인 상태를 확인하세요.') :
+                    action.value === 'transfer' && state.currentYear <= state.year ? '대상 연도가 시작된 뒤 인계할 수 있습니다.' :
+                    !eligibleVisible.length && !selected.size ? '현재 조건에 선택할 수 있는 프로젝트가 없습니다. 이월 예약이 있는 건은 예약을 먼저 취소하세요.' :
+                    !destinationReady() ? '프로젝트를 체크한 뒤 대상 연도를 선택하세요.' : '';
+                updateTally();
+            }
+
+            grouping.onchange = () => openCarryReview(grouping.value, {details: detailsOnly, query: search.value});
+            group.onchange = status.onchange = draw;
+            action.onchange = () => { chooseDestinations(); selected.clear(); draw(); };
+            search.oninput = draw;
+            if (destination) { destination.onchange = draw; destination.disabled = !mayEdit; chooseDestinations(); }
+            if (detailsOnly) { action.parentElement.hidden = true; preview.hidden = true; selectAll.hidden = true; }
+            close.onclick = () => {
+                window.YearBubbleUI.showView('settings', '운영 연도 선택');
+                document.getElementById(detailsOnly ? 'carry-year-details' : 'carry-year-review')?.focus();
             };
-            try { pushCandidate('filterAware', typeof getFilterAwareDataset === 'function' ? getFilterAwareDataset() : null); } catch (e) { }
-            try { pushCandidate('latestFilteredData', typeof latestFilteredData !== 'undefined' ? latestFilteredData : window.latestFilteredData); } catch (e) { }
-            try { pushCandidate('window.projectData', window.projectData); } catch (e) { }
-            try { pushCandidate('projectData', typeof projectData !== 'undefined' ? projectData : null); } catch (e) { }
-            try { pushCandidate('AppState.projectData', window.AppState && window.AppState.projectData); } catch (e) { }
-            try { pushCandidate('AppStore.projectData', window.AppStore && window.AppStore.projectData); } catch (e) { }
-            try { pushCandidate('DataManager.getAll', window.DataManager && typeof window.DataManager.getAll === 'function' ? window.DataManager.getAll() : null); } catch (e) { }
-            try { pushCandidate('DataManager.projects', window.DataManager && window.DataManager.projects); } catch (e) { }
-            const chosen = candidates[0] || { name: 'empty', data: [] };
-            try {
-                window.__codexStableSummaryDatasetSource = { name: chosen.name, length: chosen.data.length, at: Date.now() };
-            } catch (e) { }
-            return chosen.data;
-        }
-
-        const SETTLEMENT_HEADER_PREVIEW_CACHE_KEY = 'codex.settlementHeader.previewHtml.v1';
-        const OVERVIEW_HEADER_PREVIEW_CACHE_KEY = 'codex.overviewHeader.siCenter.previewHtml.v1';
-
-        function applyCachedSettlementHeaderPreview(container, reason) {
-            if (window.YearContext) return false;
-            try {
-                if (!container || String(container.textContent || '').trim()) return false;
-                const cached = localStorage.getItem(SETTLEMENT_HEADER_PREVIEW_CACHE_KEY);
-                if (!cached || cached.length > 20000) return false;
-                container.innerHTML = cached;
-                container.setAttribute('data-fast-header-preview', String(reason || 'cache'));
-                if (typeof performance !== 'undefined' && performance.mark) {
-                    performance.mark('codex:settlement-header-preview-written');
+            selectAll.onclick = () => {
+                for (const {input, row} of eligibleVisible) {
+                    input.checked = true;
+                    selected.add(row);
                 }
-                return true;
-            } catch (e) {
-                return false;
-            }
-        }
-
-        function rememberSettlementHeaderPreview(html) {
-            try {
-                const text = String(html || '').trim();
-                if (!text || text.length > 20000 || !text.includes('\uac74')) return;
-                localStorage.setItem(SETTLEMENT_HEADER_PREVIEW_CACHE_KEY, text);
-            } catch (e) { }
-        }
-
-        function applyCachedOverviewHeaderPreview(container, reason) {
-            if (window.YearContext) return false;
-            try {
-                if (!container || String(container.textContent || '').trim()) return false;
-                const cached = localStorage.getItem(OVERVIEW_HEADER_PREVIEW_CACHE_KEY);
-                if (!cached || cached.length > 20000) return false;
-                container.innerHTML = cached;
-                container.setAttribute('data-fast-header-preview', String(reason || 'cache'));
-                return true;
-            } catch (e) {
-                return false;
-            }
-        }
-
-        function rememberOverviewHeaderPreview(html) {
-            try {
-                const text = String(html || '').trim();
-                if (!text || text.length > 20000 || !text.includes('\uac74')) return;
-                localStorage.setItem(OVERVIEW_HEADER_PREVIEW_CACHE_KEY, text);
-            } catch (e) { }
-        }
-
-        function renderOverviewHeaderSummariesFast(fullData, container) {
-            if (window.YearContext) fullData = window.YearContext.scope(fullData, 'financial');
-            try {
-                if (!container || !Array.isArray(fullData)) return false;
-                if (fullData.length === 0) { container.textContent = '정산월 기준 0원 / 0건'; return true; }
-                const grouped = Object.create(null);
-                fullData.forEach(project => {
-                    const resolved = (typeof window.resolveSiCenterText === 'function')
-                        ? window.resolveSiCenterText(project)
-                        : (project?.customFields?.S_I_\uc13c\ud130 ?? project?.customFields?.['S&I \uc13c\ud130'] ?? '');
-                    const groupValue = String(resolved || '\ubbf8\uc9c0\uc815').trim() || '\ubbf8\uc9c0\uc815';
-                    if (!grouped[groupValue]) grouped[groupValue] = { poAmount: 0, count: 0 };
-                    grouped[groupValue].poAmount += Number(project && project.poAmount || 0) || 0;
-                    grouped[groupValue].count += 1;
-                });
-                const centerOrder = { '운영센터': 0, '공사센터': 1 };
-                const html = Object.keys(grouped).sort((a, b) => {
-                    const rankA = Object.prototype.hasOwnProperty.call(centerOrder, a) ? centerOrder[a] : Number.MAX_SAFE_INTEGER;
-                    const rankB = Object.prototype.hasOwnProperty.call(centerOrder, b) ? centerOrder[b] : Number.MAX_SAFE_INTEGER;
-                    return rankA !== rankB ? rankA - rankB : a.localeCompare(b, 'ko', { numeric: true, sensitivity: 'base' });
-                }).map(groupValue => {
-                    const group = grouped[groupValue];
-                    const formattedUnit = (typeof formatAmountWithUnit === 'function') ? formatAmountWithUnit(group.poAmount) : '';
-                    const amountText = (typeof formatCurrency === 'function') ? formatCurrency(group.poAmount) : String(group.poAmount);
-                    return `<span class="inline-block whitespace-nowrap"><span class="font-semibold">${groupValue}:</span> \ucd1d ${amountText} (${formattedUnit}) / ${group.count}\uac74</span>`;
-                }).join(' <span class="text-slate-400 font-light mx-2 inline-block">|</span> ');
-                container.innerHTML = html;
-                container.removeAttribute('data-fast-header-preview');
-                rememberOverviewHeaderPreview(html);
-                return true;
-            } catch (e) {
-                console.warn('[overview-header-fast] failed:', e);
-                return false;
-            }
-        }
-
-        function renderSettlementHeaderSummariesFast(fullData, container) {
-            if (window.YearContext) fullData = window.YearContext.scope(fullData, 'financial');
-            try {
-                if (!container || !Array.isArray(fullData)) return false;
-                if (fullData.length === 0) { container.textContent = '정산월 기준 0원 / 0건'; return true; }
-                const grouped = Object.create(null);
-                fullData.forEach(p => {
-                    let groupValue = '';
-                    if (typeof window.resolveCustomerText === 'function') {
-                        groupValue = window.resolveCustomerText(p);
+                previewSelection = null;
+                preview.textContent = '선택 내역 확인';
+                updateTally();
+            };
+            preview.onclick = () => {
+                if (!destinationReady() || !selected.size) return;
+                if (!previewSelection) {
+                    const originals = carryCanonicalProjectsById();
+                    previewSelection = [...selected].map(row => ({...row, canonicalProject: originals.get(row.id)}));
+                    if (previewSelection.some(row => !row.canonicalProject)) {
+                        previewSelection = null;
+                        error.textContent = '원본에서 고유한 프로젝트를 확인할 수 없습니다. 목록을 다시 열어 확인해 주세요.';
+                        return;
                     }
-                    if (!groupValue && p && p.customFields) {
-                        const keys = Object.keys(p.customFields);
-                        for (let i = 0; i < keys.length; i += 1) {
-                            const key = keys[i];
-                            const display = (typeof customFieldDisplayNames !== 'undefined' && customFieldDisplayNames)
-                                ? (customFieldDisplayNames[typeof sanitizeKey === 'function' ? sanitizeKey(key) : key] || key)
-                                : key;
-                            const lower = String(display || key || '').toLowerCase();
-                            if (lower.includes('고객사') || lower.includes('customer')) {
-                                groupValue = p.customFields[key];
-                                break;
-                            }
-                        }
-                    }
-                    groupValue = String(groupValue || '미지정').trim() || '미지정';
-                    if (!grouped[groupValue]) grouped[groupValue] = { poAmount: 0, count: 0 };
-                    grouped[groupValue].poAmount += Number(p && p.poAmount || 0) || 0;
-                    grouped[groupValue].count += 1;
-                });
-                const html = Object.keys(grouped).sort((a, b) => a.localeCompare(b, 'ko', { numeric: true, sensitivity: 'base' })).map(groupValue => {
-                    const group = grouped[groupValue];
-                    const formattedUnit = (typeof formatAmountWithUnit === 'function') ? formatAmountWithUnit(group.poAmount) : '';
-                    const amountText = (typeof formatCurrency === 'function') ? formatCurrency(group.poAmount) : String(group.poAmount);
-                    return `<span class="inline-block whitespace-nowrap"><span class="font-semibold">${groupValue}:</span> 총 ${amountText} (${formattedUnit}) / ${group.count}건</span>`;
-                }).join(' <span class="text-slate-400 font-light mx-2 inline-block">|</span> ');
-                container.innerHTML = html;
-                container.removeAttribute('data-fast-header-preview');
-                rememberSettlementHeaderPreview(html);
-                if (typeof performance !== 'undefined' && performance.mark) {
-                    performance.mark('codex:settlement-header-fast-written');
+                    const amount = carryAmount(previewSelection.reduce((sum, row) => sum + row.po, 0), selected.size);
+                    error.textContent = state.year + '년 → ' + destination.value + '년 · ' + actions[action.value] +
+                        ' · ' + amount + (['transfer','move'].includes(action.value) ? ' · 대상 연도에 PO가 귀속됩니다. 정산월과 작업일은 그대로 유지됩니다.' :
+                            ' · 양쪽 연도의 합산 금액은 유지됩니다.');
+                    preview.textContent = '확인 후 적용';
+                    return;
                 }
-                return true;
-            } catch (e) {
-                console.warn('[settlement-header-fast] failed:', e);
-                return false;
+                try {
+                    applyCarryProjects(previewSelection, action.value, state.year, Number(destination.value));
+                    openCarryReview(axis, {group: group.value, details: detailsOnly, query: search.value});
+                    window.showToast?.('이월 변경을 적용했습니다. 기존 저장 기능으로 보존해 주세요.', 'success');
+                } catch (failure) {
+                    error.textContent = failure.message;
+                    previewSelection = null;
+                    preview.textContent = '선택 내역 확인';
+                }
+            };
+            action.disabled = !mayEdit;
+            clearSelection.onclick = () => { selected.clear(); draw(); };
+            footer.append(selectAll, clearSelection, close, preview);
+            workspace.replaceChildren(heading);
+            if (detailsOnly) workspace.append(filters, searchLabel, summary, list, error, close);
+            else workspace.append(instructions, filters, searchLabel, tally, error, footer, summary, list);
+            window.YearBubbleUI.showView('review', detailsOnly ? '확정·이월 내역' : '프로젝트 이월');
+            workspace.__carryAxis = axis; workspace.__carryYear = state.year; workspace.__carryGeneration = state.generation;
+            workspace.__carryReadonly = state.readonly;
+            workspace.__carryComplete = window.YearBootCoordinator?.getState().complete !== false;
+            draw();
+            heading.tabIndex = -1;
+            heading.focus({preventScroll: true});
+        }
+
+        function setupYearPanelGestures(panel) {
+            const heading = panel.querySelector('.year-modal-heading');
+            const grip = carryText('button', 'year-size-grip', '↘');
+            grip.type = 'button';
+            grip.setAttribute('aria-label', '팝업 크기 조절 (방향키 또는 드래그)');
+            heading.insertBefore(grip, heading.lastElementChild);
+            function adjust(rect, dx, dy, sizing) {
+                const margin = 6, maxW = innerWidth - 2 * margin, maxH = innerHeight - 2 * margin;
+                const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+                const width = clamp(rect.width + (sizing ? dx : 0), Math.min(280,maxW), maxW);
+                const height = clamp(rect.height + (sizing ? dy : 0), Math.min(220,maxH), maxH);
+                Object.assign(panel.style, {position:'fixed', width:width+'px', height:height+'px',
+                    left:clamp(rect.left + (sizing ? 0 : dx), margin, innerWidth-width-margin)+'px',
+                    top:clamp(rect.top + (sizing ? 0 : dy), margin, innerHeight-height-margin)+'px'});
             }
+            heading.onpointerdown = event => {
+                if (!event.isPrimary || event.button !== 0 || event.target.closest('#operation-year-close')) return;
+                const rect = panel.getBoundingClientRect(), x = event.clientX, y = event.clientY;
+                const sizing = grip.contains(event.target);
+                heading.setPointerCapture(event.pointerId);
+                heading.onpointermove = move => {
+                    if (move.pointerId === event.pointerId) adjust(rect, move.clientX-x, move.clientY-y, sizing);
+                };
+                heading.onlostpointercapture = () => { heading.onpointermove = null; };
+            };
+            grip.onkeydown = e => {
+                const delta = {ArrowLeft:[-16,0], ArrowRight:[16,0], ArrowUp:[0,-16], ArrowDown:[0,16]}[e.key];
+                if (delta) { e.preventDefault(); adjust(panel.getBoundingClientRect(), ...delta, true); }
+            };
+            panel.__fitViewport = () => {
+                if (panel.style.position && panel.getClientRects().length) adjust(panel.getBoundingClientRect(), 0, 0, false);
+            };
+        }
+
+        function mountCarryYearControls(panel) {
+            if (!panel) return;
+            const saved = panel.querySelector('#operation-year-carry-controls');
+            if (saved?.__carryBound) return;
+            saved?.remove();
+            const controls = carryText('section', 'carry-year-controls');
+            controls.id = 'operation-year-carry-controls';
+            controls.__carryBound = true;
+            controls.append(carryText('h3', '', '프로젝트 이월 관리'));
+            const axisLabel = carryText('label', '', '집계 기준 ');
+            const axis = carryText('select', ''); axis.id = 'carry-year-axis';
+            for (const [value, name] of [['customer', '고객사별 (총괄)'], ['center', '센터별 (정산)']]) {
+                const option = carryText('option', '', name); option.value = value; axis.append(option);
+            }
+            axisLabel.append(axis);
+            const optionLabel = carryText('label', 'year-modal-option');
+            const notify = carryText('input', ''); notify.type = 'checkbox';
+            notify.id = 'carry-notify-enabled';
+            notify.checked = true;
+            try { notify.checked = localStorage.getItem('carryNotifyEnabled') !== 'off'; } catch (_) {}
+            const reflect = () => document.documentElement.classList.toggle('carry-alerts-muted', !notify.checked);
+            reflect();
+            notify.onchange = () => {
+                reflect();
+                try { localStorage.setItem('carryNotifyEnabled', notify.checked ? 'on' : 'off'); } catch (_) {}
+            };
+            optionLabel.append(notify, document.createTextNode('금년 ↔ 내년 이월이 있으면 기호 강조'));
+            controls.append(optionLabel);
+            setupYearPanelGestures(panel);
+            const review = carryText('button', '', '프로젝트 선택·이월'); review.id = 'carry-year-review';
+            const details = carryText('button', '', '확정·이월 내역 표시'); details.id = 'carry-year-details';
+            review.type = details.type = 'button';
+            for (const button of [review, details]) {
+                const open = () => openCarryReview(axis.value, {details:button === details});
+                let touch = null, handled = false;
+                button.onpointerdown = event => {
+                    handled = false;
+                    touch = event.isPrimary && event.pointerType === 'touch'
+                        ? {id:event.pointerId, x:event.clientX, y:event.clientY} : null;
+                };
+                button.onpointercancel = () => { touch = null; };
+                button.onpointerup = event => {
+                    const start = touch;
+                    touch = null;
+                    if (!start || start.id !== event.pointerId ||
+                        Math.hypot(event.clientX-start.x, event.clientY-start.y)>8 ||
+                        !button.contains(document.elementFromPoint(event.clientX,event.clientY))) return;
+                    handled = true;
+                    open();
+                };
+                button.onclick = event => {
+                    if (event.detail === 0 || !handled) open();
+                    handled = false;
+                };
+            }
+            const row = carryText('div', 'carry-review-footer'); row.append(axisLabel, review, details);
+            controls.append(row, carryText('p', 'year-modal-note', '조회할 연도는 화면에 표시할 자료를 바꿉니다. 이월하려면 먼저 출발 연도를 적용한 뒤 프로젝트 선택·이월을 여세요. 적용한 이월은 웹 저장으로 보존합니다.'));
+            const workspace = carryText('section', 'carry-review-workspace');
+            workspace.id = 'operation-year-carry-workspace'; workspace.hidden = true;
+            workspace.dataset.yearView = 'review';
+            const summary = carryText('section', 'carry-overview');
+            summary.dataset.yearView = 'summary';
+            summary.tabIndex = -1;
+            summary.hidden = true;
+            const settings = carryText('section', '');
+            settings.dataset.yearView = 'settings';
+            const heading = panel.querySelector('.year-modal-heading');
+            panel.insertBefore(controls, panel.querySelector('#operation-year-open-count'));
+            while (heading.nextSibling) settings.append(heading.nextSibling);
+            const scroll = carryText('div', 'year-modal-scroll');
+            scroll.append(settings, workspace, summary);
+            panel.append(scroll);
+            axis.onchange = () => {
+                if (!workspace.hidden) openCarryReview(axis.value, {details: workspace.__carryOptions?.details === true});
+            };
+        }
+
+        let carryControlsCleaned = false;
+        function setupCarryReviewControls() {
+            if (carryControlsCleaned) return;
+            // Standalone snapshots can contain the old presentation. Remove only those obsolete controls.
+            for (const id of ['accordion-panel-overview', 'accordion-panel-settlement']) {
+                document.getElementById(id)?.querySelectorAll('.carry-review-controls').forEach(el => el.remove());
+            }
+            document.getElementById('carry-review-dialog')?.remove();
+            carryControlsCleaned = true;
+            mountCarryYearControls(document.getElementById('operation-year-toolbar'));
+        }
+
+        function refreshCarryWorkspace() {
+            const workspace = document.getElementById('operation-year-carry-workspace');
+            if (!workspace || workspace.hidden || document.getElementById('operation-year-modal')?.hidden) return;
+            const state = window.YearContext.getViewState();
+            if (workspace.__carryGeneration === state.generation && workspace.__carryYear === state.year &&
+                workspace.__carryReadonly === state.readonly && workspace.__carryComplete === (window.YearBootCoordinator?.getState().complete !== false)) return;
+            openCarryReview(workspace.__carryAxis || 'customer', workspace.__carryOptions || {});
+        }
+
+        window.CarryoverUI = Object.freeze({mount: mountCarryYearControls, refresh: refreshCarryWorkspace, open: openCarryReview});
+
+        function getStableProjectDatasetForSummary() {
+            return getFilteredAndSortedData(false, 'review');
         }
 
         let __settlementHeaderFastPending = false;
         let __settlementHeaderFastAttempts = 0;
-        let __settlementHeaderFastLastKey = '';
         function scheduleSettlementHeaderSummariesFast(reason) {
             if (__settlementHeaderFastPending) return;
             __settlementHeaderFastPending = true;
@@ -63951,22 +64619,14 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 __settlementHeaderFastPending = false;
                 const container = document.getElementById('settlement-header-summaries');
                 const overviewHeaderContainer = document.getElementById('overview-header-summaries');
-                applyCachedOverviewHeaderPreview(container, reason || 'scheduled');
-                applyCachedSettlementHeaderPreview(overviewHeaderContainer, reason || 'scheduled');
-                let data = [];
-                try {
-                    data = getStableProjectDatasetForSummary();
-                } catch (e) { }
-                const stateGeneration = window.YearContext?.getState?.().generation ?? '';
-                const dataKey = [data.length, data[0]?.id || '', data[data.length - 1]?.id || '', stateGeneration].join('|');
-                if (__settlementHeaderFastLastKey === dataKey &&
-                    !container?.hasAttribute('data-fast-header-preview') &&
-                    !overviewHeaderContainer?.hasAttribute('data-fast-header-preview')) return;
-                const settlementRendered = !!(container && renderOverviewHeaderSummariesFast(data, container));
-                const overviewRendered = !!(overviewHeaderContainer && renderSettlementHeaderSummariesFast(data, overviewHeaderContainer));
+                setupCarryReviewControls();
+                if (!window.projectData?.length && window.YearBootCoordinator?.isCurrentLoading?.()) return;
+                const data = getStableProjectDatasetForSummary();
+                const financial = window.YearContext.scope(data, 'financial');
+                const settlementRendered = paintCarryHeader(data, container, 'center', financial);
+                const overviewRendered = paintCarryHeader(data, overviewHeaderContainer, 'customer', financial);
                 if (settlementRendered && overviewRendered) {
                     __settlementHeaderFastAttempts = 0;
-                    __settlementHeaderFastLastKey = dataKey;
                     try { container.setAttribute('data-fast-header-reason', String(reason || 'scheduled')); } catch (e2) { }
                     return;
                 }
@@ -63987,8 +64647,8 @@ window.__normalizedTokenCache = window.__normalizedTokenCache || new Map();
                 window.scheduleSettlementHeaderSummariesFast = scheduleSettlementHeaderSummariesFast;
                 document.addEventListener('DOMContentLoaded', function () { scheduleSettlementHeaderSummariesFast('domcontentloaded'); }, true);
                 document.addEventListener('data:loaded', function () { scheduleSettlementHeaderSummariesFast('data:loaded'); }, true);
-                document.addEventListener('data:changed', function () { __settlementHeaderFastLastKey = ''; scheduleSettlementHeaderSummariesFast('data:changed'); }, true);
-                document.addEventListener('settlement:updated', function () { __settlementHeaderFastLastKey = ''; scheduleSettlementHeaderSummariesFast('settlement:updated'); }, true);
+                document.addEventListener('data:changed', function () { scheduleSettlementHeaderSummariesFast('data:changed'); }, true);
+                document.addEventListener('settlement:updated', function () { scheduleSettlementHeaderSummariesFast('settlement:updated'); }, true);
                 document.addEventListener('app:data-ready', function () { scheduleSettlementHeaderSummariesFast('app:data-ready'); }, true);
                 window.addEventListener('load', function () { scheduleSettlementHeaderSummariesFast('window-load'); }, true);
                 setTimeout(function () { scheduleSettlementHeaderSummariesFast('boot-0'); }, 0);
@@ -64034,6 +64694,7 @@ function renderSiCenterCustomerBreakdown(projects) {
 }
 
 function syncVisibleSiCenterCustomerCards() {
+    if (document.querySelector('#overviewView.open, #settlementView.open')) materializeFinancialCards();
     ['overviewView', 'settlementView'].forEach(id => {
         const root = document.getElementById(id);
         if (!root) return;
@@ -64100,6 +64761,18 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
     return moved;
 }
 
+    // Until a financial panel is first opened its group cards have no visible consumer.
+    // Keep the most recent render input so reopening and standalone export see the same rows.
+    let pendingFinancialCards = null;
+    let financialCardsRequested = false;
+    window.addEventListener('beforeprint', () => materializeFinancialCards());
+    function materializeFinancialCards() {
+        if (!pendingFinancialCards) return;
+        const data = pendingFinancialCards;
+        pendingFinancialCards = null;
+        financialCardsRequested = true;
+        renderGroupSummaries(data);
+    }
     function renderGroupSummaries(fullData) {
             const resolveCustomer = window.resolveCustomerText;
             // [DEBUG-FIX-VERIFY] Check if this code is running and what data it sees
@@ -64120,6 +64793,16 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             if (!overviewContainer || !overviewHeaderContainer || !settlementHeaderContainer || !settlementGroupContainer) return;
 
             const groupSource = Array.isArray(fullData) ? fullData : getFilterAwareDataset();
+            if (!financialCardsRequested && !document.querySelector('#overviewView.open, #settlementView.open')) {
+                pendingFinancialCards = groupSource;
+                const review = getStableProjectDatasetForSummary();
+                const amounts = window.YearContext.scope(review, 'financial');
+                paintCarryHeader(review, overviewHeaderContainer, 'customer', amounts);
+                paintCarryHeader(review, settlementHeaderContainer, 'center', amounts);
+                return;
+            }
+            financialCardsRequested = true;
+            pendingFinancialCards = null;
             const workingData = window.YearContext ? window.YearContext.scope(groupSource, 'financial') : groupSource;
             if (!Array.isArray(workingData)) return;
 
@@ -64172,11 +64855,12 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             cleanupEventListeners();
 
             overviewContainer.innerHTML = '';
-            overviewHeaderContainer.innerHTML = '';
-            settlementHeaderContainer.innerHTML = '';
             settlementGroupContainer.innerHTML = ''; // Clear previous content
-            renderSettlementHeaderSummariesFast(workingData, overviewHeaderContainer);
-            renderOverviewHeaderSummariesFast(workingData, settlementHeaderContainer);
+            setupCarryReviewControls();
+            const carrySource = getStableProjectDatasetForSummary();
+            const financial = window.YearContext.scope(carrySource, 'financial');
+            paintCarryHeader(carrySource, overviewHeaderContainer, 'customer', financial);
+            paintCarryHeader(carrySource, settlementHeaderContainer, 'center', financial);
 
             // [v4.81-FIX] \ub370\uc774\ud130 \ubd80\uc7ac \ub300\uc751: \ud558\uc704 \ud56d\ubaa9\uc774 \uc5c6\ub294 '\uae61\ud1b5' \uc139\uc158\uc758 \uacbd\uc6b0 \uba54\uc2dc\uc9c0 \ud45c\uc2dc\ud558\uc5ec \ubb34\uacb0\uc131 \ud655\ubcf4
             if (workingData.length === 0) {
@@ -64191,7 +64875,7 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             const customFieldKeys = new Set();
             workingData.forEach(p => {
                 if (p.customFields) {
-                    Object.keys(p.customFields).forEach(key => customFieldKeys.add(key));
+                    Object.keys(p.customFields).forEach(key => { if (key !== window.YearContext.carryKey) customFieldKeys.add(key); });
                 }
             });
 
@@ -64290,9 +64974,7 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                 return nameA.localeCompare(nameB, 'ko');
             });
 
-            let finalSettlementHeaderHTML = '';
             // Prevent duplicate settlement sections (e.g., duplicate '\uc2dc\uacf5\uc0ac\ubcc4 \uc815\uc0b0') by display name
-            const renderedSettlementNames = new Set();
 
             // [\ucd94\uac00\ub428] customFieldDisplayNames\uac00 \ube44\uc5b4\uc788\uc744 \uacbd\uc6b0\ub97c \ub300\ube44\ud558\uc5ec,
             // \ud604\uc7ac fullData\uc5d0\uc11c \ud0a4\ub97c \ucd94\ucd9c\ud558\uc5ec \ud45c\uc2dc \uc774\ub984\uc744 \uc784\uc2dc\ub85c\ub77c\ub3c4 \uc0dd\uc131 (\uc7ac\uadc0 \uc800\uc7a5 \ubb38\uc81c \ud574\uacb0)
@@ -64403,38 +65085,6 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                     acc.projects.push(p);
                 });
             });
-
-            // [PERF-OPTIMIZATION] Synchronous Fast Path for Customer Header Summaries
-            finalSettlementHeaderHTML = "";
-            renderedSettlementNames.clear();
-            finalGroupingFields.forEach(field => {
-                const displayFieldName = customFieldDisplayNames[field] || field;
-                const isCustomerField = (customFieldDisplayNames[field] || field || "").toLowerCase().includes("고객사") ||
-                    (field || "").toLowerCase().includes("customer");
-                if (isCustomerField) {
-                    if (renderedSettlementNames.has(displayFieldName)) return;
-                    renderedSettlementNames.add(displayFieldName);
-                    registerAnalysisHeaderUsage(field, displayFieldName, "settlement");
-                    const groupedData = aggregatedResults[field];
-                    let sortedGroupValues = Object.keys(groupedData).sort();
-                    const isSettleMonth = field === "manualSettlementDate" || field === "정산 월" || field === "정산오프";
-                    const isTimeline = isSettleMonth || (displayFieldName || "").includes("분기") || (displayFieldName || "").includes("연도") || (displayFieldName || "").includes("정산");
-                    sortedGroupValues = Object.keys(groupedData).sort((a, b) => {
-                        const aP = a.includes("미지정") || a.includes("작업중") || a.includes("진행중") || a.includes("Working");
-                        const bP = b.includes("미지정") || b.includes("작업중") || b.includes("진행중") || b.includes("Working");
-                        if (aP && !bP) return -1;
-                        if (!aP && bP) return 1;
-                        if (isTimeline) return b.localeCompare(a, undefined, { numeric: true, sensitivity: "base" });
-                        return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
-                    });
-                    finalSettlementHeaderHTML = sortedGroupValues.map(groupValue => {
-                        const group = groupedData[groupValue];
-                        const formattedUnit = formatAmountWithUnit(group.poAmount);
-                        return `<span class="inline-block whitespace-nowrap"><span class="font-semibold">${groupValue}:</span> 총 ${formatCurrency(group.poAmount)} (${formattedUnit}) / ${group.count}건</span>`;
-                    }).join(' <span class="text-slate-400 font-light mx-2 inline-block">|</span> ');
-                }
-            });
-            overviewHeaderContainer.innerHTML = finalSettlementHeaderHTML;
 
             // [PERF-OPTIMIZATION] Synchronous rendering to prevent initial layout shift and 1-2s delay
             const activeRenderedNames = new Set();
@@ -64670,12 +65320,6 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                     activeRenderedNames.add(displayFieldName);
                     registerAnalysisHeaderUsage(field, displayFieldName, 'settlement');
                     
-                    finalSettlementHeaderHTML = sortedGroupValues.map(groupValue => {
-                        const group = groupedData[groupValue];
-                        const formattedUnit = formatAmountWithUnit(group.poAmount);
-                        return `<span class="inline-block whitespace-nowrap"><span class="font-semibold">${groupValue}:</span> \ucd1d ${formatCurrency(group.poAmount)} (${formattedUnit}) / ${group.count}\uac74</span>`;
-                    }).join(' <span class="text-slate-400 font-light mx-2 inline-block">|</span> ');
-
                     // Create a simple accordion container (cards) for \uace0\uac1d\uc0ac \uc139\uc158
                     const customerAccordionKey = `settlement_customer_${field}`;
                     const customerAccordionId = `main_settlement_${customerAccordionKey}`;
@@ -65059,7 +65703,6 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                 }
             } catch (e) { console.warn('Overview Reorder Error:', e); }
 
-            // overviewHeaderContainer.innerHTML = finalSettlementHeaderHTML; // Done synchronously first
 
             // Add event listeners after rendering
             setupSettlementAccordions();
@@ -65968,69 +66611,7 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             }
         }
 
-        function showDataDetailModal(title, data) {
-            dataDetailTitle.textContent = title;
-            
-            // [v18] Maximize Button Logic (Unicode Stabilized)
-            let maxBtn = dataDetailModal.querySelector('.modal-maximize-btn');
-            if (!maxBtn) {
-                maxBtn = document.createElement('button');
-                maxBtn.className = 'modal-maximize-btn leading-none';
-                maxBtn.style.fontSize = '36px'; // 20% larger than 30px (text-3xl)
-                maxBtn.innerHTML = '\u25fb'; // Maximize icon
-                maxBtn.title = '\uc804\uccb4\ubcf4\uae30'; // "\uc804\uccb4\ubcf4\uae30"
-                const header = dataDetailModal.querySelector('.resizable-modal-header');
-                const closeBtn = document.getElementById('closeDataDetailModalBtn');
-                if (header && closeBtn) header.insertBefore(maxBtn, closeBtn);
-                
-                maxBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    dataDetailModal.classList.toggle('maximized');
-                    const isMax = dataDetailModal.classList.contains('maximized');
-                    maxBtn.innerHTML = isMax ? '\u2750' : '\u25fb'; // Toggle icons
-                    maxBtn.title = isMax ? '\uc774\uc804 \ud06c\uae30\ub85c' : '\uc804\uccb4\ubcf4\uae30';
-                    if (typeof updateMaximizedModalLayout === 'function') updateMaximizedModalLayout();
-                };
-            }
-            dataDetailModal.classList.remove('maximized');
-            if (maxBtn) { 
-                maxBtn.innerHTML = '\u25fb'; 
-                maxBtn.title = '\uc804\uccb4\ubcf4\uae30'; 
-            }
-            // [FIX] Clean up inline styles from previous maximize state
-            if (typeof updateMaximizedModalLayout === 'function') updateMaximizedModalLayout();
-
-            // [SETTLEMENT-ID] \uc815\uc0b0 \ubaa8\ub2ec \uc2dd\ubcc4 \uc18d\uc131 \uc8fc\uc785 \ubc0f \uac00\ub85c \uc2a4\ud06c\ub864 \uc815\ud569\uc131 \ubcf4\uc99d (1500px) [v16-APS]
-            // [UX-FIX] \ubaa9\ub85d(\ubaa9\ub85d) \ub610\ub294 \ud604\ud669(\ud604\ud669) \uc774\ub984\uc774 \ub4e4\uc5b4\uac04 \uc6d4\ubcc4 \ucd1d\uad04 \ubcf4\uace0\uc11c\ub294 \uace0\uc815 \ubc30\uce58 \ubc84\ud2bc\uc774 \ud544\uc694\ud55c 'settlement' \ud0c0\uc785\uc5d0\uc11c \uc81c\uc678 (\ube44\uc6a9\uacc4\uc815\ubcc4 \ucd1d\uad04\uacfc \ub3d9\uc791 \ubcf4\uc7a5)
-            const isSettlementReport = title && (title.includes('\ubaa9\ub85d') || title.includes('\ud604\ud669'));
-            if (title && (title.includes('\uc815\uc0b0') || title.includes('\ubd84\uae30\ubcc4') || title.includes('\uc5f0\ub3c4\ubcc4') || title.includes('Settlement')) && !isSettlementReport) {
-                dataDetailModal.dataset.modalType = 'settlement';
-                // [v16] \ub300\uc2dc\ubcf4\ub4dc\uc640 \ud14c\uc774\ube14 \ub05d\uc120\uc744 \ub9de\ucd94\uae30 \uc704\ud574 1500px \ucd5c\uc18c\ud3ed \uac15\uc81c
-                const modalInner = dataDetailModal.querySelector(':scope > div');
-                if (modalInner) {
-                    modalInner.style.minWidth = '1500px';
-                    modalInner.style.flexShrink = '0';
-                }
-            } else {
-                delete dataDetailModal.dataset.modalType;
-                const modalInner = dataDetailModal.querySelector(':scope > div');
-                if (modalInner) {
-                    modalInner.style.minWidth = '';
-                    modalInner.style.flexShrink = '';
-                }
-            }
-
-            // [UX-FIX] \ubaa8\ubc14\uc77c \ud130\ucc38 \ubc18\uc751\uc131 \uac15\ud654: \ub2eb\uae30 \ubc84\ud2bc\uc5d0 \uc9c1\uc811 touchstart \ud578\ub4e4\ub7ec \uc8fc\uc785
-            const closeBtn = document.getElementById('closeDataDetailModalBtn');
-            if (closeBtn && !closeBtn.__touchBoundAuto) {
-                closeBtn.__touchBoundAuto = true;
-                closeBtn.addEventListener('touchstart', (e) => {
-                    if (e.cancelable) e.preventDefault();
-                    e.stopPropagation();
-                    closeBtn.click();
-                }, { passive: false });
-            }
-
+        function renderDataDetailProjectTable(container, title, data) {
             const toolbarHTML = `<div class="flex justify-between items-center mb-3">
                     <div class="text-sm text-gray-600">\ucd1d <strong>${data.length}</strong>\uac74</div>
                     <div><button class="table-export-btn px-3 py-1 bg-indigo-600 text-white rounded text-sm">\uc5d1\uc140 \ub2e4\uc6b4\ub85c\ub4dc</button></div>
@@ -66163,10 +66744,10 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             });
 
             tableHTML += `</tbody></table>`;
-            dataDetailTableContainer.innerHTML = tableHTML;
+            container.innerHTML = tableHTML;
 
             // Make table sortable and attach export
-            const tbl = dataDetailTableContainer.querySelector('table');
+            const tbl = container.querySelector('table');
             if (tbl) {
                 const detailTableMinWidth = Math.max(900, tbl.querySelectorAll('thead th').length * 140);
                 tbl.style.width = '100%';
@@ -66176,16 +66757,82 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                 makeTableSortable(tbl);
                 bindSharedRowFocusForTable(tbl);
             }
-            dataDetailTableContainer.style.overflowX = 'auto';
-            dataDetailTableContainer.style.overflowY = 'auto';
-            dataDetailTableContainer.style.minWidth = '0';
-            dataDetailTableContainer.style.maxWidth = '100%';
-            dataDetailTableContainer.style.overscrollBehavior = 'contain';
-            dataDetailTableContainer.style.touchAction = 'pan-x pan-y pinch-zoom';
-            dataDetailTableContainer.style.webkitOverflowScrolling = 'touch';
-            ensureBidirectionalTouchScrollBridge(dataDetailTableContainer);
-            const btn = dataDetailTableContainer.querySelector('.table-export-btn');
+            container.style.overflowX = 'auto';
+            container.style.overflowY = 'auto';
+            container.style.minWidth = '0';
+            container.style.maxWidth = '100%';
+            container.style.overscrollBehavior = 'contain';
+            container.style.touchAction = 'pan-x pan-y pinch-zoom';
+            container.style.webkitOverflowScrolling = 'touch';
+            ensureBidirectionalTouchScrollBridge(container);
+            const btn = container.querySelector('.table-export-btn');
             if (btn) btn.addEventListener('click', () => exportTableToXLSX(tbl, `${title.replace(/[^0-9a-zA-Z\uac00-\ud7a3\s_-]/g, '') || 'export'}.xlsx`));
+        }
+
+        function showDataDetailModal(title, data) {
+            dataDetailTitle.textContent = title;
+            
+            // [v18] Maximize Button Logic (Unicode Stabilized)
+            let maxBtn = dataDetailModal.querySelector('.modal-maximize-btn');
+            if (!maxBtn) {
+                maxBtn = document.createElement('button');
+                maxBtn.className = 'modal-maximize-btn leading-none';
+                maxBtn.style.fontSize = '36px'; // 20% larger than 30px (text-3xl)
+                maxBtn.innerHTML = '\u25fb'; // Maximize icon
+                maxBtn.title = '\uc804\uccb4\ubcf4\uae30'; // "\uc804\uccb4\ubcf4\uae30"
+                const header = dataDetailModal.querySelector('.resizable-modal-header');
+                const closeBtn = document.getElementById('closeDataDetailModalBtn');
+                if (header && closeBtn) header.insertBefore(maxBtn, closeBtn);
+                
+                maxBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    dataDetailModal.classList.toggle('maximized');
+                    const isMax = dataDetailModal.classList.contains('maximized');
+                    maxBtn.innerHTML = isMax ? '\u2750' : '\u25fb'; // Toggle icons
+                    maxBtn.title = isMax ? '\uc774\uc804 \ud06c\uae30\ub85c' : '\uc804\uccb4\ubcf4\uae30';
+                    if (typeof updateMaximizedModalLayout === 'function') updateMaximizedModalLayout();
+                };
+            }
+            dataDetailModal.classList.remove('maximized');
+            if (maxBtn) { 
+                maxBtn.innerHTML = '\u25fb'; 
+                maxBtn.title = '\uc804\uccb4\ubcf4\uae30'; 
+            }
+            // [FIX] Clean up inline styles from previous maximize state
+            if (typeof updateMaximizedModalLayout === 'function') updateMaximizedModalLayout();
+
+            // [SETTLEMENT-ID] \uc815\uc0b0 \ubaa8\ub2ec \uc2dd\ubcc4 \uc18d\uc131 \uc8fc\uc785 \ubc0f \uac00\ub85c \uc2a4\ud06c\ub864 \uc815\ud569\uc131 \ubcf4\uc99d (1500px) [v16-APS]
+            // [UX-FIX] \ubaa9\ub85d(\ubaa9\ub85d) \ub610\ub294 \ud604\ud669(\ud604\ud669) \uc774\ub984\uc774 \ub4e4\uc5b4\uac04 \uc6d4\ubcc4 \ucd1d\uad04 \ubcf4\uace0\uc11c\ub294 \uace0\uc815 \ubc30\uce58 \ubc84\ud2bc\uc774 \ud544\uc694\ud55c 'settlement' \ud0c0\uc785\uc5d0\uc11c \uc81c\uc678 (\ube44\uc6a9\uacc4\uc815\ubcc4 \ucd1d\uad04\uacfc \ub3d9\uc791 \ubcf4\uc7a5)
+            const isSettlementReport = title && (title.includes('\ubaa9\ub85d') || title.includes('\ud604\ud669'));
+            if (title && (title.includes('\uc815\uc0b0') || title.includes('\ubd84\uae30\ubcc4') || title.includes('\uc5f0\ub3c4\ubcc4') || title.includes('Settlement')) && !isSettlementReport) {
+                dataDetailModal.dataset.modalType = 'settlement';
+                // [v16] \ub300\uc2dc\ubcf4\ub4dc\uc640 \ud14c\uc774\ube14 \ub05d\uc120\uc744 \ub9de\ucd94\uae30 \uc704\ud574 1500px \ucd5c\uc18c\ud3ed \uac15\uc81c
+                const modalInner = dataDetailModal.querySelector(':scope > div');
+                if (modalInner) {
+                    modalInner.style.minWidth = '1500px';
+                    modalInner.style.flexShrink = '0';
+                }
+            } else {
+                delete dataDetailModal.dataset.modalType;
+                const modalInner = dataDetailModal.querySelector(':scope > div');
+                if (modalInner) {
+                    modalInner.style.minWidth = '';
+                    modalInner.style.flexShrink = '';
+                }
+            }
+
+            // [UX-FIX] \ubaa8\ubc14\uc77c \ud130\ucc38 \ubc18\uc751\uc131 \uac15\ud654: \ub2eb\uae30 \ubc84\ud2bc\uc5d0 \uc9c1\uc811 touchstart \ud578\ub4e4\ub7ec \uc8fc\uc785
+            const closeBtn = document.getElementById('closeDataDetailModalBtn');
+            if (closeBtn && !closeBtn.__touchBoundAuto) {
+                closeBtn.__touchBoundAuto = true;
+                closeBtn.addEventListener('touchstart', (e) => {
+                    if (e.cancelable) e.preventDefault();
+                    e.stopPropagation();
+                    closeBtn.click();
+                }, { passive: false });
+            }
+
+            renderDataDetailProjectTable(dataDetailTableContainer, title, data);
 
             // \ubaa8\ub2ec \ud45c\uc2dc \ubc0f \uc2a4\ud0c0\uc77c \uc124\uc815
             dataDetailModal.classList.remove('hidden');
@@ -67867,6 +68514,10 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                 currentGanttContainer.__floatingScrollbarResizeObserver.disconnect();
                 currentGanttContainer.__floatingScrollbarResizeObserver = null;
             }
+            if (existingGanttEl?.contains(window._workDateObservedBody)) {
+                window._workDateResizeObserver?.disconnect();
+                window._workDateObservedBody = null;
+            }
             if (activeTooltipBar && existingGanttEl && existingGanttEl.contains(activeTooltipBar)) hideFloatingTooltip();
             const wasHeaderCollapsed = existingGanttEl && existingGanttEl.classList.contains('header-collapsed');
             const existingToggleBtn = existingGanttEl && existingGanttEl.querySelector('.header-toggle-btn');
@@ -67998,11 +68649,17 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             // \uac1c\uc120 \uc0ac\ud56d: \uba54\ubaa8\ub9ac \ucd5c\uc801\ud654 - DocumentFragment\ub97c \uc0ac\uc6a9\ud558\uc5ec DOM \uc870\uc791 \ucd5c\uc18c\ud654
             const dayFragment = document.createDocumentFragment();
             const weekdayFragment = document.createDocumentFragment();
+            const milestoneDateOffsetMap = new Map();
+            const startYear = viewMinDate.getFullYear();
+            const startMonth = viewMinDate.getMonth();
+            const startDay = viewMinDate.getDate();
 
             for (let i = 0; i <= totalDays; i++) {
                 // viewMinDate\uc5d0\uc11c i\uc77c\uc744 \ub354\ud55c \ub0a0\uc9dc\ub97c \uc0dd\uc131 (\ud0c0\uc784\uc874 \ubcc0\ud658 \uc5c6\uc74c)
-                const date = new Date(viewMinDate.getFullYear(), viewMinDate.getMonth(), viewMinDate.getDate() + i);
+                const date = new Date(startYear, startMonth, startDay + i);
                 date.setHours(0, 0, 0, 0);
+                const dateKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+                milestoneDateOffsetMap.set(dateKey, i);
                 const dayOfWeek = date.getDay();
                 const isWeekendOrHoliday = dayOfWeek === 0 || dayOfWeek === 6 || isHoliday(date);
 
@@ -68177,20 +68834,6 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
 
             // [PERF-OPT-2026-01-05] \ub9c8\uc77c\uc2a4\ud1a4 O(n\u00d7m) \u2192 O(n) \ucd5c\uc801\ud654
             // \ub0a0\uc9dc\u2192\uc624\ud504\uc14b \ub9f5\uc744 \ud55c \ubc88\ub9cc \uc0dd\uc131\ud558\uc5ec \uac01 \ub9c8\uc77c\uc2a4\ud1a4\uc5d0\uc11c O(1) \uc870\ud68c
-            const milestoneDateOffsetMap = new Map();
-            if (viewMinDate && viewMaxDate) {
-                const totalDaysForMap = dateDiffInDays(viewMinDate, viewMaxDate);
-                const mapViewMinYear = viewMinDate.getFullYear();
-                const mapViewMinMonth = viewMinDate.getMonth();
-                const mapViewMinDay = viewMinDate.getDate();
-                for (let i = 0; i <= totalDaysForMap; i++) {
-                    const d = new Date(mapViewMinYear, mapViewMinMonth, mapViewMinDay + i);
-                    d.setHours(0, 0, 0, 0);
-                    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                    milestoneDateOffsetMap.set(ds, i);
-                }
-            }
-
             const milestoneFragment = document.createDocumentFragment();
             const milestoneSource = Array.isArray(milestones) ? milestones : [];
             const normalizeMilestoneDateString = (m) => {
@@ -69811,11 +70454,14 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                 };
 
                 const updateGanttFloatingScrollbarMetrics = () => {
-                    if (!ganttFloatingScrollbar || !ganttFloatingScrollbarInner) return;
-                    const scrollWidth = Math.max(finalTimelineBodyWrapper.scrollWidth || 0, finalTimelineBodyWrapper.clientWidth || 0);
-                    const hasHorizontalOverflow = scrollWidth > (finalTimelineBodyWrapper.clientWidth + 1);
-                    ganttFloatingScrollbarInner.style.width = `${scrollWidth}px`;
-                    ganttFloatingScrollbar.style.display = hasHorizontalOverflow ? 'block' : 'none';
+                    if (!ganttFloatingScrollbar?.isConnected || !ganttFloatingScrollbarInner) return;
+                    const clientWidth = finalTimelineBodyWrapper.clientWidth;
+                    if (!clientWidth) return;
+                    const scrollWidth = Math.max(finalTimelineBodyWrapper.scrollWidth, clientWidth);
+                    const width = `${scrollWidth}px`;
+                    const display = scrollWidth > clientWidth + 1 ? 'block' : 'none';
+                    if (ganttFloatingScrollbarInner.style.width !== width) ganttFloatingScrollbarInner.style.width = width;
+                    if (ganttFloatingScrollbar.style.display !== display) ganttFloatingScrollbar.style.display = display;
                     if (Math.abs(ganttFloatingScrollbar.scrollLeft - finalTimelineBodyWrapper.scrollLeft) > 1) {
                         ganttFloatingScrollbarSyncing = true;
                         ganttFloatingScrollbar.scrollLeft = finalTimelineBodyWrapper.scrollLeft;
@@ -69823,10 +70469,19 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                     }
                 };
 
+                let floatingScrollbarMetricsFrame = 0;
+                const scheduleGanttFloatingScrollbarMetrics = () => {
+                    if (floatingScrollbarMetricsFrame) return;
+                    floatingScrollbarMetricsFrame = requestAnimationFrame(() => {
+                        floatingScrollbarMetricsFrame = 0;
+                        updateGanttFloatingScrollbarMetrics();
+                    });
+                };
+
                 const syncGanttFloatingScrollbarFromBody = () => {
                     if (!ganttFloatingScrollbar) return;
                     if (ganttFloatingScrollbarInner && Math.abs(ganttFloatingScrollbarInner.scrollWidth - finalTimelineBodyWrapper.scrollWidth) > 2) {
-                        updateGanttFloatingScrollbarMetrics();
+                        scheduleGanttFloatingScrollbarMetrics();
                     }
                     if (Math.abs(ganttFloatingScrollbar.scrollLeft - finalTimelineBodyWrapper.scrollLeft) <= 1) return;
                     ganttFloatingScrollbarSyncing = true;
@@ -69865,15 +70520,13 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                             releaseGanttFloatingScrollbarSync();
                         }, { passive: true });
                     }
-                    requestAnimationFrame(updateGanttFloatingScrollbarMetrics);
-                    requestAnimationFrame(() => requestAnimationFrame(updateGanttFloatingScrollbarMetrics));
-                    setTimeout(updateGanttFloatingScrollbarMetrics, 120);
-                    setTimeout(updateGanttFloatingScrollbarMetrics, 350);
-                    if (typeof ResizeObserver === 'function' && ganttFloatingScrollbar.dataset.resizeBound !== 'true') {
+                    scheduleGanttFloatingScrollbarMetrics();
+                    if (typeof ResizeObserver !== 'function') {
+                        setTimeout(scheduleGanttFloatingScrollbarMetrics, 120);
+                        setTimeout(scheduleGanttFloatingScrollbarMetrics, 350);
+                    } else if (ganttFloatingScrollbar.dataset.resizeBound !== 'true') {
                         ganttFloatingScrollbar.dataset.resizeBound = 'true';
-                        const floatingScrollbarResizeObserver = new ResizeObserver(() => {
-                            requestAnimationFrame(updateGanttFloatingScrollbarMetrics);
-                        });
+                        const floatingScrollbarResizeObserver = new ResizeObserver(scheduleGanttFloatingScrollbarMetrics);
                         floatingScrollbarResizeObserver.observe(finalTimelineBodyWrapper);
                         const ganttBodyNode = finalTimelineBodyWrapper.querySelector('.gantt-body');
                         if (ganttBodyNode) floatingScrollbarResizeObserver.observe(ganttBodyNode);
@@ -72742,6 +73395,7 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
          * @returns {void}
          */
         function saveAsStandaloneHTML() {
+            materializeFinancialCards();
             if (window.YearBootCoordinator && !window.YearBootCoordinator.getState().complete) {
                 window.YearBootCoordinator.ensureComplete().then(() => saveAsStandaloneHTML()).catch(error => showToast(error.message, 'error'));
                 return;
@@ -72755,8 +73409,10 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             // \ub9c8\uc9c0\ub9c9 \uc800\uc7a5\ub41c \uc2a4\ub0c5\uc0f7\uacfc \ube44\uad50\ud558\uc5ec \ubcc0\uacbd\uc774 \uc5c6\uc73c\uba74 \uc800\uc7a5 \uac74\ub108\ub6f0\uae30
             if (window.SafetyRules && typeof window.SafetyRules.isDirty === 'function') {
                 const lastSnapshot = window._lastSavedProjectSnapshot || null;
-                const yearUiSnapshot = JSON.stringify({year:window.YearContext?.getViewState().year,includeOpen:window.YearContext?.getViewState().includeOpen,position:window.YearBubbleUI?.serializePosition()});
-                if (lastSnapshot && lastSnapshot.length === projectDataSource.length && window._lastSavedYearUiSnapshot === yearUiSnapshot && !projectDataSource.some((p, i) => {
+                const yearState = window.YearContext.getState();
+                const yearUiSnapshot = JSON.stringify({year:yearState.year,includeOpen:yearState.includeOpen,
+                    selectionMode:yearState.explicit ? 'fixed' : 'auto',position:window.YearBubbleUI?.serializePosition()});
+                if (lastSnapshot && window._lastStandaloneWorkRows === JSON.stringify(window.workItems || []) && lastSnapshot.length === projectDataSource.length && window._lastSavedYearUiSnapshot === yearUiSnapshot && !projectDataSource.some((p, i) => {
                     const snap = lastSnapshot[i];
                     return snap ? window.SafetyRules.isDirty(p, snap) : true;
                 })) {
@@ -72847,6 +73503,7 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
 
             // [\uac1c\uc120 \uc0ac\ud56d 2] \uc800\uc7a5 \uc2dc \ubaa8\ub4e0 UI \uc0c1\ud0dc\uc640 \uc124\uc815\uc744 \ud3ec\ud568\ud558\ub3c4\ub85d \uac1c\uc120
             const settings = {
+                workRows: window.workItems || [],
                 openTaskGroups: Array.from(openTaskGroups),
                 columnVisibility: columnVisibility,
                 filters: {
@@ -72884,7 +73541,8 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                 , // \uc815\uc0b0 \uc544\ucf54\ub514\uc5b8 \uc0c1\ud0dc \uc800\uc7a5
                 hierarchyOrder: legendHierarchyRestoreOrder || hierarchyOrder, // 범례 자동 하→상은 비영구 상태로 저장에서 제외
                 operationYear: window.YearContext ? window.YearContext.getViewState().year : null,
-                yearOptions: {includeOpen:window.YearContext?.getViewState().includeOpen !== false},
+                yearOptions: {includeOpen:window.YearContext?.getViewState().includeOpen !== false,
+                    selectionMode: window.YearContext?.getState().explicit ? 'fixed' : 'auto'},
                 yearBubblePosition: window.YearBubbleUI?.serializePosition() || null,
                 // **\uac1c\uc120 \uc0ac\ud56d 2**: \ud604\uc7ac \uc5f4\ub824\uc788\ub294 \ud234\ud301 \uc815\ubcf4 \uc800\uc7a5
                 activeTooltip: (() => {
@@ -73029,7 +73687,8 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            window._lastSavedYearUiSnapshot = JSON.stringify({year:settings.operationYear,includeOpen:settings.yearOptions.includeOpen,position:settings.yearBubblePosition});
+            window._lastStandaloneWorkRows = JSON.stringify(settings.workRows);
+            window._lastSavedYearUiSnapshot = JSON.stringify({year:settings.operationYear,includeOpen:settings.yearOptions.includeOpen,selectionMode:settings.yearOptions.selectionMode,position:settings.yearBubblePosition});
             showToast("HTML \ud30c\uc77c\uc774 \uc131\uacf5\uc801\uc73c\ub85c \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4.", 'success');
         }
 
@@ -73179,7 +73838,7 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
         }
 
                 document.addEventListener('refreshMilestonesView', function() { if (typeof renderMilestoneModal === 'function') renderMilestoneModal(); });
-        function renderMilestoneModal() {
+        function renderMilestoneModal(deferClosedRows = false) {
             // [DATA-INTEGRITY] Remove corrupt milestones (NaN dates)
             if (typeof milestones !== 'undefined' && Array.isArray(milestones)) {
                 const originalLen = milestones.length;
@@ -73190,9 +73849,15 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             
 
                 // [UX-UPDATE] \ub9c8\uc77c\uc2a4\ud1a4 \uad00\ub9ac: \uc785\ub825 \ub0a0\uc9dc \uae30\uc900 \uc815\ub82c \ucd94\uac00
-                milestones.sort((a, b) => new Date(b.date) - new Date(a.date));}
+                const dateOrder = new Map();
+                for (const milestone of milestones) {
+                    if (!dateOrder.has(milestone.date)) dateOrder.set(milestone.date, Date.parse(milestone.date));
+                }
+                milestones.sort((a, b) => dateOrder.get(b.date) - dateOrder.get(a.date));
+            }
 
-            milestoneList.innerHTML = '';
+            const deferRows = deferClosedRows === true && milestoneModal.classList.contains('hidden');
+            milestoneList.replaceChildren();
             // [FIX] \ub9c8\uc77c\uc2a4\ud1a4 \ud328\ub110\uc774 \ub3d9\uc801\uc73c\ub85c \ub9ac\ub80c\ub354\ub9c1\ub420 \ub54c \ub0a0\uc9dc \uc785\ub825 \uc774\ubca4\ud2b8\ub97c \ud56d\uc0c1 \uc7ac\ubd80\ucc29
             if (window.__reattachMilestoneDateHandlers) {
                 requestAnimationFrame(() => window.__reattachMilestoneDateHandlers());
@@ -73272,6 +73937,11 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             if (typeof window.syncMilestoneFilterControls === 'function') {
                 window.syncMilestoneFilterControls(mappedMilestones);
             }
+            if (deferRows) {
+                window.milestones = milestones.slice();
+                delete milestoneList.dataset.virtualized;
+                return;
+            }
 
             if (milestones.length === 0) {
                 milestoneList.innerHTML = `<p class="text-center text-gray-500">\ub4f1\ub85d\ub41c \ub9c8\uc77c\uc2a4\ud1a4\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.</p>`;
@@ -73280,8 +73950,10 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                 milestoneList.style.overflowY = 'auto';
                 milestoneList.style.maxHeight = '400px'; // \uc801\uc808\ud55c \ucd5c\ub300 \ub192\uc774 \uc124\uc815
 
+                const yearContext = window.YearContext;
+                const selectedYear = yearContext ? yearContext.getViewState().year : 'all';
                 const visibleMilestones = mappedMilestones.filter((entry) => {
-                    if (window.YearContext && window.YearContext.getViewState().year !== 'all' && window.YearContext.asYear(entry.raw.date) !== window.YearContext.getViewState().year) return false;
+                    if (selectedYear !== 'all' && yearContext.asYear(entry.raw.date) !== selectedYear) return false;
                     if (normalizedDateFilter && !entry.dateText.toLowerCase().includes(normalizedDateFilter)) return false;
                     if ((normalizedDateFromFilter || normalizedDateToFilter) && !entry.dateText) return false;
                     if (normalizedDateFromFilter && entry.dateText < normalizedDateFromFilter) return false;
@@ -75418,11 +76090,28 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
 
         // [C1 \uc218\uc815] \ubaa8\ub4e0 \ud504\ub85c\uc81d\ud2b8\uc758 \uc791\uc5c5\uc77c \ub370\uc774\ud130\ub97c \ud589 \uae30\ubc18\uc73c\ub85c \ubc18\ud658 (Work \uc2dc\ud2b8\uc6a9)
         // \ubc18\ud658 \ud615\uc2dd: [{ projectId, projectName, workDate, workDetail }, ...]
+        function visitUnifiedWorkDates(visit) {
+            const seen = new Set();
+            const source = Array.isArray(window.projectData) ? window.projectData :
+                (typeof projectData !== 'undefined' && Array.isArray(projectData) ? projectData : []);
+            for (const project of source) {
+                const data = window.getUnifiedWorkDateData(project.id);
+                if (!Array.isArray(data.dates)) continue;
+                for (const date of data.dates) {
+                    const key = `${project.id}_${date.date}`;
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    visit(project, date);
+                }
+            }
+        }
+        window.countUnifiedWorkItems = function () {
+            let count = 0;
+            visitUnifiedWorkDates(() => { count++; });
+            return count;
+        };
         window.getUnifiedWorkItems = function () {
             const result = [];
-            const seen = new Set(); // \uc911\ubcf5 \ubc29\uc9c0
-
-            // [UNIFIED] Helper to get maintenanceCode - NEVER fall back to ID
             const getMaintenanceCode = (proj) => {
                 if (window.ExcelBuilder && typeof window.ExcelBuilder.getMaintenanceCode === 'function') {
                     return window.ExcelBuilder.getMaintenanceCode(proj);
@@ -75431,33 +76120,21 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                 return String(proj.maintenanceCode || proj['\uc720\uc9c0\uad00\ub9ac\ubc88\ud638'] || proj['\uad00\ub9ac\ubc88\ud638'] || '').trim();
             };
 
-            const projectDataSource = Array.isArray(window.projectData) ? window.projectData :
-                (typeof projectData !== 'undefined' && Array.isArray(projectData) ? projectData : []);
-
-            projectDataSource.forEach(project => {
-                const data = window.getUnifiedWorkDateData(project.id);
-                if (data.dates && Array.isArray(data.dates)) {
-                    data.dates.forEach(d => {
-                        const key = `${project.id}_${d.date}`;
-                        if (!seen.has(key)) {
-                            seen.add(key);
-                            result.push({
-                                projectId: String(project.id),
-                                // [CRITICAL FIX] Include maintenanceCode from project. NEVER use project.id as fallback.
-                                maintenanceCode: getMaintenanceCode(project),
-                                projectName: project.name || '',
-                                workDate: d.date || '',
-                                workDetail: d.detail || ''
-                            });
-                        }
-                    });
-                }
+            const codes = new Map();
+            visitUnifiedWorkDates((project, row) => {
+                if (!codes.has(project)) codes.set(project, getMaintenanceCode(project));
+                result.push({
+                    projectId: String(project.id),
+                    maintenanceCode: codes.get(project),
+                    projectName: project.name || '',
+                    workDate: row.date || '',
+                    workDetail: row.detail || ''
+                });
             });
-
             return result;
         };
 
-        // [M3 \uc218\uc815] \uacf5\ud1b5 ensureWorkDateAPI \ud568\uc218 (\uc911\ubcf5 \uc81c\uac70)
+        // [M3] Share the Work Date API setup.
         window.ensureWorkDateAPI = function () {
             if (window.workDate && typeof window.workDate.saveWorkDate === 'function') {
                 return window.workDate;
@@ -77000,6 +77677,22 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             };
             window.updateWorkdateOutOfPlanNotice = updateWorkdateOutOfPlanNotice;
 
+            let workDateResizeFrame = 0;
+            function queueWorkDateLayerResize() {
+                if (workDateResizeFrame) return;
+                workDateResizeFrame = requestAnimationFrame(() => {
+                    workDateResizeFrame = 0;
+                    const liveBody = window._workDateObservedBody;
+                    if (!liveBody?.isConnected) return;
+                    const layer = liveBody.querySelector('#workdate-markers');
+                    if (!layer) return;
+                    const width = liveBody.scrollWidth + 'px';
+                    const height = liveBody.scrollHeight + 'px';
+                    if (layer.style.width !== width) layer.style.width = width;
+                    if (layer.style.height !== height) layer.style.height = height;
+                });
+            }
+
             const updateGanttWithWorkDates = () => {
                 hideTooltip();
                 const container = getActiveGanttViewportContainer();
@@ -77383,22 +78076,7 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                 if (typeof ResizeObserver !== 'undefined') {
                     try {
                         if (!window._workDateResizeObserver) {
-                            let workDateResizeFrame = 0;
-                            window._workDateResizeObserver = new ResizeObserver(() => {
-                                if (workDateResizeFrame) return;
-                                workDateResizeFrame = requestAnimationFrame(() => {
-                                    workDateResizeFrame = 0;
-                                    const liveBody = window._workDateObservedBody;
-                                    if (!liveBody || !liveBody.isConnected) return;
-                                    const ml = liveBody.querySelector('#workdate-markers');
-                                    if (ml) {
-                                        const width = `${liveBody.scrollWidth}px`;
-                                        const height = `${liveBody.scrollHeight}px`;
-                                        if (ml.style.width !== width) ml.style.width = width;
-                                        if (ml.style.height !== height) ml.style.height = height;
-                                    }
-                                });
-                            });
+                            window._workDateResizeObserver = new ResizeObserver(queueWorkDateLayerResize);
                         }
                         if (window._workDateObservedBody !== ganttBody) {
                             window._workDateResizeObserver.disconnect();
@@ -78888,15 +79566,55 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
             };
             let urlImportBatchDepth = 0;
             let urlImportPendingMap = null;
+            let urlImportIndex = null;
+            const normalizeLinkKey = value => String(value).replace(/\s+/g, '').toLowerCase();
+
+            function getUrlImportIndex() {
+                if (urlImportIndex) return urlImportIndex;
+                const map = loadProjectLinkMap();
+                const aliases = new Map();
+                const projects = new Map();
+                for (const key of Object.keys(map)) {
+                    const normalized = normalizeLinkKey(key);
+                    if (!aliases.has(normalized)) aliases.set(normalized, new Set());
+                    aliases.get(normalized).add(key);
+                }
+                const stores = new Set([window.projectData, window.AppStore?.projectData,
+                    window.AppState?.projectData, window.DataManager?.projects]);
+                for (const store of stores) {
+                    if (!Array.isArray(store)) continue;
+                    for (const project of store) {
+                        if (!project) continue;
+                        const id = String(project.id || '').trim();
+                        const code = String(project.maintenanceCode || project['유지관리번호'] || project['관리번호'] || '').trim();
+                        for (const key of code && code !== id ? [id, code] : [id]) {
+                            if (!projects.has(key)) projects.set(key, new Set());
+                            projects.get(key).add(project);
+                        }
+                    }
+                }
+                return urlImportIndex = { map, aliases, projects };
+            }
             const runUrlImportBatch = (applyRows) => {
                 urlImportBatchDepth += 1;
                 try { return applyRows(); }
                 finally {
                     urlImportBatchDepth -= 1;
-                    if (!urlImportBatchDepth && urlImportPendingMap) {
+                    if (!urlImportBatchDepth) {
                         const finalMap = urlImportPendingMap;
-                        urlImportPendingMap = null;
-                        saveProjectLinkMap(finalMap);
+                        const hasLinks = urlImportIndex?.aliases.size;
+                        urlImportPendingMap = urlImportIndex = null;
+                        if (finalMap) {
+                            if (hasLinks === 0) {
+                                try {
+                                    localStorage.removeItem(PROJECT_LINK_STORAGE_KEY);
+                                    window.__projectLinkCache = null;
+                                } catch (e) { saveProjectLinkMap(finalMap); }
+                            } else {
+                                saveProjectLinkMap(finalMap);
+                            }
+                            scheduleLinkBadgeSync();
+                        }
                     }
                 }
             };
@@ -78945,9 +79663,25 @@ function sortSiCenterCustomerRows(table, columnIndex, direction) {
                 return '';
             };
             const setProjectLink = (projectId, url) => {
-                const map = loadProjectLinkMap();
                 const normalizedId = String(projectId).trim();
                 const trimmedUrl = (url && String(url).trim()) ? String(url).trim() : '';
+                if (urlImportBatchDepth) {
+                    const { map, aliases, projects } = getUrlImportIndex();
+                    const normalized = normalizeLinkKey(normalizedId);
+                    for (const key of aliases.get(normalized) || []) {
+                        if (!trimmedUrl || key !== normalizedId) delete map[key];
+                    }
+                    if (trimmedUrl) {
+                        map[normalizedId] = trimmedUrl;
+                        aliases.set(normalized, new Set([normalizedId]));
+                    } else {
+                        aliases.delete(normalized);
+                    }
+                    for (const project of projects.get(normalizedId) || []) project.link = trimmedUrl;
+                    saveProjectLinkMap(map);
+                    return;
+                }
+                const map = loadProjectLinkMap();
 
                 // [DATA-INTEGRITY] Synchronize project url/link across all memory stores
                 try {
@@ -99813,22 +100547,11 @@ function showPendingSettlementModal(periodType, projects) {
             };
 
             let raf = 0;
-            let _lastSyncSig = '';
             const scheduleSync = () => {
-                if (raf) return;
+                if (raf || !document.getElementById('projectView')?.classList.contains('open')) return;
                 raf = requestAnimationFrame(() => {
                     raf = 0;
-                    syncMobileLegendAutoHeight();
-                    const ls2 = document.getElementById('legendSection');
-                    if (ls2) {
-                        _lastSyncSig = [
-                            ls2.style.getPropertyValue('--legend-mobile-auto-min-height'),
-                            ls2.classList.contains('legend-collapsed') ? '1' : '0',
-                            ls2.scrollHeight || 0,
-                            ls2.offsetWidth || 0,
-                            ls2.childElementCount || 0
-                        ].join('|');
-                    }
+                    if (document.getElementById('projectView')?.classList.contains('open')) syncMobileLegendAutoHeight();
                 });
             };
 
@@ -102878,6 +103601,377 @@ function showPendingSettlementModal(periodType, projects) {
       }
     </style>
     <!-- [SMART-SELECTION-GUARD-20260919] 빈 바탕 드래그 방지 및 직접 대상 텍스트 선택/복사 보장 CSS -->
+    <style id="carryover-responsive-style">
+        /* Keep all pre-carryover accordion/header rules owned by the reference layout. */
+        .accordion-title-name > span { display: contents; }
+        @media(max-width:1024px) { html:not(:has(> body > div > main#dashboardContent > .accordion-item.open)) { font-size:100%!important; } }
+        #dashboardContent { zoom: 1; }
+        @media screen {
+            #overviewView:not(.open) > #accordion-panel-overview,
+            #settlementView:not(.open) > #accordion-panel-settlement { display:none!important; }
+        }
+        @media (min-width:769px) {
+            #dashboardContent > .accordion-item:not(.open) :is(#overview-header-summaries,#settlement-header-summaries) {
+                font-size:clamp(14px,1.18vw,20px)!important; gap:4px!important;
+            }
+        }
+        @media not screen and (max-width: 768px) and (orientation: portrait) {
+            #dashboardContent #projectView .schedule-header-filter-row { flex-wrap: nowrap !important; }
+            #dashboardContent > .accordion-item:is(#overviewView,#settlementView,#projectView):not(.open) > .accordion-header {
+                display:flex!important; flex-flow:row nowrap!important; align-items:center!important;
+                white-space:nowrap!important; overflow-x:auto; max-width:100%; gap:8px!important;
+            }
+            #dashboardContent > .accordion-item:is(#overviewView,#settlementView,#projectView):not(.open) > .accordion-header :is(h2.accordion-title-btn,#overview-header-summaries,#settlement-header-summaries,.flex-grow,.schedule-header-filter-row) {
+                display:inline-flex!important; flex-flow:row nowrap!important; align-items:center!important;
+                white-space:nowrap!important; width:max-content!important; max-width:none!important; flex-shrink:0!important;
+            }
+            #dashboardContent > .accordion-item:is(#overviewView,#settlementView,#projectView):not(.open) > .accordion-header h2.accordion-title-btn > span {
+                white-space:nowrap!important; align-self:center!important; margin-block:0!important;
+            }
+        }
+        @media screen and (max-width: 768px) and (orientation: portrait) {
+            #dashboardContent {
+                --portrait-width-deficit: clamp(0px, 390px - 100vw, 90px);
+                --portrait-header-compression: clamp(0px, 375px - 100vw, 75px);
+                --portrait-title-size: calc(20px - var(--portrait-width-deficit) * .043);
+                --portrait-title-icon: calc(25px - var(--portrait-width-deficit) * .043);
+                --portrait-state-size: calc(12px - var(--portrait-width-deficit) * .025);
+                --portrait-state-padding: calc(8.8px - var(--portrait-width-deficit) * .055);
+            }
+            body { --dashboard-portrait-top: calc(.5rem + env(safe-area-inset-top, 0px)); }
+            #codex-dashboard-shell { padding-block-start: var(--dashboard-portrait-top) !important; }
+            #dashboardContent { padding-block-start: 0; }
+            #network-status { top: var(--dashboard-portrait-top); }
+            #dashboardContent > #overviewView.accordion-item.open > .accordion-header {
+                padding-block-start: 3.25rem !important;
+            }
+            #dashboardContent > #overviewView.accordion-item:not(.open) > .accordion-header {
+                --overview-title-offset: clamp(0px, (470px - 100vw) * .6, 24px);
+                padding-block-start: 0 !important;
+                padding-inline-start: .5rem !important;
+                grid-template-columns: max-content 20px minmax(0,1fr) !important;
+                grid-template-rows: minmax(36px, max-content) auto !important;
+                gap: 8px 4px !important;
+            }
+            main#dashboardContent > #overviewView.accordion-item:not(.open) > .accordion-header > h2.accordion-title-btn {
+                align-self: start !important;
+                margin: 0 !important;
+                margin-block-start: var(--overview-title-offset) !important;
+            }
+            main#dashboardContent > #overviewView.accordion-item:not(.open) > .accordion-header > svg.accordion-icon {
+                align-self: start !important;
+                margin-block-start: calc(var(--overview-title-offset) + 8px) !important;
+                inline-size: 20px !important;
+                block-size: 20px !important;
+            }
+            #network-status.online {
+                --portrait-online-growth: clamp(0px, (100vw - 430px) * .66, 46px);
+                box-sizing: border-box;
+                inline-size: calc(88px + var(--portrait-online-growth)) !important;
+                justify-content: space-between;
+                padding-block: 0 !important;
+                padding-inline: calc(2px + var(--portrait-online-growth) * .13) !important;
+                gap: calc(2px + var(--portrait-online-growth) * .08) !important;
+                min-block-size: 32px !important;
+                font-size: calc(12px + var(--portrait-online-growth) * .087);
+            }
+            #network-status.online > #network-status-icon {
+                --portrait-status-dot: calc(12px + var(--portrait-online-growth) * .087);
+                inline-size: var(--portrait-status-dot);
+                block-size: var(--portrait-status-dot);
+                flex: 0 0 var(--portrait-status-dot);
+            }
+            #network-status.online > #network-menu-btn {
+                flex: 0 0 32px;
+                min-inline-size: 32px !important;
+                min-block-size: 30px !important;
+                padding: 0 !important;
+                margin-inline-start: 0 !important;
+                line-height: 1;
+            }
+            @media (max-width: 480px) {
+                #network-status {
+                    box-sizing: border-box;
+                    inline-size: 5.5rem;
+                    justify-content: space-between;
+                    min-block-size: 3.2rem;
+                    padding-inline: .125rem !important;
+                    gap: .125rem !important;
+                    font-size: .75rem;
+                }
+                #network-status-icon { inline-size: .75rem; block-size: .75rem; flex: 0 0 .75rem; }
+                #network-status-text { flex: none; white-space: nowrap; }
+                #network-menu-btn { flex: 0 0 2rem; min-inline-size: 2rem !important; padding-inline: 0; margin-inline-start: 0 !important; }
+            }
+            #dashboardContent > :is(#overviewView,#settlementView):not(.open) > .accordion-header {
+                padding-block-start: 10px;
+                padding-block-end: 12px;
+            }
+            #dashboardContent > :is(#overviewView,#settlementView):not(.open) > .accordion-header
+                :is(#overview-header-summaries,#settlement-header-summaries) {
+                font-size: clamp(.73rem, 3.15vw, .875rem) !important;
+                line-height: 1.45;
+                gap: 0 !important;
+            }
+            #dashboardContent > :is(#overviewView,#settlementView):not(.open) > .accordion-header [data-carry-group] {
+                padding-block: 7px;
+                overflow-wrap: normal;
+            }
+            #dashboardContent > :is(#overviewView,#settlementView):not(.open) > .accordion-header
+                [data-carry-group] ~ [data-carry-group] {
+                border-block-start: 1px solid #e2e8f0;
+            }
+            #dashboardContent > .accordion-item:is(#overviewView,#settlementView):not(.open) > .accordion-header {
+                contain: layout;
+            }
+            #dashboardContent > .accordion-item:is(#overviewView,#settlementView):not(.open) > .accordion-header > svg.accordion-icon {
+                position: static !important;
+                grid-area: 1 / 2 !important;
+                align-self: start !important;
+                margin-block-start: 4px !important;
+            }
+            #dashboardContent > .accordion-item:is(#overviewView,#settlementView):not(.open) > .accordion-header
+                > :is(#overview-header-summaries,#settlement-header-summaries) {
+                font-size: clamp(9px, 3vw, 14px) !important;
+                overflow-x: auto;
+            }
+            #dashboardContent > .accordion-item:is(#overviewView,#settlementView):not(.open) > .accordion-header
+                > :is(#overview-header-summaries,#settlement-header-summaries) > [data-carry-group] {
+                white-space: normal !important;
+                overflow-wrap: anywhere;
+            }
+            main#dashboardContent > .accordion-item:is(#overviewView,#settlementView):not(.open) > .accordion-header > h2.accordion-title-btn {
+                display: grid !important;
+                grid-column: 1 !important;
+                grid-template-columns: repeat(4, max-content) !important;
+                grid-template-rows: auto !important;
+                justify-content: start !important;
+                align-items: center;
+                column-gap: calc(3px - var(--portrait-width-deficit) * .014 - var(--portrait-header-compression) * .018) !important;
+                padding-inline: 4px calc(4px - var(--portrait-header-compression) * .036) !important;
+            }
+            main#dashboardContent > .accordion-item:is(#overviewView,#settlementView):not(.open) > .accordion-header > h2.accordion-title-btn > span {
+                grid-area: auto !important;
+            }
+            main#dashboardContent > .accordion-item:not(.open) > .accordion-header h2.accordion-title-btn > .accordion-title-name {
+                display: inline-flex !important;
+                align-items: center;
+                gap: 5px;
+                font-size: var(--portrait-title-size) !important;
+                white-space: nowrap !important;
+            }
+            main#dashboardContent > .accordion-item:not(.open) > .accordion-header .accordion-title-name > span:first-child {
+                display: inline-flex;
+                inline-size: var(--portrait-title-icon);
+                flex: 0 0 var(--portrait-title-icon);
+                justify-content: center;
+            }
+            main#dashboardContent > .accordion-item:not(.open) > .accordion-header .accordion-title-name > span:last-child {
+                display: inline;
+            }
+            main#dashboardContent > .accordion-item:is(#overviewView,#settlementView):not(.open) > .accordion-header > h2.accordion-title-btn > span.text-gray-400 {
+                margin-inline: 0 !important;
+                font-size: calc(9.5px - var(--portrait-width-deficit) * .012 - var(--portrait-header-compression) * .015) !important;
+                white-space: nowrap;
+            }
+            main#dashboardContent > .accordion-item:is(#overviewView,#settlementView):not(.open) > .accordion-header > h2.accordion-title-btn > .accordion-state-pill {
+                margin-inline: 0 !important;
+                padding-inline: calc(var(--portrait-state-padding) - var(--portrait-header-compression) * .025) !important;
+                font-size: var(--portrait-state-size) !important;
+                white-space: nowrap;
+            }
+            main#dashboardContent > .accordion-item:is(#overviewView,#settlementView):not(.open) > .accordion-header > h2.accordion-title-btn > .accordion-hint-chip {
+                margin: 0 !important;
+                padding-inline: calc(3px - var(--portrait-header-compression) * .025) !important;
+                gap: calc(4px - var(--portrait-header-compression) * .04);
+                block-size: 32px;
+                font-size: calc(10.5px - var(--portrait-width-deficit) * .021 - var(--portrait-header-compression) * .018) !important;
+                white-space: nowrap;
+                justify-self: start;
+            }
+            main#dashboardContent > #settlementView.accordion-item:not(.open) > div.accordion-header {
+                grid-template-rows: minmax(37px, max-content) auto !important;
+                padding-inline-start: 8px !important;
+                row-gap: 4px !important;
+            }
+            main#dashboardContent > #settlementView.accordion-item:not(.open) > div.accordion-header > h2.accordion-title-btn {
+                margin-block-end: 0 !important;
+                width: max-content !important;
+            }
+            main#dashboardContent > #settlementView.accordion-item:not(.open) > div.accordion-header > h2.accordion-title-btn > .accordion-hint-chip {
+                font-size: calc(10.5px - var(--portrait-width-deficit) * .032 - var(--portrait-header-compression) * .012) !important;
+            }
+            main#dashboardContent > #settlementView.accordion-item:not(.open) > div.accordion-header > #settlement-header-summaries {
+                box-sizing: border-box;
+                border-inline-start: 1px solid #f1f5f9;
+                margin-block-start: 0 !important;
+                margin-inline-start: -6px !important;
+                width: calc(100% + 6px) !important;
+                padding: 7px 12px 7px 5px !important;
+            }
+            #dashboardContent > :is(#overviewView,#settlementView,#projectView):not(.open) > .accordion-header {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) 24px !important;
+                gap: 8px !important;
+                align-items: start !important;
+                overflow-x: visible;
+            }
+            #dashboardContent > :is(#overviewView,#settlementView,#projectView):not(.open) > .accordion-header > svg.accordion-icon {
+                grid-column: 2;
+                grid-row: 1;
+                margin-inline: 0 !important;
+            }
+            #dashboardContent > :is(#overviewView,#settlementView,#projectView) > .accordion-header h2.accordion-title-btn {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 4px 8px !important;
+                min-width: 0 !important;
+                max-width: 100%;
+                white-space: normal !important;
+            }
+            #dashboardContent > :is(#overviewView,#settlementView,#projectView) > .accordion-header h2.accordion-title-btn > span {
+                max-width: 100%;
+            }
+            #dashboardContent > :is(#overviewView,#settlementView) > .accordion-header > :is(#overview-header-summaries,#settlement-header-summaries) {
+                grid-column: 1 / -1 !important;
+                grid-row: 2;
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 4px !important;
+                width: 100% !important;
+                min-width: 0;
+                margin-inline: 0 !important;
+                font-size: 1rem !important;
+                text-align: start !important;
+                white-space: normal !important;
+            }
+            #dashboardContent > :is(#overviewView,#settlementView) > .accordion-header :is(#overview-header-summaries,#settlement-header-summaries) > span.inline-block {
+                white-space: normal !important;
+                overflow-wrap: anywhere;
+            }
+            #dashboardContent > :is(#overviewView,#settlementView) > .accordion-header :is(#overview-header-summaries,#settlement-header-summaries):has(> [data-carry-group]) > span.inline-block:not([data-carry-group]) {
+                display: none !important;
+            }
+            #dashboardContent > #projectView:not(.schedule-header-collapsed) > .accordion-header > .flex-grow {
+                grid-column: 1;
+                grid-row: 1;
+                flex-wrap: wrap !important;
+                min-width: 0;
+                max-width: 100%;
+            }
+            #dashboardContent > #projectView > .accordion-header div.schedule-header-filter-row {
+                flex-wrap: wrap !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin-inline: 0 !important;
+                overflow: visible !important;
+            }
+            #dashboardContent > #projectView > .accordion-header .schedule-header-filter-row > * {
+                max-width: 100% !important;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header h2.accordion-title-btn {
+                flex: 0 0 auto;
+                flex-wrap: nowrap !important;
+                width: max-content !important;
+                max-width: calc(100% + 8px) !important;
+                padding-inline-start: 4px !important;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header h2.accordion-title-btn > :is(.accordion-hint-chip,.accordion-state-pill) {
+                flex: 0 0 auto;
+                white-space: nowrap !important;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header {
+                padding-inline-start: 8px !important;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header h2.accordion-title-btn > .accordion-state-pill {
+                margin-inline-start: -6px !important;
+                padding-inline: var(--portrait-state-padding) !important;
+                font-size: var(--portrait-state-size) !important;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header h2.accordion-title-btn > .accordion-hint-chip {
+                padding-inline: calc(9.6px - var(--portrait-width-deficit) * .05) !important;
+                font-size: var(--portrait-state-size) !important;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header > svg.accordion-icon {
+                align-self: start !important;
+                margin-block-start: calc(21px - var(--portrait-width-deficit) * .23) !important;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header div.schedule-header-filter-row {
+                flex: 0 0 auto !important;
+                gap: calc(3px - var(--portrait-width-deficit) * .014) !important;
+                width: calc(100% + var(--portrait-width-deficit) * .45) !important;
+                max-width: none !important;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header #select-view-wrapper {
+                margin-inline-start: 0 !important;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header :is(#clear-all-filters-btn,#select-view-toggle-btn) {
+                padding-inline: calc(5px - var(--portrait-width-deficit) * .028) !important;
+                font-size: calc(12px - var(--portrait-width-deficit) * .02) !important;
+                flex: 0 0 auto;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header .schedule-header-filter-row > .codex-legend-select-host {
+                --portrait-select-size: calc(53px + clamp(0px, (100vw - 390px) * .2, 4px) - var(--portrait-width-deficit) * .1);
+                inline-size: var(--portrait-select-size);
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header .schedule-header-filter-row > .codex-legend-select-host:has(#header-cost-account-filter-shortcut) {
+                inline-size: calc(var(--portrait-select-size) + 10px);
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header .schedule-header-filter-row .codex-legend-select-trigger {
+                padding-inline: calc(4px - var(--portrait-width-deficit) * .014) calc(16px - var(--portrait-width-deficit) * .073) !important;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header .schedule-header-filter-row .codex-legend-select-label {
+                font-size: calc(11px - var(--portrait-width-deficit) * .006) !important;
+            }
+            main#dashboardContent > #projectView.accordion-item:not(.open) > .accordion-header .schedule-header-filter-row .codex-legend-select-chevron {
+                right: calc(6px - var(--portrait-width-deficit) * .043) !important;
+            }
+        }
+        #dashboardContent > .accordion-item:not(.open) [data-carry-group] { padding-inline-start:20px; }
+        #dashboardContent > .accordion-item:not(.open) > .accordion-header > svg.accordion-icon { align-self:center!important; margin-top:0!important; }
+        html:not(.carry-alerts-muted) .carry-info-trigger.carry-attention { background:#b91c1c;color:white;border-radius:50%;animation:carry-alert-pulse 1.4s ease-out infinite; }
+        html:not(.carry-alerts-muted) .carry-info-trigger.carry-attention::before { content:'☝';position:absolute;top:100%;color:#b91c1c;line-height:1; }
+        @keyframes carry-alert-pulse { from {box-shadow:0 0 0 0 #dc2626aa} to {box-shadow:0 0 0 6px transparent} }
+        @media(prefers-reduced-motion:reduce){html:not(.carry-alerts-muted) .carry-info-trigger.carry-attention{animation:none}}
+        #operation-year-modal #operation-year-toolbar {display:flex;flex-direction:column;width:min(640px,100%);max-width:calc(100vw - 12px);max-height:calc(100dvh - 12px);padding:0;overflow:hidden;}
+        #operation-year-toolbar .year-modal-heading {flex:none;margin:0;padding:12px 16px;border-bottom:1px solid #e2e8f0;background:#fff;cursor:move;touch-action:none;user-select:none;}
+        #operation-year-toolbar .year-modal-scroll {min-height:0;overflow:auto;overscroll-behavior:contain;padding:12px 16px 16px;}
+        #operation-year-toolbar .carry-overview h3 {margin:0 0 12px;font-weight:700;}
+        #operation-year-toolbar .carry-overview-stats {margin:0;}
+        #operation-year-toolbar button.carry-overview-stat {display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 12px;width:100%;min-height:44px;padding:8px 0;border:0;border-bottom:1px solid #e2e8f0;border-radius:0;background:transparent;color:inherit;text-align:start;touch-action:manipulation;}
+        #operation-year-toolbar .carry-overview-stat strong {font-variant-numeric:tabular-nums;}
+        #operation-year-toolbar .carry-overview-stat:hover,#operation-year-toolbar .carry-overview-stat:focus-visible {background:#f1f5f9;}
+        #operation-year-toolbar .carry-evidence-back {margin-bottom:12px;}
+        #operation-year-toolbar .carry-evidence-table .table-export-btn {background:#4f46e5;color:white;}
+        #operation-year-toolbar .year-modal-heading h2 {flex:1;}
+        #operation-year-toolbar .year-size-grip {cursor:nwse-resize;}
+        #operation-year-toolbar .carry-review-footer button { touch-action:manipulation; }
+        #operation-year-toolbar .carry-year-controls>.carry-review-footer {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
+        #operation-year-toolbar .carry-year-controls>.carry-review-footer>label {grid-column:1/-1;}
+        .carry-header-name { position: relative; }
+        .carry-info-trigger { position: absolute; left: -20px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin: 0; padding: 0; border: 0; background: transparent; color: #2563eb; font: inherit; font-size: 15px; line-height: 1; cursor: pointer; touch-action: manipulation; }
+        .carry-info-trigger::after { content: ''; position: absolute; width: 44px; height: 44px; left: 50%; top: 50%; transform: translate(-50%,-50%); }
+        .carry-info-trigger:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; border-radius: 50%; }
+        #operation-year-toolbar .carry-year-controls { margin-top: 12px; border-top: 1px solid #cbd5e1; padding-top: 10px; }
+        #operation-year-toolbar .carry-year-controls h3 { font-weight: 700; margin: 0 0 8px; }
+        #operation-year-toolbar .carry-year-controls button,
+        #operation-year-toolbar .carry-year-controls select,
+        #operation-year-toolbar .carry-review-workspace input[type="search"] { min-height: 44px; padding: 6px 9px; border: 1px solid #94a3b8; border-radius: 6px; color: #173049; background: #f8fafc; font: inherit; max-width: 100%; box-sizing: border-box; }
+        #operation-year-toolbar .carry-review-workspace { margin-top: 10px; min-width: 0; }
+        #operation-year-toolbar .carry-review-workspace[hidden] { display: none; }
+        #operation-year-toolbar .carry-review-workspace h2 { font-size: 1rem; font-weight: 700; }
+        #operation-year-toolbar .carry-review-filters, #operation-year-toolbar .carry-review-footer { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 8px; }
+        #operation-year-toolbar .carry-review-filters label { display: grid; min-width: 0; flex: 1 1 140px; }
+        #operation-year-toolbar .carry-review-search { display: grid; gap: 4px; margin-block: 8px; }
+        #operation-year-toolbar .carry-review-search input { width: 100%; }
+        #operation-year-toolbar .carry-review-list { min-height: 44px; border-block: 1px solid #cbd5e1; }
+        #operation-year-toolbar .carry-review-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 8px 4px; min-height: 44px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; }
+        #operation-year-toolbar .carry-review-row input[type="checkbox"] { appearance: auto; accent-color: #0369a1; width: 22px; height: 22px; flex-shrink: 0; cursor: pointer; }
+        #operation-year-toolbar .carry-review-summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 6px; margin-block: 8px; }
+        #operation-year-toolbar .carry-review-summary p { margin: 0; padding: 6px; background: #f1f5f9; border-radius: 4px; overflow-wrap: anywhere; }
+        #operation-year-toolbar .carry-review-tally, #operation-year-toolbar .carry-review-error { margin-block: 6px; }
+        #operation-year-toolbar .carry-year-controls button:disabled { opacity: .55; }
+    </style>
     <style id="smart-selection-guard-style">
       body,
       .modal-overlay,
@@ -104539,7 +105633,8 @@ function showPendingSettlementModal(periodType, projects) {
 
                 XLSX.read = function () {
                     var workbook = originalRead.apply(this, arguments);
-                    if (window.__codexWebSaveWorkbookReadInProgress === true) return workbook;
+                    if (window.__codexWebSaveWorkbookReadInProgress === true ||
+                        arguments[1]?.codexProjectMappingOwnsWorkSheet === true) return workbook;
 
                     // Check for Work sheet
                     if (workbook && workbook.SheetNames) {
@@ -125899,6 +126994,20 @@ window.openAddNewProjectModal = function(editProject) {
                         return;
                     }
                     if (remoteProject && baselineToken) {
+                        var carryField = 'custom:' + window.YearContext.carryKey;
+                        var baseCarry = projectTokenChangedFieldValueForWebSave(baselineToken, carryField);
+                        var remoteCarry = projectTokenChangedFieldValueForWebSave(remoteToken, carryField);
+                        var localCarry = projectTokenChangedFieldValueForWebSave(localToken, carryField);
+                        var changedCarry = fields.includes(carryField) && !sameWebSaveComparableValue(baseCarry, localCarry);
+                        var otherCarry = !sameWebSaveComparableValue(baseCarry, remoteCarry);
+                        var pairedFields = ['settlementMonth', 'poAmount', 'client', 'custom:S_I_센터'];
+                        if (pairedFields.some(function (field) {
+                            var base = projectTokenChangedFieldValueForWebSave(baselineToken, field);
+                            var other = projectTokenChangedFieldValueForWebSave(remoteToken, field);
+                            var local = projectTokenChangedFieldValueForWebSave(localToken, field);
+                            return (changedCarry && !sameWebSaveComparableValue(base, other) && !sameWebSaveComparableValue(other, local)) ||
+                                (otherCarry && !sameWebSaveComparableValue(base, local) && !sameWebSaveComparableValue(other, local));
+                        })) conflicts.push({ key: key, field: carryField, reason: 'carryover-input-diverged' });
                         fields.forEach(function(field) {
                             if (field === 'webLink' || field === 'link') return;
                             var baseValue = projectTokenChangedFieldValueForWebSave(baselineToken, field);
@@ -129229,6 +130338,17 @@ window.openAddNewProjectModal = function(editProject) {
                     return identities.some(function(value) { return String(value == null ? '' : value).trim() === projectId; });
                 });
                 if (!project) return false;
+                const context = window.YearContext;
+                const carry = context.carryState(project);
+                if (carry?.reservation && context.settlementYear(project)) {
+                    try {
+                        const field = context.carryKey;
+                        project.customFields = {...project.customFields, [field]: context.prepareCarry(project, 'settle', carry.year)};
+                        changedFields.push('custom:' + field);
+                    } catch (error) {
+                        window.showToast?.(error.message, 'warning');
+                    }
+                }
                 return recordModifiedProjectForWebSave(project, 'project-event:' + String(detail.source || 'user'), {
                     source: String(detail.source || 'project:updated'),
                     changedFields: changedFields
