@@ -10634,7 +10634,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             z-index: 10011;
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.4s ease, visibility 0.4s ease;
+            contain: layout style;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+
+        .modal-overlay:not(.open) .modal-content {
+            content-visibility: hidden;
         }
 
         .modal-overlay.open {
@@ -10643,9 +10648,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         }
 
         .modal-content {
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             padding: 25px;
             border-radius: var(--border-radius);
@@ -10654,9 +10659,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             max-height: 90vh;
             overflow-y: auto;
             position: relative;
-            transform: scale(0.95) translateY(20px);
+            contain: layout style;
+            transform: scale(0.96) translateY(12px);
             opacity: 0;
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+            transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
         }
 
@@ -10878,16 +10884,135 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
         #creationModal select,
         #creationModal input[type="text"],
+        #creationModal input[type="date"],
         #creationModal button,
         .batch-process-grid select,
         #searchInput {
             width: 100%;
-            padding: 10px;
+            padding: 10px 12px;
+            min-height: 42px;
             font-size: 1em;
             margin-bottom: 10px;
             border-radius: var(--border-radius);
-            border: 1px solid #ccc;
+            border: 1px solid #cbd5e1;
             box-sizing: border-box;
+            background-color: #ffffff;
+            color: var(--text-color);
+            font-family: inherit;
+        }
+
+        body.dark-mode #creationModal select,
+        body.dark-mode #creationModal input[type="text"],
+        body.dark-mode #creationModal input[type="date"],
+        body.dark-mode #searchInput {
+            background-color: #1e293b;
+            border-color: #475569;
+            color: #f1f5f9;
+        }
+
+        .creation-preview-box {
+            margin-top: 12px;
+            padding: 11px 13px;
+            border-radius: 10px;
+            background: rgba(239, 246, 255, 0.92);
+            border: 1px solid rgba(96, 165, 250, 0.45);
+            font-size: 13px;
+            line-height: 1.5;
+            color: #1e3a5f;
+        }
+
+        .creation-preview-box .preview-filename {
+            display: block;
+            font-weight: 800;
+            font-size: 14px;
+            color: #0f172a;
+            margin-bottom: 3px;
+            word-break: break-all;
+        }
+
+        .creation-preview-box .preview-detail {
+            display: block;
+            font-size: 12px;
+            color: #334155;
+        }
+
+        body.dark-mode .creation-preview-box {
+            background: rgba(30, 41, 59, 0.92);
+            border-color: rgba(96, 165, 250, 0.4);
+            color: #dbeafe;
+        }
+
+        body.dark-mode .creation-preview-box .preview-filename {
+            color: #f8fafc;
+        }
+
+        body.dark-mode .creation-preview-box .preview-detail {
+            color: #cbd5e1;
+        }
+
+        #saveDashboardCopyBtn {
+            background: linear-gradient(135deg, #0f766e, #0d9488);
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        #saveDashboardCopyBtn:hover {
+            background: linear-gradient(135deg, #115e59, #0f766e);
+        }
+
+        #dashboardToastContainer {
+            position: fixed;
+            left: 50%;
+            bottom: max(22px, env(safe-area-inset-bottom));
+            transform: translateX(-50%);
+            z-index: 10050;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: min(92vw, 480px);
+            pointer-events: none;
+        }
+
+        .dashboard-toast {
+            pointer-events: auto;
+            max-width: 100%;
+            padding: 10px 16px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.93);
+            color: #f8fafc;
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.45;
+            text-align: center;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.28);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            opacity: 0;
+            transform: translateY(10px) scale(0.98);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            word-break: keep-all;
+        }
+
+        .dashboard-toast.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .dashboard-toast.toast-success {
+            background: rgba(6, 95, 70, 0.95);
+            border-color: rgba(52, 211, 153, 0.45);
+        }
+
+        .dashboard-toast.toast-warning {
+            background: rgba(146, 64, 14, 0.95);
+            border-color: rgba(251, 191, 36, 0.45);
+        }
+
+        .dashboard-toast.toast-error {
+            background: rgba(153, 27, 27, 0.95);
+            border-color: rgba(248, 113, 113, 0.45);
         }
 
         #creationModal button,
@@ -11384,6 +11509,13 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             height: 100dvh;
             background: var(--bg-color);
             color: var(--text-color);
+        }
+
+        .memo-focus-overlay[aria-hidden="true"],
+        .progress-insight-focus-overlay[aria-hidden="true"],
+        .memo-action-dialog-overlay[aria-hidden="true"] {
+            content-visibility: hidden;
+            contain: layout style;
         }
 
         .memo-focus-overlay.open {
@@ -12926,6 +13058,29 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             .analytics-stat-grid {
                 grid-template-columns: 1fr;
             }
+            #creationModal select,
+            #creationModal input[type="text"],
+            #creationModal input[type="date"] {
+                font-size: 16px;
+                min-height: 44px;
+            }
+            #creationModal button,
+            .settings-actions button {
+                min-height: 44px;
+            }
+            .template-controls {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .template-controls button {
+                min-height: 40px;
+                flex: 1 1 calc(50% - 6px);
+            }
+            #dashboardToastContainer {
+                top: max(36px, calc(env(safe-area-inset-top) + 30px));
+                bottom: auto;
+                width: calc(100vw - 24px);
+            }
         }
 
     </style>
@@ -13365,6 +13520,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 <button id="saveSettingsBtn">설정 저장</button>
                 <button id="saveAllChangesBtn" title="변경사항을 현재 모드에 맞게 저장합니다."
                     style="cursor: pointer; background-color: var(--current-month-color);">모든 변경사항 저장</button>
+                <button id="saveDashboardCopyBtn" type="button"
+                    title="런타임 잔여물을 완전 정화하여 0차수 원본과 동일한 무결성 대시보드 HTML 사본을 저장합니다.">💾 대시보드 HTML 사본 저장</button>
             </div>
 
             <fieldset>
@@ -13499,6 +13656,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 <label for="newMeetingDate">회의 날짜</label>
                 <input type="text" id="newMeetingDate">
             </div>
+            <div id="creationPreviewBox" class="creation-preview-box" aria-live="polite" hidden></div>
             <button id="createNewMeetingBtn">생성하기 &amp; 다운로드</button>
         </div>
     </div>
@@ -13685,8 +13843,49 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
     <script>
         const meetingStartupStartedAt = performance.now();
         performance.mark?.('meeting-dashboard-start');
+        /* TEMPLATE_EMBED:WEEKLY:START */
         let WEEKLY_TEMPLATE_HTML = `(주간 회의 템플릿 로딩 중...)`;
+        /* TEMPLATE_EMBED:WEEKLY:END */
+        /* TEMPLATE_EMBED:MONTHLY:START */
         let MONTHLY_TEMPLATE_HTML = `(월간 회의 템플릿 로딩 중...)`;
+        /* TEMPLATE_EMBED:MONTHLY:END */
+
+        function formatLocalDateInputValue(date = new Date()) {
+            const safeDate = date instanceof Date && !Number.isNaN(date.getTime()) ? date : new Date();
+            const pad = value => String(value).padStart(2, '0');
+            return `${safeDate.getFullYear()}-${pad(safeDate.getMonth() + 1)}-${pad(safeDate.getDate())}`;
+        }
+
+        function showToast(message, type = 'info', duration = 3200) {
+            if (!message || typeof document === 'undefined' || !document.body) return;
+            let container = document.getElementById('dashboardToastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'dashboardToastContainer';
+                container.setAttribute('role', 'status');
+                container.setAttribute('aria-live', 'polite');
+                document.body.appendChild(container);
+            }
+            while (container.children.length >= 3) {
+                container.firstElementChild?.remove();
+            }
+            const toast = document.createElement('div');
+            const normalizedType = ['success', 'warning', 'error', 'info'].includes(type) ? type : 'info';
+            toast.className = `dashboard-toast toast-${normalizedType}`;
+            toast.textContent = String(message);
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('visible'));
+            const ttl = Math.max(1200, Number(duration) || 3200);
+            setTimeout(() => {
+                toast.classList.remove('visible');
+                setTimeout(() => {
+                    toast.remove();
+                    if (container.isConnected && container.childElementCount === 0) {
+                        container.remove();
+                    }
+                }, 220);
+            }, ttl);
+        }
 
         const TEMPLATE_URL_WEEKLY = 'https://jonggunelee.github.io/wyggkr03/주간 회의.html';
         const TEMPLATE_URL_MONTHLY = 'https://jonggunelee.github.io/wyggkr/월간 회의.html';
@@ -13897,13 +14096,22 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             }
         }
 
+        let userManualCardStatusMapCache = null;
+
+        function invalidateUserManualCardStatusMapCache() {
+            userManualCardStatusMapCache = null;
+        }
+
         function getUserManualCardStatusMap() {
+            if (userManualCardStatusMapCache) return userManualCardStatusMapCache;
             try {
                 if (typeof localStorage === 'undefined') return {};
                 const stored = JSON.parse(localStorage.getItem(USER_MANUAL_CARD_STATUS_KEY) || '{}');
-                return stored && typeof stored === 'object' ? stored : {};
+                userManualCardStatusMapCache = stored && typeof stored === 'object' ? stored : {};
+                return userManualCardStatusMapCache;
             } catch (_) {
-                return {};
+                userManualCardStatusMapCache = {};
+                return userManualCardStatusMapCache;
             }
         }
 
@@ -13917,8 +14125,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             if (!key) return;
             try {
                 if (typeof localStorage === 'undefined') return;
-                const map = getUserManualCardStatusMap();
+                const map = { ...getUserManualCardStatusMap() };
                 map[String(key)] = { status, updatedAt: new Date().toISOString() };
+                userManualCardStatusMapCache = map;
                 localStorage.setItem(USER_MANUAL_CARD_STATUS_KEY, JSON.stringify(map));
             } catch (_) {}
         }
@@ -13927,10 +14136,19 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             if (!key) return;
             try {
                 if (typeof localStorage === 'undefined') return;
-                const map = getUserManualCardStatusMap();
+                const map = { ...getUserManualCardStatusMap() };
                 delete map[String(key)];
+                userManualCardStatusMapCache = map;
                 localStorage.setItem(USER_MANUAL_CARD_STATUS_KEY, JSON.stringify(map));
             } catch (_) {}
+        }
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('storage', (event) => {
+                if (!event.key || event.key === USER_MANUAL_CARD_STATUS_KEY) {
+                    invalidateUserManualCardStatusMapCache();
+                }
+            });
         }
 
         function getCachedRemoteMeetingFileList(repo, year) {
@@ -14267,11 +14485,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             return `${cleanedBase}/${cleanedTemplate}`;
         }
 
+        const MEMO_DATE_TIME_FORMATTER = new Intl.DateTimeFormat('ko-KR', {
+            year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+        });
+        let lastRenderedClockSecond = '';
+
         function formatCurrentDateTime(date = new Date()) {
-            return new Intl.DateTimeFormat('ko-KR', {
-                year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
-                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-            }).format(date);
+            return MEMO_DATE_TIME_FORMATTER.format(date);
         }
 
         function formatCornerDateTime(date = new Date()) {
@@ -14341,16 +14562,22 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             return (typeof navigator !== 'undefined' && navigator.onLine === false) ? '로컬 기준' : '점검 대기';
         }
 
-        function updateMemoClocks() {
+        function updateMemoClocks(force = false) {
+            if (!force && typeof document !== 'undefined' && document.hidden) return;
             const now = new Date();
+            const cornerText = formatCornerDateTime(now);
+            if (!force && cornerText === lastRenderedClockSecond) return;
+            lastRenderedClockSecond = cornerText;
             syncMemoAvailabilityWithCalendar(now);
             const nowText = formatCurrentDateTime(now);
-            document.querySelectorAll('[data-memo-clock]').forEach(clock => { clock.textContent = nowText; });
+            document.querySelectorAll('[data-memo-clock]').forEach(clock => {
+                if (clock.textContent !== nowText) clock.textContent = nowText;
+            });
             const focusClock = document.getElementById('memoFocusClock');
-            if (focusClock) focusClock.textContent = nowText;
+            if (focusClock && focusClock.textContent !== nowText) focusClock.textContent = nowText;
             const cornerClock = document.getElementById('browserCornerClock');
             if (cornerClock) {
-                cornerClock.textContent = formatCornerDateTime(now);
+                cornerClock.textContent = cornerText;
                 cornerClock.dateTime = now.toISOString();
             }
         }
@@ -16010,6 +16237,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             const todayYear = isoNow.isoYear;
             const todayMonth = isoNow.isoMonth;
             const isAuto = meetingCardSyncMode === 'auto';
+            const yearFragment = document.createDocumentFragment();
             const cachedFiles = typeof getCachedRemoteMeetingFileList === 'function' ? getCachedRemoteMeetingFileList('wyggkr', year) : null;
             const skippedDateSet = new Set(skippedDates);
             for (let i = 1; i <= 12; i++) {
@@ -16065,8 +16293,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     : statusRow;
                 attachCardStatusToggle(card, key, effectiveStatusRow, `${year}년 ${i}월 안건`);
                 card.style.animation = `slideInCascade 0.5s ${i * 0.03}s ease-out backwards`;
-                yearGrid.appendChild(card);
+                yearFragment.appendChild(card);
             }
+            yearGrid.appendChild(yearFragment);
         }
 
         function showMonthView(month, year, skippedDates) {
@@ -16179,6 +16408,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
             const weeklyConf = dashboardConfig.weekly;
             const weeks = getWeeksBelongingToMonth(year, parseInt(month));
+            const weeklyFragment = document.createDocumentFragment();
+            const cachedWeeklyFiles = typeof getCachedRemoteMeetingFileList === 'function' ? getCachedRemoteMeetingFileList('wyggkr03', year) : null;
+            const isAutoWeek = meetingCardSyncMode === 'auto';
+            const paddedMonthForWeek = String(month).padStart(2, '0');
+            const wCutoff = new Date(2025, 5, 8);
+            const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             weeks.forEach((weekInfo, index) => {
                 const w = weekInfo.weekOfMonth;
                 const weeklyKey = `${year}-${parseInt(month, 10)}-${w}`;
@@ -16190,14 +16425,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 const weeklyCard = document.createElement('div');
                 weeklyCard.className = 'report-card week-card';
                 const isWeeklyManuallySkipped = weeklyManual === '미작성' || skippedDateSet.has(weeklyKey);
-                const isAutoWeek = meetingCardSyncMode === 'auto';
-                const cachedWeeklyFiles = typeof getCachedRemoteMeetingFileList === 'function' ? getCachedRemoteMeetingFileList('wyggkr03', year) : null;
                 const paddedWeek = String(w).padStart(2, '0');
-                const paddedMonth = String(month).padStart(2, '0');
-                const wCutoff = new Date(2025, 5, 8);
                 const wDate = new Date(year, parseInt(month, 10) - 1, w * 7);
                 const wExt = wDate < wCutoff ? 'pdf' : 'html';
-                const expectedWeeklyFileName = `${year}_${paddedMonth}_${paddedWeek}_회의록.${wExt}`;
+                const expectedWeeklyFileName = `${year}_${paddedMonthForWeek}_${paddedWeek}_회의록.${wExt}`;
                 const weeklyConfirmedOnGithub = isAutoWeek && (
                     (cachedWeeklyFiles && cachedWeeklyFiles.has(expectedWeeklyFileName)) ||
                     (year === 2026 && (month === 3 || month === 9) && [2, 3, 4].includes(w))
@@ -16228,10 +16459,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                         const weekDate = new Date(weekInfo.thursdayDate);
                         weekDate.setDate(weekDate.getDate() - 3); // Thursday - 3 = Monday
 
-                        const isPastWeek = weekDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const isPastWeek = weekDate < todayMidnight;
                         let weeklyTemplate = (isPastWeek && weekDate < weeklyCutoffDate) ? (weeklyConf.pastFilenameTemplate || weeklyConf.filenameTemplate) : weeklyConf.filenameTemplate;
                         if (weeklyTemplate && !weeklyTemplate.includes('{YYYY}/') && !weeklyTemplate.includes('{YY}/')) { weeklyTemplate = `{YYYY}/${weeklyTemplate.replace(/^\//, '')}`; }
-                        const weeklyUrl = buildUrl(weeklyConf.baseURL, weeklyTemplate).replace(/{YYYY}/g, year).replace(/{YY}/g, String(year).slice(-2)).replace(/{MM}/g, String(month).padStart(2, '0')).replace(/{M}/g, parseInt(month, 10)).replace(/{WW}/g, String(w).padStart(2, '0')).replace(/{W}/g, w);
+                        const weeklyUrl = buildUrl(weeklyConf.baseURL, weeklyTemplate).replace(/{YYYY}/g, year).replace(/{YY}/g, String(year).slice(-2)).replace(/{MM}/g, paddedMonthForWeek).replace(/{M}/g, parseInt(month, 10)).replace(/{WW}/g, paddedWeek).replace(/{W}/g, w);
                         weeklyCard.dataset.href = weeklyUrl;
                         weeklyCard.removeAttribute('data-tooltip');
                     }
@@ -16254,8 +16485,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 }
                 container.appendChild(weeklyCard);
                 container.appendChild(memoWrapper);
-                weeklyContainer.appendChild(container);
+                weeklyFragment.appendChild(container);
             });
+            weeklyContainer.appendChild(weeklyFragment);
             renderMeetingProgressInsights(year, month);
 
             // 🎯 오늘이 속한 달인 경우 현재 주차 카드로 자동 포커스 & 스크롤 활성화 (모바일 세로 및 데스크탑 공통)
@@ -16280,51 +16512,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             checkAndActivateRemoteMeetingFiles(year, month);
         }
 
-        // 🔧 [수정] GitHub API 디렉터리 기반 원격 파일 검사 (404 네트워크 콘솔 오류 원천 차단 및 0초 지연 정합화)
-        const REMOTE_CHECK_CACHE_TTL_MS = 60000;
-        const REMOTE_DIR_CACHE_TTL_MS = 300000; // 5분
-        const _RMCC_SK = 'rmcc_v1';
-        const remoteMeetingCheckCache = (() => {
-            function _ld() { try { return JSON.parse(sessionStorage.getItem(_RMCC_SK) || '{}'); } catch { return {}; } }
-            function _sv(d) { try { sessionStorage.setItem(_RMCC_SK, JSON.stringify(d)); } catch {} }
-            return {
-                get(k) { const d = _ld(); return d[k]; },
-                set(k, v) { const d = _ld(); d[k] = v; _sv(d); },
-                has(k) { return _ld()[k] !== undefined; },
-                delete(k) { const d = _ld(); delete d[k]; _sv(d); },
-                clear() { sessionStorage.removeItem(_RMCC_SK); }
-            };
-        })();
-
-        async function getRemoteRepoFileList(repo, year) {
-            if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
-            const sk = `rmcc_dir_${repo}_${year}`;
-            try {
-                const cached = JSON.parse(sessionStorage.getItem(sk) || 'null');
-                if (cached && (Date.now() - cached.time < REMOTE_DIR_CACHE_TTL_MS) && Array.isArray(cached.files)) {
-                    return new Set(cached.files);
-                }
-            } catch (_) {}
-
-            try {
-                const res = await fetch(`https://api.github.com/repos/JongGunelee/${repo}/contents/${year}`, {
-                    headers: { 'Accept': 'application/vnd.github.v3+json' },
-                    cache: 'default'
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (Array.isArray(data)) {
-                        const files = data.map(item => item.name);
-                        try {
-                            sessionStorage.setItem(sk, JSON.stringify({ time: Date.now(), files }));
-                        } catch (_) {}
-                        return new Set(files);
-                    }
-                }
-            } catch (_) {}
-            return null;
-        }
-
+        // 🌐 GitHub API 디렉터리 기반 원격 파일 검사 (getRemoteMeetingFileListSafe 통합 캐시 활용)
         async function checkAndActivateRemoteMeetingFiles(year, month, force = false) {
             const targetYear = Number(year);
             const targetMonth = Number(month);
@@ -16564,10 +16752,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 const mDate = new Date(targetYear, i - 1, 1);
                 const mExt = mDate < monthlyCutoff ? 'pdf' : 'html';
                 const expectedFileName = `${targetYear}_${paddedMonth}_회의록.${mExt}`;
-                let exists = files ? files.has(expectedFileName) : null;
-                if (exists === null) {
-                    exists = await checkDirectFileExists('wyggkr', targetYear, expectedFileName);
-                }
+                const exists = files.has(expectedFileName);
 
                 const card = document.querySelector(`.month-card[data-month="${i}"]`);
                 const toggle = card?.querySelector('.card-status-toggle');
@@ -16799,10 +16984,29 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             });
         }
 
-        // 🚀 [부팅 가속] 대용량 회의 템플릿(약 3.7MB) 온디맨드·유휴 백그라운드 로더 (중복 요청 병합)
+        // 🚀 [부팅 가속] 대용량 회의 템플릿(약 2MB×2) 온디맨드·유휴 백그라운드 로더 (중복 요청 병합)
+        // 대용량 HTML을 hidden <textarea>.value에 직접 주입하면 Blink가 수만 개 텍스트 노드를 레이아웃하므로 JS 메모리에만 보관
         const inFlightTemplateLoads = new Map();
+        const MOBILE_PORTRAIT_MQL = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+            ? window.matchMedia('(max-width: 600px) and (orientation: portrait)')
+            : null;
+        function isMobilePortraitViewport() {
+            return Boolean(MOBILE_PORTRAIT_MQL?.matches);
+        }
         function isTemplateReady(html) {
             return Boolean(html && html.trim() && !html.includes('로딩 중') && !html.includes('로딩 실패'));
+        }
+        function updateTemplateFieldStatus(type) {
+            const isMonthly = type === 'monthly';
+            const el = document.getElementById(isMonthly ? 'templateMonthly' : 'templateWeekly');
+            if (!el) return;
+            const html = isMonthly ? MONTHLY_TEMPLATE_HTML : WEEKLY_TEMPLATE_HTML;
+            const label = isMonthly ? '월간' : '주간';
+            if (isTemplateReady(html)) {
+                el.placeholder = `✅ ${label} 회의 안건 템플릿 준비 완료 (${html.length.toLocaleString()}자) — 직접 수정할 HTML을 붙여넣거나 [파일에서 불러오기]를 사용하세요.`;
+            } else {
+                el.placeholder = `${label} 회의 안건 파일의 전체 HTML 코드를 여기에 붙여넣거나, [파일에서 불러오기]를 사용하세요.`;
+            }
         }
 
         async function ensureMeetingTemplateLoaded(type) {
@@ -16818,13 +17022,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 if (isTemplateReady(html)) {
                     if (normalizedType === 'monthly') {
                         MONTHLY_TEMPLATE_HTML = html;
-                        const el = document.getElementById('templateMonthly');
-                        if (el) el.value = html;
                     } else {
                         WEEKLY_TEMPLATE_HTML = html;
-                        const el = document.getElementById('templateWeekly');
-                        if (el) el.value = html;
                     }
+                    updateTemplateFieldStatus(normalizedType);
                     return html;
                 }
                 return normalizedType === 'monthly' ? MONTHLY_TEMPLATE_HTML : WEEKLY_TEMPLATE_HTML;
@@ -16882,7 +17083,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     dateStr, shortDateStr,
                     lastWeekRange: null,
                     thisWeekRange: null,
-                    filename: `월간회의_${year}_${monthMM}.html`
+                    // #1 파일 이름 규칙: 연도_월_회의록 (예: 2026_11_회의록.html)
+                    filename: `${year}_${monthMM}_회의록.html`
                 };
             }
 
@@ -16910,8 +17112,33 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 dateStr, shortDateStr,
                 lastWeekRange,
                 thisWeekRange,
-                filename: `주간회의_${year}_${monthMM}_${weekWW}주차.html`
+                // #1 파일 이름 규칙: 연도_월_주차_회의록 (예: 2026_11_04_회의록.html)
+                filename: `${year}_${monthMM}_${weekWW}_회의록.html`
             };
+        }
+
+        function updateCreationModalPreview() {
+            const previewBox = document.getElementById('creationPreviewBox');
+            const typeEl = document.getElementById('newMeetingType');
+            const dateEl = document.getElementById('newMeetingDate');
+            if (!previewBox || !typeEl || !dateEl) return;
+            const ctx = computeMeetingDateContext(typeEl.value, dateEl.value);
+            if (!ctx) {
+                previewBox.hidden = true;
+                previewBox.replaceChildren();
+                return;
+            }
+            previewBox.hidden = false;
+            previewBox.replaceChildren();
+            const fileLine = document.createElement('span');
+            fileLine.className = 'preview-filename';
+            fileLine.textContent = `📄 저장 파일명: ${ctx.filename}`;
+            const detailLine = document.createElement('span');
+            detailLine.className = 'preview-detail';
+            detailLine.textContent = ctx.type === 'monthly'
+                ? `반영 기준: ${ctx.year}년 ${ctx.month}월 월간 회의 · ${ctx.prevMonth}월말 집행비 · 기준일 ${ctx.dateStr}`
+                : `반영 기준: ${ctx.year}년 ${ctx.month}월 ${ctx.week}주차 · 전주 (${ctx.lastWeekRange}) · 금주 (${ctx.thisWeekRange})`;
+            previewBox.append(fileLine, detailLine);
         }
 
         function applySelectedDateToMeetingTemplate(rawTemplateHtml, ctx) {
@@ -16932,7 +17159,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 dateStr: ctx.dateStr,
                 shortDateStr: ctx.shortDateStr,
                 lastWeekRange: ctx.lastWeekRange,
-                thisWeekRange: ctx.thisWeekRange
+                thisWeekRange: ctx.thisWeekRange,
+                filename: ctx.filename
             }).replace(/</g, '\\u003c');
 
             const presetCloseTag = '<' + '/script>';
@@ -16940,67 +17168,103 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
             if (ctx.type === 'monthly') {
                 const monthlyLabel = `${ctx.year}년 ${ctx.month}월`;
-                // 1) 정적 마크업 치환 (title, editable-title meta, page-title h1, 전월말 집행비, 달력 헤더)
-                html = html.replace(/YYYY년\s*MM월/g, monthlyLabel);
-                html = html.replace(/(<title[^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월|YYYY년\s*MM월)([\s\S]*?<\/title>)/i, `$1${monthlyLabel}$2`);
-                html = html.replace(/(<meta\s+name=["']editable-title["'][^>]*content=["'][^"']*)(?:\d{2,4}년\s*\d{1,2}월|YYYY년\s*MM월)/i, `$1${monthlyLabel}`);
-                html = html.replace(/(<h1\b[^>]*id=["']page-title["'][^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월|YYYY년\s*MM월)([\s\S]*?<\/h1>)/i, `$1${monthlyLabel}$2`);
-                html = html.replace(/\d{1,2}월말\s*집행비/g, `${ctx.prevMonth}월말 집행비`);
-                html = html.replace(/(<span\b[^>]*id=["']calendar-month-year["'][^>]*>)[^<]*(<\/span>)/i, `$1${monthlyLabel}$2`);
+                // 1) 정적 마크업 치환 (title, editable-title meta, page-title h1, 전월말 집행비, 헤더 날짜, 달력 헤더)
+                html = html.replace(/YYYY년\s*MM월/g, () => monthlyLabel);
+                html = html.replace(/(<title[^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월|YYYY년\s*MM월)([\s\S]*?<\/title>)/i, (_, a, b) => `${a}${monthlyLabel}${b}`);
+                html = html.replace(/(<meta\s+name=["']editable-title["'][^>]*content=["'][^"']*)(?:\d{2,4}년\s*\d{1,2}월|YYYY년\s*MM월)/i, (_, a) => `${a}${monthlyLabel}`);
+                html = html.replace(/(<h1\b[^>]*id=["']page-title["'][^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월|YYYY년\s*MM월)([\s\S]*?<\/h1>)/i, (_, a, b) => `${a}${monthlyLabel}${b}`);
+                html = html.replace(/\d{1,2}월말\s*집행비/g, () => `${ctx.prevMonth}월말 집행비`);
+                html = html.replace(/(<span\b[^>]*id=["']info-date["'][^>]*>)[^<]*(<\/span>)/i, (_, a, b) => `${a}${ctx.shortDateStr}${b}`);
+                html = html.replace(/(<span\b[^>]*id=["']calendar-month-year["'][^>]*>)[^<]*(<\/span>)/i, (_, a, b) => `${a}${monthlyLabel}${b}`);
 
-                // 2) 런타임 자동 날짜 반영 스크립트가 오늘(new Date()) 대신 선택한 회의 날짜를 기준으로 동작하도록 연동
+                // 2) 런타임 자동 날짜·달력·네비게이션 바가 오늘(new Date()) 대신 선택한 회의 날짜(차차주 포함)를 기준으로 동작하도록 연동
                 html = html.replace(
                     /let\s+calendarDate\s*=\s*new\s+Date\(\s*\);/,
-                    'let calendarDate = window.__PRESET_MEETING_DATE__ ? new Date(window.__PRESET_MEETING_DATE__.rawYear, window.__PRESET_MEETING_DATE__.rawMonth - 1, window.__PRESET_MEETING_DATE__.rawDay) : new Date();'
+                    () => 'let calendarDate = window.__PRESET_MEETING_DATE__ ? new Date(window.__PRESET_MEETING_DATE__.rawYear, window.__PRESET_MEETING_DATE__.rawMonth - 1, window.__PRESET_MEETING_DATE__.rawDay) : new Date();'
                 );
                 html = html.replace(
                     /(function\s+applyDynamicDateUpdates\s*\(\s*\)\s*\{[\s\S]{0,120}?)const\s+now\s*=\s*new\s+Date\(\s*\);/,
-                    '$1const now = window.__PRESET_MEETING_DATE__ ? new Date(window.__PRESET_MEETING_DATE__.rawYear, window.__PRESET_MEETING_DATE__.rawMonth - 1, window.__PRESET_MEETING_DATE__.rawDay) : new Date();'
+                    (_, prefix) => `${prefix}const now = window.__PRESET_MEETING_DATE__ ? new Date(window.__PRESET_MEETING_DATE__.rawYear, window.__PRESET_MEETING_DATE__.rawMonth - 1, window.__PRESET_MEETING_DATE__.rawDay) : new Date();`
                 );
                 html = html.replace(
                     /const\s+prevMonthDate\s*=\s*new\s+Date\(\s*\);\s*prevMonthDate\.setMonth\(\s*prevMonthDate\.getMonth\(\s*\)\s*-\s*1\s*\);/,
-                    'const prevMonthDate = new Date(currentYear, currentMonth - 2, 1);'
+                    () => 'const prevMonthDate = new Date(currentYear, currentMonth - 2, 1);'
                 );
                 html = html.replace(
                     /document\.getElementById\(\s*['"]info-date['"]\s*\)\.textContent\s*=\s*dateStr;/,
-                    "document.getElementById('info-date').textContent = (window.__PRESET_MEETING_DATE__ && window.__PRESET_MEETING_DATE__.shortDateStr) || dateStr;"
+                    () => "document.getElementById('info-date').textContent = (window.__PRESET_MEETING_DATE__ && window.__PRESET_MEETING_DATE__.shortDateStr) || dateStr;"
+                );
+                // 달력 팝업 내 오늘 강조 표시를 선택한 회의 날짜(차차주 등)에도 반영
+                html = html.replace(
+                    /(const\s+today\s*=\s*new\s+Date\(\s*\);\s*if\s*\(\s*i\s*===\s*today\.getDate\(\)\s*&&\s*year\s*===\s*today\.getFullYear\(\)\s*&&\s*month\s*===\s*today\.getMonth\(\)\s*\))/,
+                    () => 'const today = window.__PRESET_MEETING_DATE__ ? new Date(window.__PRESET_MEETING_DATE__.rawYear, window.__PRESET_MEETING_DATE__.rawMonth - 1, window.__PRESET_MEETING_DATE__.rawDay) : new Date(); if (i === today.getDate() && year === today.getFullYear() && month === today.getMonth())'
+                );
+                // 월간 네비게이션 바가 차기 연도(예: 2027년 1월) 선택 시에도 선택한 문서 연도(documentYear)를 즉시 표시하도록 보장
+                html = html.replace(
+                    /displayedYearInNav\s*=\s*Number\.isInteger\(\s*savedDisplayedYear\s*\)\s*\?\s*savedDisplayedYear\s*:\s*documentYear;/,
+                    () => 'displayedYearInNav = window.__PRESET_MEETING_DATE__ ? documentYear : (Number.isInteger(savedDisplayedYear) ? savedDisplayedYear : documentYear);'
                 );
                 // 지난달 등 과거 날짜 선택 시 열었을 때 당월로 강제 덮어쓰기 방지
                 html = html.replace(
                     /if\s*\(\s*docDate\s*<\s*currentMonthDate\s*\)/,
-                    'if (!window.__PRESET_MEETING_DATE__ && docDate < currentMonthDate)'
+                    () => 'if (!window.__PRESET_MEETING_DATE__ && docDate < currentMonthDate)'
                 );
             } else {
                 const weeklyLabel = `${ctx.year}년 ${ctx.month}월 ${ctx.week}주차`;
                 // 1) 정적 마크업 치환 (title, editable-title meta, page-title h1, current-date, 전주/금주 범위)
-                html = html.replace(/YYYY년\s*MM월\s*W주차/g, weeklyLabel);
-                html = html.replace(/(<title[^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월\s*\d{1,2}주차|YYYY년\s*MM월\s*W주차)([\s\S]*?<\/title>)/i, `$1${weeklyLabel}$2`);
-                html = html.replace(/(<meta\s+name=["']editable-title["'][^>]*content=["'][^"']*)(?:\d{2,4}년\s*\d{1,2}월\s*\d{1,2}주차|YYYY년\s*MM월\s*W주차)/i, `$1${weeklyLabel}`);
-                html = html.replace(/(<h1\b[^>]*id=["']page-title["'][^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월\s*\d{1,2}주차|YYYY년\s*MM월\s*W주차)([\s\S]*?<\/h1>)/i, `$1${weeklyLabel}$2`);
-                html = html.replace(/(<span\b[^>]*id=["']current-date["'][^>]*>)(?:YYYY-MM-DD|\d{4}-\d{2}-\d{2})(<\/span>)/i, `$1${ctx.dateStr}$2`);
-                html = html.replace(/전주\s*\(\s*\d{1,2}\s*\/\s*\d{1,2}\s*~\s*\d{1,2}\s*\/\s*\d{1,2}\s*\)/g, `전주 (${ctx.lastWeekRange})`);
-                html = html.replace(/금주\s*\(\s*\d{1,2}\s*\/\s*\d{1,2}\s*~\s*\d{1,2}\s*\/\s*\d{1,2}\s*\)/g, `금주 (${ctx.thisWeekRange})`);
+                html = html.replace(/YYYY년\s*MM월\s*W주차/g, () => weeklyLabel);
+                html = html.replace(/(<title[^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월\s*\d{1,2}주차|YYYY년\s*MM월\s*W주차)([\s\S]*?<\/title>)/i, (_, a, b) => `${a}${weeklyLabel}${b}`);
+                html = html.replace(/(<meta\s+name=["']editable-title["'][^>]*content=["'][^"']*)(?:\d{2,4}년\s*\d{1,2}월\s*\d{1,2}주차|YYYY년\s*MM월\s*W주차)/i, (_, a) => `${a}${weeklyLabel}`);
+                html = html.replace(/(<h1\b[^>]*id=["']page-title["'][^>]*>[\s\S]*?)(?:\d{2,4}년\s*\d{1,2}월\s*\d{1,2}주차|YYYY년\s*MM월\s*W주차)([\s\S]*?<\/h1>)/i, (_, a, b) => `${a}${weeklyLabel}${b}`);
+                html = html.replace(/(<span\b[^>]*id=["']current-date["'][^>]*>)(?:YYYY-MM-DD|\d{4}-\d{2}-\d{2})(<\/span>)/i, (_, a, b) => `${a}${ctx.dateStr}${b}`);
+                html = html.replace(/전주\s*\(\s*\d{1,2}\s*\/\s*\d{1,2}\s*~\s*\d{1,2}\s*\/\s*\d{1,2}\s*\)/g, () => `전주 (${ctx.lastWeekRange})`);
+                html = html.replace(/금주\s*\(\s*\d{1,2}\s*\/\s*\d{1,2}\s*~\s*\d{1,2}\s*\/\s*\d{1,2}\s*\)/g, () => `금주 (${ctx.thisWeekRange})`);
 
                 // 2) 런타임 자동 날짜 반영 함수(applyCurrentDateToDocument)가 오늘(new Date()) 대신 선택한 회의 날짜를 기준으로 동작하도록 연동
                 html = html.replace(
                     /(function\s+applyCurrentDateToDocument\s*\(\s*\)\s*\{[\s\S]{0,120}?)const\s+now\s*=\s*new\s+Date\(\s*\);/,
-                    '$1const now = window.__PRESET_MEETING_DATE__ ? new Date(window.__PRESET_MEETING_DATE__.rawYear, window.__PRESET_MEETING_DATE__.rawMonth - 1, window.__PRESET_MEETING_DATE__.rawDay) : new Date();'
+                    (_, prefix) => `${prefix}const now = window.__PRESET_MEETING_DATE__ ? new Date(window.__PRESET_MEETING_DATE__.rawYear, window.__PRESET_MEETING_DATE__.rawMonth - 1, window.__PRESET_MEETING_DATE__.rawDay) : new Date();`
+                );
+                // 2-1) editable-title 메타가 플레이스홀더로 되돌아가지 않도록 정규화
+                html = html.replace(
+                    /if\s*\(\s*titleMeta\s*\)\s*titleMeta\.content\s*=\s*["']YYYY년 MM월 W주차 주간 회의 안건["'];/,
+                    () => 'if (titleMeta) titleMeta.content = newPageTitleText;'
+                );
+                // 2-2) 다운로드된 주간 회의록 내부에서 [HTML로 저장](n차수 사본 저장) 시 오늘 날짜가 아닌 선택한 연도_월_주차_회의록 파일명 규칙 완벽 유지
+                html = html.replace(
+                    /function\s+getSaveFileName\s*\(\s*extension\s*\)\s*\{\s*const\s+now\s*=\s*new\s+Date\(\s*\);\s*const\s+weekInfo\s*=\s*getWeekInfo\(\s*now\s*\);\s*const\s+year\s*=\s*weekInfo\.year;\s*const\s+month\s*=\s*String\(\s*weekInfo\.month\s*\)\.padStart\(\s*2\s*,\s*['"]0['"]\s*\);\s*const\s+week\s*=\s*String\(\s*weekInfo\.week\s*\)\.padStart\(\s*2\s*,\s*['"]0['"]\s*\);\s*return\s*`\$\{year\}_\$\{month\}_\$\{week\}_회의록\.\$\{extension\}`;\s*\}/,
+                    () => `function getSaveFileName(extension) {
+            const preset = window.__PRESET_MEETING_DATE__;
+            const refDate = preset ? new Date(preset.rawYear, preset.rawMonth - 1, preset.rawDay) : new Date();
+            const fallbackInfo = getWeekInfo(refDate);
+            const year = (typeof documentYear !== 'undefined' && documentYear) ? documentYear : (preset?.year || fallbackInfo.year);
+            const monthNum = (typeof documentMonth !== 'undefined' && documentMonth) ? documentMonth : (preset?.month || fallbackInfo.month);
+            const weekNum = (typeof documentWeek !== 'undefined' && documentWeek) ? documentWeek : (preset?.week || fallbackInfo.week);
+            const month = String(monthNum).padStart(2, '0');
+            const week = String(weekNum).padStart(2, '0');
+            return \`\${year}_\${month}_\${week}_회의록.\${extension}\`;
+        }`
                 );
                 // 3) 주간 네비게이션 바(initializeWeeklyNavigator)가 오늘 연·월 대신 선택한 문서 연·월(documentYear/documentMonth)을 표시하도록 연동
                 html = html.replace(
                     /displayedYearInNav\s*=\s*actualWeekInfo\.year;\s*displayedMonthInNav\s*=\s*actualWeekInfo\.month;/,
-                    'displayedYearInNav = window.__PRESET_MEETING_DATE__ ? documentYear : actualWeekInfo.year; displayedMonthInNav = window.__PRESET_MEETING_DATE__ ? documentMonth : actualWeekInfo.month;'
+                    () => 'displayedYearInNav = window.__PRESET_MEETING_DATE__ ? documentYear : actualWeekInfo.year; displayedMonthInNav = window.__PRESET_MEETING_DATE__ ? documentMonth : actualWeekInfo.month;'
+                );
+                // 3-1) 주간 네비게이션 바 스크롤 포커스 시 동일 월 내 차차주 선택 시에도 현재 문서 주차(.current)를 우선 중앙 정렬
+                html = html.replace(
+                    /const\s+targetWeekEl\s*=\s*weekLinksContainer\.querySelector\(\s*['"]\.week-link\.actual-current['"]\s*\)\s*\|\|\s*weekLinksContainer\.querySelector\(\s*['"]\.week-link\.current['"]\s*\);/,
+                    () => "const targetWeekEl = window.__PRESET_MEETING_DATE__ ? (weekLinksContainer.querySelector('.week-link.current') || weekLinksContainer.querySelector('.week-link.actual-current')) : (weekLinksContainer.querySelector('.week-link.actual-current') || weekLinksContainer.querySelector('.week-link.current'));"
                 );
                 // 4) 창 포커스/탭 복귀 시 syncWeeklyNavigatorToLatest가 오늘 월로 강제 롤백하는 현상 방지
                 html = html.replace(
                     /(function\s+syncWeeklyNavigatorToLatest\s*\([^)]*\)\s*\{)/,
-                    '$1 if (window.__PRESET_MEETING_DATE__) return;'
+                    (_, prefix) => `${prefix} if (window.__PRESET_MEETING_DATE__) return;`
                 );
             }
 
             // 3) 선택 날짜 프리셋 메타 스크립트 주입 (<head> 내부 끝부분 우선)
             if (/<\/head>/i.test(html)) {
-                html = html.replace(/<\/head>/i, `    ${presetScriptTag}\n</head>`);
+                html = html.replace(/<\/head>/i, () => `    ${presetScriptTag}\n</head>`);
             } else {
                 html = `${presetScriptTag}\n${html}`;
             }
@@ -17017,7 +17281,12 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             const ctx = computeMeetingDateContext(type, dateInput);
             if (!ctx) { alert('유효한 회의 날짜를 선택해주세요.'); return; }
 
-            let rawTemplate = type === 'monthly' ? MONTHLY_TEMPLATE_HTML : WEEKLY_TEMPLATE_HTML;
+            const textareaEl = document.getElementById(type === 'monthly' ? 'templateMonthly' : 'templateWeekly');
+            const textareaValue = textareaEl?.value || '';
+            let rawTemplate = isTemplateReady(textareaValue)
+                ? textareaValue
+                : (type === 'monthly' ? MONTHLY_TEMPLATE_HTML : WEEKLY_TEMPLATE_HTML);
+
             if (!isTemplateReady(rawTemplate)) {
                 updateDataSyncStatus(`${type === 'monthly' ? '월간' : '주간'} 회의록 템플릿을 불러오는 중…`, 'waiting');
                 rawTemplate = await ensureMeetingTemplateLoaded(type);
@@ -17044,7 +17313,353 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 const detail = ctx.type === 'monthly'
                     ? `${ctx.year}년 ${ctx.month}월 (${ctx.prevMonth}월말 집행비 반영)`
                     : `${ctx.year}년 ${ctx.month}월 ${ctx.week}주차 (금주 ${ctx.thisWeekRange} 반영)`;
-                showToast(`📄 ${filename} 다운로드 완료 · 내부 날짜 ${detail}`, 'success');
+                showToast(`📄 ${filename} 다운로드 완료 · ${detail}`, 'success', 4000);
+            }
+        }
+
+        // 🛡️ [N차수 사본 저장 무결성 보증 엔진] 0차수 원본 코드와 100% 동일한 정적 구조로 직렬화 (1차 === 2차 === n차)
+        function resetDashboardRuntimeArtifacts(clonedDoc) {
+            if (!clonedDoc) return clonedDoc;
+
+            // 1) 런타임 동적 생성 오버레이/드롭다운/모달/토스트/이펙트/프리셋 동적 코너 도구 완전 제거
+            clonedDoc.querySelectorAll(
+                '.railing-dropdown-menu, #statusAnalyticsModal, #dashboardToastContainer, ' +
+                '.ripple-effect, .marquee-selection-box, .preset-corner-tools'
+            ).forEach(el => el.remove());
+
+            // 1-1) .control-btn-slot 래퍼를 안전하게 언래핑하여 원본 .control-btn 노드를 0차수 위치 그대로 복원
+            clonedDoc.querySelectorAll('.control-btn-slot').forEach(slot => {
+                while (slot.firstChild) {
+                    slot.parentNode?.insertBefore(slot.firstChild, slot);
+                }
+                slot.remove();
+            });
+
+            // 2) body 포탈된 객체 맞춤 플라이아웃을 원래 헤더 컨테이너로 원복 후 런타임 스타일 초기화
+            const flyoutHomes = [
+                { flyoutId: 'flyoutAlignLeft', homeId: 'leftControlStackMenu', badgeId: 'flyoutAlignLeftBadge', titleId: 'flyoutAlignLeftTitle', titleText: '📐 관리 객체 맞춤' },
+                { flyoutId: 'flyoutAlignRight', homeId: 'rightControlStackMenu', badgeId: 'flyoutAlignRightBadge', titleId: 'flyoutAlignRightTitle', titleText: '📐 도구 객체 맞춤' }
+            ];
+            flyoutHomes.forEach(({ flyoutId, homeId, badgeId, titleId, titleText }) => {
+                const flyout = clonedDoc.getElementById(flyoutId);
+                const home = clonedDoc.getElementById(homeId);
+                if (flyout) {
+                    flyout.classList.remove('open', 'floating', 'dragging', 'resizing');
+                    flyout.removeAttribute('style');
+                    flyout.removeAttribute('data-draggable-initialized');
+                    if (home && flyout.parentElement !== home) {
+                        home.appendChild(flyout);
+                    }
+                }
+                const badge = clonedDoc.getElementById(badgeId);
+                if (badge) {
+                    badge.textContent = '선택 0개 맞춤';
+                    badge.style.display = 'none';
+                }
+                const titleEl = clonedDoc.getElementById(titleId);
+                if (titleEl) titleEl.textContent = titleText;
+            });
+
+            // 3) 좌/우 원형 메뉴 버튼 및 3단 적층 헤더를 0차수 기본 정적 상태로 초기화
+            clonedDoc.querySelectorAll('.control-btn, .bubble-group-header-wrap').forEach(el => {
+                el.classList.remove(
+                    'bubble-positioned', 'bubble-floating', 'bubble-selected', 'bubble-dragging',
+                    'bubble-dropping', 'bubble-ejected', 'bubble-locked-shake',
+                    'bubble-locked', 'active', 'label-left', 'label-right'
+                );
+                el.removeAttribute('style');
+                el.removeAttribute('title');
+                el.removeAttribute('aria-description');
+                el.removeAttribute('data-bubble-drag-bound');
+                el.removeAttribute('data-bubble-original-title');
+                el.removeAttribute('data-pending-stack-command-id');
+                el.removeAttribute('data-stack-pointer-dragged');
+                el.removeAttribute('data-suppress-click-until');
+                el.removeAttribute('data-bubble-id');
+                el.removeAttribute('data-menu-side');
+                if (el.classList.contains('control-btn') && el.hasAttribute('aria-expanded')) {
+                    el.setAttribute('aria-expanded', 'false');
+                }
+            });
+            clonedDoc.querySelectorAll('[data-arrange-variant-handled-until]').forEach(el => {
+                el.removeAttribute('data-arrange-variant-handled-until');
+            });
+            clonedDoc.querySelectorAll('.btn-group-align-trigger').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-expanded', 'false');
+            });
+            clonedDoc.querySelectorAll('.btn-group-lock-trigger').forEach(btn => {
+                btn.classList.add('is-locked');
+                btn.setAttribute('aria-pressed', 'true');
+                btn.title = '원형 메뉴 버튼 위치 잠김 (클릭하여 잠금 해제)';
+                const icon = btn.querySelector('.lock-icon');
+                const text = btn.querySelector('.lock-text');
+                if (icon) icon.textContent = '🔒';
+                if (text) text.textContent = '고정 잠금';
+            });
+            const snapHud = clonedDoc.getElementById('controlBubbleSnapGuideHud');
+            if (snapHud) {
+                snapHud.replaceChildren();
+                snapHud.classList.remove('active', 'visible');
+                snapHud.removeAttribute('style');
+            }
+
+            // 4) 모달 및 집중 오버레이 초기 닫힘 상태 정규화
+            clonedDoc.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.classList.remove('open');
+                modal.removeAttribute('style');
+                const content = modal.querySelector('.modal-content');
+                if (content) {
+                    content.classList.remove('dragging');
+                    content.removeAttribute('style');
+                }
+            });
+            ['progressInsightFocusOverlay', 'memoFocusOverlay', 'memoActionDialogOverlay'].forEach(id => {
+                const overlay = clonedDoc.getElementById(id);
+                if (overlay) {
+                    overlay.classList.remove('open', 'is-immersive', 'immersive-read', 'immersive-edit');
+                    overlay.setAttribute('aria-hidden', 'true');
+                    overlay.setAttribute('inert', '');
+                    overlay.removeAttribute('style');
+                }
+            });
+            const insightFocusContent = clonedDoc.getElementById('progressInsightFocusContent');
+            if (insightFocusContent) insightFocusContent.replaceChildren();
+            const memoReadContent = clonedDoc.getElementById('memoFocusReadContent');
+            if (memoReadContent) memoReadContent.replaceChildren();
+            const memoEditArea = clonedDoc.getElementById('memoFocusEditTextarea');
+            if (memoEditArea) {
+                memoEditArea.value = '';
+                memoEditArea.textContent = '';
+            }
+            const memoRestoreBtn = clonedDoc.getElementById('memoFocusRestoreBtn');
+            if (memoRestoreBtn) memoRestoreBtn.setAttribute('hidden', '');
+
+            // 5) body 런타임 클래스 및 데이터 속성 정화
+            if (clonedDoc.body) {
+                clonedDoc.body.classList.remove(
+                    'dark-mode', 'cursor-fist', 'memo-focus-open',
+                    'memo-immersive-active', 'progress-insight-focus-open',
+                    'marquee-selecting', 'bubble-dragging-any'
+                );
+                clonedDoc.body.removeAttribute('data-meeting-data-state');
+                clonedDoc.body.removeAttribute('data-meeting-data-transport');
+                clonedDoc.body.removeAttribute('data-meeting-data-preview');
+                clonedDoc.body.removeAttribute('style');
+            }
+            const themeBtn = clonedDoc.getElementById('themeToggleBtn');
+            if (themeBtn) {
+                themeBtn.textContent = '🌙';
+                themeBtn.title = '다크 모드 전환';
+            }
+
+            // 6) 동적 시계·뷰·카드·인사이트·입력 필드 정적 초기값 정규화
+            const cornerClock = clonedDoc.getElementById('browserCornerClock');
+            if (cornerClock) {
+                cornerClock.textContent = '';
+                cornerClock.removeAttribute('datetime');
+            }
+            const memoFocusClock = clonedDoc.getElementById('memoFocusClock');
+            if (memoFocusClock) memoFocusClock.textContent = '';
+            const autoSaveEl = clonedDoc.getElementById('autoSaveStatus');
+            if (autoSaveEl) {
+                autoSaveEl.textContent = '⚪ 변경사항 없음';
+                autoSaveEl.className = '';
+            }
+            const dataSyncEl = clonedDoc.getElementById('dataSyncStatus');
+            if (dataSyncEl) dataSyncEl.textContent = 'XLSB 데이터 연결 준비 중…';
+            const insightsPeriod = clonedDoc.getElementById('progressInsightsPeriod');
+            if (insightsPeriod) insightsPeriod.textContent = 'XLSB 현황 매핑 중…';
+            const insightsGrid = clonedDoc.getElementById('progressInsightsGrid');
+            if (insightsGrid) insightsGrid.replaceChildren();
+            const yearGrid = clonedDoc.getElementById('year-grid');
+            if (yearGrid) yearGrid.replaceChildren();
+            const yearView = clonedDoc.getElementById('year-view');
+            if (yearView) yearView.className = 'view hidden';
+            const monthView = clonedDoc.getElementById('month-view');
+            if (monthView) monthView.className = 'view visible';
+            const goToTodayYearBtn = clonedDoc.getElementById('goToTodayBtnYearView');
+            if (goToTodayYearBtn) goToTodayYearBtn.style.display = 'none';
+            const currentYearSpan = clonedDoc.getElementById('currentYearSpan');
+            if (currentYearSpan) currentYearSpan.textContent = '2026년';
+            const monthViewTitle = clonedDoc.getElementById('month-view-title');
+            if (monthViewTitle) monthViewTitle.textContent = '2026년 2월 안건';
+            const syncModeBtn = clonedDoc.getElementById('cardSyncModeToggleBtn');
+            if (syncModeBtn) {
+                syncModeBtn.className = 'sync-mode-toggle-btn auto';
+                const icon = syncModeBtn.querySelector('.sync-mode-icon');
+                const text = syncModeBtn.querySelector('.sync-mode-text');
+                if (icon) icon.textContent = '🤖';
+                if (text) text.textContent = '자동 감지';
+            }
+            const refreshRemoteBtn = clonedDoc.getElementById('forceRefreshRemoteBtn');
+            if (refreshRemoteBtn) refreshRemoteBtn.classList.remove('spinning');
+            const monthlyCard = clonedDoc.getElementById('monthly-report-card');
+            if (monthlyCard) {
+                monthlyCard.className = 'report-card';
+                monthlyCard.removeAttribute('style');
+                monthlyCard.removeAttribute('data-href');
+                monthlyCard.removeAttribute('data-tooltip');
+                monthlyCard.innerHTML = '<span>월간 회의 안건 보기</span>';
+            }
+            const monthlyMemoWrap = clonedDoc.getElementById('monthly-memo-wrapper');
+            if (monthlyMemoWrap) {
+                monthlyMemoWrap.className = 'memo-wrapper hidden';
+                monthlyMemoWrap.setAttribute('aria-hidden', 'true');
+                monthlyMemoWrap.setAttribute('inert', '');
+                monthlyMemoWrap.replaceChildren();
+            }
+            const weeklyContainer = clonedDoc.getElementById('weekly-cards-container');
+            if (weeklyContainer) weeklyContainer.replaceChildren();
+
+            // 7) 폼/검색/템플릿 입력값 정화 (PAT 원문 절대 미포함)
+            const newMeetingDate = clonedDoc.getElementById('newMeetingDate');
+            if (newMeetingDate) {
+                newMeetingDate.setAttribute('type', 'text');
+                newMeetingDate.removeAttribute('value');
+                newMeetingDate.removeAttribute('lang');
+                newMeetingDate.removeAttribute('data-enhanced');
+                newMeetingDate.value = '';
+            }
+            const creationPreview = clonedDoc.getElementById('creationPreviewBox');
+            if (creationPreview) {
+                creationPreview.setAttribute('hidden', '');
+                creationPreview.replaceChildren();
+            }
+            const searchInput = clonedDoc.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.removeAttribute('value');
+            }
+            const searchResults = clonedDoc.getElementById('searchResultsContainer');
+            if (searchResults) {
+                searchResults.innerHTML = '<p class="search-placeholder">메모 내용에서 검색합니다.</p>';
+            }
+            const confApiToken = clonedDoc.getElementById('confApiToken');
+            if (confApiToken) {
+                confApiToken.value = '';
+                confApiToken.removeAttribute('value');
+            }
+            const folderPath = clonedDoc.getElementById('folderPath');
+            if (folderPath) folderPath.textContent = '없음';
+            const unmappedCount = clonedDoc.getElementById('unmappedHistoryCount');
+            if (unmappedCount) unmappedCount.textContent = '0';
+            const unmappedList = clonedDoc.getElementById('unmappedHistoryList');
+            if (unmappedList) unmappedList.replaceChildren();
+            const batchStatus = clonedDoc.getElementById('batchUpdateStatus');
+            if (batchStatus) {
+                batchStatus.textContent = '상태 변경 대기 중';
+                batchStatus.setAttribute('data-state', 'ready');
+            }
+            ['templateWeekly', 'templateMonthly'].forEach(id => {
+                const ta = clonedDoc.getElementById(id);
+                if (ta) {
+                    ta.value = '';
+                    ta.textContent = '';
+                    const isMonthly = id === 'templateMonthly';
+                    ta.setAttribute(
+                        'placeholder',
+                        isMonthly
+                            ? '월간 회의 안건 파일의 전체 HTML 코드를 여기에 붙여넣거나, [파일에서 불러오기]를 사용하세요.'
+                            : '주간 회의 안건 파일의 전체 HTML 코드를 여기에 붙여넣거나, [파일에서 불러오기]를 사용하세요.'
+                    );
+                }
+            });
+            const manageSkippedBtn = clonedDoc.getElementById('manageSkippedBtn');
+            if (manageSkippedBtn) manageSkippedBtn.setAttribute('data-tooltip', 'XLSB 현황 계산 중…');
+
+            // 8) body 끝 공백 텍스트 노드 정규화 (N차 저장 시 개행 누적 0바이트 보장)
+            while (clonedDoc.body?.lastChild?.nodeType === Node.TEXT_NODE && !clonedDoc.body.lastChild.textContent.trim()) {
+                clonedDoc.body.lastChild.remove();
+            }
+            return clonedDoc;
+        }
+
+        function serializeEmbeddedTemplateLiteral(value) {
+            return JSON.stringify(String(value || '')).replace(/<\//g, '<\\/');
+        }
+
+        function buildCleanDashboardSnapshotHtml(options = {}) {
+            const clonedDoc = document.cloneNode(true);
+            resetDashboardRuntimeArtifacts(clonedDoc);
+
+            if (Object.prototype.hasOwnProperty.call(options, 'weeklyTemplate') || Object.prototype.hasOwnProperty.call(options, 'monthlyTemplate')) {
+                const scripts = [...clonedDoc.querySelectorAll('script:not([src])')];
+                const mainScript = scripts.find(s => s.textContent.includes('TEMPLATE_EMBED:WEEKLY:START'));
+                if (mainScript) {
+                    let code = mainScript.textContent;
+                    if (Object.prototype.hasOwnProperty.call(options, 'weeklyTemplate')) {
+                        const val = options.weeklyTemplate
+                            ? serializeEmbeddedTemplateLiteral(options.weeklyTemplate)
+                            : '`(' + '주간 회의 템플릿 로딩 중...' + ')`';
+                        code = code.replace(
+                            /(\/\*\s*TEMPLATE_EMBED:WEEKLY:START\s*\*\/)[\s\S]*?(\/\*\s*TEMPLATE_EMBED:WEEKLY:END\s*\*\/)/,
+                            (_, start, end) => `${start}\n        let WEEKLY_TEMPLATE_HTML = ${val};\n        ${end}`
+                        );
+                    }
+                    if (Object.prototype.hasOwnProperty.call(options, 'monthlyTemplate')) {
+                        const val = options.monthlyTemplate
+                            ? serializeEmbeddedTemplateLiteral(options.monthlyTemplate)
+                            : '`(' + '월간 회의 템플릿 로딩 중...' + ')`';
+                        code = code.replace(
+                            /(\/\*\s*TEMPLATE_EMBED:MONTHLY:START\s*\*\/)[\s\S]*?(\/\*\s*TEMPLATE_EMBED:MONTHLY:END\s*\*\/)/,
+                            (_, start, end) => `${start}\n        let MONTHLY_TEMPLATE_HTML = ${val};\n        ${end}`
+                        );
+                    }
+                    mainScript.textContent = code;
+                }
+            }
+
+            return `<!DOCTYPE html>\n${clonedDoc.documentElement.outerHTML.replace(/\r\n?/g, '\n')}\n`;
+        }
+
+        function downloadCleanDashboardCopy(options = {}) {
+            const htmlOutput = buildCleanDashboardSnapshotHtml(options);
+            const filename = options.filename || '041 월간 및 주간 회의.html';
+            const blob = new Blob([htmlOutput], { type: 'text/html;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+            if (typeof showToast === 'function') {
+                showToast(options.toastMessage || `💾 무결성 대시보드 사본(${filename}) 저장 완료`, 'success', 3800);
+            }
+            return htmlOutput;
+        }
+
+        function embedOrRemoveDashboardTemplate(type, mode) {
+            const isMonthly = type === 'monthly';
+            const label = isMonthly ? '월간' : '주간';
+            const textarea = document.getElementById(isMonthly ? 'templateMonthly' : 'templateWeekly');
+            if (mode === 'embed') {
+                const textareaContent = textarea?.value || '';
+                const content = isTemplateReady(textareaContent)
+                    ? textareaContent
+                    : (isMonthly ? MONTHLY_TEMPLATE_HTML : WEEKLY_TEMPLATE_HTML);
+                if (!isTemplateReady(content)) {
+                    alert(`내장할 ${label} 템플릿 코드가 비어 있습니다. 먼저 불러오기를 완료하거나 코드를 붙여넣어 주세요.`);
+                    return;
+                }
+                if (isMonthly) MONTHLY_TEMPLATE_HTML = content;
+                else WEEKLY_TEMPLATE_HTML = content;
+                updateTemplateFieldStatus(type);
+                downloadCleanDashboardCopy({
+                    [isMonthly ? 'monthlyTemplate' : 'weeklyTemplate']: content,
+                    toastMessage: `💾 ${label} 템플릿 코드가 내장된 무결성 대시보드 HTML 사본을 저장했습니다.`
+                });
+            } else {
+                const placeholder = isMonthly ? '(월간 회의 템플릿 로딩 중...)' : '(주간 회의 템플릿 로딩 중...)';
+                if (isMonthly) MONTHLY_TEMPLATE_HTML = placeholder;
+                else WEEKLY_TEMPLATE_HTML = placeholder;
+                if (textarea) textarea.value = '';
+                updateTemplateFieldStatus(type);
+                downloadCleanDashboardCopy({
+                    [isMonthly ? 'monthlyTemplate' : 'weeklyTemplate']: null,
+                    toastMessage: `🧹 내장 ${label} 템플릿이 제거된 무결성 대시보드 HTML 사본을 저장했습니다.`
+                });
             }
         }
 
@@ -17081,11 +17696,19 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             input.type = 'file';
             input.accept = '.html';
             input.onchange = e => {
-                const file = e.target.files[0];
+                const file = e.target.files?.[0];
+                if (!file) return;
                 const reader = new FileReader();
                 reader.onload = readEvent => {
-                    const content = readEvent.target.result;
-                    document.getElementById(type === 'weekly' ? 'templateWeekly' : 'templateMonthly').value = content;
+                    const content = String(readEvent.target?.result || '');
+                    if (type === 'weekly') WEEKLY_TEMPLATE_HTML = content;
+                    else MONTHLY_TEMPLATE_HTML = content;
+                    const ta = document.getElementById(type === 'weekly' ? 'templateWeekly' : 'templateMonthly');
+                    if (ta) ta.value = '';
+                    updateTemplateFieldStatus(type);
+                    if (typeof showToast === 'function') {
+                        showToast(`📂 ${type === 'weekly' ? '주간' : '월간'} 템플릿(${file.name})을 불러왔습니다.`, 'success');
+                    }
                 };
                 reader.readAsText(file);
             };
@@ -17148,8 +17771,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             document.getElementById('confMonthlyTemplate').value = dashboardConfig.monthly.filenameTemplate;
             document.getElementById('confMonthlyPastTemplate').value = dashboardConfig.monthly.pastFilenameTemplate;
             document.getElementById('confDataExtractURL').value = dashboardConfig.dataExtractURL;
-            document.getElementById('templateWeekly').value = WEEKLY_TEMPLATE_HTML;
-            document.getElementById('templateMonthly').value = MONTHLY_TEMPLATE_HTML;
+            updateTemplateFieldStatus('weekly');
+            updateTemplateFieldStatus('monthly');
             document.getElementById('folderPath').textContent = localStorage.getItem('localFolderPath') || '없음';
         }
 
@@ -18130,6 +18753,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             let authoritativeMappingApplied = false;
             let previewRenderedAt = null;
             let previewSource = '';
+            const computeSnapshotFingerprint = (snap) => {
+                const sRows = Array.isArray(snap?.status?.rows) ? snap.status.rows : [];
+                const mRows = Array.isArray(snap?.memo?.rows) ? snap.memo.rows : [];
+                const sLast = sRows.length ? `${sRows[sRows.length - 1].key}:${sRows[sRows.length - 1].status}:${sRows[sRows.length - 1].updatedAt || ''}` : '';
+                const mLast = mRows.length ? `${mRows[mRows.length - 1].key}:${mRows[mRows.length - 1].updatedAt || ''}` : '';
+                return `${sRows.length}|${mRows.length}|${sLast}|${mLast}`;
+            };
+            let previewFingerprint = '';
             const renderStartupPreview = async () => {
                 let preview = meetingStore.getSnapshot();
                 if (preview.status.rows.length) {
@@ -18140,6 +18771,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 }
                 if (authoritativeMappingApplied || !preview.status.rows.length) return;
                 validateMeetingSnapshotIntegrity(preview);
+                previewFingerprint = computeSnapshotFingerprint(preview);
                 confirmedMeetingMemoRows = preview.memo.rows.map(row => ({ ...row }));
                 applyStoreSnapshot({ ...preview, pendingCount: pending });
                 initializeDashboard();
@@ -18221,9 +18853,17 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             await hydrateMemoIndicatorStates();
             const finalPendingCount = await meetingStore.pendingCount();
             applyStoreSnapshot({ ...snapshot, pendingCount: finalPendingCount });
-            initializeDashboard();
-            getRemoteMeetingFileListSafe('wyggkr', currentYear || isoNow.isoYear).then(() => {
-                if (currentMonth === null) checkAndActivateYearViewRemoteFiles(currentYear || isoNow.isoYear);
+            const authoritativeFingerprint = computeSnapshotFingerprint(snapshot);
+            if (!previewRenderedAt || previewFingerprint !== authoritativeFingerprint) {
+                initializeDashboard();
+            } else {
+                refreshMeetingProgressInsightsIfReady();
+                updateAnalyticsTooltip();
+                checkForUnsavedChanges();
+            }
+            const fallbackYear = currentYear || getISOWeekInfo(new Date()).isoYear;
+            getRemoteMeetingFileListSafe('wyggkr', fallbackYear).then(() => {
+                if (currentMonth === null) checkAndActivateYearViewRemoteFiles(currentYear || fallbackYear);
             }).catch(() => {});
             await startupPreviewPromise;
             document.body.removeAttribute('data-meeting-data-preview');
@@ -18300,9 +18940,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         const CONTROL_ALIGN_FLYOUT_MARGIN = 8;
 
         function getControlBubbleViewportMode() {
-            return window.matchMedia('(max-width: 600px) and (orientation: portrait)').matches
-                ? 'mobilePortrait'
-                : 'desktop';
+            return isMobilePortraitViewport() ? 'mobilePortrait' : 'desktop';
         }
 
         function readControlBubbleLayout() {
@@ -18537,12 +19175,21 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
         function updateControlMenuLabelSide(button) {
             const rect = getControlBubbleVisualRect(button);
-            const centerX = rect.left + (rect.width / 2);
-            button.dataset.menuSide = centerX >= (window.innerWidth / 2) ? 'left' : 'right';
+            const side = (rect.left + (rect.width / 2)) >= (window.innerWidth / 2) ? 'left' : 'right';
+            if (button.dataset.menuSide !== side) button.dataset.menuSide = side;
         }
 
         function updateControlMenuLabelSides(buttons) {
-            for (const button of buttons) updateControlMenuLabelSide(button);
+            const halfWidth = window.innerWidth / 2;
+            const sides = buttons.map(button => {
+                const rect = getControlBubbleVisualRect(button);
+                return (rect.left + (rect.width / 2)) >= halfWidth ? 'left' : 'right';
+            });
+            buttons.forEach((button, index) => {
+                if (button.dataset.menuSide !== sides[index]) {
+                    button.dataset.menuSide = sides[index];
+                }
+            });
         }
 
         function controlBubbleRectsOverlap(first, second, gap = CONTROL_BUBBLE_GAP) {
@@ -18621,9 +19268,39 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         function applySavedControlBubblePositions(buttons) {
             const layout = readControlBubbleLayout();
             const records = layout[getControlBubbleViewportMode()] || {};
-            for (const button of buttons) {
-                resetControlBubbleElement(button);
-                positionControlBubbleFromRecord(button, records[button.id]);
+            const hasSavedRecords = Object.keys(records).length > 0;
+            if (!hasSavedRecords) {
+                for (const button of buttons) {
+                    if (button.classList.contains('bubble-positioned') || button.style.left || button.style.top) {
+                        resetControlBubbleElement(button);
+                    }
+                }
+                updateControlMenuLabelSides(buttons);
+                return;
+            }
+            const plannedMoves = buttons.map(button => {
+                const record = records[button.id];
+                if (!record || !Number.isFinite(record.xRatio) || !Number.isFinite(record.yRatio)) {
+                    return { button, reset: true, left: null, top: null };
+                }
+                const bounds = controlBubbleBounds(button);
+                return {
+                    button,
+                    reset: false,
+                    left: CONTROL_BUBBLE_MARGIN + Math.min(1, Math.max(0, record.xRatio)) * bounds.rangeX,
+                    top: CONTROL_BUBBLE_MARGIN + Math.min(1, Math.max(0, record.yRatio)) * bounds.rangeY
+                };
+            });
+            for (const item of plannedMoves) {
+                if (item.reset) {
+                    if (item.button.classList.contains('bubble-positioned') || item.button.style.left || item.button.style.top) {
+                        resetControlBubbleElement(item.button);
+                    }
+                } else {
+                    item.button.classList.add('bubble-positioned');
+                    item.button.style.left = `${item.left}px`;
+                    item.button.style.top = `${item.top}px`;
+                }
             }
             settleControlBubbleCollisions(buttons);
             updateControlMenuLabelSides(buttons);
@@ -20215,8 +20892,9 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             const savedTheme = localStorage.getItem('dashboardTheme') || currentAutoTheme;
             applyTheme(savedTheme);
 
-            // 시간 변경에 따른 자동 전환 인터벌 설정 (수동 설정이 없을 경우 작동)
+            // 시간 변경에 따른 자동 전환 인터벌 설정 (수동 설정이 없을 경우 작동 · 백그라운드 탭 휴면 최적화)
             setInterval(() => {
+                if (document.hidden) return;
                 const newAutoTheme = getThemeByTime();
                 if (currentAutoTheme !== newAutoTheme) {
                     currentAutoTheme = newAutoTheme;
@@ -20315,13 +20993,8 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             });
             document.getElementById('back-to-year-view-btn').addEventListener('click', () => showYearView(tempSkippedDates));
 
-            // 🛡️ 원형 메뉴 버튼은 단일 CSS ::after 플로팅 툴팁(data-menu-label)만 단독 표시되도록 브라우저 title 중복 팝업 원천 차단
-            document.addEventListener('mouseover', (e) => {
-                const btn = e.target.closest('.control-btn');
-                if (btn && btn.hasAttribute('title')) {
-                    btn.removeAttribute('title');
-                }
-            }, { passive: true });
+            // 🛡️ 원형 메뉴 버튼은 단일 CSS ::after 플로팅 툴팁(data-menu-label)만 단독 표시되도록 초기 1회 title 제거 (글로벌 mouseover 부하 제거)
+            document.querySelectorAll('.control-btn[title]').forEach(btn => btn.removeAttribute('title'));
 
 
             // 🤖/✋ 자동 감지 / 수동 제어 모드 토글 이벤트
@@ -20333,6 +21006,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     if (nextMode === 'auto') {
                         // 자동 모드로 복귀 시 수동 로컬스토리지 오버라이드 해제 후 깃허브 실시간 동기화
                         try { localStorage.removeItem(USER_MANUAL_CARD_STATUS_KEY); } catch (_) {}
+                        invalidateUserManualCardStatusMapCache();
                     }
                     setMeetingCardSyncMode(nextMode);
                     if (nextMode === 'auto' && currentYear) {
@@ -20693,6 +21367,7 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             document.getElementById('creationPanelToggleBtn').addEventListener('click', () => {
                 openModal('creationModal');
                 enhanceMeetingDatePicker();
+                updateCreationModalPreview();
                 void ensureMeetingTemplateLoaded(document.getElementById('newMeetingType')?.value || 'weekly');
             });
             document.getElementById('settingsToggleBtn').addEventListener('click', () => {
@@ -20735,10 +21410,29 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 }
             });
             document.getElementById('selectFolderBtn').addEventListener('click', selectLocalFolder);
+            document.getElementById('embedWeeklyTemplateBtn')?.addEventListener('click', () => embedOrRemoveDashboardTemplate('weekly', 'embed'));
+            document.getElementById('removeWeeklyTemplateBtn')?.addEventListener('click', () => embedOrRemoveDashboardTemplate('weekly', 'remove'));
+            document.getElementById('embedMonthlyTemplateBtn')?.addEventListener('click', () => embedOrRemoveDashboardTemplate('monthly', 'embed'));
+            document.getElementById('removeMonthlyTemplateBtn')?.addEventListener('click', () => embedOrRemoveDashboardTemplate('monthly', 'remove'));
+            document.getElementById('saveDashboardCopyBtn')?.addEventListener('click', () => downloadCleanDashboardCopy());
             document.getElementById('loadWeeklyTemplateBtn').addEventListener('click', () => loadTemplateFromFile('weekly'));
             document.getElementById('loadMonthlyTemplateBtn').addEventListener('click', () => loadTemplateFromFile('monthly'));
+            document.getElementById('templateWeekly')?.addEventListener('input', (e) => {
+                const val = String(e.target?.value || '');
+                if (isTemplateReady(val)) WEEKLY_TEMPLATE_HTML = val;
+            });
+            document.getElementById('templateMonthly')?.addEventListener('input', (e) => {
+                const val = String(e.target?.value || '');
+                if (isTemplateReady(val)) MONTHLY_TEMPLATE_HTML = val;
+            });
             document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
             document.getElementById('createNewMeetingBtn').addEventListener('click', createNewMeetingFile);
+            document.getElementById('newMeetingType')?.addEventListener('change', (e) => {
+                updateCreationModalPreview();
+                void ensureMeetingTemplateLoaded(e.target.value);
+            });
+            document.getElementById('newMeetingDate')?.addEventListener('input', updateCreationModalPreview);
+            document.getElementById('newMeetingDate')?.addEventListener('change', updateCreationModalPreview);
             document.getElementById('saveAllChangesBtn').addEventListener('click', handleSaveAllChanges);
             document.getElementById('month-view').addEventListener('click', async (e) => {
                 const statusToggle = e.target.closest('.card-status-toggle');
@@ -20903,14 +21597,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     closeMemoFocus();
                 }
             });
-            updateMemoClocks();
+            updateMemoClocks(true);
             clearInterval(memoClockInterval);
-            memoClockInterval = setInterval(updateMemoClocks, 1000);
+            memoClockInterval = setInterval(() => updateMemoClocks(false), 1000);
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden') flushMemoChanges().catch(console.error);
-                else updateMemoClocks();
+                else updateMemoClocks(true);
             });
-            window.addEventListener('focus', updateMemoClocks);
+            window.addEventListener('focus', () => updateMemoClocks(true));
             window.addEventListener('online', async () => {
                 if (!meetingStore) return;
                 updateDataSyncStatus('GitHub 최신 XLSB를 다시 매핑하는 중…', 'waiting');
@@ -20923,34 +21617,51 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             document.getElementById('searchResultsContainer').addEventListener('click', handleSearchResultClick);
             const dateInput = document.getElementById('newMeetingDate');
             dateInput.type = 'date';
-            dateInput.value = new Date().toISOString().slice(0, 10);
+            dateInput.lang = 'ko-KR';
+            dateInput.value = formatLocalDateInputValue(new Date());
+            updateCreationModalPreview();
 
             function makeModalDraggable(modalId) {
                 const modal = document.getElementById(modalId);
                 if (!modal) return;
-                const modalContent = modal.querySelector('.modal-content'), modalHeader = modal.querySelector('h3');
-                if (!modalHeader) return;
-                let isDragging = false, offsetX, offsetY;
+                const modalContent = modal.querySelector('.modal-content');
+                const modalHeader = modal.querySelector('h3');
+                if (!modalContent || !modalHeader) return;
+                let offsetX = 0;
+                let offsetY = 0;
+
+                const onMouseMove = (e) => {
+                    e.preventDefault();
+                    const maxLeft = Math.max(8, window.innerWidth - modalContent.offsetWidth - 8);
+                    const maxTop = Math.max(8, window.innerHeight - modalContent.offsetHeight - 8);
+                    const nextLeft = Math.min(maxLeft, Math.max(8, e.clientX - offsetX));
+                    const nextTop = Math.min(maxTop, Math.max(8, e.clientY - offsetY));
+                    modalContent.style.left = `${Math.round(nextLeft)}px`;
+                    modalContent.style.top = `${Math.round(nextTop)}px`;
+                    modalContent.style.transform = 'none';
+                };
+
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    setTimeout(() => modalContent.classList.remove('dragging'), 0);
+                };
+
                 modalHeader.addEventListener('mousedown', (e) => {
-                    isDragging = true;
+                    if (window.matchMedia('(max-width: 600px) and (orientation: portrait)').matches) return;
                     modalContent.classList.add('dragging');
                     const rect = modalContent.getBoundingClientRect();
                     offsetX = e.clientX - rect.left;
                     offsetY = e.clientY - rect.top;
-                    document.querySelectorAll('.modal-overlay').forEach(m => m.style.zIndex = '10011');
+                    document.querySelectorAll('.modal-overlay').forEach(m => { m.style.zIndex = '10011'; });
                     modal.style.zIndex = '10012';
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
                 });
-                document.addEventListener('mousemove', (e) => {
-                    if (!isDragging) return;
-                    e.preventDefault();
-                    modalContent.style.left = `${e.clientX - offsetX}px`;
-                    modalContent.style.top = `${e.clientY - offsetY}px`;
-                    modalContent.style.transform = 'none';
-                });
-                document.addEventListener('mouseup', () => { if (isDragging) { isDragging = false; setTimeout(() => modalContent.classList.remove('dragging'), 0); } });
             }
             makeModalDraggable('manageSkippedModal');
             makeModalDraggable('searchModal');
+            makeModalDraggable('creationModal');
 
             // --- 리플(물결) 효과: 플로팅 버튼 클릭 시 물결 애니메이션 ---
             document.querySelectorAll('.control-btn').forEach(btn => {
