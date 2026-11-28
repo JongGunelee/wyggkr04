@@ -2,11 +2,11 @@
 window.MEETING_DATA_BOOTSTRAP=Object.freeze({
   "schemaVersion": 1,
   "generatedFrom": "RawData/월간 및 주간/*.xlsb",
-  "sourceSha256": "18a83a4a9b2b4c15e7fec0d1923e768e5f2dfd3cfd4d61d3aab37536496a4edd",
+  "sourceSha256": "d9b289ac920fe3e1704dbccfbd2aabf627c792599c7f4caa4584e17009218042",
   "sourceFiles": {
     "status": {
-      "sha256": "2d34de0ddc2e41eb98c3ff8c2df455cf87a643fb47bc0421be4318b3e3c3c6bb",
-      "byteLength": 123684
+      "sha256": "7b8a8c531a3d6547a2af45e2f98dfca054849d062039565ecceeccc9174e226a",
+      "byteLength": 124013
     },
     "memo": {
       "sha256": "2cc828190b87419e57df89aef087cb315cb38a878a08268e09bd171e33003c3f",
@@ -5356,6 +5356,21 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "note": "2026-11-23 기준 회의록 파일 없음"
       },
       {
+        "key": "2027-2",
+        "type": "월간",
+        "year": 2027,
+        "month": 2,
+        "week": null,
+        "status": "작성",
+        "counterIncluded": "Y",
+        "cardVisible": "Y",
+        "referenceDate": null,
+        "updatedAt": "2026-11-28T18:59:47.000Z",
+        "source": "월간 회의 내비게이션 수동 상태 관리",
+        "exceptionCode": "",
+        "note": "월간/주간 회의 내비게이션에서 생성"
+      },
+      {
         "key": "2027-2-3",
         "type": "주간",
         "year": 2027,
@@ -9900,6 +9915,16 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
         "afterValue": "{\"type\":\"주간\",\"year\":2027,\"month\":2,\"week\":3,\"status\":\"작성\",\"counterIncluded\":\"Y\",\"cardVisible\":\"Y\",\"referenceDate\":null,\"source\":\"주간 회의 내비게이션 수동 상태 관리\",\"exceptionCode\":\"\",\"note\":\"월간/주간 회의 내비게이션에서 생성\"}",
         "source": "주간 회의 내비게이션 수동 상태 관리",
+        "syncStatus": "완료"
+      },
+      {
+        "eventId": "b306af18-d1e2-40ae-9b05-ff044a51397d",
+        "changedAt": "2026-11-28T18:59:47.000Z",
+        "key": "2027-2",
+        "type": "월간",
+        "beforeValue": "{\"type\":null,\"year\":null,\"month\":null,\"week\":null,\"status\":null,\"counterIncluded\":null,\"cardVisible\":null,\"referenceDate\":null,\"source\":null,\"exceptionCode\":null,\"note\":null}",
+        "afterValue": "{\"type\":\"월간\",\"year\":2027,\"month\":2,\"week\":null,\"status\":\"작성\",\"counterIncluded\":\"Y\",\"cardVisible\":\"Y\",\"referenceDate\":null,\"source\":\"월간 회의 내비게이션 수동 상태 관리\",\"exceptionCode\":\"\",\"note\":\"월간/주간 회의 내비게이션에서 생성\"}",
+        "source": "월간 회의 내비게이션 수동 상태 관리",
         "syncStatus": "완료"
       }
     ]
