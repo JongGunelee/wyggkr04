@@ -4731,6 +4731,8 @@
             #multiZoomTriggerBtn,
             .floating-panel,
             #customMessageBox,
+            #webSaveModal,
+            #webSavePatPrompt,
             #selectionZoomOverlay,
             #imageZoomOverlay,
             .exit-true-fullscreen-btn,
@@ -7787,6 +7789,317 @@ body.focused-editor-active #pasteQuickActionBar {
 }
 /* END: 통합 타이포그래피·서식 인스펙터·부분/일괄 수정 스튜디오·스마트 붙여넣기 CSS */
 
+/* --- START: 웹저장 (GitHub 자동 배포 · 00 BAK 자동 백업) UI 스타일 --- */
+.web-save-btn {
+    background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid #1d4ed8 !important;
+    font-weight: 700 !important;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+}
+.web-save-btn:hover:not(:disabled) {
+    filter: brightness(1.06);
+}
+.web-save-btn:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+.web-save-status-box {
+    margin-top: 6px;
+    padding: 7px 9px;
+    border-radius: 7px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: #334155;
+    word-break: break-all;
+}
+.web-save-status-box[data-state="working"] {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1e40af;
+}
+.web-save-status-box[data-state="success"] {
+    border-color: #86efac;
+    background: #f0fdf4;
+    color: #166534;
+}
+.web-save-status-box[data-state="error"] {
+    border-color: #fca5a5;
+    background: #fef2f2;
+    color: #991b1b;
+}
+.web-save-target-path {
+    font-weight: 700;
+    color: #0f172a;
+}
+.web-save-status-msg {
+    margin-top: 2px;
+    font-size: 11px;
+}
+#webSaveModal {
+    position: fixed;
+    inset: 0;
+    z-index: 42000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(15, 23, 42, 0.56);
+    backdrop-filter: blur(2px);
+    box-sizing: border-box;
+    contain: layout style;
+}
+#webSaveModal.active {
+    display: flex;
+}
+.web-save-dialog {
+    width: 100%;
+    max-width: 500px;
+    max-height: 90dvh;
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #dbe3ee;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.28);
+    font-family: '맑은 고딕', 'Malgun Gothic', sans-serif;
+    color: #1e293b;
+    box-sizing: border-box;
+}
+.web-save-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 14px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+.web-save-dialog-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0f172a;
+}
+.web-save-dialog-close {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.web-save-dialog-body {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 12.5px;
+}
+.web-save-meta-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    word-break: break-all;
+}
+.web-save-meta-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+.web-save-meta-label {
+    flex: 0 0 76px;
+    font-weight: 700;
+    color: #475569;
+}
+.web-save-meta-value {
+    flex: 1 1 auto;
+    color: #0f172a;
+    font-weight: 600;
+}
+.web-save-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.web-save-steps li {
+    padding: 6px 10px;
+    border-radius: 7px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 600;
+}
+.web-save-steps li[data-step-state="active"] {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+.web-save-steps li[data-step-state="done"] {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+.web-save-steps li[data-step-state="error"] {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+.web-save-pat-box {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+}
+.web-save-pat-box.visible {
+    display: flex;
+}
+.web-save-pat-box input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    font-size: 12.5px;
+}
+.web-save-result-links {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+}
+.web-save-result-links.visible {
+    display: flex;
+}
+.web-save-result-links a {
+    color: #1d4ed8;
+    font-weight: 700;
+    text-decoration: underline;
+    word-break: break-all;
+}
+.web-save-dialog-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    flex-wrap: wrap;
+}
+.web-save-dialog-footer button {
+    min-height: 36px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.web-save-dialog-footer .web-save-confirm-btn {
+    background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+    border-color: #1d4ed8;
+    color: #ffffff;
+}
+.web-save-dialog-footer .web-save-confirm-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+@media (max-width: 768px) {
+    #webSaveHtmlBtn {
+        min-height: 44px !important;
+        touch-action: manipulation;
+    }
+    #webSaveModal {
+        padding: 10px;
+        align-items: flex-end;
+    }
+    .web-save-dialog {
+        max-width: 100%;
+        border-radius: 16px 16px 10px 10px;
+    }
+    .web-save-dialog-close,
+    .web-save-dialog-footer button {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+    .web-save-dialog-footer {
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+}
+#webSavePatPrompt {
+    position: fixed;
+    inset: 0;
+    z-index: 50000 !important;
+    background: rgba(15, 23, 42, 0.48);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+    contain: layout style;
+}
+#webSavePatPrompt .web-save-pat-prompt-panel {
+    width: min(420px, 100%);
+    background: #ffffff;
+    border: 1px solid #d8e2f0;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.3);
+    padding: 18px;
+    font-family: '맑은 고딕', 'Malgun Gothic', sans-serif;
+    box-sizing: border-box;
+}
+#webSavePatPrompt #webSavePinInput {
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+#webSavePatPrompt #webSavePinInput.is-auto-hint {
+    color: #94a3b8 !important;
+    font-weight: 500;
+}
+#webSavePatPrompt #webSavePinInput::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+}
+@media (max-width: 768px) {
+    #webSavePatPrompt {
+        padding: 12px;
+        align-items: flex-end;
+    }
+    #webSavePatPrompt .web-save-pat-prompt-panel {
+        width: 100%;
+        border-radius: 16px 16px 10px 10px;
+        padding-bottom: max(18px, env(safe-area-inset-bottom));
+    }
+    #webSavePatPrompt button,
+    #webSavePatPrompt input[type="text"],
+    #webSavePatPrompt input[type="password"] {
+        min-height: 44px !important;
+        touch-action: manipulation;
+    }
+}
+/* --- END: 웹저장 (GitHub 자동 배포 · 00 BAK 자동 백업) UI 스타일 --- */
+
 </style>
 </head>
 
@@ -8037,6 +8350,50 @@ body.focused-editor-active #pasteQuickActionBar {
             <div class="anno-panel-resize-handle ne" data-resize-direction="ne" title="우상단 외곽 드래그로 크기 조절"></div>
             <div class="anno-panel-resize-handle sw" data-resize-direction="sw" title="좌하단 외곽 드래그로 크기 조절"></div>
             <div id="annoPanelResizeHandle" class="anno-panel-resize-handle se" data-resize-direction="se" title="우하단 외곽 드래그로 크기 조절"></div>
+        </div>
+        <div id="webSaveModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="webSaveModalTitle">
+            <div class="web-save-dialog">
+                <div class="web-save-dialog-header">
+                    <span class="web-save-dialog-title" id="webSaveModalTitle">☁️ GitHub 웹저장 (자동 배포 · 00 BAK 백업)</span>
+                    <button type="button" id="webSaveModalCloseBtn" class="web-save-dialog-close" title="닫기">×</button>
+                </div>
+                <div class="web-save-dialog-body">
+                    <div class="web-save-meta-card">
+                        <div class="web-save-meta-row">
+                            <span class="web-save-meta-label">저장소</span>
+                            <span class="web-save-meta-value" id="webSaveMetaRepo">JongGunelee/wyggkr03 (main)</span>
+                        </div>
+                        <div class="web-save-meta-row">
+                            <span class="web-save-meta-label">배포 경로</span>
+                            <span class="web-save-meta-value" id="webSaveMetaPath">-</span>
+                        </div>
+                        <div class="web-save-meta-row">
+                            <span class="web-save-meta-label">백업 규칙</span>
+                            <span class="web-save-meta-value" id="webSaveMetaBackup">-</span>
+                        </div>
+                        <div class="web-save-meta-row">
+                            <span class="web-save-meta-label">문서 크기</span>
+                            <span class="web-save-meta-value" id="webSaveMetaSize">계산 중…</span>
+                        </div>
+                    </div>
+                    <ul class="web-save-steps" id="webSaveStepsList">
+                        <li data-step="auth" data-step-state="pending">1. GitHub 인증(PAT) 확인</li>
+                        <li data-step="inspect" data-step-state="pending">2. 연도 폴더 · 기존 파일 · 00 BAK 폴더 확인</li>
+                        <li data-step="upload" data-step-state="pending">3. 무결성 HTML 업로드 및 백업 트리 구성</li>
+                        <li data-step="commit" data-step-state="pending">4. 원자적 커밋 및 배포 완료</li>
+                    </ul>
+                    <div class="web-save-pat-box" id="webSavePatBox">
+                        <div style="font-weight:700; color:#92400e;" id="webSavePatHint">GitHub PAT 직접 입력 (현재 세션 메모리에만 보관되며 저장 HTML에는 절대 포함되지 않습니다)</div>
+                        <input type="password" id="webSavePatInput" placeholder="ghp_... 또는 github_pat_... (wyggkr03 Contents 쓰기 권한 필요)" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="web-save-result-links" id="webSaveResultLinks"></div>
+                </div>
+                <div class="web-save-dialog-footer">
+                    <button type="button" id="webSaveTogglePatBtn" title="별도 GitHub PAT 직접 입력/변경">🔑 PAT 직접 입력</button>
+                    <button type="button" id="webSaveCancelBtn">닫기</button>
+                    <button type="button" id="webSaveConfirmBtn" class="web-save-confirm-btn">☁️ 지금 웹저장 실행</button>
+                </div>
+            </div>
         </div>
         <div id="customMessageBox" class="custom-message-box success" style="display: none;">실행 취소됨</div>
 
@@ -8320,6 +8677,11 @@ body.focused-editor-active #pasteQuickActionBar {
                         <button id="cloneMeetingBtn" style="margin-top:5px;">🔄 전주 회의 복제</button>
                         <input type="file" id="cloneMeetingFileInput" accept=".html" style="display: none;">
                         <button id="saveHtmlBtn" style="margin-top:5px;">💾 HTML로 저장</button>
+                        <button id="webSaveHtmlBtn" class="web-save-btn" style="margin-top:5px;">☁️ 웹저장 (GitHub 자동 배포)</button>
+                        <div id="webSaveStatusBox" class="web-save-status-box" data-state="idle" role="status" aria-live="polite">
+                            <div class="web-save-target-path" id="webSaveTargetPath">배포 경로: GitHub 자동 계산</div>
+                            <div class="web-save-status-msg" id="webSaveStatusMsg">대기 중 · N차 저장 시 해당년도/00 BAK 자동 백업</div>
+                        </div>
                         <button id="printPdfBtn" style="margin-top:5px;">📄 PDF로 인쇄</button>
                     </div>
                     <div class="panel-section">
@@ -9383,6 +9745,68 @@ body.focused-editor-active #pasteQuickActionBar {
                     getById('columnShutterControls')?.removeAttribute('data-bound');
                     getById('lastWeekShutterBtn')?.removeAttribute('style');
                     getById('thisWeekShutterBtn')?.removeAttribute('style');
+
+                    // GitHub 작성 상태 박스 정규화
+                    const clonedWeeklyGhBox = getById('weeklyGithubStatusBox');
+                    if (clonedWeeklyGhBox) clonedWeeklyGhBox.dataset.state = 'waiting';
+                    const clonedWeeklyGhText = getById('weeklyGithubStatusText');
+                    if (clonedWeeklyGhText) clonedWeeklyGhText.textContent = 'GitHub 작성 상태 연결 준비 중…';
+
+                    // 웹저장(GitHub 자동 배포) UI 및 인증 입력란 완전 정화 (토큰 유출 방지 + N차수 100% 무결성)
+                    clonedDoc.querySelectorAll('#webSavePatPrompt').forEach(el => el.remove());
+                    clonedDoc.documentElement?.classList.remove('codex-credential-prompt-active');
+                    clonedDoc.body?.classList.remove('codex-credential-prompt-active');
+                    const clonedWebSaveBtn = getById('webSaveHtmlBtn');
+                    if (clonedWebSaveBtn) {
+                        clonedWebSaveBtn.removeAttribute('disabled');
+                        clonedWebSaveBtn.removeAttribute('data-web-save-bound');
+                        clonedWebSaveBtn.textContent = '☁️ 웹저장 (GitHub 자동 배포)';
+                    }
+                    const clonedWebSaveBox = getById('webSaveStatusBox');
+                    if (clonedWebSaveBox) clonedWebSaveBox.dataset.state = 'idle';
+                    const clonedWebSavePath = getById('webSaveTargetPath');
+                    if (clonedWebSavePath) clonedWebSavePath.textContent = '배포 경로: GitHub 자동 계산';
+                    const clonedWebSaveMsg = getById('webSaveStatusMsg');
+                    if (clonedWebSaveMsg) clonedWebSaveMsg.textContent = '대기 중 · N차 저장 시 해당년도/00 BAK 자동 백업';
+                    const clonedWebSaveModal = getById('webSaveModal');
+                    if (clonedWebSaveModal) {
+                        clonedWebSaveModal.removeAttribute('class');
+                        clonedWebSaveModal.setAttribute('aria-hidden', 'true');
+                        clonedWebSaveModal.removeAttribute('style');
+                    }
+                    const clonedWebSavePatBox = getById('webSavePatBox');
+                    if (clonedWebSavePatBox) clonedWebSavePatBox.classList.remove('visible');
+                    const clonedWebSavePatInput = getById('webSavePatInput');
+                    if (clonedWebSavePatInput) {
+                        clonedWebSavePatInput.value = '';
+                        clonedWebSavePatInput.removeAttribute('value');
+                    }
+                    const clonedWebSaveLinks = getById('webSaveResultLinks');
+                    if (clonedWebSaveLinks) {
+                        clonedWebSaveLinks.classList.remove('visible');
+                        clonedWebSaveLinks.replaceChildren();
+                    }
+                    const clonedWebSaveMetaRepo = getById('webSaveMetaRepo');
+                    if (clonedWebSaveMetaRepo) clonedWebSaveMetaRepo.textContent = 'JongGunelee/wyggkr03 (main)';
+                    const clonedWebSaveMetaPath = getById('webSaveMetaPath');
+                    if (clonedWebSaveMetaPath) clonedWebSaveMetaPath.textContent = '-';
+                    const clonedWebSaveMetaBackup = getById('webSaveMetaBackup');
+                    if (clonedWebSaveMetaBackup) clonedWebSaveMetaBackup.textContent = '-';
+                    const clonedWebSaveMetaSize = getById('webSaveMetaSize');
+                    if (clonedWebSaveMetaSize) clonedWebSaveMetaSize.textContent = '계산 중…';
+                    const clonedWebSaveConfirmBtn = getById('webSaveConfirmBtn');
+                    if (clonedWebSaveConfirmBtn) {
+                        clonedWebSaveConfirmBtn.removeAttribute('disabled');
+                        clonedWebSaveConfirmBtn.textContent = '☁️ 지금 웹저장 실행';
+                    }
+                    clonedDoc.querySelectorAll('#webSaveStepsList li').forEach(li => {
+                        li.dataset.stepState = 'pending';
+                        const step = li.dataset.step;
+                        if (step === 'auth') li.textContent = '1. GitHub 인증(PAT) 확인';
+                        else if (step === 'inspect') li.textContent = '2. 연도 폴더 · 기존 파일 · 00 BAK 폴더 확인';
+                        else if (step === 'upload') li.textContent = '3. 무결성 HTML 업로드 및 백업 트리 구성';
+                        else if (step === 'commit') li.textContent = '4. 원자적 커밋 및 배포 완료';
+                    });
                     const cLastCol = getById('lastWeekColumn');
                     if (cLastCol) {
                         cLastCol.removeAttribute('style');
@@ -10277,13 +10701,54 @@ body.focused-editor-active #pasteQuickActionBar {
             };
         }
 
-        function getSaveFileName(extension) {
-            const now = new Date();
-            const weekInfo = getWeekInfo(now);
-            const year = weekInfo.year;
-            const month = String(weekInfo.month).padStart(2, '0');
-            const week = String(weekInfo.week).padStart(2, '0');
-            return `${year}_${month}_${week}_회의록.${extension}`;
+        function resolveWeeklyDocumentMeta(titleTextOverride) {
+            let rawTitle = '';
+            if (typeof titleTextOverride === 'string' && titleTextOverride.trim()) {
+                rawTitle = titleTextOverride.trim();
+            } else if (typeof pageTitle !== 'undefined' && pageTitle) {
+                rawTitle = (pageTitle.firstChild && pageTitle.firstChild.nodeType === Node.TEXT_NODE)
+                    ? String(pageTitle.firstChild.nodeValue || '').trim()
+                    : String(pageTitle.textContent || '').split('(')[0].trim();
+            }
+
+            const match = rawTitle.match(/(\d{2,4})년\s*(\d{1,2})월\s*(\d{1,2})주차/);
+            let yearNum = null;
+            let monthNum = null;
+            let weekNum = null;
+            if (match) {
+                let y = parseInt(match[1], 10);
+                if (y < 100) y += 2000;
+                yearNum = y;
+                monthNum = parseInt(match[2], 10);
+                weekNum = parseInt(match[3], 10);
+            } else if (Number.isInteger(documentYear) && Number.isInteger(documentMonth) && Number.isInteger(documentWeek)) {
+                yearNum = documentYear;
+                monthNum = documentMonth;
+                weekNum = documentWeek;
+            } else {
+                const weekInfo = getWeekInfo(new Date());
+                yearNum = weekInfo.year;
+                monthNum = weekInfo.month;
+                weekNum = weekInfo.week;
+            }
+
+            const year = String(yearNum);
+            const month = String(monthNum).padStart(2, '0');
+            const week = String(weekNum).padStart(2, '0');
+            return {
+                year,
+                month,
+                week,
+                yearNumber: yearNum,
+                monthNumber: monthNum,
+                weekNumber: weekNum,
+                rawTitle
+            };
+        }
+
+        function getSaveFileName(extension, titleTextOverride) {
+            const meta = resolveWeeklyDocumentMeta(titleTextOverride);
+            return `${meta.year}_${meta.month}_${meta.week}_회의록.${extension}`;
         }
 
         function applyCurrentDateToDocument() {
@@ -10322,6 +10787,7 @@ body.focused-editor-active #pasteQuickActionBar {
             if (thisWeekTitleText) thisWeekTitleText.textContent = `금주 (${formatDate(thisMonday)} ~ ${formatDate(thisSunday)})`;
 
             initializeWeeklyNavigator();
+            window.WebSaveDeployer?.refreshTargetPreview?.();
         }
 
         function getNumberOfWeeksInMonth(year, month) {
@@ -13658,7 +14124,7 @@ function hideTextFormatToolbar() {
             emojiPalette.classList.toggle('show');
         }
 
-        function saveHTML() {
+        function buildCleanHtmlSnapshot() {
             hideFloatingTextTools();
             cleanCurrentDocumentOfDuplicateToolbars();
             const focusedOverlay = document.getElementById('focusedEditorOverlay');
@@ -13766,17 +14232,1107 @@ function hideTextFormatToolbar() {
             const rawOuter = clonedDoc.documentElement.outerHTML;
             const normalizedOuter = rawOuter.includes('\r') ? rawOuter.replace(/\r\n?/g, '\n') : rawOuter;
             const htmlOutput = `<!DOCTYPE html>\n${normalizedOuter}\n`;
+            const currentTitleText = (pageTitle && pageTitle.firstChild && pageTitle.firstChild.nodeType === Node.TEXT_NODE)
+                ? String(pageTitle.firstChild.nodeValue || '').trim()
+                : String(pageTitle?.textContent || '').split('(')[0].trim();
+            const fileName = getSaveFileName('html', currentTitleText);
 
+            return { htmlOutput, fileName, titleText: currentTitleText };
+        }
+
+        function saveHTML() {
+            const { htmlOutput, fileName } = buildCleanHtmlSnapshot();
             const blob = new Blob([htmlOutput], { type: "text/html;charset=utf-8" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
-            a.download = getSaveFileName('html');
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(a.href);
             showMessage("HTML 파일이 현재 상태 그대로 저장되었습니다.", "success");
         }
+        window.saveHTML = saveHTML;
+
+        // --- START: 완벽한 온라인 배포 자동화 ('☁️ 웹저장' · GitHub 자동 폴더/00 BAK 백업 · 암호화 PAT 볼트 엔진) ---
+        const WebSaveDeployer = (() => {
+            const config = {
+                owner: 'JongGunelee',
+                repo: 'wyggkr03',
+                branch: 'main',
+                backupFolderName: '00 BAK',
+                apiBaseUrl: 'https://api.github.com',
+                pagesBaseUrl: 'https://jonggunelee.github.io/wyggkr03/',
+                // 벤치마킹('웹저장의 PAT 처리 부분 참조') 동일 GitHub 암호화 PAT 보관함 규격
+                patKey: 'github_pat',
+                patVaultKey: 'codex_gh_token_vault_v1',
+                patPinRememberKey: 'codex_gh_token_pin_remember_v1',
+                remotePatVaultPath: 'RawData/공정관리/encrypted-pat.json',
+                remotePatVaultBase: 'https://jonggunelee.github.io/wyggkr04/',
+                remotePatVaultFallbackBase: 'https://raw.githubusercontent.com/jonggunelee/wyggkr04/main/',
+                defaultPinHint: '2026xlsb'
+            };
+            let customSessionToken = '';
+            let sessionToken = '';
+            let remoteTokenVault = null;
+            let remoteTokenVaultPromise = null;
+            let isDeploying = false;
+            let cachedSnapshot = null;
+
+            function formatCompactTimestamp(date = new Date()) {
+                const pad = n => String(n).padStart(2, '0');
+                return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+            }
+
+            function encodeRepoPath(repoPath) {
+                return String(repoPath).split('/').map(seg => encodeURIComponent(seg)).join('/');
+            }
+
+            function encodedPagesVaultUrl(pathOverride) {
+                const targetPath = pathOverride || config.remotePatVaultPath;
+                return config.remotePatVaultBase.replace(/\/+$/, '/') + encodeRepoPath(targetPath);
+            }
+
+            function encodedRawVaultUrl(pathOverride) {
+                const targetPath = pathOverride || config.remotePatVaultPath;
+                return config.remotePatVaultFallbackBase.replace(/\/+$/, '/') + encodeRepoPath(targetPath);
+            }
+
+            function resolveTarget(titleText) {
+                const meta = resolveWeeklyDocumentMeta(titleText);
+                const fileName = `${meta.year}_${meta.month}_${meta.week}_회의록.html`;
+                const dotIdx = fileName.lastIndexOf('.');
+                const baseName = dotIdx > 0 ? fileName.slice(0, dotIdx) : fileName;
+                const ext = dotIdx > 0 ? fileName.slice(dotIdx) : '.html';
+                const repoPath = `${meta.year}/${fileName}`;
+                const backupDirPath = `${meta.year}/${config.backupFolderName}`;
+                const makeBackupPath = (ts) => `${backupDirPath}/${baseName}_${ts}${ext}`;
+                const pagesUrl = `${config.pagesBaseUrl.replace(/\/+$/, '')}/${encodeRepoPath(repoPath)}`;
+                const githubFileUrl = `https://github.com/${config.owner}/${config.repo}/blob/${encodeURIComponent(config.branch)}/${encodeRepoPath(repoPath)}`;
+                const githubFolderUrl = `https://github.com/${config.owner}/${config.repo}/tree/${encodeURIComponent(config.branch)}/${encodeRepoPath(meta.year)}`;
+                return {
+                    year: meta.year,
+                    month: meta.month,
+                    week: meta.week,
+                    yearNumber: meta.yearNumber,
+                    monthNumber: meta.monthNumber,
+                    weekNumber: meta.weekNumber,
+                    statusKey: `${meta.yearNumber}-${meta.monthNumber}-${meta.weekNumber}`,
+                    writtenKey: `${meta.year}-${meta.month}-${meta.week}`,
+                    fileName,
+                    baseName,
+                    ext,
+                    repoPath,
+                    backupDirPath,
+                    makeBackupPath,
+                    pagesUrl,
+                    githubFileUrl,
+                    githubFolderUrl
+                };
+            }
+
+            function setPanelStatus(state, message, targetInfo) {
+                const box = document.getElementById('webSaveStatusBox');
+                const pathEl = document.getElementById('webSaveTargetPath');
+                const msgEl = document.getElementById('webSaveStatusMsg');
+                const info = targetInfo || resolveTarget();
+                if (box) box.dataset.state = state;
+                if (pathEl) pathEl.textContent = `배포 경로: ${config.owner}/${config.repo}/${info.repoPath}`;
+                if (msgEl && message) msgEl.textContent = message;
+            }
+
+            function refreshTargetPreview() {
+                const info = resolveTarget();
+                const pathEl = document.getElementById('webSaveTargetPath');
+                if (pathEl) pathEl.textContent = `배포 경로: ${config.owner}/${config.repo}/${info.repoPath}`;
+                return info;
+            }
+
+            function setStepState(stepName, state, text) {
+                const li = document.querySelector(`#webSaveStepsList li[data-step="${stepName}"]`);
+                if (!li) return;
+                li.dataset.stepState = state;
+                if (text) li.textContent = text;
+            }
+
+            function resetModalSteps() {
+                setStepState('auth', 'pending', '1. GitHub 인증(PAT) 확인');
+                setStepState('inspect', 'pending', '2. 연도 폴더 · 기존 파일 · 00 BAK 폴더 확인');
+                setStepState('upload', 'pending', '3. 무결성 HTML 업로드 및 백업 트리 구성');
+                setStepState('commit', 'pending', '4. 원자적 커밋 및 배포 완료');
+            }
+
+            function formatByteSize(bytes) {
+                if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+                if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(2)} MB (${bytes.toLocaleString()} bytes)`;
+                if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+                return `${bytes} B`;
+            }
+
+            function isLikelyGithubToken(val) {
+                const token = String(val || '').trim();
+                if (!token) return false;
+                return /^(github_pat_|gh[pousr]_)[A-Za-z0-9_]+$/.test(token);
+            }
+
+            function validVaultPin(pin) {
+                return /^[0-9A-Za-z]{4,12}$/.test(String(pin || '').trim());
+            }
+
+            function webCryptoAvailable() {
+                return !!(window.crypto && window.crypto.subtle && window.crypto.getRandomValues && window.TextEncoder && window.TextDecoder);
+            }
+
+            function vaultBytesToBase64(bytes) {
+                const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+                let text = '';
+                for (let i = 0; i < arr.length; i += 1) text += String.fromCharCode(arr[i]);
+                return btoa(text);
+            }
+
+            function vaultBase64ToBytes(text) {
+                const bin = atob(String(text || ''));
+                const out = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+                return out;
+            }
+
+            function hasTokenVault() {
+                try { return !!localStorage.getItem(config.patVaultKey); } catch (e) { return false; }
+            }
+
+            function isValidTokenVaultPayload(vault) {
+                return !!(vault && vault.v === 1 && vault.alg === 'AES-GCM' && vault.kdf === 'PBKDF2-SHA256' && vault.salt && vault.iv && vault.cipher);
+            }
+
+            function getRememberedVaultPin() {
+                try {
+                    const pin = String(localStorage.getItem(config.patPinRememberKey) || '').trim();
+                    return validVaultPin(pin) ? pin : '';
+                } catch (e) { return ''; }
+            }
+
+            function setRememberedVaultPin(pin, remember) {
+                try {
+                    const trimmed = String(pin || '').trim();
+                    if (remember && validVaultPin(trimmed)) localStorage.setItem(config.patPinRememberKey, trimmed);
+                    else localStorage.removeItem(config.patPinRememberKey);
+                } catch (e) { }
+            }
+
+            function setCustomToken(token) {
+                const trimmed = String(token || '').trim();
+                if (!trimmed) {
+                    customSessionToken = '';
+                    sessionToken = '';
+                    return false;
+                }
+                customSessionToken = trimmed;
+                sessionToken = trimmed;
+                return true;
+            }
+
+            function clearCustomToken() {
+                customSessionToken = '';
+                sessionToken = '';
+                const patInput = document.getElementById('webSavePatInput');
+                if (patInput) patInput.value = '';
+            }
+
+            function clearStoredGithubToken(reason) {
+                customSessionToken = '';
+                sessionToken = '';
+                const patInput = document.getElementById('webSavePatInput');
+                if (patInput) patInput.value = '';
+                try { localStorage.removeItem(config.patKey); } catch (e) { }
+                try { localStorage.removeItem(config.patVaultKey); } catch (e0) { }
+                try {
+                    const raw = localStorage.getItem('github_config');
+                    if (raw) {
+                        const cfg = JSON.parse(raw);
+                        if (cfg && cfg.token) {
+                            cfg.token = '';
+                            localStorage.setItem('github_config', JSON.stringify(cfg));
+                        }
+                    }
+                } catch (e2) { }
+                try {
+                    window.__codexWebSaveAuthReset = {
+                        reason: reason || 'auth-failed',
+                        at: new Date().toISOString()
+                    };
+                } catch (e3) { }
+            }
+
+            function getTokenFromStorage() {
+                try {
+                    if (isLikelyGithubToken(sessionToken)) return String(sessionToken).trim();
+                    if (isLikelyGithubToken(customSessionToken)) {
+                        sessionToken = String(customSessionToken).trim();
+                        return sessionToken;
+                    }
+                    const token = String(localStorage.getItem(config.patKey) || '').trim();
+                    if (!token) return '';
+                    if (!isLikelyGithubToken(token)) {
+                        clearStoredGithubToken('invalid-format');
+                        return '';
+                    }
+                    sessionToken = token;
+                    return token;
+                } catch (e) { return ''; }
+            }
+
+            async function fetchWithTimeoutSimple(url, fetchImpl, timeoutMs = 12000) {
+                const fn = fetchImpl || window.fetch.bind(window);
+                if (typeof AbortController === 'undefined') {
+                    return await fn(url, { method: 'GET', cache: 'no-store' });
+                }
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), timeoutMs);
+                try {
+                    return await fn(url, { method: 'GET', cache: 'no-store', signal: controller.signal });
+                } finally {
+                    clearTimeout(timer);
+                }
+            }
+
+            async function fetchRemoteTokenVault({ fetchImpl = null, force = false } = {}) {
+                if (!config.remotePatVaultPath) return null;
+                if (!force && remoteTokenVault) return remoteTokenVault;
+                if (!force && remoteTokenVaultPromise) return await remoteTokenVaultPromise;
+
+                remoteTokenVaultPromise = (async () => {
+                    const urls = [encodedPagesVaultUrl(config.remotePatVaultPath)];
+                    if (config.remotePatVaultFallbackBase) urls.push(encodedRawVaultUrl(config.remotePatVaultPath));
+                    for (let i = 0; i < urls.length; i += 1) {
+                        for (let attempt = 0; attempt < 2; attempt += 1) {
+                            try {
+                                const res = await fetchWithTimeoutSimple(urls[i], fetchImpl, 12000);
+                                if (res && res.ok) {
+                                    const vault = await res.json();
+                                    if (isValidTokenVaultPayload(vault)) {
+                                        remoteTokenVault = vault;
+                                        return vault;
+                                    }
+                                }
+                            } catch (err) {
+                                // 다음 시도 또는 fallback URL로 전환
+                            }
+                        }
+                    }
+                    return null;
+                })();
+
+                try {
+                    return await remoteTokenVaultPromise;
+                } finally {
+                    remoteTokenVaultPromise = null;
+                }
+            }
+
+            async function deriveVaultKey(pin, salt, iterations) {
+                const encoder = new TextEncoder();
+                const baseKey = await crypto.subtle.importKey('raw', encoder.encode(String(pin || '')), 'PBKDF2', false, ['deriveKey']);
+                return crypto.subtle.deriveKey({
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: iterations || 120000,
+                    hash: 'SHA-256'
+                }, baseKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+            }
+
+            async function saveTokenVault(token, pin) {
+                if (!webCryptoAvailable()) throw new Error('이 브라우저는 암호화 보관함을 지원하지 않습니다.');
+                const cleanToken = String(token || '').trim();
+                const cleanPin = String(pin || '').trim();
+                if (!isLikelyGithubToken(cleanToken)) throw new Error('GitHub PAT 형식이 아닙니다.');
+                if (!validVaultPin(cleanPin)) throw new Error('간편키는 4~12자리 영문/숫자로 입력하세요.');
+                const salt = new Uint8Array(16);
+                const iv = new Uint8Array(12);
+                crypto.getRandomValues(salt);
+                crypto.getRandomValues(iv);
+                const key = await deriveVaultKey(cleanPin, salt, 120000);
+                const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(cleanToken));
+                const vault = {
+                    v: 1,
+                    alg: 'AES-GCM',
+                    kdf: 'PBKDF2-SHA256',
+                    iterations: 120000,
+                    salt: vaultBytesToBase64(salt),
+                    iv: vaultBytesToBase64(iv),
+                    cipher: vaultBytesToBase64(cipher),
+                    createdAt: new Date().toISOString()
+                };
+                localStorage.setItem(config.patVaultKey, JSON.stringify(vault));
+                localStorage.removeItem(config.patKey);
+                sessionToken = cleanToken;
+                customSessionToken = cleanToken;
+                return cleanToken;
+            }
+
+            async function unlockTokenVault(pin, vaultOverride) {
+                if (!webCryptoAvailable()) throw new Error('이 브라우저는 암호화 보관함을 지원하지 않습니다.');
+                const cleanPin = String(pin || '').trim();
+                if (!validVaultPin(cleanPin)) throw new Error('간편키는 4~12자리 영문/숫자로 입력하세요.');
+                let vault = vaultOverride || null;
+                if (!vault) {
+                    const raw = localStorage.getItem(config.patVaultKey);
+                    if (!raw) return '';
+                    vault = JSON.parse(raw);
+                }
+                if (!isValidTokenVaultPayload(vault)) throw new Error('PAT 보관함 형식이 올바르지 않습니다.');
+                const salt = vaultBase64ToBytes(vault.salt);
+                const iv = vaultBase64ToBytes(vault.iv);
+                const cipher = vaultBase64ToBytes(vault.cipher);
+                const key = await deriveVaultKey(cleanPin, salt, Number(vault.iterations) || 120000);
+                const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, cipher);
+                const token = new TextDecoder().decode(plain).trim();
+                if (!isLikelyGithubToken(token)) throw new Error('보관함의 PAT 형식이 올바르지 않습니다.');
+                sessionToken = token;
+                customSessionToken = token;
+                return token;
+            }
+
+            function setCredentialPromptActive(active) {
+                try { window.__codexCredentialPromptActive = !!active; } catch (e) { }
+                try {
+                    document.documentElement?.classList.toggle('codex-credential-prompt-active', !!active);
+                    document.body?.classList.toggle('codex-credential-prompt-active', !!active);
+                } catch (e2) { }
+            }
+
+            function hardenSensitivePromptInput(input, key) {
+                if (!input) return input;
+                try {
+                    input.setAttribute('autocomplete', 'new-password');
+                    input.setAttribute('autocorrect', 'off');
+                    input.setAttribute('autocapitalize', 'none');
+                    input.setAttribute('spellcheck', 'false');
+                    input.setAttribute('data-lpignore', 'true');
+                    input.setAttribute('data-1p-ignore', 'true');
+                    input.setAttribute('data-form-type', 'other');
+                    input.name = 'codex_websave_' + String(key || 'secret') + '_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+                } catch (e) { }
+                return input;
+            }
+
+            function isolateCredentialPromptInput(input) {
+                if (!input || input.__codexCredentialPromptIsolated) return input;
+                input.__codexCredentialPromptIsolated = true;
+                ['beforeinput', 'input', 'change', 'paste', 'compositionstart', 'compositionupdate', 'compositionend', 'keyup', 'keydown'].forEach(type => {
+                    input.addEventListener(type, event => { event.stopPropagation(); }, false);
+                });
+                return input;
+            }
+
+            function isolateCredentialPromptPanel(panel) {
+                if (!panel || panel.__codexCredentialPromptPanelIsolated) return panel;
+                panel.__codexCredentialPromptPanelIsolated = true;
+                ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend'].forEach(type => {
+                    panel.addEventListener(type, event => { event.stopPropagation(); }, false);
+                });
+                return panel;
+            }
+
+            function configureFaintAutoPinInput(panel, pinInput, rememberedPin) {
+                const toggle = panel?.querySelector('#webSavePinToggle');
+                const initialPin = rememberedPin || config.defaultPinHint;
+                pinInput.setAttribute('placeholder', config.defaultPinHint);
+                pinInput.setAttribute('inputmode', 'text');
+                pinInput.value = initialPin;
+
+                // 분실 우려 해소를 위해 입력창에 흐리게 '2026xlsb'가 자동 입력되어 표시되도록 구성
+                if (!rememberedPin || initialPin === config.defaultPinHint) {
+                    pinInput.type = 'text';
+                    pinInput.classList.add('is-auto-hint');
+                    if (toggle) {
+                        toggle.textContent = '숨김';
+                        toggle.setAttribute('aria-label', '간편키 숨기기');
+                    }
+                } else {
+                    pinInput.type = 'password';
+                    pinInput.classList.remove('is-auto-hint');
+                    if (toggle) {
+                        toggle.textContent = '보기';
+                        toggle.setAttribute('aria-label', '간편키 보기');
+                    }
+                }
+
+                pinInput.addEventListener('input', () => {
+                    const current = String(pinInput.value || '').trim();
+                    if (current !== config.defaultPinHint) {
+                        pinInput.classList.remove('is-auto-hint');
+                    }
+                });
+
+                if (toggle) {
+                    toggle.addEventListener('click', () => {
+                        const show = pinInput.type === 'password';
+                        pinInput.type = show ? 'text' : 'password';
+                        toggle.textContent = show ? '숨김' : '보기';
+                        toggle.setAttribute('aria-label', show ? '간편키 숨기기' : '간편키 보기');
+                    });
+                }
+            }
+
+            function requestTokenSetup() {
+                return new Promise(resolve => {
+                    document.getElementById('webSavePatPrompt')?.remove();
+                    setCredentialPromptActive(true);
+                    const overlay = document.createElement('div');
+                    overlay.id = 'webSavePatPrompt';
+                    overlay.setAttribute('role', 'dialog');
+                    overlay.setAttribute('aria-modal', 'true');
+                    const panel = document.createElement('div');
+                    panel.className = 'web-save-pat-prompt-panel';
+                    panel.innerHTML =
+                        '<div style="font-weight:900;font-size:17px;color:#0f172a;margin-bottom:8px;">웹 저장 PAT 최초 등록</div>' +
+                        '<div style="font-size:13px;color:#475569;margin-bottom:12px;">PAT는 HTML에 저장하지 않고 이 브라우저에 AES-GCM 암호화 보관합니다. 다음부터는 간편키만 입력하면 됩니다.</div>' +
+                        '<label style="display:block;font-size:12px;font-weight:800;color:#334155;margin-bottom:4px;">GitHub PAT</label>' +
+                        '<input id="webSavePromptPatInput" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_ 또는 ghp_ 토큰 입력" style="width:100%;box-sizing:border-box;height:38px;border:1px solid #cbd5e1;border-radius:7px;padding:0 10px;font-size:13px;color:#0f172a;caret-color:#0f172a;background:#f8fafc;">' +
+                        '<label style="display:block;font-size:12px;font-weight:800;color:#334155;margin:10px 0 4px;">간편키 4~12자리</label>' +
+                        '<div style="display:flex;gap:6px;align-items:center;">' +
+                            '<input id="webSavePinInput" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="2026xlsb" style="flex:1;min-width:0;height:38px;border:1px solid #cbd5e1;border-radius:7px;padding:0 10px;font-size:15px;color:#0f172a;caret-color:#0f172a;background:#f8fafc;">' +
+                            '<button type="button" id="webSavePinToggle" aria-label="간편키 숨기기" style="height:38px;padding:0 10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-size:12px;font-weight:800;cursor:pointer;">숨김</button>' +
+                        '</div>' +
+                        '<label style="display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12px;color:#475569;font-weight:700;"><input id="webSavePinRemember" type="checkbox" checked style="width:15px;height:15px;"> 이 기기에 간편키 저장</label>' +
+                        '<div id="webSavePatHelp" style="display:none;margin-top:8px;font-size:12px;color:#dc2626;font-weight:700;"></div>' +
+                        '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">' +
+                            '<button type="button" id="webSavePatCancel" style="padding:7px 12px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-weight:700;cursor:pointer;">취소</button>' +
+                            '<button type="button" id="webSavePatOk" style="padding:7px 14px;border:1px solid #0d9488;border-radius:7px;background:#0d9488;color:#fff;font-weight:800;cursor:pointer;">등록</button>' +
+                        '</div>';
+                    overlay.appendChild(panel);
+                    document.body.appendChild(overlay);
+                    isolateCredentialPromptPanel(panel);
+
+                    const input = panel.querySelector('#webSavePromptPatInput');
+                    const pinInput = panel.querySelector('#webSavePinInput');
+                    const rememberInput = panel.querySelector('#webSavePinRemember');
+                    const help = panel.querySelector('#webSavePatHelp');
+                    let done = false;
+
+                    isolateCredentialPromptInput(input);
+                    isolateCredentialPromptInput(pinInput);
+                    hardenSensitivePromptInput(input, 'pat');
+                    hardenSensitivePromptInput(pinInput, 'setup_pin');
+                    const rememberedPin = getRememberedVaultPin();
+                    configureFaintAutoPinInput(panel, pinInput, rememberedPin);
+
+                    const close = (value) => {
+                        if (done) return;
+                        done = true;
+                        overlay.remove();
+                        setCredentialPromptActive(false);
+                        resolve(value || '');
+                    };
+
+                    setTimeout(() => { try { input.focus(); } catch (e) { } }, 0);
+                    panel.querySelector('#webSavePatCancel').addEventListener('click', () => close(''));
+                    panel.querySelector('#webSavePatOk').addEventListener('click', async () => {
+                        const value = String(input.value || '').trim();
+                        if (!value || !isLikelyGithubToken(value)) {
+                            if (help) { help.textContent = 'GitHub PAT 형식이 아닙니다 (ghp_ 또는 github_pat_로 시작).'; help.style.display = 'block'; }
+                            return;
+                        }
+                        const pin = String(pinInput.value || '').trim() || config.defaultPinHint;
+                        if (!validVaultPin(pin)) {
+                            if (help) { help.textContent = '간편키는 4~12자리 영문/숫자로 입력하세요.'; help.style.display = 'block'; }
+                            return;
+                        }
+                        try {
+                            const saved = await saveTokenVault(value, pin);
+                            setRememberedVaultPin(pin, rememberInput && rememberInput.checked);
+                            close(saved);
+                        } catch (error) {
+                            if (help) { help.textContent = error?.message || String(error); help.style.display = 'block'; }
+                        }
+                    });
+                    [input, pinInput].forEach(el => {
+                        el.addEventListener('keydown', event => {
+                            if (event.key === 'Enter') {
+                                event.preventDefault();
+                                panel.querySelector('#webSavePatOk').click();
+                            } else if (event.key === 'Escape') {
+                                event.preventDefault();
+                                close('');
+                            }
+                        });
+                    });
+                });
+            }
+
+            function requestTokenUnlock(sourceLabel, vaultOverride) {
+                return new Promise(resolve => {
+                    document.getElementById('webSavePatPrompt')?.remove();
+                    setCredentialPromptActive(true);
+                    const overlay = document.createElement('div');
+                    overlay.id = 'webSavePatPrompt';
+                    overlay.setAttribute('role', 'dialog');
+                    overlay.setAttribute('aria-modal', 'true');
+                    const panel = document.createElement('div');
+                    panel.className = 'web-save-pat-prompt-panel';
+                    const isRemoteVault = sourceLabel === 'remote';
+                    const title = isRemoteVault ? '원격 PAT 보관함 열기' : 'PAT 보관함 열기';
+                    const guide = isRemoteVault
+                        ? 'GitHub(wyggkr04/RawData/공정관리/encrypted-pat.json) 암호화 PAT를 복원합니다. 간편키(2026xlsb)가 흐리게 자동 입력되어 있으니 바로 [열기]를 누르세요.'
+                        : '이 기기에 암호화 보관된 PAT를 열 간편키를 확인한 뒤 [열기]를 누르세요.';
+                    const leftButton = isRemoteVault
+                        ? '<button type="button" id="webSavePatDirectSetup" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#475569;font-size:12px;font-weight:700;cursor:pointer;">직접등록</button>'
+                        : '<button type="button" id="webSavePatReset" style="padding:7px 12px;border:1px solid #fca5a5;border-radius:7px;background:#fff;color:#b91c1c;font-weight:700;cursor:pointer;">재등록</button>';
+                    panel.innerHTML =
+                        '<div style="font-weight:900;font-size:17px;color:#0f172a;margin-bottom:8px;">🔐 ' + title + '</div>' +
+                        '<div style="font-size:12.5px;line-height:1.45;color:#475569;margin-bottom:12px;">' + guide + '</div>' +
+                        '<div style="display:flex;gap:6px;align-items:center;">' +
+                            '<input id="webSavePinInput" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="2026xlsb" style="flex:1;min-width:0;height:40px;border:1px solid #cbd5e1;border-radius:7px;padding:0 10px;font-size:16px;color:#0f172a;background:#f8fafc;">' +
+                            '<button type="button" id="webSavePinToggle" aria-label="간편키 숨기기" style="height:40px;padding:0 10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-size:12px;font-weight:800;cursor:pointer;">숨김</button>' +
+                        '</div>' +
+                        '<label style="display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12px;color:#475569;font-weight:700;"><input id="webSavePinRemember" type="checkbox" checked style="width:15px;height:15px;"> 이 기기에 간편키 저장</label>' +
+                        '<div id="webSavePatHelp" style="display:none;margin-top:8px;font-size:12px;color:#dc2626;font-weight:700;"></div>' +
+                        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:14px;">' +
+                            leftButton +
+                            '<span style="flex:1"></span>' +
+                            '<button type="button" id="webSavePatCancel" style="padding:7px 12px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-weight:700;cursor:pointer;">취소</button>' +
+                            '<button type="button" id="webSavePatOk" style="padding:7px 14px;border:1px solid #0d9488;border-radius:7px;background:#0d9488;color:#fff;font-weight:800;cursor:pointer;">열기</button>' +
+                        '</div>';
+                    overlay.appendChild(panel);
+                    document.body.appendChild(overlay);
+                    isolateCredentialPromptPanel(panel);
+
+                    const input = panel.querySelector('#webSavePinInput');
+                    const rememberInput = panel.querySelector('#webSavePinRemember');
+                    const help = panel.querySelector('#webSavePatHelp');
+                    let done = false;
+
+                    isolateCredentialPromptInput(input);
+                    hardenSensitivePromptInput(input, isRemoteVault ? 'remote_pin' : 'local_pin');
+                    const rememberedPin = getRememberedVaultPin();
+                    configureFaintAutoPinInput(panel, input, rememberedPin);
+
+                    const close = (value) => {
+                        if (done) return;
+                        done = true;
+                        overlay.remove();
+                        setCredentialPromptActive(false);
+                        resolve(value || '');
+                    };
+
+                    setTimeout(() => { try { panel.querySelector('#webSavePatOk')?.focus(); } catch (e) { } }, 0);
+                    panel.querySelector('#webSavePatReset')?.addEventListener('click', () => {
+                        try { localStorage.removeItem(config.patVaultKey); } catch (e) { }
+                        setRememberedVaultPin('', false);
+                        close('__reset__');
+                    });
+                    panel.querySelector('#webSavePatDirectSetup')?.addEventListener('click', () => {
+                        close('__setup__');
+                    });
+                    panel.querySelector('#webSavePatCancel').addEventListener('click', () => close(''));
+                    panel.querySelector('#webSavePatOk').addEventListener('click', async () => {
+                        try {
+                            const pin = String(input.value || '').trim() || config.defaultPinHint;
+                            const token = await unlockTokenVault(pin, vaultOverride);
+                            setRememberedVaultPin(pin, rememberInput && rememberInput.checked);
+                            close(token);
+                        } catch (error) {
+                            if (help) { help.textContent = '간편키가 맞지 않습니다. (기본값: 2026xlsb)'; help.style.display = 'block'; }
+                        }
+                    });
+                    input.addEventListener('keydown', event => {
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                            panel.querySelector('#webSavePatOk').click();
+                        } else if (event.key === 'Escape') {
+                            event.preventDefault();
+                            close('');
+                        }
+                    });
+                });
+            }
+
+            async function acquireGithubToken(options = {}) {
+                const patInput = document.getElementById('webSavePatInput');
+                const enteredPat = String(patInput?.value || '').trim();
+                if (enteredPat) {
+                    if (!isLikelyGithubToken(enteredPat)) {
+                        throw new Error('입력한 GitHub PAT 형식이 올바르지 않습니다 (ghp_ 또는 github_pat_로 시작해야 합니다).');
+                    }
+                    customSessionToken = enteredPat;
+                    sessionToken = enteredPat;
+                    return sessionToken;
+                }
+                if (options.token) {
+                    const direct = String(options.token).trim();
+                    sessionToken = direct;
+                    return direct;
+                }
+                if (!options.forcePrompt) {
+                    const stored = getTokenFromStorage();
+                    if (stored) return stored;
+                }
+                if (options.allowPrompt === false) return '';
+
+                let entered = '';
+                // 1) 브라우저 로컬 암호화 보관함(codex_gh_token_vault_v1) 우선 확인
+                if (hasTokenVault()) {
+                    entered = await requestTokenUnlock('local');
+                    if (entered === '__reset__') entered = '';
+                    else if (!entered) return '';
+                }
+                // 2) GitHub 원격 암호화 보관함(wyggkr04/RawData/공정관리/encrypted-pat.json) 복원
+                if (!entered) {
+                    const remoteVault = await fetchRemoteTokenVault({ fetchImpl: options.vaultFetchImpl || options.fetchImpl });
+                    if (remoteVault) {
+                        entered = await requestTokenUnlock('remote', remoteVault);
+                        if (entered === '__setup__') entered = '';
+                        else if (!entered) return '';
+                    }
+                }
+                // 3) 원격 보관함 미가용 시 기존 MeetingGithubCredential 브릿지 보조 확인
+                if (!entered && window.MeetingGithubCredential && typeof window.MeetingGithubCredential.ensureToken === 'function') {
+                    try {
+                        const bridgeToken = await window.MeetingGithubCredential.ensureToken({
+                            allowPrompt: false,
+                            allowSetup: false
+                        });
+                        if (isLikelyGithubToken(bridgeToken)) entered = bridgeToken;
+                    } catch (bridgeErr) { }
+                }
+                // 4) 최종 fallback: PAT 최초 등록 모달 (브라우저 AES-GCM 암호화 보관)
+                if (!entered) {
+                    entered = await requestTokenSetup();
+                }
+                if (!entered || !String(entered).trim()) return '';
+                const finalToken = String(entered).trim();
+                sessionToken = finalToken;
+                customSessionToken = finalToken;
+                return finalToken;
+            }
+
+            async function githubRequest(endpoint, { method = 'GET', token = '', body = null, allow404 = false, fetchImpl = null } = {}) {
+                const fn = fetchImpl || window.fetch.bind(window);
+                const url = `${config.apiBaseUrl.replace(/\/+$/, '')}${endpoint}`;
+                const headers = {
+                    'Accept': 'application/vnd.github+json',
+                    'X-GitHub-Api-Version': '2022-11-28'
+                };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+                if (body !== null) headers['Content-Type'] = 'application/json';
+                const res = await fn(url, {
+                    method,
+                    headers,
+                    body: body !== null ? JSON.stringify(body) : undefined,
+                    cache: 'no-store'
+                });
+                if (allow404 && res.status === 404) {
+                    return { status: 404, ok: false, data: null };
+                }
+                let data = null;
+                const text = await res.text();
+                try { data = text ? JSON.parse(text) : null; } catch (_) { data = { message: text }; }
+                if (!res.ok) {
+                    const err = new Error(data?.message || `GitHub API 오류 (HTTP ${res.status})`);
+                    err.status = res.status;
+                    err.data = data;
+                    throw err;
+                }
+                return { status: res.status, ok: true, data };
+            }
+
+            async function inspectRemoteState({ target, token = '', fetchImpl = null } = {}) {
+                const info = target || resolveTarget();
+                const repoBase = `/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}`;
+                const refRes = await githubRequest(`${repoBase}/git/ref/heads/${encodeURIComponent(config.branch)}`, { token, fetchImpl });
+                const headCommitSha = refRes.data?.object?.sha;
+                if (!headCommitSha) throw new Error(`브랜치(${config.branch}) HEAD 커밋을 찾을 수 없습니다.`);
+
+                const commitRes = await githubRequest(`${repoBase}/git/commits/${encodeURIComponent(headCommitSha)}`, { token, fetchImpl });
+                const baseTreeSha = commitRes.data?.tree?.sha;
+                if (!baseTreeSha) throw new Error('기준 Git 트리(base_tree)를 조회하지 못했습니다.');
+
+                const yearDirRes = await githubRequest(`${repoBase}/contents/${encodeRepoPath(info.year)}?ref=${encodeURIComponent(config.branch)}`, {
+                    token,
+                    allow404: true,
+                    fetchImpl
+                });
+                let yearFolderExists = false;
+                let backupFolderExists = false;
+                let existingFileSha = null;
+                let existingFileSize = 0;
+
+                if (yearDirRes.status === 200 && Array.isArray(yearDirRes.data)) {
+                    yearFolderExists = true;
+                    const fileEntry = yearDirRes.data.find(item => item.type === 'file' && item.name === info.fileName);
+                    if (fileEntry) {
+                        existingFileSha = fileEntry.sha;
+                        existingFileSize = Number(fileEntry.size) || 0;
+                    }
+                    backupFolderExists = yearDirRes.data.some(item => item.type === 'dir' && item.name === config.backupFolderName);
+                }
+                return {
+                    headCommitSha,
+                    baseTreeSha,
+                    yearFolderExists,
+                    backupFolderExists,
+                    existingFileSha,
+                    existingFileSize
+                };
+            }
+
+            async function deploy(options = {}) {
+                if (isDeploying) {
+                    throw new Error('이미 웹저장이 진행 중입니다. 완료될 때까지 기다려 주세요.');
+                }
+                if (!options.fetchImpl && typeof navigator !== 'undefined' && navigator.onLine === false) {
+                    throw new Error('현재 오프라인 상태입니다. 인터넷 연결 후 다시 시도하거나 "💾 HTML로 저장"을 이용해 주세요.');
+                }
+
+                isDeploying = true;
+                const fetchImpl = options.fetchImpl || null;
+                const confirmBtn = document.getElementById('webSaveConfirmBtn');
+                const webSaveBtn = document.getElementById('webSaveHtmlBtn');
+                const resultLinks = document.getElementById('webSaveResultLinks');
+                if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = '⏳ 웹저장 배포 중…'; }
+                if (webSaveBtn) { webSaveBtn.disabled = true; webSaveBtn.textContent = '⏳ 웹저장 배포 중…'; }
+                if (resultLinks) { resultLinks.classList.remove('visible'); resultLinks.replaceChildren(); }
+                resetModalSteps();
+
+                // 오프라인 saveHTML()과 100% 동일 바이트의 정화된 문서 스냅샷 1회 생성
+                const snapshot = options.snapshot || cachedSnapshot || buildCleanHtmlSnapshot();
+                const target = resolveTarget(snapshot.titleText);
+                setPanelStatus('working', 'GitHub 인증 및 배포 준비 중…', target);
+
+                try {
+                    // STEP 1: 인증 토큰 확보 (암호화 PAT 볼트 + 간편키 '2026xlsb' 복원)
+                    setStepState('auth', 'active', '1. GitHub 암호화 PAT 보관함 인증 확인 중…');
+                    const token = await acquireGithubToken({
+                        token: options.token,
+                        allowPrompt: options.allowPrompt !== false,
+                        fetchImpl,
+                        vaultFetchImpl: options.vaultFetchImpl || null
+                    });
+                    if (!token) {
+                        setStepState('auth', 'error', '1. GitHub 인증이 취소되었거나 PAT가 필요합니다.');
+                        const patBox = document.getElementById('webSavePatBox');
+                        if (patBox) patBox.classList.add('visible');
+                        setPanelStatus('error', 'GitHub 인증 취소 · PAT 입력 후 재시도하세요.', target);
+                        return { ok: false, cancelled: true, reason: 'AUTH_CANCELLED' };
+                    }
+                    setStepState('auth', 'done', '1. GitHub 인증(PAT) 확인 완료');
+
+                    const repoBase = `/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}`;
+                    const maxAttempts = 2;
+                    let newBlobSha = '';
+                    let finalResult = null;
+
+                    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                        // STEP 2: 원격 연도 폴더 / 기존 파일 / 00 BAK 폴더 상태 확인
+                        setStepState('inspect', 'active', `2. 원격 폴더(${target.year}) 및 기존 회의록 확인 중…`);
+                        const remote = await inspectRemoteState({ target, token, fetchImpl });
+                        const modeLabel = remote.existingFileSha
+                            ? `기존 파일 감지(N차수) → ${target.backupDirPath}${remote.backupFolderExists ? '' : ' 자동 생성 +'} 백업 후 덮어쓰기`
+                            : (remote.yearFolderExists
+                                ? `신규 회의록 저장${remote.backupFolderExists ? '' : ` + ${target.backupDirPath} 자동 생성`}`
+                                : `신규 연도 폴더(${target.year}) 및 ${target.backupDirPath} 자동 생성`);
+                        setStepState('inspect', 'done', `2. 확인 완료: ${modeLabel}`);
+
+                        // STEP 3: 새 HTML Blob 업로드 (UTF-8 직전송) + 원자적 트리 구성
+                        setStepState('upload', 'active', '3. 무결성 HTML 업로드 및 백업 트리 구성 중…');
+                        if (!newBlobSha) {
+                            const blobRes = await githubRequest(`${repoBase}/git/blobs`, {
+                                method: 'POST',
+                                token,
+                                body: {
+                                    content: snapshot.htmlOutput,
+                                    encoding: 'utf-8'
+                                },
+                                fetchImpl
+                            });
+                            newBlobSha = blobRes.data?.sha;
+                            if (!newBlobSha) throw new Error('HTML Blob 업로드 응답에서 SHA를 받지 못했습니다.');
+                        }
+
+                        const timestamp = options.timestamp || formatCompactTimestamp(new Date());
+                        const treeEntries = [];
+                        let backupPathCreated = null;
+                        let createdBackupFolderInit = false;
+
+                        if (remote.existingFileSha) {
+                            // N차수 웹저장: 기존 원격 파일의 SHA를 그대로 00 BAK/파일명_YYYYMMDDHHMMSS.html에 백업 (재다운로드 0바이트, 100% 무손실 + 00 BAK 자동 생성)
+                            backupPathCreated = target.makeBackupPath(timestamp);
+                            treeEntries.push({
+                                path: backupPathCreated,
+                                mode: '100644',
+                                type: 'blob',
+                                sha: remote.existingFileSha
+                            });
+                        } else if (!remote.backupFolderExists) {
+                            // 신규 저장 시 해당년도 및 00 BAK 폴더가 없으면 함께 자동 생성
+                            createdBackupFolderInit = true;
+                            treeEntries.push({
+                                path: `${target.backupDirPath}/.gitkeep`,
+                                mode: '100644',
+                                type: 'blob',
+                                content: ''
+                            });
+                        }
+
+                        treeEntries.push({
+                            path: target.repoPath,
+                            mode: '100644',
+                            type: 'blob',
+                            sha: newBlobSha
+                        });
+
+                        const treeRes = await githubRequest(`${repoBase}/git/trees`, {
+                            method: 'POST',
+                            token,
+                            body: {
+                                base_tree: remote.baseTreeSha,
+                                tree: treeEntries
+                            },
+                            fetchImpl
+                        });
+                        const newTreeSha = treeRes.data?.sha;
+                        if (!newTreeSha) throw new Error('Git 트리 생성에 실패했습니다.');
+                        setStepState('upload', 'done', backupPathCreated
+                            ? `3. 백업(${backupPathCreated}) + 신규 HTML 트리 구성 완료`
+                            : `3. 신규 HTML${createdBackupFolderInit ? ` + ${target.backupDirPath} 폴더` : ''} 트리 구성 완료`);
+
+                        // STEP 4: 원자적 커밋 & 브랜치 Fast-Forward 업데이트
+                        setStepState('commit', 'active', '4. GitHub 커밋 및 배포 반영 중…');
+                        const commitMessage = backupPathCreated
+                            ? `[WebSave] N차 업데이트: ${target.repoPath} (백업: ${backupPathCreated})`
+                            : `[WebSave] 신규 배포: ${target.repoPath}`;
+                        const newCommitRes = await githubRequest(`${repoBase}/git/commits`, {
+                            method: 'POST',
+                            token,
+                            body: {
+                                message: commitMessage,
+                                tree: newTreeSha,
+                                parents: [remote.headCommitSha]
+                            },
+                            fetchImpl
+                        });
+                        const newCommitSha = newCommitRes.data?.sha;
+                        if (!newCommitSha) throw new Error('Git 커밋 생성에 실패했습니다.');
+
+                        try {
+                            await githubRequest(`${repoBase}/git/refs/heads/${encodeURIComponent(config.branch)}`, {
+                                method: 'PATCH',
+                                token,
+                                body: {
+                                    sha: newCommitSha,
+                                    force: false
+                                },
+                                fetchImpl
+                            });
+                        } catch (refErr) {
+                            if (refErr.status === 422 && attempt < maxAttempts) {
+                                continue;
+                            }
+                            throw refErr;
+                        }
+
+                        finalResult = {
+                            ok: true,
+                            mode: backupPathCreated ? 'update' : 'create',
+                            repo: `${config.owner}/${config.repo}`,
+                            branch: config.branch,
+                            repoPath: target.repoPath,
+                            backupPath: backupPathCreated,
+                            createdYearFolder: !remote.yearFolderExists,
+                            createdBackupFolder: !remote.backupFolderExists,
+                            commitSha: newCommitSha,
+                            blobSha: newBlobSha,
+                            previousSha: remote.existingFileSha,
+                            byteLength: new TextEncoder().encode(snapshot.htmlOutput).length,
+                            pagesUrl: target.pagesUrl,
+                            githubFileUrl: target.githubFileUrl,
+                            githubBackupUrl: backupPathCreated
+                                ? `https://github.com/${config.owner}/${config.repo}/blob/${encodeURIComponent(config.branch)}/${encodeRepoPath(backupPathCreated)}`
+                                : null
+                        };
+                        break;
+                    }
+
+                    setStepState('commit', 'done', `4. 커밋 및 GitHub 배포 완료 (${finalResult.commitSha.slice(0, 7)})`);
+                    const doneSummary = finalResult.backupPath
+                        ? `웹저장 완료 · 백업: ${finalResult.backupPath}`
+                        : `신규 웹저장 완료 · ${finalResult.repoPath}`;
+                    setPanelStatus('success', doneSummary, target);
+
+                    if (resultLinks) {
+                        resultLinks.replaceChildren();
+                        const summaryDiv = document.createElement('div');
+                        summaryDiv.style.fontWeight = '800';
+                        summaryDiv.style.color = '#15803d';
+                        summaryDiv.textContent = finalResult.backupPath
+                            ? `✅ N차 웹저장 완료 (기존본 백업: ${finalResult.backupPath})`
+                            : `✅ 신규 웹저장 완료 (${finalResult.repoPath})`;
+                        resultLinks.appendChild(summaryDiv);
+
+                        const pagesLink = document.createElement('a');
+                        pagesLink.href = finalResult.pagesUrl;
+                        pagesLink.target = '_blank';
+                        pagesLink.rel = 'noopener noreferrer';
+                        pagesLink.textContent = `🌐 배포 페이지 열기: ${finalResult.pagesUrl}`;
+                        resultLinks.appendChild(pagesLink);
+
+                        const ghLink = document.createElement('a');
+                        ghLink.href = finalResult.githubFileUrl;
+                        ghLink.target = '_blank';
+                        ghLink.rel = 'noopener noreferrer';
+                        ghLink.textContent = `📁 GitHub 파일 확인: ${finalResult.repoPath}`;
+                        resultLinks.appendChild(ghLink);
+
+                        if (finalResult.githubBackupUrl) {
+                            const bakLink = document.createElement('a');
+                            bakLink.href = finalResult.githubBackupUrl;
+                            bakLink.target = '_blank';
+                            bakLink.rel = 'noopener noreferrer';
+                            bakLink.textContent = `🗂️ 백업본 확인: ${finalResult.backupPath}`;
+                            resultLinks.appendChild(bakLink);
+                        }
+                        resultLinks.classList.add('visible');
+                    }
+
+                    showMessage(finalResult.backupPath
+                        ? `☁️ 웹저장 완료! 기존본은 '${target.backupDirPath}'에 자동 백업되었습니다.`
+                        : `☁️ GitHub 신규 웹저장이 완료되었습니다 (${finalResult.repoPath}).`, 'success', 4500);
+
+                    // 비차단(Non-blocking) 보너스: 주간 XLSB 작성 현황이 '미작성'이면 자동으로 '작성' 동기화 시도
+                    if (writtenDates && typeof writtenDates.add === 'function') {
+                        writtenDates.add(target.writtenKey);
+                    }
+                    if (!options.skipStatusSync && weeklyGithubStatusClient && typeof weeklyGithubStatusClient.setStatus === 'function') {
+                        const existingRow = weeklyGithubStatusRows.get(target.statusKey);
+                        if (!existingRow || existingRow.status !== '작성') {
+                            void weeklyGithubStatusClient.setStatus(target.statusKey, '작성').catch(() => {});
+                        }
+                    }
+
+                    return finalResult;
+                } catch (error) {
+                    const status = error?.status || 0;
+                    let userMsg = error?.message || 'GitHub 웹저장 중 오류가 발생했습니다.';
+                    if (status === 401) {
+                        clearStoredGithubToken('deploy-401');
+                        try { window.MeetingGithubCredential?.clearSessionToken?.(); } catch (_) {}
+                        userMsg = 'GitHub 인증(PAT)이 만료되었거나 유효하지 않습니다. 간편키로 다시 열거나 PAT를 입력해 주세요.';
+                        document.getElementById('webSavePatBox')?.classList.add('visible');
+                    } else if (status === 403 || status === 404) {
+                        clearStoredGithubToken('deploy-' + status);
+                        userMsg = `저장소(${config.owner}/${config.repo}) 쓰기 권한이 부족합니다. '${config.repo}' Contents(Read & Write) 권한이 있는 PAT를 입력해 주세요.`;
+                        document.getElementById('webSavePatBox')?.classList.add('visible');
+                    }
+                    const activeLi = document.querySelector('#webSaveStepsList li[data-step-state="active"]');
+                    if (activeLi) {
+                        activeLi.dataset.stepState = 'error';
+                        activeLi.textContent = `✕ ${userMsg}`;
+                    }
+                    setPanelStatus('error', userMsg, target);
+                    showMessage(`웹저장 실패: ${userMsg}`, 'error', 4800);
+                    if (options.rethrow) throw error;
+                    return { ok: false, error: userMsg, status };
+                } finally {
+                    isDeploying = false;
+                    cachedSnapshot = null;
+                    if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = '☁️ 지금 웹저장 실행'; }
+                    if (webSaveBtn) { webSaveBtn.disabled = false; webSaveBtn.textContent = '☁️ 웹저장 (GitHub 자동 배포)'; }
+                }
+            }
+
+            function openModal() {
+                // 모달을 열기 전에 먼저 편집 중인 상태·오버레이·메뉴를 정리하고 깨끗한 스냅샷을 생성
+                cachedSnapshot = buildCleanHtmlSnapshot();
+                const target = resolveTarget(cachedSnapshot.titleText);
+                const modal = document.getElementById('webSaveModal');
+                if (!modal) return;
+                const byteLen = new TextEncoder().encode(cachedSnapshot.htmlOutput).length;
+                const repoEl = document.getElementById('webSaveMetaRepo');
+                const pathEl = document.getElementById('webSaveMetaPath');
+                const bakEl = document.getElementById('webSaveMetaBackup');
+                const sizeEl = document.getElementById('webSaveMetaSize');
+                const linksEl = document.getElementById('webSaveResultLinks');
+                if (repoEl) repoEl.textContent = `${config.owner}/${config.repo} (branch: ${config.branch})`;
+                if (pathEl) pathEl.textContent = target.repoPath;
+                if (bakEl) bakEl.textContent = `기존 파일 존재 시 → ${target.backupDirPath}/${target.baseName}_YYYYMMDDHHMMSS${target.ext} 자동 백업 (폴더 미존재 시 자동 생성)`;
+                if (sizeEl) sizeEl.textContent = formatByteSize(byteLen);
+                if (linksEl) { linksEl.classList.remove('visible'); linksEl.replaceChildren(); }
+                resetModalSteps();
+                modal.classList.add('active');
+                modal.setAttribute('aria-hidden', 'false');
+                refreshTargetPreview();
+            }
+
+            function closeModal() {
+                if (isDeploying) {
+                    showMessage('웹저장 배포가 진행 중입니다. 잠시 후 닫아 주세요.', 'warning', 2000);
+                    return;
+                }
+                const modal = document.getElementById('webSaveModal');
+                if (modal) {
+                    modal.classList.remove('active');
+                    modal.setAttribute('aria-hidden', 'true');
+                }
+                cachedSnapshot = null;
+            }
+
+            function bindModalEvents() {
+                const modal = document.getElementById('webSaveModal');
+                const openBtn = document.getElementById('webSaveHtmlBtn');
+                if (openBtn && !openBtn.dataset.webSaveBound) {
+                    openBtn.dataset.webSaveBound = 'true';
+                    openBtn.addEventListener('click', openModal);
+                    document.getElementById('webSaveModalCloseBtn')?.addEventListener('click', closeModal);
+                    document.getElementById('webSaveCancelBtn')?.addEventListener('click', closeModal);
+                    document.getElementById('webSaveConfirmBtn')?.addEventListener('click', () => { void deploy(); });
+                    document.getElementById('webSaveTogglePatBtn')?.addEventListener('click', () => {
+                        const patBox = document.getElementById('webSavePatBox');
+                        if (!patBox) return;
+                        patBox.classList.toggle('visible');
+                        if (patBox.classList.contains('visible')) {
+                            document.getElementById('webSavePatInput')?.focus();
+                        }
+                    });
+                    modal?.addEventListener('click', (e) => {
+                        if (e.target === modal) closeModal();
+                    });
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && modal?.classList.contains('active') && !document.getElementById('webSavePatPrompt')) {
+                            e.preventDefault();
+                            closeModal();
+                        }
+                    });
+                }
+                refreshTargetPreview();
+            }
+
+            return {
+                getConfig: () => ({ ...config }),
+                configure: (partial = {}) => Object.assign(config, partial),
+                resolveTarget,
+                formatCompactTimestamp,
+                inspectRemoteState,
+                buildCleanHtmlSnapshot,
+                openModal,
+                closeModal,
+                deploy,
+                ensureToken: acquireGithubToken,
+                fetchRemoteTokenVault,
+                unlockTokenVault,
+                saveTokenVault,
+                requestTokenUnlock,
+                requestTokenSetup,
+                setCustomToken,
+                clearCustomToken,
+                clearStoredGithubToken,
+                refreshTargetPreview,
+                bindModalEvents
+            };
+        })();
+        window.WebSaveDeployer = WebSaveDeployer;
+        window.webSaveHTML = WebSaveDeployer.openModal;
+        // --- END: 완벽한 온라인 배포 자동화 ('☁️ 웹저장') ---
 
 
         function ensureHtml2PdfReady() {
@@ -13818,7 +15374,9 @@ function hideTextFormatToolbar() {
                 transferModalOverlay,
                 selectionBar, deletionBar,
                 compareModeToggleBtn, document.getElementById('compareControlsContainer'), comparisonViewOverlay,
-                miniToolbar, document.getElementById('imageCropOverlay')
+                miniToolbar, document.getElementById('imageCropOverlay'),
+                document.getElementById('webSaveModal'),
+                document.getElementById('webSavePatPrompt')
             ];
             const originalDisplays = elementsToHide.map(el => el ? el.style.display : null);
             elementsToHide.forEach(el => { if (el) el.style.display = 'none'; });
@@ -16286,6 +17844,7 @@ function hideTextFormatToolbar() {
             document.getElementById('manualDateUpdateButton').addEventListener('click', () => {
                 if (confirm('현재 문서의 제목과 기간을 현재 날짜 기준으로 덮어쓰시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
                     applyCurrentDateToDocument();
+                    window.WebSaveDeployer?.refreshTargetPreview?.();
                     showMessage('제목과 기간이 현재 날짜로 업데이트되었습니다.', 'success');
                 }
             });
@@ -16356,6 +17915,14 @@ function hideTextFormatToolbar() {
             document.getElementById('generateSummaryBtn').addEventListener('click', generateMeetingSummary);
 
             document.getElementById('saveHtmlBtn').addEventListener('click', saveHTML);
+            if (window.WebSaveDeployer && typeof window.WebSaveDeployer.bindModalEvents === 'function') {
+                window.WebSaveDeployer.bindModalEvents();
+            }
+            if (pageTitle) {
+                pageTitle.addEventListener('blur', () => {
+                    window.WebSaveDeployer?.refreshTargetPreview?.();
+                });
+            }
             document.getElementById('printPdfBtn').addEventListener('click', printPDF);
             document.getElementById('elementBgColor').addEventListener('input', (e) => applySelectedElementStyle('backgroundColor', e.target.value));
             document.getElementById('elementTextColor').addEventListener('input', (e) => applySelectedElementStyle('color', e.target.value));
@@ -19561,14 +21128,14 @@ function ensureImageWrapperStructure(wrapper) {
             });
 
             document.addEventListener('pointerdown', e => {
-                if (e.target.closest?.('#openFocusedEditorBtn, #mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #focusedEditorOverlay, .annotation-settings-modal, .zoom-editor-toolbar')) return;
+                if (e.target.closest?.('#openFocusedEditorBtn, #mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #focusedEditorOverlay, .annotation-settings-modal, .zoom-editor-toolbar, #webSaveModal, #webSavePatPrompt')) return;
                 const target = getFocusedEditableTarget(e.target);
                 if (target && !overlay?.classList.contains('active')) showFocusedEditorButton(target);
             }, true);
 
             // 모바일 터치 환경 즉각 감지 (touchstart 및 touchend)
             document.addEventListener('touchstart', e => {
-                if (e.target.closest?.('#openFocusedEditorBtn, #mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #focusedEditorOverlay, .annotation-settings-modal, .zoom-editor-toolbar')) return;
+                if (e.target.closest?.('#openFocusedEditorBtn, #mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #focusedEditorOverlay, .annotation-settings-modal, .zoom-editor-toolbar, #webSaveModal, #webSavePatPrompt')) return;
                 const target = getFocusedEditableTarget(e.target);
                 if (target && !overlay?.classList.contains('active')) {
                     showFocusedEditorButton(target);
@@ -19576,7 +21143,7 @@ function ensureImageWrapperStructure(wrapper) {
             }, { passive: true });
 
             document.addEventListener('touchend', e => {
-                if (e.target.closest?.('#openFocusedEditorBtn, #mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #focusedEditorOverlay, .annotation-settings-modal, .zoom-editor-toolbar')) return;
+                if (e.target.closest?.('#openFocusedEditorBtn, #mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #focusedEditorOverlay, .annotation-settings-modal, .zoom-editor-toolbar, #webSaveModal, #webSavePatPrompt')) return;
                 const target = getFocusedEditableTarget(e.target);
                 if (target && !overlay?.classList.contains('active')) {
                     showFocusedEditorButton(target);
@@ -19584,7 +21151,7 @@ function ensureImageWrapperStructure(wrapper) {
             }, { passive: true });
 
             document.addEventListener('mousedown', e => {
-                if (e.target.closest('#openFocusedEditorBtn, #mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #focusedEditorOverlay, .annotation-settings-modal, .zoom-editor-toolbar')) return;
+                if (e.target.closest('#openFocusedEditorBtn, #mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #focusedEditorOverlay, .annotation-settings-modal, .zoom-editor-toolbar, #webSaveModal, #webSavePatPrompt')) return;
                 const target = getFocusedEditableTarget(e.target);
                 if (!target && !getFocusedEditableTarget(document.activeElement)) {
                     hideFocusedEditorButton();
@@ -19659,7 +21226,7 @@ function ensureImageWrapperStructure(wrapper) {
                     return null;
                 }
 
-                if (el.closest('#mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #openFocusedEditorBtn, .zoom-editor-toolbar, #imageZoomOverlay, #selectionZoomOverlay, #annotationSettingsPanel')) return null;
+                if (el.closest('#mobileKeyboardToggleBtn, #focusedEditorKeyboardBtn, #openFocusedEditorBtn, .zoom-editor-toolbar, #imageZoomOverlay, #selectionZoomOverlay, #annotationSettingsPanel, #webSaveModal, #webSavePatPrompt')) return null;
                 if (el.matches && el.matches('input[type="button"], input[type="submit"], input[type="checkbox"], input[type="radio"], input[type="file"], input[type="color"]')) return null;
                 if (el.matches && el.matches('input, textarea')) return el;
                 return getFocusedEditableTarget(el);
