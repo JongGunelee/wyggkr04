@@ -13889,6 +13889,19 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
 
         const TEMPLATE_URL_WEEKLY = 'https://jonggunelee.github.io/wyggkr03/주간 회의.html';
         const TEMPLATE_URL_MONTHLY = 'https://jonggunelee.github.io/wyggkr/월간 회의.html';
+        // 🛡️ 3-Way 페일오버 소스 (GitHub Pages → GitHub Raw → jsDelivr CDN)
+        const TEMPLATE_URL_CANDIDATES = Object.freeze({
+            weekly: Object.freeze([
+                TEMPLATE_URL_WEEKLY,
+                'https://raw.githubusercontent.com/JongGunelee/wyggkr03/main/주간 회의.html',
+                'https://cdn.jsdelivr.net/gh/JongGunelee/wyggkr03@main/주간 회의.html'
+            ]),
+            monthly: Object.freeze([
+                TEMPLATE_URL_MONTHLY,
+                'https://raw.githubusercontent.com/JongGunelee/wyggkr/main/월간 회의.html',
+                'https://cdn.jsdelivr.net/gh/JongGunelee/wyggkr@main/월간 회의.html'
+            ])
+        });
 
         const URL_DEFAULT_CONFIG = {
             configMode: 'url',
@@ -16993,8 +17006,17 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
         function isMobilePortraitViewport() {
             return Boolean(MOBILE_PORTRAIT_MQL?.matches);
         }
+        // 플레이스홀더는 '정확히 일치'할 때만 미준비로 판정한다.
+        // (실제 템플릿 코드 내부에 '로딩 실패' 같은 문자열이 포함되어도 정상 템플릿으로 인정해야 함)
+        const TEMPLATE_PLACEHOLDERS = new Set([
+            '(주간 회의 템플릿 로딩 중...)',
+            '(월간 회의 템플릿 로딩 중...)'
+        ]);
         function isTemplateReady(html) {
-            return Boolean(html && html.trim() && !html.includes('로딩 중') && !html.includes('로딩 실패'));
+            const text = String(html || '').trim();
+            if (!text || TEMPLATE_PLACEHOLDERS.has(text)) return false;
+            if (/<title>\s*Page not found\b/i.test(text)) return false;
+            return /<html[\s>]/i.test(text) && /<\/html>/i.test(text);
         }
         function updateTemplateFieldStatus(type) {
             const isMonthly = type === 'monthly';
@@ -17016,9 +17038,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             if (inFlightTemplateLoads.has(normalizedType)) {
                 return inFlightTemplateLoads.get(normalizedType);
             }
-            const url = normalizedType === 'monthly' ? TEMPLATE_URL_MONTHLY : TEMPLATE_URL_WEEKLY;
+            const candidateUrls = TEMPLATE_URL_CANDIDATES[normalizedType]
+                || [normalizedType === 'monthly' ? TEMPLATE_URL_MONTHLY : TEMPLATE_URL_WEEKLY];
             const label = normalizedType === 'monthly' ? '월간' : '주간';
-            const promise = fetchTemplateFromURL(url, label).then(html => {
+            const promise = fetchTemplateFromURL(candidateUrls, label).then(html => {
                 if (isTemplateReady(html)) {
                     if (normalizedType === 'monthly') {
                         MONTHLY_TEMPLATE_HTML = html;
@@ -17191,6 +17214,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                     () => 'const prevMonthDate = new Date(currentYear, currentMonth - 2, 1);'
                 );
                 html = html.replace(
+                    /const\s+dateStr\s*=\s*`\$\{year\}-\$\{month\}-\$\{day\}`;([\s\S]{0,160}?info-date)/,
+                    (_, tail) => "const dateStr = (window.__PRESET_MEETING_DATE__ && window.__PRESET_MEETING_DATE__.shortDateStr) || `${year}-${month}-${day}`;" + tail
+                );
+                html = html.replace(
                     /document\.getElementById\(\s*['"]info-date['"]\s*\)\.textContent\s*=\s*dateStr;/,
                     () => "document.getElementById('info-date').textContent = (window.__PRESET_MEETING_DATE__ && window.__PRESET_MEETING_DATE__.shortDateStr) || dateStr;"
                 );
@@ -17288,8 +17315,14 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 : (type === 'monthly' ? MONTHLY_TEMPLATE_HTML : WEEKLY_TEMPLATE_HTML);
 
             if (!isTemplateReady(rawTemplate)) {
+                const statusEl = document.getElementById('dataSyncStatus');
+                const prevStatusText = statusEl?.textContent || '';
+                const prevStatusState = statusEl?.dataset?.state || 'ready';
                 updateDataSyncStatus(`${type === 'monthly' ? '월간' : '주간'} 회의록 템플릿을 불러오는 중…`, 'waiting');
                 rawTemplate = await ensureMeetingTemplateLoaded(type);
+                if (prevStatusText) {
+                    updateDataSyncStatus(prevStatusText, prevStatusState);
+                }
             }
 
             if (!isTemplateReady(rawTemplate)) {
@@ -17701,6 +17734,10 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
                 const reader = new FileReader();
                 reader.onload = readEvent => {
                     const content = String(readEvent.target?.result || '');
+                    if (!isTemplateReady(content)) {
+                        alert(`선택한 파일(${file.name})이 올바른 HTML 회의 템플릿 형식이 아닙니다.`);
+                        return;
+                    }
                     if (type === 'weekly') WEEKLY_TEMPLATE_HTML = content;
                     else MONTHLY_TEMPLATE_HTML = content;
                     const ta = document.getElementById(type === 'weekly' ? 'templateWeekly' : 'templateMonthly');
@@ -18435,12 +18472,38 @@ window.MEETING_DATA_BOOTSTRAP=Object.freeze({
             alert(`로컬 XLSB ${Object.keys(selected).length}개를 적용하고 동일 이력 ID ${restored}건을 GitHub 동기화 대기열에 복구했습니다.${conflicts ? `\n원격 차이 ${conflicts}건은 덮어쓰지 않고 검토 대기 상태로 보존했습니다.` : ''}`);
         }
 
-        async function fetchTemplateFromURL(url, type) {
-            try {
-                const response = await fetch(url, { cache: "no-store" });
-                if (!response.ok) { console.warn(`'${type}' 템플릿 로딩 안내: ${response.status}. URL: ${url}`); return ``; }
-                return await response.text();
-            } catch (error) { console.warn(`'${type}' 템플릿 로딩 중 네트워크 안내. URL: ${url}`, error); return ``; }
+        async function fetchTemplateFromURL(urlOrUrls, type) {
+            const candidates = (Array.isArray(urlOrUrls) ? urlOrUrls : [urlOrUrls]).filter(Boolean);
+            for (const rawUrl of candidates) {
+                const safeUrl = encodeURI(String(rawUrl));
+                let controller = null;
+                let timeoutId = null;
+                try {
+                    if (typeof AbortController === 'function') {
+                        controller = new AbortController();
+                        timeoutId = setTimeout(() => controller.abort(), 12000);
+                    }
+                    const response = await fetch(safeUrl, {
+                        cache: 'no-store',
+                        signal: controller?.signal
+                    });
+                    if (!response.ok) {
+                        console.warn(`'${type}' 템플릿 로딩 실패(${response.status}), 다음 백업 소스로 전환 시도: ${safeUrl}`);
+                        continue;
+                    }
+                    const text = await response.text();
+                    if (isTemplateReady(text)) {
+                        return text;
+                    }
+                    console.warn(`'${type}' 템플릿 응답 검증 실패(비정상 HTML), 다음 백업 소스로 전환 시도: ${safeUrl}`);
+                } catch (error) {
+                    console.warn(`'${type}' 템플릿 네트워크 오류, 다음 백업 소스로 전환 시도: ${safeUrl}`, error);
+                } finally {
+                    if (timeoutId) clearTimeout(timeoutId);
+                }
+            }
+            console.warn(`'${type}' 템플릿의 모든 소스(${candidates.length}개) 로딩에 실패했습니다.`);
+            return ``;
         }
 
         function appendHighlightedText(container, text, regex) {
